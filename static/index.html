@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f0f4f9">
+<title>MailHub · 邮箱中枢</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>📬</text></svg>">
+<link rel="preload" href="/vendor/outfit-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/vendor/outfit-700.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/static/style.css?v=9">
+</head>
+<body>
+
+<!-- 登录层：默认可见（JS 校验会话后再隐藏），避免首屏白屏 -->
+<div id="login-view" class="login-wrap">
+  <div class="login-card">
+    <div class="login-logo">
+      <svg viewBox="0 0 24 24" width="52" height="52" fill="none" stroke="url(#lg1)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <defs><linearGradient id="lg1" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#4285f4"/><stop offset="55%" stop-color="#9b72cb"/><stop offset="100%" stop-color="#d96570"/>
+        </linearGradient></defs>
+        <rect x="2.5" y="5" width="19" height="14" rx="3.5"/><path d="m3.5 7.5 7.3 5.2a2 2 0 0 0 2.4 0l7.3-5.2"/>
+      </svg>
+    </div>
+    <h1>MailHub</h1>
+    <p class="login-sub">多邮箱聚合 · 验证码提取 · 三省六部自动分拣</p>
+    <form id="login-form">
+      <input id="login-password" type="password" placeholder="管理密码" autocomplete="current-password" required>
+      <button type="submit" class="btn primary block">进入</button>
+    </form>
+    <p id="login-error" class="login-error"></p>
+  </div>
+</div>
+
+<!-- 应用外壳 -->
+<div id="app" class="app hidden">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-icon">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="url(#bg1)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <defs><linearGradient id="bg1" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#4285f4"/><stop offset="55%" stop-color="#9b72cb"/><stop offset="100%" stop-color="#d96570"/>
+          </linearGradient></defs>
+          <rect x="2.5" y="5" width="19" height="14" rx="3.5"/><path d="m3.5 7.5 7.3 5.2a2 2 0 0 0 2.4 0l7.3-5.2"/>
+        </svg>
+      </span>
+      <span class="brand-text">MailHub</span>
+    </div>
+    <nav>
+      <a href="#/dashboard" data-view="dashboard">
+        <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7.5" height="9" rx="2"/><rect x="13.5" y="3" width="7.5" height="5.5" rx="2"/><rect x="3" y="15" width="7.5" height="6" rx="2"/><rect x="13.5" y="11.5" width="7.5" height="9.5" rx="2"/></svg></span>
+        <span>仪表盘</span></a>
+      <a href="#/inbox" data-view="inbox">
+        <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4.5" width="19" height="15" rx="3"/><path d="m3.5 7 7.3 5.2a2 2 0 0 0 2.4 0L20.5 7"/></svg></span>
+        <span>收件箱</span><b id="nav-unread" class="nav-badge hidden"></b></a>
+      <a href="#/otp" data-view="otp">
+        <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="12" r="4.2"/><path d="M12.2 12H21"/><path d="M17.5 12v3.4"/><path d="M20.4 12v2.4"/></svg></span>
+        <span>验证码</span></a>
+      <a href="#/safety" data-view="safety">
+        <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4.5 6v6c0 4.4 3.1 7.9 7.5 9 4.4-1.1 7.5-4.6 7.5-9V6Z"/><path d="m9.2 12 2 2 3.6-3.8"/></svg></span>
+        <span>安全中心</span><b id="nav-review" class="nav-badge hidden"></b></a>
+      <a href="#/accounts" data-view="accounts">
+        <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg></span>
+        <span>账户</span></a>
+      <a href="#/settings" data-view="settings">
+        <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 14.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.12a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.12A1.7 1.7 0 0 0 4.68 8.6a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.08A1.7 1.7 0 0 0 10.25 2.8V3a2 2 0 1 1 4 0v.12a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.08a1.7 1.7 0 0 0 1.56 1.03H21a2 2 0 1 1 0 4h-.12a1.7 1.7 0 0 0-1.48 1.35Z"/></svg></span>
+        <span>设置</span></a>
+    </nav>
+    <div class="sidebar-foot">
+      <button id="btn-sync-all" class="btn ghost block" title="立即同步全部账户">↻ 全部同步</button>
+      <button id="btn-logout" class="btn ghost block">退出登录</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div id="view-dashboard" class="view"></div>
+    <div id="view-inbox" class="view"></div>
+    <div id="view-otp" class="view"></div>
+    <div id="view-safety" class="view"></div>
+    <div id="view-accounts" class="view"></div>
+    <div id="view-settings" class="view"></div>
+  </main>
+</div>
+
+<!-- 邮件详情抽屉 -->
+<div id="drawer-mask" class="drawer-mask hidden"></div>
+<div id="drawer" class="drawer hidden"></div>
+
+<!-- 通用弹窗 -->
+<div id="modal-mask" class="modal-mask hidden">
+  <div id="modal" class="modal"></div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="/vendor/echarts.min.js"></script>
+<script src="/static/app.js?v=10"></script>
+<script src="/static/oauth.js?v=3"></script>
+</body>
+</html>
