@@ -134,6 +134,36 @@ def test_partial_sources_are_never_mixed(isolated_db, monkeypatch):
     assert oauth_auth._browser_config("gmail") is None
 
 
+def test_outlook_private_google_identity_is_rejected(isolated_db, monkeypatch):
+    monkeypatch.delenv("GOOGLE_REDIRECT_URI", raising=False)
+    monkeypatch.setenv("GOOGLE_CLIENT_ID", oauth_auth._OUTLOOK_GOOGLE_CLIENT_ID)
+    monkeypatch.setenv("GOOGLE_CLIENT_SECRET", "copied-secret")
+    assert oauth_auth._browser_config("gmail") is None
+    info = oauth_auth.browser_config_info("gmail")
+    assert info["configured"] is False
+    assert "Outlook 私有" in info["configuration_error"]
+
+    monkeypatch.delenv("GOOGLE_CLIENT_ID", raising=False)
+    monkeypatch.delenv("GOOGLE_CLIENT_SECRET", raising=False)
+    with pytest.raises(mailhub_app.HTTPException, match="Outlook 私有"):
+        asyncio.run(mailhub_app.put_settings(mailhub_app.SettingsBody(
+            google_oauth_client_id=oauth_auth._OUTLOOK_GOOGLE_CLIENT_ID,
+            google_oauth_client_secret="copied-secret",
+        )))
+    assert db.get_setting("google_oauth_client_id", "") == ""
+
+
+def test_outlook_oauth_relay_redirect_is_rejected(isolated_db, monkeypatch):
+    monkeypatch.setenv("GOOGLE_CLIENT_ID", "mailhub-client")
+    monkeypatch.setenv("GOOGLE_CLIENT_SECRET", "mailhub-secret")
+    monkeypatch.setenv(
+        "GMAIL_REDIRECT_URI",
+        "https://olmoauth.outlook.com/api/googleoauthredir/outlook-oauth://private",
+    )
+    assert oauth_auth._browser_config("gmail") is None
+    assert "中转回调" in oauth_auth.browser_config_info("gmail")["configuration_error"]
+
+
 def test_partial_environment_does_not_fall_back_to_stored_config(isolated_db, monkeypatch):
     db.set_setting("microsoft_oauth_client_id", "stored-client")
     db.set_setting("microsoft_oauth_client_secret_enc", encrypt("stored-secret"))
@@ -227,9 +257,16 @@ def test_browser_start_contains_state_and_pkce_but_no_secret(isolated_db, monkey
     query = parse_qs(parsed.query)
     assert parsed.netloc == "accounts.google.com"
     assert query["client_id"] == ["google-client"]
+    assert query["response_type"] == ["code"]
     assert query["code_challenge_method"] == ["S256"]
     assert query["state"][0]
     assert query["code_challenge"][0]
+    assert query["access_type"] == ["offline"]
+    assert "consent" in query["prompt"][0]
+    assert query["scope"] == ["https://mail.google.com/"]
+    assert "calendar" not in query["scope"][0]
+    assert "contacts" not in query["scope"][0]
+    assert "drive" not in query["scope"][0]
     assert "client_secret" not in query
     assert "google-secret" not in result["authorization_url"]
 

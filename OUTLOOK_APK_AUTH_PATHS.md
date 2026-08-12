@@ -4,9 +4,11 @@
 
 ## Gmail
 
-调用链为 `GoogleAuthDelegate` -> `VerifyWebAuthResultValidation` -> `RedeemAuthCodeGoogleDelegate` -> `GoogleFetchProfileDelegate`。授权回调校验后以 authorization code 和 PKCE verifier 换取 access/refresh token，再取得 Google profile。MailHub 对应实现使用 Google 官方授权端点、`https://mail.google.com/` scope、PKCE S256、离线访问和 IMAP XOAUTH2。
+调用链为 `GoogleAuthDelegate` -> `VerifyWebAuthResultValidation` -> `RedeemAuthCodeGoogleDelegate` -> `GoogleFetchProfileDelegate`。`AuthHelper` 使用 Google 官方授权端点 `https://accounts.google.com/o/oauth2/v2/auth`，请求 `response_type=code`、PKCE S256、`access_type=offline` 和 `prompt=consent`。APK 的 scope 为 `profile email https://mail.google.com/`，并额外申请 Calendar、Contacts、Birthday 和 Drive File 权限。
 
-Outlook APK 的 code 兑换实际经过 Microsoft 自有后端；该私有后端不适合复用。MailHub 改为使用部署者自己的 Google OAuth Web 客户端直接调用 Google token endpoint。
+APK 内置 Google Client ID `445112211283-sk04feuogpcjd3dq8eshrdnr4bpm1sfk.apps.googleusercontent.com`。回调先进入 `https://olmoauth.outlook.com/api/googleoauthredir/`，再跳转到绑定 Outlook Android 包名的 `outlook-oauth://.../android/google/oauth2redirect`。`RedeemAuthCodeGoogleDelegate` 调用 `redeemAuthCodeFromBackend`，证明 authorization code 由 Microsoft 自有后端兑换。该 Client ID、Android 回调和后端信任关系绑定 Outlook，不能移植到 MailHub 网站。
+
+MailHub 使用等价的公开标准流程，但采用部署者自己的 Google OAuth Web 客户端，直接调用 `https://oauth2.googleapis.com/token`，并只申请邮箱所需的 `https://mail.google.com/`。取得 access/refresh token 后以 IMAP XOAUTH2 验证真实邮箱身份，因此用户不需要 Gmail 应用专用密码。代码会拒绝 Outlook 私有 Client ID 和 `olmoauth.outlook.com` 回调。
 
 ## Outlook / Hotmail
 

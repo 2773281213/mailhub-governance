@@ -853,6 +853,7 @@ async def get_settings():
         "google_oauth_client_id": google_oauth["client_id"],
         "google_oauth_client_secret_set": google_oauth["secret_set"],
         "google_oauth_callback_url": google_oauth["callback_url"],
+        "google_oauth_configuration_error": google_oauth["configuration_error"],
         "microsoft_oauth_configured": microsoft_oauth["configured"],
         "microsoft_oauth_device_configured": bool(oauth_auth._device_client_id()),
         "microsoft_oauth_source": microsoft_oauth["source"],
@@ -870,6 +871,9 @@ def _save_oauth_settings(body: SettingsBody, *, prefix: str, provider: str, labe
         new_id = client_id.strip()
         if len(new_id) > 500:
             raise HTTPException(status_code=400, detail=f"{label} Client ID 过长")
+        identity_error = oauth_auth.oauth_client_identity_error(provider, new_id)
+        if new_id and identity_error:
+            raise HTTPException(status_code=400, detail=identity_error)
         old_id = get_setting(f"{prefix}_oauth_client_id", "").strip()
         set_setting(f"{prefix}_oauth_client_id", new_id)
         if old_id and old_id != new_id:

@@ -10,7 +10,7 @@ import secrets
 import sqlite3
 import threading
 import time
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 
 import httpx
 from fastapi import APIRouter, HTTPException
@@ -29,6 +29,10 @@ _PUBLIC_URL = "https://email.11451405.xyz"
 _BROWSER_TTL = 600
 _NETEASE_TOKEN_TTL = 3650 * 86400
 _OUTLOOK_NETEASE_APP_ID = "rjg1fubwqzie5unhx6"
+_OUTLOOK_GOOGLE_CLIENT_ID = (
+    "445112211283-sk04feuogpcjd3dq8eshrdnr4bpm1sfk.apps.googleusercontent.com"
+)
+_OUTLOOK_OAUTH_HOST = "olmoauth.outlook.com"
 _refresh_locks: dict[int, threading.Lock] = {}
 _refresh_locks_guard = threading.Lock()
 
@@ -224,6 +228,17 @@ def detect_provider(email_addr: str) -> str:
     return "custom"
 
 
+def oauth_client_identity_error(provider: str, client_id: str) -> str:
+    """Reject OAuth registrations that are bound to Outlook's app or backend."""
+    normalized_id = client_id.strip().lower()
+    if provider == "gmail" and normalized_id == _OUTLOOK_GOOGLE_CLIENT_ID.lower():
+        return "不能使用 Outlook 私有 Google Client ID，请创建本项目自己的 Google OAuth Web 客户端"
+    redirect_host = (urlparse(_redirect_uri(provider)).hostname or "").lower()
+    if redirect_host == _OUTLOOK_OAUTH_HOST:
+        return "不能使用 Outlook 的 OAuth 中转回调，请将回调地址登记为本项目域名"
+    return ""
+
+
 def _browser_config(provider: str) -> dict | None:
     spec = _OAUTH_SPECS.get(provider)
     if not spec:
@@ -231,13 +246,13 @@ def _browser_config(provider: str) -> dict | None:
     env_id = os.environ.get(spec["client_id_env"], "").strip()
     env_secret = os.environ.get(spec["client_secret_env"], "").strip()
     if env_id or env_secret:
-        if env_id and env_secret:
+        if env_id and env_secret and not oauth_client_identity_error(provider, env_id):
             return {**spec, "client_id": env_id, "client_secret": env_secret, "source": "environment"}
         return None
     prefix = spec["settings_prefix"]
     stored_id = get_setting(f"{prefix}_oauth_client_id", "").strip()
     stored_secret = decrypt(get_setting(f"{prefix}_oauth_client_secret_enc", ""))
-    if stored_id and stored_secret:
+    if stored_id and stored_secret and not oauth_client_identity_error(provider, stored_id):
         return {**spec, "client_id": stored_id, "client_secret": stored_secret, "source": "settings"}
     return None
 
@@ -275,12 +290,14 @@ def browser_config_info(provider: str) -> dict:
     stored_id = get_setting(f"{prefix}_oauth_client_id", "").strip()
     stored_secret = decrypt(get_setting(f"{prefix}_oauth_client_secret_enc", ""))
     selected_source = "environment" if env_id or env_secret else ("settings" if stored_id or stored_secret else "")
+    selected_id = env_id if selected_source == "environment" else stored_id
     return {
         "configured": config is not None,
         "source": selected_source,
-        "client_id": env_id if selected_source == "environment" else stored_id,
+        "client_id": selected_id,
         "secret_set": bool(env_secret) if selected_source == "environment" else bool(stored_secret),
         "callback_url": _redirect_uri(provider),
+        "configuration_error": oauth_client_identity_error(provider, selected_id),
     }
 
 

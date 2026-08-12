@@ -56,7 +56,9 @@ GOOGLE_CLIENT_SECRET=<OAuth 客户端密钥>
 
 也可以在 MailHub 的“设置 → Google 登录导入”中填写 Client ID 和 Client Secret。密钥使用 `MAILHUB_SECRET` 派生的 Fernet 密钥加密保存，设置接口只返回“是否已设置”，不会回显密钥。环境变量和设置页的字段不会交叉拼接，避免客户端 ID 与密钥错配。
 
-Google IMAP XOAUTH2 使用 `https://mail.google.com/` 范围。该范围属于受限范围；面向非测试用户公开使用时，Google 可能要求应用验证和额外安全评估。未完成配置时，界面自动回退到应用专用密码。
+Google IMAP XOAUTH2 使用 `https://mail.google.com/` 范围。配置完成后，用户通过 Google 网页同意授权即可导入 Gmail，不需要应用专用密码。该范围属于受限范围；面向非测试用户公开使用时，Google 可能要求应用验证和额外安全评估。测试阶段应在 OAuth 同意屏幕中添加测试用户。未完成配置时，界面自动回退到应用专用密码。
+
+Outlook APK 也使用 OAuth + PKCE，但其 Client ID、Android 包名/签名、`olmoauth.outlook.com` 回调和 Microsoft token 兑换后端构成一组私有注册。MailHub 会明确拒绝该 Client ID 和回调；复制它们既不能把授权结果送回 MailHub，也会把 authorization code 交给 Microsoft 控制的服务。
 
 ## QQ 与网易 163 / 126 / yeah.net
 

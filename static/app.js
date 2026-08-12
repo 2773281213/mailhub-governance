@@ -967,9 +967,10 @@ async function renderSettings() {
         <div class="card" style="margin-bottom:14px">
           <h3>${ico("key")} Google 登录导入</h3>
           <div class="provider-help">
-            在 Google Cloud 创建 OAuth Web 客户端，回调地址必须填写下方地址。配置完成后，添加 Gmail 时会显示“使用 Google 登录”。
+            这是与 Outlook App 相同的 OAuth + PKCE + XOAUTH2 方式。配置完成后直接使用 Google 网页授权，无需 Gmail 应用专用密码。必须创建本项目自己的 Web 客户端，Outlook 的 Client ID 和微软回调不能移植。
             <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">打开 Google Cloud 凭据页面</a>
           </div>
+          ${s.google_oauth_configuration_error ? `<div class="provider-help" style="color:var(--danger)">${esc(s.google_oauth_configuration_error)}</div>` : ""}
           <div class="set-row"><div class="l">状态<small>${s.google_oauth_configured ? "已启用登录式导入" : "尚未配置完整客户端"}</small></div>
             <span class="badge ${s.google_oauth_configured ? "cat-通知" : "cat-未分类"}">${s.google_oauth_source === "environment" ? "环境变量" : (s.google_oauth_configured ? "设置页" : "未启用")}</span></div>
           <div class="set-row"><div class="l">回调地址<small>复制到 Google OAuth 客户端的已获授权重定向 URI</small></div>
