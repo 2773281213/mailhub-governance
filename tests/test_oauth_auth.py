@@ -75,7 +75,7 @@ def test_public_provider_metadata_never_exposes_oauth_credentials(isolated_db, m
     assert "must-not-leak" not in rendered
     assert "visible-only-to-server" not in rendered
     assert result["gmail"]["oauth"]["browser"] is True
-    assert result["outlook"]["oauth"]["device"] is True
+    assert result["outlook"]["oauth"]["device"] is False
     assert result["qq"]["setup_url"].startswith("https://mail.qq.com/")
     assert result["163"]["setup_url"].startswith("https://mail.163.com/")
     assert result["163"]["guided_auth"] == "netease_app_password"
@@ -132,6 +132,58 @@ def test_partial_sources_are_never_mixed(isolated_db, monkeypatch):
     monkeypatch.setenv("GOOGLE_CLIENT_ID", "env-client")
     monkeypatch.delenv("GOOGLE_CLIENT_SECRET", raising=False)
     assert oauth_auth._browser_config("gmail") is None
+
+
+def test_partial_environment_does_not_fall_back_to_stored_config(isolated_db, monkeypatch):
+    db.set_setting("microsoft_oauth_client_id", "stored-client")
+    db.set_setting("microsoft_oauth_client_secret_enc", encrypt("stored-secret"))
+    monkeypatch.setenv("MICROSOFT_CLIENT_ID", "environment-client")
+    monkeypatch.delenv("MICROSOFT_CLIENT_SECRET", raising=False)
+    assert oauth_auth._browser_config("outlook") is None
+    info = oauth_auth.browser_config_info("outlook")
+    assert info["configured"] is False
+    assert info["source"] == "environment"
+    assert info["client_id"] == "environment-client"
+    assert info["secret_set"] is False
+
+
+def test_microsoft_settings_enable_browser_and_device_flows(isolated_db, monkeypatch):
+    monkeypatch.delenv("MICROSOFT_CLIENT_ID", raising=False)
+    monkeypatch.delenv("MICROSOFT_CLIENT_SECRET", raising=False)
+    asyncio.run(mailhub_app.put_settings(mailhub_app.SettingsBody(
+        microsoft_oauth_client_id="mailhub-client",
+        microsoft_oauth_client_secret="mailhub-secret",
+    )))
+    assert decrypt(db.get_setting("microsoft_oauth_client_secret_enc")) == "mailhub-secret"
+    assert oauth_auth._device_client_id() == "mailhub-client"
+    config = oauth_auth._browser_config("outlook")
+    assert config["client_id"] == "mailhub-client"
+    assert config["client_secret"] == "mailhub-secret"
+    public = asyncio.run(mailhub_app.get_settings())
+    assert public["microsoft_oauth_configured"] is True
+    assert public["microsoft_oauth_device_configured"] is True
+    assert "mailhub-secret" not in repr(public)
+
+
+def test_microsoft_client_id_only_enables_device_flow(isolated_db, monkeypatch):
+    monkeypatch.delenv("MICROSOFT_CLIENT_ID", raising=False)
+    monkeypatch.delenv("MICROSOFT_CLIENT_SECRET", raising=False)
+    db.set_setting("microsoft_oauth_client_id", "public-mailhub-client")
+    assert oauth_auth._browser_config("outlook") is None
+    assert oauth_auth._device_client_id() == "public-mailhub-client"
+    providers = oauth_auth.public_providers()
+    assert providers["outlook"]["oauth"] == {"browser": False, "device": True}
+
+
+def test_outlook_new_login_has_no_hardcoded_client_fallback(isolated_db, monkeypatch):
+    monkeypatch.delenv("MICROSOFT_CLIENT_ID", raising=False)
+    monkeypatch.delenv("MICROSOFT_CLIENT_SECRET", raising=False)
+    assert oauth_auth._device_client_id() == ""
+    assert oauth_auth.public_providers()["outlook"]["oauth"]["device"] is False
+    with pytest.raises(mailhub_app.HTTPException, match="Microsoft OAuth 客户端未配置"):
+        asyncio.run(oauth_auth.outlook_device_start(oauth_auth.OAuthStartBody(
+            provider="outlook", email="user@outlook.com",
+        )))
 
 
 def test_google_settings_encrypt_secret_and_never_return_it(isolated_db, monkeypatch):
@@ -290,6 +342,7 @@ def test_device_start_keeps_device_code_server_side(isolated_db, monkeypatch):
             }
 
     monkeypatch.setattr(oauth_auth.httpx, "post", lambda *args, **kwargs: Response())
+    monkeypatch.setenv("MICROSOFT_CLIENT_ID", "mailhub-public-client")
     result = asyncio.run(oauth_auth.outlook_device_start(oauth_auth.OAuthStartBody(
         provider="outlook",
         email="user@outlook.com",
@@ -356,21 +409,15 @@ def test_probe_always_closes_session(monkeypatch):
     assert session.closed is True
 
 
-def test_legacy_outlook_poll_verifies_claimed_mailbox_before_insert(isolated_db, monkeypatch):
-    monkeypatch.setattr(mail_client, "ms_poll_token", lambda _code: {
-        "access_token": "token-for-another-account",
-        "refresh_token": "refresh",
-        "expires_in": 3600,
-    })
-    monkeypatch.setattr(
-        oauth_auth, "probe_connection",
-        lambda *_args: (_ for _ in ()).throw(RuntimeError("token/email mismatch")),
-    )
-
-    with pytest.raises(mailhub_app.HTTPException, match="邮箱身份验证失败"):
+def test_legacy_outlook_login_endpoints_are_disabled(isolated_db):
+    with pytest.raises(mailhub_app.HTTPException) as exc_info:
+        asyncio.run(mailhub_app.outlook_devicecode())
+    assert exc_info.value.status_code == 410
+    with pytest.raises(mailhub_app.HTTPException) as exc_info:
         asyncio.run(mailhub_app.outlook_poll(mailhub_app.DevicePollBody(
             device_code="legacy-code", email="claimed@outlook.com",
         )))
+    assert exc_info.value.status_code == 410
     assert isolated_db.execute("SELECT COUNT(*) c FROM accounts").fetchone()["c"] == 0
 
 

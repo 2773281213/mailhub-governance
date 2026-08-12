@@ -982,6 +982,27 @@ async function renderSettings() {
             <label class="switch"><input type="checkbox" id="s-google-clear" ${s.google_oauth_source === "environment" ? "disabled" : ""}></label></div>
         </div>
         <div class="card" style="margin-bottom:14px">
+          <h3>${ico("key")} Microsoft 登录导入</h3>
+          <div class="provider-help">
+            在 Microsoft Entra 注册本项目自己的应用。Client ID 可启用设备码登录；再配置 Web 回调和 Client Secret 后，添加 Outlook 时也可直接使用浏览器登录。
+            <a href="https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade" target="_blank" rel="noopener">打开 Microsoft Entra 应用注册</a>
+          </div>
+          <div class="set-row"><div class="l">网页登录<small>${s.microsoft_oauth_configured ? "已启用授权码 + PKCE" : "需要 Client ID 和 Client Secret"}</small></div>
+            <span class="badge ${s.microsoft_oauth_configured ? "cat-通知" : "cat-未分类"}">${s.microsoft_oauth_configured ? "已启用" : "未启用"}</span></div>
+          <div class="set-row"><div class="l">设备码登录<small>${s.microsoft_oauth_device_configured ? "使用本项目 Client ID" : "需要 Client ID 并开启公共客户端流"}</small></div>
+            <span class="badge ${s.microsoft_oauth_device_configured ? "cat-通知" : "cat-未分类"}">${s.microsoft_oauth_device_configured ? "已启用" : "未启用"}</span></div>
+          <div class="set-row"><div class="l">配置来源</div>
+            <span class="badge cat-未分类">${s.microsoft_oauth_source === "environment" ? "环境变量" : (s.microsoft_oauth_source === "settings" ? "设置页" : "未配置")}</span></div>
+          <div class="set-row"><div class="l">回调地址<small>复制到 Web 平台的重定向 URI</small></div>
+            <div class="set-ctl"><input id="s-microsoft-callback" value="${esc(s.microsoft_oauth_callback_url)}" readonly onclick="this.select()"><button class="btn sm" id="s-microsoft-copy">复制</button></div></div>
+          <div class="set-row"><div class="l">Client ID</div>
+            <input id="s-microsoft-id" value="${esc(s.microsoft_oauth_client_id || "")}" ${s.microsoft_oauth_source === "environment" ? "disabled" : ""}></div>
+          <div class="set-row"><div class="l">Client Secret<small>${s.microsoft_oauth_client_secret_set ? "已设置（留空不修改）" : "网页登录尚未设置"}</small></div>
+            <input id="s-microsoft-secret" type="password" placeholder="留空不修改" ${s.microsoft_oauth_source === "environment" ? "disabled" : ""}></div>
+          <div class="set-row"><div class="l">清除 Client Secret<small>清除后仍可保留设备码登录</small></div>
+            <label class="switch"><input type="checkbox" id="s-microsoft-clear" ${s.microsoft_oauth_source === "environment" ? "disabled" : ""}></label></div>
+        </div>
+        <div class="card" style="margin-bottom:14px">
           <h3>${ico("plug")} 注册机对接（外部取码 API）</h3>
           <div class="provider-help">注册机「Cloudflare Worker 自建」通道：API 地址填 <code>https://email.11451405.xyz</code>，管理员令牌填下方 Token。会自动分配 Gmail/Outlook 加号别名并在查询时触发突发同步。</div>
           <div class="set-row"><div class="l">外部 API Token</div>
@@ -1071,6 +1092,13 @@ async function renderSettings() {
       const googleSecret = $("#s-google-secret").value.trim();
       if (googleSecret) body.google_oauth_client_secret = googleSecret;
     }
+    const microsoftId = $("#s-microsoft-id");
+    if (microsoftId && !microsoftId.disabled) {
+      body.microsoft_oauth_client_id = microsoftId.value.trim();
+      body.clear_microsoft_oauth_client_secret = $("#s-microsoft-clear").checked;
+      const microsoftSecret = $("#s-microsoft-secret").value.trim();
+      if (microsoftSecret) body.microsoft_oauth_client_secret = microsoftSecret;
+    }
     const key = $("#s-key").value.trim();
     if (key) body.ai_key = key;
     const tgToken = $("#s-tg-token").value.trim();
@@ -1105,6 +1133,7 @@ async function renderSettings() {
     catch (e) { toast(e.message, true); }
     ev.target.disabled = false; ev.target.textContent = "一键三省六部分拣";
   });
+  $("#s-microsoft-copy").addEventListener("click", () => copyText($("#s-microsoft-callback").value));
   $("#s-google-copy")?.addEventListener("click", () => copyText($("#s-google-callback").value));
   $("#s-ext-copy").addEventListener("click", () => copyText($("#s-ext-token").value));
   $("#s-ext-regen").addEventListener("click", async () => {

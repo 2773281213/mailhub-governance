@@ -4,7 +4,7 @@ MailHub 按服务商能力选择认证方式，不会把普通邮箱密码伪装
 
 | 服务商 | 推荐方式 | 无 OAuth 配置时 |
 |---|---|---|
-| Microsoft Outlook / Hotmail | Microsoft 登录（授权码 + PKCE）；保留设备登录备用 | 设备登录 |
+| Microsoft Outlook / Hotmail | Microsoft 登录（授权码 + PKCE）；自有应用设备码登录备用 | 暂不启用登录 |
 | Gmail / Google Workspace | Google 登录（授权码 + PKCE） | Google 应用专用密码 |
 | QQ 邮箱 | 服务商客户端授权码 | 必须使用授权码 |
 | 网易 163 / 126 / yeah.net | 已批准的合作方 OAuth，或客户端授权密码 | 客户端授权密码 |
@@ -28,16 +28,16 @@ MAILHUB_PUBLIC_URL=https://email.11451405.xyz
 https://email.11451405.xyz/api/oauth/outlook/callback
 ```
 
-配置：
+可直接在 MailHub 的“设置 → Microsoft 登录导入”填写，也可以使用环境变量（完整环境变量配置优先）：
 
 ```env
 MICROSOFT_CLIENT_ID=<应用客户端 ID>
 MICROSOFT_CLIENT_SECRET=<应用客户端密钥>
 ```
 
-网页回调按机密 Web 客户端配置，客户端 ID 和密钥均必须提供。应用需要委托权限 `https://outlook.office.com/IMAP.AccessAsUser.All` 和离线访问。若需要继续使用设备登录，应允许公共客户端流。
+网页回调按机密 Web 客户端配置，Client ID 和 Client Secret 均必须提供。应用需要委托权限 `https://outlook.office.com/IMAP.AccessAsUser.All` 和 `offline_access`。密钥会使用 `MAILHUB_SECRET` 派生的 Fernet 密钥加密保存，接口只返回是否已设置。
 
-未配置自有客户端 ID 时，系统只保留原有 Outlook 设备登录兼容路径，不启用网页回调登录。
+只配置 Client ID 时可以使用设备码登录，但必须在 Entra 应用的“身份验证”中开启“允许公共客户端流”。设备码模式不需要也不会发送 Client Secret。没有项目自有 Client ID 时，所有新的 Outlook 登录都会停用；系统不再借用 Outlook APK 或其他第三方应用的公开客户端身份。升级前已经保存的 Outlook 账户仍保留原有令牌刷新兼容路径，不会因升级立即中断。
 
 ## Google 网页登录
 

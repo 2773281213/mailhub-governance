@@ -9,7 +9,7 @@ MailHub Governance 是一个本地优先的多邮箱聚合与自动治理服务�
 - 聚合 QQ、网易 163/126/yeah.net、Gmail、Outlook 和自定义 IMAP 邮箱。
 - 输入邮箱地址后自动识别服务商；未知域名才显示高级 IMAP 设置。
 - 网易邮箱使用各自的 IMAP SSL 主机，并在认证后发送 RFC 2971 `ID`。
-- Outlook 使用 OAuth 设备码事务，设备凭据保留在服务器端。
+- Outlook 支持项目自有 Microsoft 应用的浏览器 OAuth 和设备码登录，设备凭据保留在服务器端。
 - 三省六部自动治理，AI 失败或低置信度时自动回退本地规则。
 - AI 不会自动删除、回复、转发或退订邮件，也不会创建人工复核队列。
 - 软删除可撤销；服务器永久删除失败时不会移除本地记录。
@@ -43,7 +43,7 @@ MailHub Governance 是一个本地优先的多邮箱聚合与自动治理服务�
 | 网易 126 | `126.com` | 客户端授权密码 | `imap.126.com:993` |
 | 网易 yeah.net | `yeah.net` | 客户端授权密码 | `imap.yeah.net:993` |
 | Gmail | `gmail.com`, `googlemail.com` | OAuth 或应用专用密码 | `imap.gmail.com:993` |
-| Outlook | `outlook.com`, `hotmail.com`, `live.com`, `msn.com` | OAuth 设备码 | `outlook.office365.com:993` |
+| Outlook | `outlook.com`, `hotmail.com`, `live.com`, `msn.com` | 浏览器 OAuth 或设备码 | `outlook.office365.com:993` |
 | 自定义 | 其他域名 | 服务商允许的密码/应用密码 | 手工填写 |
 
 网易邮箱登录名必须是完整邮箱地址，凭据必须是客户端授权密码而不是网页登录密码。相关配置说明见 [OAUTH_SETUP.md](OAUTH_SETUP.md)。

@@ -314,50 +314,18 @@ class DevicePollBody(BaseModel):
 
 @app.post("/api/outlook/devicecode")
 async def outlook_devicecode():
-    try:
-        data = await asyncio.to_thread(mail_client.ms_device_code)
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"请求微软授权失败: {str(e)[:150]}")
-    return {
-        "device_code": data["device_code"],
-        "user_code": data["user_code"],
-        "verification_uri": data.get("verification_uri", "https://microsoft.com/devicelogin"),
-        "interval": data.get("interval", 5),
-        "expires_in": data.get("expires_in", 900),
-    }
+    raise HTTPException(
+        status_code=410,
+        detail="旧版 Outlook 登录已停用，请使用项目自有 Microsoft OAuth 客户端重新发起登录",
+    )
 
 
 @app.post("/api/outlook/poll")
 async def outlook_poll(body: DevicePollBody):
-    _provider, email_addr = oauth_auth.normalize_account_identity("outlook", body.email)
-    try:
-        data = await asyncio.to_thread(mail_client.ms_poll_token, body.device_code)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e)[:200])
-    if data.get("pending"):
-        return {"pending": True}
-    preset = mail_client.PROVIDERS["outlook"]
-    probe = {
-        "provider": "outlook", "auth_type": "oauth", "email": email_addr,
-        "imap_host": preset["host"], "imap_port": preset["port"],
-    }
-    try:
-        await asyncio.to_thread(oauth_auth.probe_connection, probe, data["access_token"])
-    except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"邮箱身份验证失败: {str(exc)[:180]}") from exc
-    conn = get_conn()
-    cur = conn.execute(
-        """INSERT INTO accounts(name, provider, email, imap_host, imap_port, auth_type,
-                                oauth_refresh_enc, oauth_access_enc, oauth_expires,
-                                poll_interval, color, enabled, created_ts)
-           VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-        (body.name or email_addr, "outlook", email_addr, preset["host"], preset["port"],
-         "oauth", encrypt(data.get("refresh_token", "")), encrypt(data["access_token"]),
-         time.time() + int(data.get("expires_in", 3600)), 300, body.color, 1, time.time()),
+    raise HTTPException(
+        status_code=410,
+        detail="旧版 Outlook 登录已停用，请使用项目自有 Microsoft OAuth 客户端重新发起登录",
     )
-    conn.commit()
-    sync.engine.trigger(cur.lastrowid)
-    return {"ok": True, "id": cur.lastrowid}
 
 
 # ---------- 邮件 ----------
@@ -848,6 +816,9 @@ class SettingsBody(BaseModel):
     google_oauth_client_id: str | None = None
     google_oauth_client_secret: str | None = None
     clear_google_oauth_client_secret: bool | None = None
+    microsoft_oauth_client_id: str | None = None
+    microsoft_oauth_client_secret: str | None = None
+    clear_microsoft_oauth_client_secret: bool | None = None
 
 
 @app.get("/api/settings")
@@ -858,6 +829,7 @@ async def get_settings():
         "SELECT id, name, email FROM accounts WHERE enabled=1 AND provider IN ('gmail','outlook')"
     ).fetchall()]
     google_oauth = oauth_auth.browser_config_info("gmail")
+    microsoft_oauth = oauth_auth.browser_config_info("outlook")
     return {
         "ai_enabled": cfg["enabled"],
         "ai_base_url": cfg["base_url"],
@@ -881,39 +853,47 @@ async def get_settings():
         "google_oauth_client_id": google_oauth["client_id"],
         "google_oauth_client_secret_set": google_oauth["secret_set"],
         "google_oauth_callback_url": google_oauth["callback_url"],
+        "microsoft_oauth_configured": microsoft_oauth["configured"],
+        "microsoft_oauth_device_configured": bool(oauth_auth._device_client_id()),
+        "microsoft_oauth_source": microsoft_oauth["source"],
+        "microsoft_oauth_client_id": microsoft_oauth["client_id"],
+        "microsoft_oauth_client_secret_set": microsoft_oauth["secret_set"],
+        "microsoft_oauth_callback_url": microsoft_oauth["callback_url"],
     }
 
 
-def _save_google_oauth_settings(body: SettingsBody):
-    if body.google_oauth_client_id is not None:
-        new_id = body.google_oauth_client_id.strip()
+def _save_oauth_settings(body: SettingsBody, *, prefix: str, provider: str, label: str):
+    client_id = getattr(body, f"{prefix}_oauth_client_id")
+    client_secret = getattr(body, f"{prefix}_oauth_client_secret")
+    clear_secret = getattr(body, f"clear_{prefix}_oauth_client_secret")
+    if client_id is not None:
+        new_id = client_id.strip()
         if len(new_id) > 500:
-            raise HTTPException(status_code=400, detail="Google Client ID 过长")
-        old_id = get_setting("google_oauth_client_id", "").strip()
-        set_setting("google_oauth_client_id", new_id)
+            raise HTTPException(status_code=400, detail=f"{label} Client ID 过长")
+        old_id = get_setting(f"{prefix}_oauth_client_id", "").strip()
+        set_setting(f"{prefix}_oauth_client_id", new_id)
         if old_id and old_id != new_id:
             conn = get_conn()
             conn.execute(
                 """UPDATE accounts SET oauth_reauth_required=1,
-                   last_error='Google OAuth 客户端配置已变化，请重新登录'
-                   WHERE provider='gmail' AND auth_type='oauth'"""
+                   last_error=?
+                   WHERE provider=? AND auth_type='oauth' AND oauth_client_id=?""",
+                (f"{label} OAuth 客户端配置已变化，请重新登录", provider, old_id),
             )
             conn.commit()
-    if body.clear_google_oauth_client_secret:
-        set_setting("google_oauth_client_secret_enc", "")
-    elif body.google_oauth_client_secret:
-        secret = body.google_oauth_client_secret.strip()
+    if clear_secret:
+        set_setting(f"{prefix}_oauth_client_secret_enc", "")
+    elif client_secret:
+        secret = client_secret.strip()
         if len(secret) > 2000:
-            raise HTTPException(status_code=400, detail="Google Client Secret 过长")
-        set_setting(
-            "google_oauth_client_secret_enc",
-            encrypt(secret),
-        )
+            raise HTTPException(status_code=400, detail=f"{label} Client Secret 过长")
+        set_setting(f"{prefix}_oauth_client_secret_enc", encrypt(secret))
 
 
 @app.put("/api/settings")
 async def put_settings(body: SettingsBody):
-    _save_google_oauth_settings(body)
+    _save_oauth_settings(body, prefix="google", provider="gmail", label="Google")
+    _save_oauth_settings(body, prefix="microsoft", provider="outlook", label="Microsoft")
     if body.new_password is not None:
         if not verify_password(body.old_password or "", get_setting("admin_hash")):
             raise HTTPException(status_code=400, detail="原密码错误")

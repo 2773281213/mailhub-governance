@@ -230,8 +230,10 @@ def _browser_config(provider: str) -> dict | None:
         return None
     env_id = os.environ.get(spec["client_id_env"], "").strip()
     env_secret = os.environ.get(spec["client_secret_env"], "").strip()
-    if env_id and env_secret:
-        return {**spec, "client_id": env_id, "client_secret": env_secret, "source": "environment"}
+    if env_id or env_secret:
+        if env_id and env_secret:
+            return {**spec, "client_id": env_id, "client_secret": env_secret, "source": "environment"}
+        return None
     prefix = spec["settings_prefix"]
     stored_id = get_setting(f"{prefix}_oauth_client_id", "").strip()
     stored_secret = decrypt(get_setting(f"{prefix}_oauth_client_secret_enc", ""))
@@ -268,20 +270,27 @@ def browser_config_info(provider: str) -> dict:
     if not spec:
         return {"configured": False, "source": "", "client_id": "", "callback_url": ""}
     prefix = spec["settings_prefix"]
+    env_id = os.environ.get(spec["client_id_env"], "").strip()
+    env_secret = os.environ.get(spec["client_secret_env"], "").strip()
+    stored_id = get_setting(f"{prefix}_oauth_client_id", "").strip()
+    stored_secret = decrypt(get_setting(f"{prefix}_oauth_client_secret_enc", ""))
+    selected_source = "environment" if env_id or env_secret else ("settings" if stored_id or stored_secret else "")
     return {
         "configured": config is not None,
-        "source": config.get("source", "") if config else "",
-        "client_id": config["client_id"] if config else get_setting(f"{prefix}_oauth_client_id", ""),
-        "secret_set": bool(config) if config and config.get("source") == "environment" else bool(
-            decrypt(get_setting(f"{prefix}_oauth_client_secret_enc", ""))
-        ),
+        "source": selected_source,
+        "client_id": env_id if selected_source == "environment" else stored_id,
+        "secret_set": bool(env_secret) if selected_source == "environment" else bool(stored_secret),
         "callback_url": _redirect_uri(provider),
     }
 
 
 def _device_client_id() -> str:
-    # 保留现有 Outlook 设备登录兼容性；部署自有应用后应通过环境变量覆盖。
-    return os.environ.get("MICROSOFT_CLIENT_ID", "").strip() or mail_client.MS_CLIENT_ID
+    env_id = os.environ.get("MICROSOFT_CLIENT_ID", "").strip()
+    if env_id:
+        return env_id
+    if os.environ.get("MICROSOFT_CLIENT_SECRET", "").strip():
+        return ""
+    return get_setting("microsoft_oauth_client_id", "").strip()
 
 
 def public_providers() -> dict:
