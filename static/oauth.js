@@ -8,6 +8,7 @@
     .mh-auth-grid{display:grid;gap:14px}.mh-auth-field{display:grid;gap:7px}.mh-auth-field label{font-size:13px;color:#94a3b8}.mh-auth-field input,.mh-auth-field select{width:100%;box-sizing:border-box;border:1px solid #334155;border-radius:10px;background:#0b1220;color:#f8fafc;padding:11px 12px;font:inherit;outline:none}.mh-auth-field input:focus,.mh-auth-field select:focus{border-color:#38bdf8;box-shadow:0 0 0 3px rgba(56,189,248,.12)}
     .mh-auth-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.mh-auth-help{padding:12px 14px;border-radius:10px;background:#0b1220;color:#cbd5e1;font-size:13px;line-height:1.55}.mh-auth-help strong{color:#f8fafc}.mh-auth-error{display:none;padding:10px 12px;border-radius:10px;background:rgba(239,68,68,.12);color:#fca5a5;font-size:13px}.mh-auth-error.show{display:block}
     .mh-auth-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:4px}.mh-auth-btn{border:1px solid #334155;border-radius:10px;padding:10px 15px;background:#172033;color:#e5e7eb;font:inherit;font-weight:600;cursor:pointer}.mh-auth-btn.primary{background:#0284c7;border-color:#0284c7;color:white}.mh-auth-btn:disabled{opacity:.55;cursor:not-allowed}.mh-auth-link{border:0;background:transparent;color:#7dd3fc;padding:8px 0;cursor:pointer;text-align:left}
+    .mh-auth-guide{display:grid;gap:10px}.mh-auth-step{display:flex;align-items:flex-start;gap:10px;color:#cbd5e1;font-size:13px;line-height:1.5}.mh-auth-step input{width:16px;height:16px;margin-top:2px;accent-color:#0284c7}.mh-auth-privacy{color:#94a3b8;font-size:12px;line-height:1.5}
     .mh-auth-device{display:grid;gap:12px;text-align:center;padding:18px;border:1px solid #334155;border-radius:12px;background:#0b1220}.mh-auth-code{font:700 28px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.12em;color:#f8fafc}.mh-auth-muted{font-size:12px;color:#94a3b8}
     @media(max-width:620px){.mh-auth-card{padding:18px}.mh-auth-row{grid-template-columns:1fr}}
   `;
@@ -136,8 +137,12 @@
     customFields.hidden = key !== 'custom';
 
     const actions = createNode('div', {className: 'mh-auth-actions'});
+    if (provider.guided_auth === 'netease_app_password' && !useOAuth) {
+      renderNeteaseGuide(authBox, help, secretField, customFields, actions, provider);
+      return;
+    }
     if (useOAuth) {
-      const brand = key === 'gmail' ? 'Google' : 'Microsoft';
+      const brand = key === 'gmail' ? 'Google' : (['163', '126', 'yeah'].includes(key) ? '网易' : 'Microsoft');
       const login = createNode('button', {
         className: 'mh-auth-btn primary', type: 'button', text: `使用 ${brand} 登录`,
       });
@@ -178,6 +183,43 @@
       }));
     }
     authBox.replaceChildren(help, secretField, customFields, actions);
+  }
+
+  function renderNeteaseGuide(authBox, help, secretField, customFields, actions, provider) {
+    const officialLogin = createNode('a', {
+      className: 'mh-auth-btn primary', href: provider.setup_url,
+      target: '_blank', rel: 'noopener', text: '前往网易官方设置',
+    });
+    actions.append(officialLogin);
+
+    const checks = [
+      '我已在官方邮箱设置中开启 IMAP/SMTP 服务',
+      '我已生成客户端授权密码（不是网页登录密码）',
+    ].map((text, index) => {
+      const checkbox = createNode('input', {type: 'checkbox', id: `mh-netease-step-${index}`});
+      return {checkbox, node: createNode('label', {className: 'mh-auth-step', for: checkbox.id}, [checkbox, text])};
+    });
+    const guide = createNode('div', {className: 'mh-auth-guide'}, [
+      createNode('div', {className: 'mh-auth-privacy', text: 'MailHub 不会读取或保存你的网易网页登录密码。网易目前未向普通第三方 IMAP 客户端开放 OAuth Token 登录。'}),
+      ...checks.map(item => item.node),
+    ]);
+
+    const secretInput = secretField.querySelector('#mh-secret');
+    secretInput.disabled = true;
+    secretInput.placeholder = '完成上方步骤后填写授权密码';
+    const save = createNode('button', {
+      className: 'mh-auth-btn primary', type: 'button', text: '验证授权并添加', disabled: 'disabled',
+    });
+    save.addEventListener('click', savePasswordAccount);
+    actions.append(save);
+    const updateState = () => {
+      const ready = checks.every(item => item.checkbox.checked);
+      secretInput.disabled = !ready;
+      save.disabled = !ready;
+      if (ready) secretInput.focus();
+    };
+    checks.forEach(item => item.checkbox.addEventListener('change', updateState));
+    authBox.replaceChildren(help, actions, guide, secretField, customFields);
   }
 
   async function startBrowserOAuth() {

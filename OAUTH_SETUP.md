@@ -7,7 +7,7 @@ MailHub 按服务商能力选择认证方式，不会把普通邮箱密码伪装
 | Microsoft Outlook / Hotmail | Microsoft 登录（授权码 + PKCE）；保留设备登录备用 | 设备登录 |
 | Gmail / Google Workspace | Google 登录（授权码 + PKCE） | Google 应用专用密码 |
 | QQ 邮箱 | 服务商客户端授权码 | 必须使用授权码 |
-| 网易 163 / 126 / yeah.net | 服务商客户端授权密码 | 必须使用客户端授权密码 |
+| 网易 163 / 126 / yeah.net | 已批准的合作方 OAuth，或客户端授权密码 | 客户端授权密码 |
 | 自定义 IMAP | 服务商允许的密码或应用专用密码 | 手工填写 IMAP SSL 地址 |
 
 QQ、网易及任意自定义服务商若没有面向第三方 IMAP 客户端开放 OAuth，MailHub 无法通过技术手段绕过其授权码或应用专用密码策略。
@@ -62,13 +62,30 @@ Google IMAP XOAUTH2 使用 `https://mail.google.com/` 范围。该范围属于�
 
 当前没有可供普通第三方 IMAP 客户端使用的公开邮箱 OAuth 配置，因此不能安全实现与 Google、Microsoft 完全相同的 Token 登录。QQ Connect 或网易开放平台的普通身份登录 Token 不等于邮箱 IMAP 访问权限。
 
-MailHub 会提供直达官方邮箱网页的登录按钮，引导开启 IMAP 并生成客户端授权密码；授权密码经真实 IMAP 连接验证后加密保存。禁止通过模拟网页登录、保存主密码、拦截短信验证码或抓取 Cookie 来绕过服务商限制。
+APK 静态分析确认 Outlook 使用网易邮件合作方接口，并非通用网易开放平台登录。MailHub 已实现相同的参数和回调契约，但只在部署者拥有网易批准的独立注册时启用：
+
+```env
+NETEASE_CLIENT_ID=<网易批准的邮件客户端 appid>
+NETEASE_DEVICE_ID=<本部署固定且非敏感的设备标识>
+NETEASE_163_REDIRECT_URI=https://email.11451405.xyz/api/oauth/163/callback
+NETEASE_126_REDIRECT_URI=https://email.11451405.xyz/api/oauth/126/callback
+NETEASE_YEAH_REDIRECT_URI=https://email.11451405.xyz/api/oauth/yeah/callback
+```
+
+网易侧需要分别登记 MailHub 回调地址，例如 `https://email.11451405.xyz/api/oauth/163/callback`。授权请求使用 `uid`、`appid`、`device_id`、`scope=imap`、`responseType=token`、`redirectUrl` 和随机 `state`；回调必须返回同一 `uid`、`state` 与 `access_token`。令牌会先经过目标 IMAP 服务器实测，再加密入库。
+
+OAuth 账户按 APK 配置连接 `imapmail.163.com`、`imapmail.126.com` 或 `imapmail.yeah.net`；客户端授权密码账户仍连接现有 `imap.163.com`、`imap.126.com` 或 `imap.yeah.net`。
+
+代码会明确拒绝 Outlook 的私有 appid `rjg1fubwqzie5unhx6` 和 `olmoauth.outlook.com` 回调地址，避免冒用 Outlook 合作方身份或把用户令牌交给微软控制的回调服务。
+
+MailHub 会提供分步式官方设置引导：先确认完整邮箱地址，再前往网易网页开启 IMAP/SMTP、生成客户端授权密码，最后回到 MailHub 进行真实 IMAP 验证并加密保存授权密码。界面会明确区分客户端授权密码和网页登录密码。禁止通过模拟网页登录、保存主密码、拦截短信验证码或抓取 Cookie 来绕过服务商限制。
 
 添加账户采用邮箱地址优先的自动识别流程：`163.com`、`126.com`、`yeah.net` 分别使用各自的 IMAP SSL 服务器，未知域名才展开高级设置。网易账户认证成功后，MailHub 会在选择收件箱前发送 RFC 2971 `ID`，字段包含 `name`、`version`、`vendor` 和 `support-email`，与 Outlook 等可用客户端的接入思路一致。登录名必须是完整邮箱地址，凭据必须是客户端授权密码而非网页登录密码。
 
 ## 安全属性
 
 - 浏览器登录使用随机 `state`、PKCE S256、十分钟过期和单次消费事务。
+- 网易合作方回调会立即清除浏览器地址栏参数，nginx 对相应 callback 禁用访问日志。
 - 设备登录的 `device_code` 仅加密存储在服务器，不再回传浏览器轮询。
 - OAuth 成功后先以 XOAUTH2 登录目标邮箱并打开 `INBOX`，验证邮箱地址和令牌确实匹配，再写入账户。
 - access token 与 refresh token 使用现有 `MAILHUB_SECRET` 派生的 Fernet 密钥加密。

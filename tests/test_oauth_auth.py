@@ -78,6 +78,10 @@ def test_public_provider_metadata_never_exposes_oauth_credentials(isolated_db, m
     assert result["outlook"]["oauth"]["device"] is True
     assert result["qq"]["setup_url"].startswith("https://mail.qq.com/")
     assert result["163"]["setup_url"].startswith("https://mail.163.com/")
+    assert result["163"]["guided_auth"] == "netease_app_password"
+    assert result["126"]["guided_auth"] == "netease_app_password"
+    assert result["yeah"]["guided_auth"] == "netease_app_password"
+    assert result["gmail"]["guided_auth"] == ""
     assert result["126"]["host"] == "imap.126.com"
     assert result["yeah"]["host"] == "imap.yeah.net"
     assert result["yeah"]["domains"] == ["yeah.net"]
@@ -190,6 +194,85 @@ def test_browser_start_uses_google_settings_config(isolated_db, monkeypatch):
     query = parse_qs(urlparse(result["authorization_url"]).query)
     assert query["client_id"] == ["settings-client"]
     assert "settings-secret" not in result["authorization_url"]
+
+
+def test_netease_oauth_rejects_outlook_private_identity(isolated_db, monkeypatch):
+    monkeypatch.setenv("NETEASE_CLIENT_ID", oauth_auth._OUTLOOK_NETEASE_APP_ID)
+    monkeypatch.setenv("NETEASE_DEVICE_ID", "mailhub-installation")
+    monkeypatch.setenv("NETEASE_163_REDIRECT_URI", "https://olmoauth.outlook.com/api/neteaseoauthredir")
+    assert oauth_auth._netease_config("163") is None
+    assert oauth_auth.public_providers()["163"]["oauth"]["browser"] is False
+
+
+def test_netease_start_matches_apk_parameter_contract(isolated_db, monkeypatch):
+    monkeypatch.setenv("NETEASE_CLIENT_ID", "approved-mailhub-client")
+    monkeypatch.setenv("NETEASE_DEVICE_ID", "mailhub-installation")
+    monkeypatch.setenv(
+        "NETEASE_163_REDIRECT_URI", "https://email.example.test/api/oauth/163/callback",
+    )
+    result = asyncio.run(oauth_auth.oauth_start(oauth_auth.OAuthStartBody(
+        provider="163",
+        email="user@163.com",
+    )))
+    parsed = urlparse(result["authorization_url"])
+    query = parse_qs(parsed.query)
+    assert parsed.netloc == "mail.163.com"
+    assert parsed.path.endswith("/mailsrv-oauth2-fapi/oauth2/authorize/entry")
+    assert query["uid"] == ["user@163.com"]
+    assert query["appid"] == ["approved-mailhub-client"]
+    assert query["device_id"] == ["mailhub-installation"]
+    assert query["scope"] == ["imap"]
+    assert query["responseType"] == ["token"]
+    assert query["redirectUrl"] == ["https://email.example.test/api/oauth/163/callback"]
+    assert query["state"][0]
+    assert "client_secret" not in query
+
+
+def test_netease_callback_validates_uid_and_stores_long_lived_token(
+        isolated_db, monkeypatch):
+    monkeypatch.setenv("NETEASE_CLIENT_ID", "approved-mailhub-client")
+    monkeypatch.setenv("NETEASE_DEVICE_ID", "mailhub-installation")
+    started = asyncio.run(oauth_auth.oauth_start(oauth_auth.OAuthStartBody(
+        provider="163", email="user@163.com",
+    )))
+    state = parse_qs(urlparse(started["authorization_url"]).query)["state"][0]
+    probes = []
+    monkeypatch.setattr(oauth_auth, "probe_connection", lambda account, token: probes.append((account, token)))
+    monkeypatch.setattr(oauth_auth, "_upsert_oauth_account", lambda tx, token: 42)
+    response = asyncio.run(oauth_auth.oauth_callback(
+        "163", state=state, uid="user@163.com", access_token="netease-token",
+    ))
+    assert b'"ok": true' in response.body
+    assert probes[0][0]["auth_type"] == "oauth"
+    assert probes[0][0]["imap_host"] == "imapmail.163.com"
+    assert probes[0][1] == "netease-token"
+
+    reused = asyncio.run(oauth_auth.oauth_callback(
+        "163", state=state, uid="user@163.com", access_token="netease-token",
+    ))
+    assert b'"ok": false' in reused.body
+
+
+def test_netease_callback_rejects_mismatched_mailbox(isolated_db, monkeypatch):
+    monkeypatch.setenv("NETEASE_CLIENT_ID", "approved-mailhub-client")
+    monkeypatch.setenv("NETEASE_DEVICE_ID", "mailhub-installation")
+    started = asyncio.run(oauth_auth.oauth_start(oauth_auth.OAuthStartBody(
+        provider="163", email="user@163.com",
+    )))
+    state = parse_qs(urlparse(started["authorization_url"]).query)["state"][0]
+    response = asyncio.run(oauth_auth.oauth_callback(
+        "163", state=state, uid="attacker@163.com", access_token="netease-token",
+    ))
+    assert b'"ok": false' in response.body
+    assert isolated_db.execute("SELECT COUNT(*) c FROM accounts").fetchone()["c"] == 0
+
+
+def test_callback_page_removes_sensitive_query_from_browser_history():
+    response = oauth_auth._callback_html({
+        "type": "mailhub-oauth", "ok": True, "message": "ok",
+    })
+    assert b'history.replaceState(null,"",location.pathname)' in response.body
+    assert response.headers["cache-control"] == "no-store"
 
 
 def test_device_start_keeps_device_code_server_side(isolated_db, monkeypatch):
