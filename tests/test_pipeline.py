@@ -140,7 +140,7 @@ def test_failed_server_purge_keeps_local_message(fresh_db, monkeypatch):
     mid = _insert_msg(fresh_db, acc, 1, category="订阅")
     monkeypatch.setattr(
         mailhub_app, "_server_op",
-        lambda _conn, _ids, _action: ([], ["账户1: server unavailable"]),
+        lambda _ids, _action: ([], ["账户1: server unavailable"]),
     )
 
     result = asyncio.run(mailhub_app.batch_messages(mailhub_app.BatchBody(
@@ -158,7 +158,7 @@ def test_failed_server_clean_keeps_local_message(fresh_db, monkeypatch):
     mid = _insert_msg(fresh_db, acc, 1, category="验证码")
     monkeypatch.setattr(
         mailhub_app, "_server_op",
-        lambda _conn, _ids, _action: ([], ["账户1: server unavailable"]),
+        lambda _ids, _action: ([], ["账户1: server unavailable"]),
     )
 
     result = asyncio.run(mailhub_app.clean_messages(mailhub_app.CleanBody(
@@ -168,6 +168,99 @@ def test_failed_server_clean_keeps_local_message(fresh_db, monkeypatch):
     assert result["ok"] is False
     assert result["count"] == 0
     assert fresh_db.execute("SELECT id FROM messages WHERE id=?", (mid,)).fetchone() is not None
+
+
+def _deleted_ts(conn, mid):
+    return conn.execute("SELECT deleted_ts FROM messages WHERE id=?", (mid,)).fetchone()["deleted_ts"]
+
+
+def test_confirmed_batch_delete_keeps_protected_mail(fresh_db):
+    """前端总是带 confirmed=true；受保护邮件仍必须被留下"""
+    acc = _mk_account(fresh_db)
+    plain = _insert_msg(fresh_db, acc, 1, category="通知")
+    bill = _insert_msg(fresh_db, acc, 2, category="账单")
+    attached = _insert_msg(fresh_db, acc, 3, category="通知", has_attach=1)
+
+    result = asyncio.run(mailhub_app.batch_messages(mailhub_app.BatchBody(
+        ids=[plain, bill, attached], action="delete", confirmed=True,
+    )))
+
+    assert result["count"] == 1
+    assert {b["id"] for b in result["blocked"]} == {bill, attached}
+    assert _deleted_ts(fresh_db, plain) > 0
+    assert _deleted_ts(fresh_db, bill) == 0
+    assert _deleted_ts(fresh_db, attached) == 0
+
+
+def test_all_protected_batch_returns_403_with_protected_marker(fresh_db):
+    acc = _mk_account(fresh_db)
+    bill = _insert_msg(fresh_db, acc, 1, category="账单")
+
+    with pytest.raises(mailhub_app.HTTPException) as exc_info:
+        asyncio.run(mailhub_app.batch_messages(mailhub_app.BatchBody(
+            ids=[bill], action="delete", confirmed=True,
+        )))
+
+    assert exc_info.value.status_code == 403
+    assert exc_info.value.headers == {"X-MailHub-Protected": "1"}
+    assert _deleted_ts(fresh_db, bill) == 0
+
+
+def test_single_message_override_deletes_protected_mail(fresh_db):
+    acc = _mk_account(fresh_db)
+    bill = _insert_msg(fresh_db, acc, 1, category="账单")
+
+    result = asyncio.run(mailhub_app.batch_messages(mailhub_app.BatchBody(
+        ids=[bill], action="delete", confirmed=True, override_protection=True,
+    )))
+
+    assert result["count"] == 1
+    assert _deleted_ts(fresh_db, bill) > 0
+    row = fresh_db.execute(
+        "SELECT reason FROM audit_log WHERE id=?", (result["audit_id"],)).fetchone()
+    assert "二次确认" in row["reason"]
+
+
+def test_override_is_ignored_for_multi_message_batches(fresh_db):
+    acc = _mk_account(fresh_db)
+    bill = _insert_msg(fresh_db, acc, 1, category="账单")
+    plain = _insert_msg(fresh_db, acc, 2, category="通知")
+
+    result = asyncio.run(mailhub_app.batch_messages(mailhub_app.BatchBody(
+        ids=[bill, plain], action="delete", confirmed=True, override_protection=True,
+    )))
+
+    assert result["count"] == 1
+    assert _deleted_ts(fresh_db, bill) == 0
+
+
+def test_clean_keeps_protected_otp_mail(fresh_db):
+    acc = _mk_account(fresh_db)
+    plain = _insert_msg(fresh_db, acc, 1, category="验证码")
+    attached = _insert_msg(fresh_db, acc, 2, category="验证码", has_attach=1)
+
+    result = asyncio.run(mailhub_app.clean_messages(mailhub_app.CleanBody(
+        category="验证码", confirmed=True,
+    )))
+
+    assert result["count"] == 1
+    assert _deleted_ts(fresh_db, plain) > 0
+    assert _deleted_ts(fresh_db, attached) == 0
+
+
+def test_auto_clean_soft_delete_keeps_protected_mail(fresh_db):
+    acc = _mk_account(fresh_db)
+    plain = _insert_msg(fresh_db, acc, 1, category="验证码", date_ts=1000.0)
+    attached = _insert_msg(fresh_db, acc, 2, category="验证码", has_attach=1, date_ts=1000.0)
+    db.set_setting("clean_otp_days", "1")
+    db.set_setting("clean_server", "0")
+    try:
+        sync.auto_clean()
+    finally:
+        db.set_setting("clean_otp_days", "0")
+
+    assert _deleted_ts(fresh_db, plain) > 0
+    assert _deleted_ts(fresh_db, attached) == 0
 
 
 def test_policy_loader_ignores_messages_already_in_trash(fresh_db):
@@ -182,7 +275,7 @@ def test_server_read_updates_only_successful_messages(fresh_db, monkeypatch):
     second = _insert_msg(fresh_db, acc, 2, category="通知")
     monkeypatch.setattr(
         mailhub_app, "_server_op",
-        lambda _conn, _ids, _action: ([first], ["账户1: partial failure"]),
+        lambda _ids, _action: ([first], ["账户1: partial failure"]),
     )
 
     result = asyncio.run(mailhub_app.batch_messages(mailhub_app.BatchBody(
@@ -199,8 +292,114 @@ def test_server_read_updates_only_successful_messages(fresh_db, monkeypatch):
     assert states[second] == 1
 
 
+class FakeSession:
+    """记录 IMAP 调用的假会话；fail=True 时模拟服务器不可用。"""
+
+    def __init__(self, calls, fail=False):
+        self.calls = calls
+        self.fail = fail
+
+    def select_inbox(self):
+        self.calls.append(("select",))
+        return 1
+
+    def delete(self, uids):
+        if self.fail:
+            raise RuntimeError("server unavailable")
+        self.calls.append(("delete", sorted(uids)))
+
+    def mark_read(self, uids, read=True):
+        self.calls.append(("read" if read else "unread", sorted(uids)))
+
+    def close(self):
+        self.calls.append(("close",))
+
+
+def _fake_imap(monkeypatch, fail=False):
+    calls = []
+    monkeypatch.setattr(mail_client, "open_session",
+                        lambda _acc, _secret: FakeSession(calls, fail=fail))
+    monkeypatch.setattr(sync, "resolve_secret", lambda _acc: "secret")
+    return calls
+
+
+def test_server_purge_runs_on_worker_thread_connection(fresh_db, monkeypatch):
+    """回归：handler 曾把事件循环线程的 SQLite 连接传给 to_thread，必然 ProgrammingError"""
+    calls = _fake_imap(monkeypatch)
+    acc = _mk_account(fresh_db)
+    mid = _insert_msg(fresh_db, acc, 7, category="订阅")
+
+    result = asyncio.run(mailhub_app.batch_messages(mailhub_app.BatchBody(
+        ids=[mid], action="delete", server=True, confirmed=True,
+    )))
+
+    assert result["ok"] is True and result["count"] == 1
+    assert ("delete", [7]) in calls
+    assert calls[-1] == ("close",)
+    assert fresh_db.execute("SELECT id FROM messages WHERE id=?", (mid,)).fetchone() is None
+
+
+def test_server_read_runs_on_worker_thread_connection(fresh_db, monkeypatch):
+    calls = _fake_imap(monkeypatch)
+    acc = _mk_account(fresh_db)
+    mid = _insert_msg(fresh_db, acc, 9, category="通知")
+
+    result = asyncio.run(mailhub_app.batch_messages(mailhub_app.BatchBody(
+        ids=[mid], action="read", server=True,
+    )))
+
+    assert result["ok"] is True and result["count"] == 1
+    assert ("read", [9]) in calls
+
+
+def test_auto_clean_server_failure_keeps_local_rows(fresh_db, monkeypatch):
+    _fake_imap(monkeypatch, fail=True)
+    acc = _mk_account(fresh_db)
+    mid = _insert_msg(fresh_db, acc, 1, category="验证码", date_ts=1000.0)
+    db.set_setting("clean_otp_days", "1")
+    db.set_setting("clean_server", "1")
+    try:
+        sync.auto_clean()
+    finally:
+        db.set_setting("clean_otp_days", "0")
+        db.set_setting("clean_server", "0")
+
+    assert fresh_db.execute("SELECT id FROM messages WHERE id=?", (mid,)).fetchone() is not None
+    row = fresh_db.execute("SELECT reason FROM audit_log ORDER BY id DESC LIMIT 1").fetchone()
+    assert "服务器删除失败" in row["reason"]
+
+
+def test_auto_clean_server_success_removes_local_rows(fresh_db, monkeypatch):
+    calls = _fake_imap(monkeypatch)
+    acc = _mk_account(fresh_db)
+    mid = _insert_msg(fresh_db, acc, 3, category="验证码", date_ts=1000.0)
+    db.set_setting("clean_otp_days", "1")
+    db.set_setting("clean_server", "1")
+    try:
+        sync.auto_clean()
+    finally:
+        db.set_setting("clean_otp_days", "0")
+        db.set_setting("clean_server", "0")
+
+    assert ("delete", [3]) in calls
+    assert fresh_db.execute("SELECT id FROM messages WHERE id=?", (mid,)).fetchone() is None
+
+
+def test_server_action_skips_unbound_uids(fresh_db, monkeypatch):
+    calls = _fake_imap(monkeypatch)
+    acc = _mk_account(fresh_db)
+    mid = _insert_msg(fresh_db, acc, 5, category="订阅")
+    fresh_db.execute("UPDATE messages SET uid=-id WHERE id=?", (mid,))
+    fresh_db.commit()
+
+    succeeded, errors = sync.apply_server_action([mid], "delete")
+
+    assert succeeded == [] and errors
+    assert not any(call[0] == "delete" for call in calls)
+
+
 def test_server_helpers_accept_empty_id_list(fresh_db):
-    assert mailhub_app._server_op(fresh_db, [], "read") == ([], [])
+    assert mailhub_app._server_op([], "read") == ([], [])
     assert mailhub_app._load_for_policy(fresh_db, []) == []
 
 
@@ -396,3 +595,262 @@ def test_html_to_text_strips_script():
         "<div>hello<script>alert(1)</script><style>b{}</style>world</div>")
     assert "alert" not in out and "b{}" not in out
     assert "hello" in out and "world" in out
+
+
+# ---------------- IMAP 删除只清除自己的邮件 ----------------
+
+class FakeImapConn:
+    """记录命令的假 imaplib 连接；already_deleted 模拟其他客户端已标删的邮件。"""
+
+    def __init__(self, already_deleted=()):
+        self.calls = []
+        self.flagged = set(already_deleted)
+
+    def uid(self, command, *args):
+        command = command.upper()
+        self.calls.append((command,) + args)
+        if command == "STORE":
+            self.flagged.update(int(u) for u in args[0].split(","))
+        if command == "SEARCH":
+            return "OK", [" ".join(str(u) for u in sorted(self.flagged)).encode()]
+        return "OK", [None]
+
+    def expunge(self):
+        self.calls.append(("EXPUNGE-ALL",))
+        return "OK", [None]
+
+
+def _session(conn, caps=()):
+    session = object.__new__(mail_client.ImapSession)
+    session.conn = conn
+    session.caps = frozenset(caps)
+    return session
+
+
+def test_delete_with_uidplus_expunges_only_given_uids():
+    conn = FakeImapConn(already_deleted={99})
+    result = _session(conn, {"IMAP4REV1", "UIDPLUS"}).delete([5, 3])
+
+    assert result == "expunged"
+    assert ("EXPUNGE", "3,5") in conn.calls
+    assert ("EXPUNGE-ALL",) not in conn.calls
+
+
+def test_delete_without_uidplus_leaves_other_clients_mail_alone():
+    conn = FakeImapConn(already_deleted={99})
+    result = _session(conn, {"IMAP4REV1"}).delete([3])
+
+    assert result == "flagged"
+    assert ("EXPUNGE-ALL",) not in conn.calls
+    assert any(call[0] == "STORE" for call in conn.calls)
+
+
+def test_delete_without_uidplus_expunges_when_only_ours_are_flagged():
+    conn = FakeImapConn()
+    result = _session(conn, {"IMAP4REV1"}).delete([3, 4])
+
+    assert result == "expunged"
+    assert ("EXPUNGE-ALL",) in conn.calls
+
+
+def test_delete_raises_when_store_fails():
+    class Refusing(FakeImapConn):
+        def uid(self, command, *args):
+            if command.upper() == "STORE":
+                return "NO", [b"read-only mailbox"]
+            return super().uid(command, *args)
+
+    conn = Refusing()
+    with pytest.raises(RuntimeError, match="read-only"):
+        _session(conn, {"UIDPLUS"}).delete([3])
+    assert ("EXPUNGE-ALL",) not in conn.calls
+
+
+# ---------------- 同步水位与 UIDVALIDITY ----------------
+
+@pytest.mark.parametrize("last_uid, requested, failed, expected", [
+    (0, [], set(), 0),
+    (10, [11, 12, 13], set(), 13),
+    (10, [11, 12, 13], {12}, 11),
+    (10, [11, 12, 13], {11}, 10),
+    (10, [13, 11, 12], {13}, 12),     # 顺序无关
+    (0, [5, 9], {7}, 9),              # 不在本轮请求里的失败不影响
+])
+def test_advance_watermark(last_uid, requested, failed, expected):
+    assert sync._advance_watermark(last_uid, requested, failed) == expected
+
+
+def _raw_mail(msg_id: str, subject: str) -> bytes:
+    return (f"Message-ID: {msg_id}\r\nFrom: sender@example.com\r\n"
+            f"Subject: {subject}\r\n\r\nhello\r\n").encode()
+
+
+class FakeSyncSession:
+    def __init__(self, uidvalidity, mailbox, failed=()):
+        self.uidvalidity = uidvalidity
+        self.mailbox = mailbox            # {uid: raw bytes}
+        self.failed = set(failed)
+        self.searched_from = None
+
+    def select_inbox(self):
+        return self.uidvalidity
+
+    def search_uids(self, last_uid):
+        self.searched_from = last_uid
+        return sorted(u for u in self.mailbox if u > last_uid)
+
+    def fetch_messages(self, uids):
+        out = []
+        for uid in uids:
+            if uid in self.failed:
+                continue
+            parsed = mail_client.parse_message(self.mailbox[uid])
+            parsed["uid"], parsed["unread"] = uid, 1
+            out.append(parsed)
+        return out, {u for u in uids if u in self.failed}
+
+    def close(self):
+        pass
+
+
+def _run_sync(monkeypatch, acc, session):
+    monkeypatch.setattr(mail_client, "open_session", lambda _acc, _secret: session)
+    monkeypatch.setattr(sync, "resolve_secret", lambda _acc: "secret")
+    return sync.sync_account(acc)
+
+
+def test_uidvalidity_reset_keeps_new_mail_and_rebinds_old_rows(fresh_db, monkeypatch):
+    acc = _mk_account(fresh_db)
+    fresh_db.execute("UPDATE accounts SET uidvalidity=100, last_uid=3 WHERE id=?", (acc,))
+    old_a = _insert_msg(fresh_db, acc, 1, msg_id="<a@x>", category="通知")
+    old_b = _insert_msg(fresh_db, acc, 2, msg_id="<b@x>", category="账单", deleted_ts=55.0)
+    old_c = _insert_msg(fresh_db, acc, 3, msg_id="<c@x>", category="通知")
+
+    # 邮箱重建：<b> 变成 UID 1，新邮件占用 UID 2（旧库里 UID 2 属于 <b>）
+    session = FakeSyncSession(200, {1: _raw_mail("<b@x>", "bill"),
+                                    2: _raw_mail("<new@x>", "brand new")})
+    assert _run_sync(monkeypatch, acc, session) == 1
+    assert session.searched_from == 0
+
+    rows = {r["id"]: dict(r) for r in fresh_db.execute(
+        "SELECT id, uid, msg_id, subject, category, deleted_ts FROM messages WHERE account_id=?",
+        (acc,)).fetchall()}
+    assert rows[old_b]["uid"] == 1
+    assert rows[old_b]["category"] == "账单" and rows[old_b]["deleted_ts"] == 55.0
+    assert rows[old_a]["uid"] < 0 and rows[old_c]["uid"] < 0
+    new_rows = [r for r in rows.values() if r["msg_id"] == "<new@x>"]
+    assert len(new_rows) == 1 and new_rows[0]["uid"] == 2
+
+    account = fresh_db.execute("SELECT last_uid, uidvalidity FROM accounts WHERE id=?",
+                               (acc,)).fetchone()
+    assert account["last_uid"] == 2 and account["uidvalidity"] == 200
+
+
+def test_failed_fetch_does_not_advance_watermark(fresh_db, monkeypatch):
+    acc = _mk_account(fresh_db)
+    fresh_db.execute("UPDATE accounts SET uidvalidity=7, last_uid=4 WHERE id=?", (acc,))
+    fresh_db.commit()
+    mailbox = {u: _raw_mail(f"<m{u}@x>", f"mail {u}") for u in (5, 6, 7)}
+
+    assert _run_sync(monkeypatch, acc, FakeSyncSession(7, mailbox, failed={6})) == 2
+    account = fresh_db.execute("SELECT last_uid, last_error FROM accounts WHERE id=?",
+                               (acc,)).fetchone()
+    assert account["last_uid"] == 5
+    assert "下次同步重试" in account["last_error"]
+
+    # 下一轮从水位之后重拉：6 补进来，7 已存在被幂等跳过
+    assert _run_sync(monkeypatch, acc, FakeSyncSession(7, mailbox)) == 1
+    account = fresh_db.execute("SELECT last_uid, last_error FROM accounts WHERE id=?",
+                               (acc,)).fetchone()
+    assert account["last_uid"] == 7 and account["last_error"] == ""
+    count = fresh_db.execute("SELECT COUNT(*) c FROM messages WHERE account_id=?",
+                             (acc,)).fetchone()["c"]
+    assert count == 3
+
+
+class FakeFetchConn:
+    def __init__(self, responses):
+        self.responses = list(responses)
+
+    def uid(self, command, *args):
+        return self.responses.pop(0)
+
+
+def test_fetch_messages_reports_failed_batches():
+    session = object.__new__(mail_client.ImapSession)
+    session.conn = FakeFetchConn([("NO", [b"server busy"])])
+
+    messages, failed = session.fetch_messages([1, 2, 3])
+
+    assert messages == [] and failed == {1, 2, 3}
+
+
+def test_fetch_messages_keeps_unparsable_mail(monkeypatch):
+    def broken(_raw):
+        raise ValueError("bad mime")
+
+    monkeypatch.setattr(mail_client, "parse_message", broken)
+    session = object.__new__(mail_client.ImapSession)
+    session.conn = FakeFetchConn([("OK", [(b"1 (UID 8 FLAGS (\\Seen) BODY[] {3}", b"???"), b")"])])
+
+    messages, failed = session.fetch_messages([8])
+
+    assert failed == set()
+    assert len(messages) == 1
+    assert messages[0]["uid"] == 8 and messages[0]["unread"] == 0
+    assert "无法解析" in messages[0]["subject"]
+
+
+# ---------------- 默认配置不指向个人域名 ----------------
+
+def test_default_public_url_stays_on_this_machine(monkeypatch):
+    import oauth_auth
+
+    monkeypatch.delenv("MAILHUB_PUBLIC_URL", raising=False)
+    monkeypatch.delenv("GMAIL_REDIRECT_URI", raising=False)
+    assert oauth_auth._public_base_url() == "http://127.0.0.1:8018"
+    assert oauth_auth._redirect_uri("gmail") == "http://127.0.0.1:8018/api/oauth/gmail/callback"
+
+
+def _clear_ai_settings(conn):
+    conn.execute("DELETE FROM settings WHERE k IN ('ai_base_url', 'ai_enabled', 'ai_key_enc')")
+    conn.commit()
+
+
+def test_ai_has_no_default_endpoint(fresh_db):
+    import ai
+
+    _clear_ai_settings(fresh_db)
+    db.set_setting("ai_enabled", "1")
+    db.set_setting("ai_key_enc", db_encrypt("sk-test"))
+    db.set_setting("ai_base_url", "")
+    try:
+        assert ai.ai_config()["base_url"] == ""
+        with pytest.raises(RuntimeError, match="未配置 AI 接口地址"):
+            ai.chat([{"role": "user", "content": "hi"}])
+        with pytest.raises(RuntimeError, match="未配置 AI 接口地址"):
+            ai.list_models()
+    finally:
+        _clear_ai_settings(fresh_db)
+
+
+def test_existing_ai_deployment_keeps_previous_endpoint(fresh_db):
+    _clear_ai_settings(fresh_db)
+    db.set_setting("ai_enabled", "1")
+    try:
+        db.init_db()
+        assert db.get_setting("ai_base_url") == db._LEGACY_AI_BASE_URL
+    finally:
+        _clear_ai_settings(fresh_db)
+
+
+def test_new_deployment_gets_no_ai_endpoint(fresh_db):
+    _clear_ai_settings(fresh_db)
+    db.init_db()
+    assert db.get_setting("ai_base_url", None) is None
+
+
+def db_encrypt(value: str) -> str:
+    import security
+
+    return security.encrypt(value)

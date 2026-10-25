@@ -204,7 +204,23 @@ def init_db():
             # 不能等到治理运行时才以“缺列”形式晚失败。
             if "duplicate column name" not in str(exc).lower():
                 raise
+    _pin_legacy_ai_base_url(conn)
     conn.commit()
+
+
+# 旧版本在 ai_base_url 未设置时默认使用作者自建的中转地址。新版本不再提供默认值；
+# 这里只为已经在用 AI 的旧部署把原来的隐式默认值显式写入 settings，保持行为不变。
+_LEGACY_AI_BASE_URL = "https://api.11451405.xyz/v1"
+
+
+def _pin_legacy_ai_base_url(conn: sqlite3.Connection):
+    if conn.execute("SELECT 1 FROM settings WHERE k='ai_base_url'").fetchone():
+        return
+    in_use = conn.execute(
+        "SELECT 1 FROM settings WHERE (k='ai_enabled' AND v='1') OR (k='ai_key_enc' AND v != '')"
+    ).fetchone()
+    if in_use:
+        conn.execute("INSERT INTO settings(k, v) VALUES('ai_base_url', ?)", (_LEGACY_AI_BASE_URL,))
 
 
 def get_setting(key: str, default: str = "") -> str:

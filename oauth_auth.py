@@ -25,7 +25,9 @@ router = APIRouter()
 
 _EMAIL_RE = re.compile(r"^[^@\s]{1,64}@[^@\s]{1,189}$")
 _COLOR_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
-_PUBLIC_URL = "https://email.11451405.xyz"
+# 未设置 MAILHUB_PUBLIC_URL 时只在本机可用；生产部署必须显式配置公网 HTTPS 地址，
+# 否则 OAuth 回调会指向一个不属于部署者的域名。
+_PUBLIC_URL = "http://127.0.0.1:8018"
 _BROWSER_TTL = 600
 _NETEASE_TOKEN_TTL = 3650 * 86400
 _OUTLOOK_NETEASE_APP_ID = "rjg1fubwqzie5unhx6"

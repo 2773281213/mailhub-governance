@@ -5,7 +5,6 @@ import email.utils
 import html as html_mod
 import imaplib
 import re
-import socket
 import time
 
 import httpx
@@ -21,7 +20,7 @@ NETEASE_PROVIDERS = frozenset(
 )
 IMAP_ID_PAYLOAD = (
     '("name" "MailHub" "version" "1.1" "vendor" "MailHub" '
-    '"support-email" "support@11451405.xyz")'
+    '"support-email" "mailhub@localhost")'
 )
 NETEASE_LOGIN_HELP = (
     "网易邮箱认证失败：请使用完整邮箱地址登录，确认网页邮箱已开启 IMAP/SMTP，"
@@ -244,19 +243,52 @@ def parse_message(raw_bytes: bytes) -> dict:
     }
 
 
+def unparsable_message() -> dict:
+    """解析失败时的占位记录：邮件仍然入库，用户能看到并到网页邮箱查看原文。"""
+    return {
+        "msg_id": "",
+        "subject": "（无法解析的邮件）",
+        "sender_name": "",
+        "sender_addr": "",
+        "to_addr": "",
+        "reply_to": "",
+        "attach_names": [],
+        "date_ts": time.time(),
+        "snippet": "MailHub 无法解析这封邮件，请在邮箱网页版查看原文。",
+        "body_text": "MailHub 无法解析这封邮件，请在邮箱网页版查看原文。",
+        "body_html": "",
+        "has_attach": 0,
+        "unsubscribe": 0,
+    }
+
+
 # ---------- IMAP 会话 ----------
+
+def _uid_chunks(uids: list[int], size: int = 100):
+    for i in range(0, len(uids), size):
+        yield ",".join(str(u) for u in uids[i:i + size])
+
 
 class ImapSession:
     def __init__(self, host: str, port: int = 993, timeout: int = 30):
-        socket.setdefaulttimeout(timeout)
-        self.conn = imaplib.IMAP4_SSL(host, port)
+        # 超时只作用于本连接；不再用 socket.setdefaulttimeout 改动整个进程的默认值
+        self.conn = imaplib.IMAP4_SSL(host, port, timeout=timeout)
+        self.caps = frozenset(str(c).upper() for c in getattr(self.conn, "capabilities", ()))
+
+    def _refresh_capabilities(self):
+        """登录后重新读取能力列表：Gmail 等服务器在认证前不会通告 UIDPLUS。"""
+        typ, data = self.conn.capability()
+        if typ == "OK" and data:
+            self.caps = frozenset(_imap_response_text(data).upper().split())
 
     def login_password(self, user: str, password: str):
         self.conn.login(user, password)
+        self._refresh_capabilities()
 
     def login_oauth2(self, user: str, access_token: str):
         auth = f"user={user}\x01auth=Bearer {access_token}\x01\x01"
         self.conn.authenticate("XOAUTH2", lambda _: auth.encode())
+        self._refresh_capabilities()
 
     def send_id(self):
         """认证后提交客户端身份；网易未收到有效 ID 时会拒绝 SELECT。"""
@@ -297,16 +329,27 @@ class ImapSession:
             uids = uids[-first_limit:]
         return uids
 
-    def fetch_messages(self, uids: list[int]) -> list[dict]:
-        """按 UID 批量抓取完整邮件（BODY.PEEK 不改变已读状态），返回解析后的 dict 列表"""
-        out = []
+    def fetch_messages(self, uids: list[int]) -> tuple[list[dict], set[int]]:
+        """按 UID 批量抓取完整邮件（BODY.PEEK 不改变已读状态）。
+
+        返回 (解析后的邮件, 抓取失败的 UID)。调用方只能把同步水位推进到第一个
+        失败 UID 之前，下一轮会重试。批次成功但缺少某个 UID 时，视为该邮件
+        已被服务器删除，不算失败。无法解析的邮件生成占位记录，而不是静默丢弃。
+        """
+        out: list[dict] = []
+        failed: set[int] = set()
         for i in range(0, len(uids), 20):
             batch = uids[i:i + 20]
             uidset = ",".join(str(u) for u in batch)
-            typ, data = self.conn.uid("fetch", uidset, "(UID FLAGS BODY.PEEK[])")
-            if typ != "OK" or not data:
+            try:
+                typ, data = self.conn.uid("fetch", uidset, "(UID FLAGS BODY.PEEK[])")
+            except Exception:
+                failed.update(batch)
                 continue
-            for item in data:
+            if typ != "OK":
+                failed.update(batch)
+                continue
+            for item in data or []:
                 if not isinstance(item, tuple) or len(item) < 2:
                     continue
                 head = item[0].decode(errors="replace") if isinstance(item[0], bytes) else str(item[0])
@@ -320,29 +363,59 @@ class ImapSession:
                 try:
                     parsed = parse_message(item[1])
                 except Exception:
-                    continue
+                    parsed = unparsable_message()
                 parsed["uid"] = int(m_uid.group(1))
                 parsed["unread"] = 0 if "\\Seen" in flags else 1
                 out.append(parsed)
-        return out
+        return out, failed
 
     def store_flags(self, uids: list[int], flag: str, add: bool = True):
         if not uids:
             return
         op = "+FLAGS" if add else "-FLAGS"
-        for i in range(0, len(uids), 100):
-            uidset = ",".join(str(u) for u in uids[i:i + 100])
-            self.conn.uid("store", uidset, op, f"({flag})")
+        for uidset in _uid_chunks(list(uids)):
+            typ, data = self.conn.uid("store", uidset, op, f"({flag})")
+            if typ != "OK":
+                detail = _imap_response_text(data)
+                raise RuntimeError(f"设置邮件标记失败{f'：{detail[:120]}' if detail else ''}")
 
     def mark_read(self, uids: list[int], read: bool = True):
         self.store_flags(uids, "\\Seen", add=read)
 
-    def delete(self, uids: list[int]):
-        self.store_flags(uids, "\\Deleted", add=True)
-        try:
-            self.conn.expunge()
-        except Exception:
-            pass
+    def delete(self, uids: list[int]) -> str:
+        """永久删除指定 UID，只清除 MailHub 自己标记的邮件。
+
+        返回 "expunged"（已从服务器清除）或 "flagged"（已打上 \\Deleted，
+        但收件箱里还有其他客户端标记待删的邮件，为避免连带清除而暂不 EXPUNGE；
+        大多数客户端会隐藏这些邮件，并在下次清除时一并移除）。
+        """
+        targets = sorted({int(u) for u in uids if int(u) > 0})
+        if not targets:
+            return "expunged"
+        self.store_flags(targets, "\\Deleted", add=True)
+
+        if "UIDPLUS" in getattr(self, "caps", frozenset()):
+            # RFC 4315：UID EXPUNGE 只清除列出的 UID
+            for uidset in _uid_chunks(targets):
+                typ, data = self.conn.uid("EXPUNGE", uidset)
+                if typ != "OK":
+                    detail = _imap_response_text(data)
+                    raise RuntimeError(f"服务器拒绝清除邮件{f'：{detail[:120]}' if detail else ''}")
+            return "expunged"
+
+        # 没有 UIDPLUS 时，普通 EXPUNGE 会清掉收件箱里所有带 \Deleted 的邮件。
+        # 只有当待删集合恰好都是本次标记的邮件时才执行。
+        typ, data = self.conn.uid("search", None, "DELETED")
+        if typ != "OK":
+            return "flagged"
+        flagged = {int(u) for u in (data[0] or b"").split()} if data else set()
+        if not flagged <= set(targets):
+            return "flagged"
+        typ, data = self.conn.expunge()
+        if typ != "OK":
+            detail = _imap_response_text(data)
+            raise RuntimeError(f"服务器拒绝清除邮件{f'：{detail[:120]}' if detail else ''}")
+        return "expunged"
 
     def close(self):
         try:

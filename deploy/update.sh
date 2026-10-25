@@ -25,6 +25,12 @@ sudo install -m 0644 /opt/mailhub/deploy/mailhub.service /etc/systemd/system/mai
 # The bootstrap config is installed only on a host without an existing site file.
 if [ ! -e /etc/nginx/sites-available/mailhub ]; then
   sudo install -m 0644 /opt/mailhub/deploy/nginx-mailhub.conf /etc/nginx/sites-available/mailhub
+  domain=$(sudo sed -n 's#^MAILHUB_PUBLIC_URL=https\{0,1\}://\([A-Za-z0-9.-]*\).*#\1#p' /opt/mailhub/.env)
+  if [ -z "$domain" ]; then
+    echo "MAILHUB_PUBLIC_URL is missing from /opt/mailhub/.env" >&2
+    exit 1
+  fi
+  sudo sed -i "s/__MAILHUB_DOMAIN__/${domain}/g" /etc/nginx/sites-available/mailhub
 fi
 sudo nginx -t
 sudo systemctl daemon-reload

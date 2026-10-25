@@ -56,6 +56,101 @@ def resolve_secret(acc: dict) -> str:
     return oauth_auth.resolve_oauth_access_token(acc)
 
 
+SERVER_ACTIONS = ("delete", "read", "unread")
+
+
+def apply_server_action(message_ids: list[int], action: str) -> tuple[list[int], list[str]]:
+    """把动作按账户分组回放到 IMAP，返回 (服务器确认成功的本地 id, 错误)。
+
+    在调用线程内取自己的 SQLite 连接：get_conn() 是线程本地的，
+    不能把别的线程（例如 asyncio 事件循环）的连接传进来。
+    """
+    if action not in SERVER_ACTIONS:
+        raise ValueError(f"不支持的服务器动作 {action}")
+    if not message_ids:
+        return [], []
+    conn = get_conn()
+    ph = ",".join("?" * len(message_ids))
+    rows = conn.execute(
+        f"SELECT id, account_id, uid FROM messages WHERE id IN ({ph})", list(message_ids)
+    ).fetchall()
+    by_acc: dict[int, list[tuple[int, int]]] = {}
+    errors: list[str] = []
+    for r in rows:
+        if r["uid"] <= 0:
+            # UIDVALIDITY 变化后解绑的旧记录，在服务器上已没有对应 UID
+            errors.append(f"邮件{r['id']}: 服务器上已找不到对应邮件")
+            continue
+        by_acc.setdefault(r["account_id"], []).append((r["id"], r["uid"]))
+
+    succeeded: list[int] = []
+    for acc_id, items in by_acc.items():
+        sess = None
+        try:
+            acc_row = conn.execute("SELECT * FROM accounts WHERE id=?", (acc_id,)).fetchone()
+            if not acc_row:
+                raise RuntimeError("账户不存在")
+            acc = dict(acc_row)
+            sess = mail_client.open_session(acc, resolve_secret(acc))
+            sess.select_inbox()
+            uids = [uid for _mid, uid in items]
+            if action == "delete":
+                sess.delete(uids)
+            else:
+                sess.mark_read(uids, action == "read")
+            succeeded.extend(mid for mid, _uid in items)
+        except Exception as exc:
+            errors.append(f"账户{acc_id}: {str(exc)[:100]}")
+        finally:
+            if sess is not None:
+                sess.close()
+    return succeeded, errors
+
+
+def _advance_watermark(last_uid: int, requested: list[int], failed) -> int:
+    """计算新的同步水位：只推进到第一个失败 UID 之前。
+
+    水位之后的 UID 下一轮会重新拉取；已入库的邮件靠 UNIQUE(account_id, uid)
+    幂等跳过，所以宁可重拉也不能跳过失败的邮件。
+    """
+    failed = set(failed)
+    watermark = last_uid
+    for uid in sorted(requested):
+        if uid in failed:
+            break
+        watermark = max(watermark, uid)
+    return watermark
+
+
+def _unbind_stale_uids(conn, acc_id: int, uidvalidity: int):
+    """UIDVALIDITY 变化：旧记录保留在本地，但把 UID 改成负数让出唯一键。
+
+    负 UID 不会与服务器上的任何 UID 冲突，服务器动作也会跳过它们。
+    与新的 uidvalidity、归零的水位放在同一个事务里提交，中途失败也不会重复解绑。
+    """
+    conn.execute("UPDATE messages SET uid=-id WHERE account_id=? AND uid>0", (acc_id,))
+    conn.execute("UPDATE accounts SET last_uid=0, uidvalidity=? WHERE id=?", (uidvalidity, acc_id))
+    conn.commit()
+
+
+def _rebind_by_message_id(conn, acc_id: int, message: dict) -> bool:
+    """把重建邮箱后的新 UID 绑回同一封信原来的本地记录，保留分类与回收站状态。"""
+    msg_id = message.get("msg_id")
+    if not msg_id:
+        return False
+    if conn.execute("SELECT 1 FROM messages WHERE account_id=? AND uid=?",
+                    (acc_id, message["uid"])).fetchone():
+        return False   # 这个 UID 已经入库，交给后面的 INSERT OR IGNORE 幂等处理
+    row = conn.execute(
+        "SELECT id FROM messages WHERE account_id=? AND uid<0 AND msg_id=? ORDER BY id LIMIT 1",
+        (acc_id, msg_id),
+    ).fetchone()
+    if not row:
+        return False
+    conn.execute("UPDATE messages SET uid=? WHERE id=?", (message["uid"], row["id"]))
+    return True
+
+
 def sync_account(acc_id: int) -> int:
     """同步单个账户，返回新邮件数；线程内调用"""
     lock = _sync_locks.setdefault(acc_id, threading.Lock())
@@ -74,15 +169,21 @@ def sync_account(acc_id: int) -> int:
             uidvalidity = sess.select_inbox()
             last_uid = acc["last_uid"]
             if uidvalidity and acc["uidvalidity"] and uidvalidity != acc["uidvalidity"]:
-                last_uid = 0  # UIDVALIDITY 变化说明服务器重建了邮箱，UID 全部作废
+                # UIDVALIDITY 变化说明服务器重建了邮箱，旧 UID 全部作废
+                _unbind_stale_uids(conn, acc_id, uidvalidity)
+                last_uid = 0
             uids = sess.search_uids(last_uid)
             new_count = 0
             fresh: list[dict] = []   # 本轮新入库的邮件，用于推送通知
             if uids:
                 _set_status(acc_id, "syncing", f"拉取 {len(uids)} 封")
                 custom = rules.load_custom_rules(conn)
-                msgs = sess.fetch_messages(uids)
+                msgs, failed = sess.fetch_messages(uids)
+                insert_error = ""
                 for m in msgs:
+                    # —— UIDVALIDITY 变化后，同一封信按 Message-ID 认回原来的本地记录 ——
+                    if _rebind_by_message_id(conn, acc_id, m):
+                        continue
                     # —— 去重：同一封信可能经转发从多个账户到达，用 Message-ID 二次判重 ——
                     if m.get("msg_id") and _is_duplicate(conn, acc_id, m["msg_id"]):
                         continue
@@ -118,12 +219,19 @@ def sync_account(acc_id: int) -> int:
                             fresh.append({"subject": m["subject"], "sender_addr": m["sender_addr"],
                                           "category": cat, "otp_code": otp, "importance": 0,
                                           "risk": scan["risk"]})
-                    except Exception:
-                        continue
-                max_uid = max(uids)
+                    except Exception as exc:
+                        # 入库失败不能被水位跳过，记为失败，下次同步重试
+                        failed.add(m["uid"])
+                        insert_error = insert_error or str(exc)[:120]
+                last_error = ""
+                if failed:
+                    last_error = f"{len(failed)} 封邮件拉取或入库失败，下次同步重试"
+                    if insert_error:
+                        last_error += f"（{insert_error}）"
                 conn.execute(
-                    "UPDATE accounts SET last_uid=?, uidvalidity=?, last_sync=?, last_error='' WHERE id=?",
-                    (max(max_uid, last_uid), uidvalidity, time.time(), acc_id),
+                    "UPDATE accounts SET last_uid=?, uidvalidity=?, last_sync=?, last_error=? WHERE id=?",
+                    (_advance_watermark(last_uid, uids, failed), uidvalidity, time.time(),
+                     last_error[:200], acc_id),
                 )
             else:
                 conn.execute(
@@ -244,9 +352,10 @@ def auto_clean():
     targets, blocked = [], []
     for r in rows:
         m = dict(r)
-        # user_rule=True：用户在设置里显式启用了这条清理策略，等价于建立了规则
+        # user_rule=True：用户在设置里显式启用了这条清理策略，等价于建立了规则。
+        # 这是无人值守的系统任务，受保护邮件（附件/重要/账单/安全）一律不动。
         allowed, tier, reason = policy.evaluate(
-            action, m, actor="user", user_rule=True, confirmed=server_too)
+            action, m, actor="system", user_rule=True, confirmed=server_too)
         (targets.append(m) if allowed else blocked.append(reason))
 
     if not targets:
@@ -256,22 +365,10 @@ def auto_clean():
         return
 
     ids = [m["id"] for m in targets]
+    errors: list[str] = []
     if server_too:
-        by_acc: dict = {}
-        for m in targets:
-            by_acc.setdefault(m["account_id"], []).append(m["uid"])
-        for acc_id, uids in by_acc.items():
-            try:
-                acc_row = conn.execute("SELECT * FROM accounts WHERE id=?", (acc_id,)).fetchone()
-                if not acc_row:
-                    continue
-                acc = dict(acc_row)
-                sess = mail_client.open_session(acc, resolve_secret(acc))
-                sess.select_inbox()
-                sess.delete(uids)
-                sess.close()
-            except Exception:
-                continue
+        # 只有服务器确认删除成功的邮件才移除本地记录；失败的留待下次重试
+        ids, errors = apply_server_action(ids, "delete")
         conn.executemany("DELETE FROM messages WHERE id=?", [(i,) for i in ids])
         undo = None
     else:
@@ -279,9 +376,11 @@ def auto_clean():
         conn.executemany("UPDATE messages SET deleted_ts=? WHERE id=?", [(ts, i) for i in ids])
         undo = {"ids": ids}
     conn.commit()
+    reason = f"自动清理 {days} 天前的验证码邮件，{len(blocked)} 封被策略保护"
+    if errors:
+        reason += f"；服务器删除失败 {len(errors)} 项：{errors[0]}"
     audit(action, actor="system", tier=policy.ACTION_TIER.get(action, "C"), target_ids=ids,
-          reason=f"自动清理 {days} 天前的验证码邮件，{len(blocked)} 封被策略保护",
-          reversible=undo is not None, undo_payload=undo)
+          reason=reason, reversible=undo is not None, undo_payload=undo)
 
 
 class SyncEngine:

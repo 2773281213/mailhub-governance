@@ -1,6 +1,6 @@
 """MailHub 邮箱管理中心 —— FastAPI 主应用
 聚合多邮箱（IMAP）+ 规则/AI 分类 + 验证码看板 + 每日摘要
-仅监听 127.0.0.1，经 nginx (email.11451405.xyz) 对外提供 HTTPS
+仅监听 127.0.0.1，经 nginx 反向代理对外提供 HTTPS
 """
 import asyncio
 import json
@@ -385,42 +385,16 @@ class BatchBody(BaseModel):
     action: str                 # read / unread / delete
     server: bool = False        # 是否同步操作 IMAP 服务器（= 不可逆的 purge）
     confirmed: bool = False     # 前端已弹窗确认（C 类动作必需）
+    # 用户对一封受保护邮件做了单独的二次确认；只在单封操作时生效
+    override_protection: bool = False
 
 
-def _server_op(conn, ids: list[int], action: str) -> tuple[list[int], list[str]]:
-    """把批量操作按账户分组回放到 IMAP，返回成功的本地 ID 和错误。"""
-    if not ids:
-        return [], []
-    rows = conn.execute(
-        f"SELECT id, account_id, uid FROM messages WHERE id IN ({','.join('?' * len(ids))})", ids
-    ).fetchall()
-    by_acc: dict = {}
-    for r in rows:
-        by_acc.setdefault(r["account_id"], []).append((r["id"], r["uid"]))
-    errors, succeeded = [], []
-    for acc_id, messages in by_acc.items():
-        sess = None
-        try:
-            acc_row = conn.execute("SELECT * FROM accounts WHERE id=?", (acc_id,)).fetchone()
-            if not acc_row:
-                raise RuntimeError("账户不存在")
-            acc = dict(acc_row)
-            sess = mail_client.open_session(acc, sync.resolve_secret(acc))
-            sess.select_inbox()
-            uids = [uid for _msg_id, uid in messages]
-            if action == "delete":
-                sess.delete(uids)
-            elif action == "read":
-                sess.mark_read(uids, True)
-            elif action == "unread":
-                sess.mark_read(uids, False)
-            succeeded.extend(msg_id for msg_id, _uid in messages)
-        except Exception as e:
-            errors.append(f"账户{acc_id}: {str(e)[:100]}")
-        finally:
-            if sess is not None:
-                sess.close()
-    return succeeded, errors
+def _server_op(ids: list[int], action: str) -> tuple[list[int], list[str]]:
+    """把批量操作回放到 IMAP，返回服务器确认成功的本地 ID 和错误。
+
+    通过 asyncio.to_thread 在工作线程执行，并在该线程内取自己的 SQLite 连接。
+    """
+    return sync.apply_server_action(ids, action)
 
 
 def _load_for_policy(conn, ids: list[int]) -> list[dict]:
@@ -447,23 +421,34 @@ async def batch_messages(body: BatchBody):
     if not action:
         raise HTTPException(status_code=400, detail=f"不支持的动作 {body.action}")
 
+    # 受保护邮件只能逐封处理：批量请求即使带了 override 也不生效
+    override = body.override_protection and len(set(ids)) == 1
+
     msgs = _load_for_policy(conn, ids)
     blocked, allowed_ids = [], []
     for m in msgs:
-        ok, tier, reason = policy.evaluate(
-            action, m, actor="user", confirmed=body.confirmed)
-        (allowed_ids if ok else blocked).append(m["id"] if ok else {"id": m["id"], "reason": reason})
+        ok, _tier, reason = policy.evaluate(
+            action, m, actor="user", confirmed=body.confirmed,
+            override_protection=override)
+        if ok:
+            allowed_ids.append(m["id"])
+        else:
+            blocked.append({"id": m["id"], "reason": reason,
+                            "protected": action in policy.DESTRUCTIVE_ACTIONS
+                            and policy.is_protected(m)[0]})
 
     if not allowed_ids:
         first = blocked[0]["reason"] if blocked else "无可执行目标"
         audit(action, actor="user", target_ids=ids, allowed=False, reason=first)
-        raise HTTPException(status_code=403, detail=f"操作被安全策略拦截：{first}")
+        headers = {"X-MailHub-Protected": "1"} if blocked and blocked[0]["protected"] else None
+        raise HTTPException(status_code=403, detail=f"操作被安全策略拦截：{first}",
+                            headers=headers)
 
     errors = []
     undo_payload = None
     if action == "purge":
         # 不可逆：先在服务器删，再从本地移除，审计记录标注不可撤销
-        succeeded, errors = await asyncio.to_thread(_server_op, conn, allowed_ids, "delete")
+        succeeded, errors = await asyncio.to_thread(_server_op, allowed_ids, "delete")
         allowed_ids = succeeded
         if allowed_ids:
             ph = ",".join("?" * len(allowed_ids))
@@ -475,7 +460,7 @@ async def batch_messages(body: BatchBody):
         undo_payload = {"ids": allowed_ids}
     elif action in ("read", "unread"):
         if body.server:
-            succeeded, errors = await asyncio.to_thread(_server_op, conn, allowed_ids, body.action)
+            succeeded, errors = await asyncio.to_thread(_server_op, allowed_ids, body.action)
             allowed_ids = succeeded
         prev = {m["id"]: m["unread"] for m in msgs if m["id"] in set(allowed_ids)}
         if allowed_ids:
@@ -485,11 +470,17 @@ async def batch_messages(body: BatchBody):
             undo_payload = {"unread": prev}
     conn.commit()
 
+    overrode = override and action in policy.DESTRUCTIVE_ACTIONS and any(
+        policy.is_protected(m)[0] for m in msgs if m["id"] in set(allowed_ids))
+    reason = ("用户对受保护邮件单封二次确认" if overrode else "用户批量操作")
+    if errors:
+        reason += f"；{len(errors)} 个账户执行失败"
+    elif blocked:
+        reason += f"，{len(blocked)} 封被策略拦截"
     audit_id = audit(action, actor="user", tier=policy.ACTION_TIER.get(action, "C"),
                      target_ids=allowed_ids,
                      allowed=bool(allowed_ids),
-                     reason=(f"用户批量操作；{len(errors)} 个账户执行失败" if errors else
-                             f"用户批量操作，{len(blocked)} 封被策略拦截" if blocked else "用户批量操作"),
+                     reason=reason,
                      reversible=undo_payload is not None, undo_payload=undo_payload)
     return {"ok": not errors, "count": len(allowed_ids), "blocked": blocked,
             "errors": errors, "audit_id": audit_id,
@@ -542,7 +533,7 @@ async def clean_messages(body: CleanBody):
     errors, undo_payload = [], None
     ph = ",".join("?" * len(ids))
     if body.server:
-        succeeded, errors = await asyncio.to_thread(_server_op, conn, ids, "delete")
+        succeeded, errors = await asyncio.to_thread(_server_op, ids, "delete")
         ids = succeeded
         if ids:
             ph = ",".join("?" * len(ids))
@@ -957,7 +948,7 @@ async def ai_test():
 
 # ---------- 外部 API：注册机取码（cloudflare_temp_email 兼容协议） ----------
 # 注册机「Cloudflare Worker 自建」通道直接指向本站即可：
-#   API 地址 https://email.11451405.xyz，管理员令牌填设置页的外部 API Token
+#   API 地址填你的 MailHub 地址（MAILHUB_PUBLIC_URL），管理员令牌填设置页的外部 API Token
 # POST /admin/new_address 分配加号别名（基于 Gmail/Outlook 账户）
 # GET  /admin/mails?address= 查询该别名邮件（查询自动触发突发同步）
 

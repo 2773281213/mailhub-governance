@@ -40,6 +40,9 @@ ACTION_TIER = {
 # 这些分类禁止任何自动破坏性动作（软删除也不行），只能人工逐封处理
 PROTECTED_CATEGORIES = {"账单", "安全", "重要"}
 
+# 会让邮件离开收件箱的动作；执行前一律先过受保护判定
+DESTRUCTIVE_ACTIONS = frozenset({"soft_delete", "purge", "quarantine", "archive", "move"})
+
 # 允许批量清理的分类白名单——只有低价值、可再生的邮件类型
 CLEANABLE_CATEGORIES = {"验证码", "订阅", "通知"}
 
@@ -66,27 +69,35 @@ def is_protected(msg: dict) -> tuple[bool, str]:
 
 def evaluate(action: str, msg: dict, *, actor: str = "system",
              confidence: float = 1.0, user_rule: bool = False,
-             confirmed: bool = False) -> tuple[bool, str, str]:
+             confirmed: bool = False,
+             override_protection: bool = False) -> tuple[bool, str, str]:
     """裁决单封邮件上的单个动作。
 
     actor: user | rule | ai | system
+    confirmed: 用户在界面上确认过（actor=user），或用户在设置里显式开启的
+        长期规则（actor=system 且 user_rule=True）。它只解除 C 类动作的确认门槛，
+        不会跳过受保护判定。
+    override_protection: 用户对这一封受保护邮件做了单独的二次确认。只对
+        actor=user 且 confirmed=True 生效；调用方负责保证它只用于单封操作。
     返回 (allowed, tier, reason)。allowed=False 时 reason 说明拦截原因。
     """
     tier = ACTION_TIER.get(action, TIER_CONFIRM)  # 未知动作按最严处理
 
-    # 用户在界面上显式点击并确认的，放行（审计仍会记录）
-    if actor == "user" and confirmed:
+    # 受保护判定永远先于"已确认"：批量确认、自动清理都不能带走受保护邮件
+    if action in DESTRUCTIVE_ACTIONS:
+        protected, why = is_protected(msg)
+        if protected and not (actor == "user" and confirmed and override_protection):
+            return False, tier, why
+
+    # 用户在界面上显式确认，或用户开启的长期规则：放行（审计仍会记录）
+    if confirmed and actor == "user":
         return True, tier, "用户已确认"
+    if confirmed and actor == "system" and user_rule:
+        return True, tier, "用户在设置中开启的长期规则"
 
     # C 类：任何情况下都需要显式确认
     if tier == TIER_CONFIRM:
         return False, tier, f"动作「{action}」属 C 类（不可逆/对外），必须人工确认"
-
-    # 破坏性动作先过受保护判定
-    if action in ("soft_delete", "purge", "quarantine", "archive", "move"):
-        protected, why = is_protected(msg)
-        if protected:
-            return False, tier, why
 
     # B 类：需要用户规则或足够置信度
     if tier == TIER_GUARDED and not user_rule:
