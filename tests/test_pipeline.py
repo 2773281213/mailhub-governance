@@ -170,6 +170,99 @@ def test_failed_server_clean_keeps_local_message(fresh_db, monkeypatch):
     assert fresh_db.execute("SELECT id FROM messages WHERE id=?", (mid,)).fetchone() is not None
 
 
+def _deleted_ts(conn, mid):
+    return conn.execute("SELECT deleted_ts FROM messages WHERE id=?", (mid,)).fetchone()["deleted_ts"]
+
+
+def test_confirmed_batch_delete_keeps_protected_mail(fresh_db):
+    """前端总是带 confirmed=true；受保护邮件仍必须被留下"""
+    acc = _mk_account(fresh_db)
+    plain = _insert_msg(fresh_db, acc, 1, category="通知")
+    bill = _insert_msg(fresh_db, acc, 2, category="账单")
+    attached = _insert_msg(fresh_db, acc, 3, category="通知", has_attach=1)
+
+    result = asyncio.run(mailhub_app.batch_messages(mailhub_app.BatchBody(
+        ids=[plain, bill, attached], action="delete", confirmed=True,
+    )))
+
+    assert result["count"] == 1
+    assert {b["id"] for b in result["blocked"]} == {bill, attached}
+    assert _deleted_ts(fresh_db, plain) > 0
+    assert _deleted_ts(fresh_db, bill) == 0
+    assert _deleted_ts(fresh_db, attached) == 0
+
+
+def test_all_protected_batch_returns_403_with_protected_marker(fresh_db):
+    acc = _mk_account(fresh_db)
+    bill = _insert_msg(fresh_db, acc, 1, category="账单")
+
+    with pytest.raises(mailhub_app.HTTPException) as exc_info:
+        asyncio.run(mailhub_app.batch_messages(mailhub_app.BatchBody(
+            ids=[bill], action="delete", confirmed=True,
+        )))
+
+    assert exc_info.value.status_code == 403
+    assert exc_info.value.headers == {"X-MailHub-Protected": "1"}
+    assert _deleted_ts(fresh_db, bill) == 0
+
+
+def test_single_message_override_deletes_protected_mail(fresh_db):
+    acc = _mk_account(fresh_db)
+    bill = _insert_msg(fresh_db, acc, 1, category="账单")
+
+    result = asyncio.run(mailhub_app.batch_messages(mailhub_app.BatchBody(
+        ids=[bill], action="delete", confirmed=True, override_protection=True,
+    )))
+
+    assert result["count"] == 1
+    assert _deleted_ts(fresh_db, bill) > 0
+    row = fresh_db.execute(
+        "SELECT reason FROM audit_log WHERE id=?", (result["audit_id"],)).fetchone()
+    assert "二次确认" in row["reason"]
+
+
+def test_override_is_ignored_for_multi_message_batches(fresh_db):
+    acc = _mk_account(fresh_db)
+    bill = _insert_msg(fresh_db, acc, 1, category="账单")
+    plain = _insert_msg(fresh_db, acc, 2, category="通知")
+
+    result = asyncio.run(mailhub_app.batch_messages(mailhub_app.BatchBody(
+        ids=[bill, plain], action="delete", confirmed=True, override_protection=True,
+    )))
+
+    assert result["count"] == 1
+    assert _deleted_ts(fresh_db, bill) == 0
+
+
+def test_clean_keeps_protected_otp_mail(fresh_db):
+    acc = _mk_account(fresh_db)
+    plain = _insert_msg(fresh_db, acc, 1, category="验证码")
+    attached = _insert_msg(fresh_db, acc, 2, category="验证码", has_attach=1)
+
+    result = asyncio.run(mailhub_app.clean_messages(mailhub_app.CleanBody(
+        category="验证码", confirmed=True,
+    )))
+
+    assert result["count"] == 1
+    assert _deleted_ts(fresh_db, plain) > 0
+    assert _deleted_ts(fresh_db, attached) == 0
+
+
+def test_auto_clean_soft_delete_keeps_protected_mail(fresh_db):
+    acc = _mk_account(fresh_db)
+    plain = _insert_msg(fresh_db, acc, 1, category="验证码", date_ts=1000.0)
+    attached = _insert_msg(fresh_db, acc, 2, category="验证码", has_attach=1, date_ts=1000.0)
+    db.set_setting("clean_otp_days", "1")
+    db.set_setting("clean_server", "0")
+    try:
+        sync.auto_clean()
+    finally:
+        db.set_setting("clean_otp_days", "0")
+
+    assert _deleted_ts(fresh_db, plain) > 0
+    assert _deleted_ts(fresh_db, attached) == 0
+
+
 def test_policy_loader_ignores_messages_already_in_trash(fresh_db):
     acc = _mk_account(fresh_db)
     mid = _insert_msg(fresh_db, acc, 1, deleted_ts=123.0)
