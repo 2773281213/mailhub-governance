@@ -241,6 +241,16 @@ def now() -> float:
     return time.time()
 
 
+def remove_external_api_settings():
+    """旧版"注册机取码"外部 API 已移除：删除它留下的访问令牌和别名基座设置。
+
+    aliases 表保留（不再写入），避免改动旧库结构。
+    """
+    conn = get_conn()
+    conn.execute("DELETE FROM settings WHERE k IN ('ext_token', 'alias_account_id')")
+    conn.commit()
+
+
 # ---------- 审计 ----------
 
 def audit(action: str, *, actor: str = "system", tier: str = "",

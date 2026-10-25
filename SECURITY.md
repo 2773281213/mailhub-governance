@@ -104,7 +104,6 @@ medium/high 风险邮件强制归入「可疑」分类并进入只读风险观�
 - 授权码/OAuth Token 用 Fernet 加密落库，主密钥在 `/opt/mailhub/.env`（0600）
 - 会话是 HMAC 签名 cookie，`httponly` + `secure` + `samesite=lax`
 - 登录失败 5 次锁 5 分钟
-- 外部取码 API 用 `hmac.compare_digest` 恒时比较，令牌可一键重置
 - 邮件 HTML 在**全沙箱 iframe**（`sandbox=""`，禁脚本/表单/弹窗/同源）中渲染
 - **外部图片默认拦截**：CSP `img-src data:`，阻断追踪像素泄露阅读时间与 IP；用户可单封放行
 - `referrerpolicy="no-referrer"`

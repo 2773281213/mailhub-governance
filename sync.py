@@ -259,22 +259,6 @@ def sync_account(acc_id: int) -> int:
         lock.release()
 
 
-def maybe_burst_sync(acc_id: int, min_interval: int = 8):
-    """突发同步：外部 API（注册机取码）轮询时调用，距上次同步超过 min_interval 秒才真正触发。
-    注册机每 3 秒查一次邮件，由查询本身驱动同步节奏，验证码 10~20 秒内可达。"""
-    conn = get_conn()
-    row = conn.execute("SELECT last_sync FROM accounts WHERE id=? AND enabled=1", (acc_id,)).fetchone()
-    if not row:
-        return
-    if time.time() - (row["last_sync"] or 0) < min_interval:
-        return
-    def run():
-        count = sync_account(acc_id)
-        if count:
-            ai_classify_pending(max(30, count))
-
-    threading.Thread(target=run, daemon=True).start()
-
 
 def trim_old_bodies():
     """正文瘦身：超过保留天数的邮件清空 body（保留头信息/摘要/验证码），防 SQLite 无限膨胀"""

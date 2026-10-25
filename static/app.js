@@ -1040,22 +1040,6 @@ async function renderSettings() {
           <div id="s-deploy"><div class="provider-help">读取中…</div></div>
         </div>
         <div class="card" style="margin-bottom:14px">
-          <h3>${ico("plug")} 注册机对接（外部取码 API）</h3>
-          <div class="provider-help">注册机「Cloudflare Worker 自建」通道：API 地址填你的 MailHub 地址，管理员令牌填下方 Token。会自动分配 Gmail/Outlook 加号别名并在查询时触发突发同步。</div>
-          <div class="set-row"><div class="l">外部 API Token</div>
-            <div class="set-ctl">
-              <input id="s-ext-token" value="${esc(s.ext_token)}" readonly onclick="this.select()">
-              <button class="btn sm" id="s-ext-copy">复制</button>
-              <button class="btn sm danger" id="s-ext-regen" title="重置后注册机需同步更新">重置</button>
-            </div></div>
-          <div class="set-row"><div class="l">别名基座账户<small>用于生成 user+xxx@ 加号别名</small></div>
-            <select id="s-alias-acc">
-              <option value="0">自动（第一个 Gmail/Outlook）</option>
-              ${s.alias_accounts.map(a => `<option value="${a.id}" ${s.alias_account_id === a.id ? "selected" : ""}>${esc(a.name)} (${esc(a.email)})</option>`).join("")}
-            </select></div>
-          <div class="set-row"><div class="l">已分配别名</div><span id="s-alias-count" style="color:var(--muted);font-size:12px">加载中…</span></div>
-        </div>
-        <div class="card" style="margin-bottom:14px">
           <h3>${ico("bell")} 通知推送</h3>
           <div class="set-row"><div class="l">Bark 推送地址<small>如 https://api.day.app/你的Key</small></div>
             <input id="s-bark" value="${esc(s.notify_bark_url)}" placeholder="留空不启用"></div>
@@ -1115,7 +1099,6 @@ async function renderSettings() {
       clean_otp_days: +$("#s-clean-days").value || 0,
       clean_server: $("#s-clean-server").checked,
       digest_hour: +$("#s-hour").value,
-      alias_account_id: +$("#s-alias-acc").value || 0,
       notify_bark_url: $("#s-bark").value.trim(),
       notify_tg_chat: $("#s-tg-chat").value.trim(),
       notify_important: $("#s-ntf-imp").checked,
@@ -1172,16 +1155,6 @@ async function renderSettings() {
   });
   $("#s-microsoft-copy").addEventListener("click", () => copyText($("#s-microsoft-callback").value));
   $("#s-google-copy")?.addEventListener("click", () => copyText($("#s-google-callback").value));
-  $("#s-ext-copy").addEventListener("click", () => copyText($("#s-ext-token").value));
-  $("#s-ext-regen").addEventListener("click", async () => {
-    if (!confirm("重置后注册机里配置的旧 Token 将失效，确认？")) return;
-    const r = await api("/ext/regen-token", { method: "POST" });
-    $("#s-ext-token").value = r.token; toast("Token 已重置");
-  });
-  api("/ext/aliases?limit=3").then(d => {
-    const el2 = $("#s-alias-count");
-    if (el2) el2.textContent = d.total ? `${d.total} 个（最近: ${d.items.map(i => i.alias).join(", ")}）` : "尚未分配";
-  }).catch(() => {});
   $("#s-ntf-test").addEventListener("click", async ev => {
     ev.target.disabled = true;
     const r = await api("/notify/test", { method: "POST" }).catch(e => ({ ok: false, msg: e.message }));
