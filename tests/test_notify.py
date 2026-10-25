@@ -151,6 +151,7 @@ def test_send_error_does_not_echo_config(monkeypatch):
 # ---------------- 设置页与测试推送 ----------------
 
 def test_settings_store_onepush_encrypted_and_never_return_it(clean_settings, fake_notifier):
+    fake_notifier.params["required"] = ["sctkey"]
     text = "provider: serverchanturbo\nsctkey: SCT-very-secret"
     asyncio.run(mailhub_app.put_settings(mailhub_app.SettingsBody(notify_onepush_config=text)))
 
