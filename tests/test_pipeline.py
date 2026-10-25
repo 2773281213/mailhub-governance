@@ -854,3 +854,22 @@ def db_encrypt(value: str) -> str:
     import security
 
     return security.encrypt(value)
+
+
+# ---------------- 已移除的外部取码 API ----------------
+
+def test_external_otp_api_routes_are_gone():
+    paths = {getattr(route, "path", "") for route in mailhub_app.app.routes}
+    assert not any(p.startswith(("/admin/", "/ext/", "/api/ext/")) for p in paths)
+
+
+def test_external_api_settings_are_cleared(fresh_db):
+    db.set_setting("ext_token", "mh-old-token")
+    db.set_setting("alias_account_id", "3")
+
+    db.remove_external_api_settings()
+
+    assert db.get_setting("ext_token", None) is None
+    assert db.get_setting("alias_account_id", None) is None
+    settings = asyncio.run(mailhub_app.get_settings())
+    assert "ext_token" not in settings and "alias_accounts" not in settings

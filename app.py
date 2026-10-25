@@ -24,7 +24,8 @@ import oauth_auth
 import policy
 import rules as rules_mod
 import sync
-from db import audit, get_conn, get_setting, init_db, set_setting
+from db import (audit, get_conn, get_setting, init_db, remove_external_api_settings,
+                set_setting)
 from security import (decrypt, encrypt, hash_password, make_session,
                       verify_password, verify_session)
 
@@ -44,9 +45,8 @@ async def lifespan(_app: FastAPI):
         pwd = pysecrets.token_urlsafe(9)
         set_setting("admin_hash", hash_password(pwd))
         print(f"[MailHub] 初始管理密码: {pwd}", flush=True)
-    # 外部 API 令牌（注册机取码用），设置页可查看/重置
-    if not get_setting("ext_token"):
-        set_setting("ext_token", "mh-" + pysecrets.token_urlsafe(24))
+    # 旧版外部取码 API 已移除：清掉它留下的令牌和别名基座设置
+    remove_external_api_settings()
     sync.engine.start()
     yield
     sync.engine.stop()
@@ -797,7 +797,6 @@ class SettingsBody(BaseModel):
     digest_hour: int | None = None
     old_password: str | None = None
     new_password: str | None = None
-    alias_account_id: int | None = None
     notify_bark_url: str | None = None
     notify_tg_token: str | None = None
     notify_tg_chat: str | None = None
@@ -815,10 +814,6 @@ class SettingsBody(BaseModel):
 @app.get("/api/settings")
 async def get_settings():
     cfg = ai.ai_config()
-    conn = get_conn()
-    alias_accounts = [dict(r) for r in conn.execute(
-        "SELECT id, name, email FROM accounts WHERE enabled=1 AND provider IN ('gmail','outlook')"
-    ).fetchall()]
     google_oauth = oauth_auth.browser_config_info("gmail")
     microsoft_oauth = oauth_auth.browser_config_info("outlook")
     return {
@@ -830,9 +825,6 @@ async def get_settings():
         "clean_otp_days": int(get_setting("clean_otp_days", "0") or 0),
         "clean_server": get_setting("clean_server", "0") == "1",
         "digest_hour": int(get_setting("digest_hour", "8") or 8),
-        "ext_token": get_setting("ext_token", ""),
-        "alias_account_id": int(get_setting("alias_account_id", "0") or 0),
-        "alias_accounts": alias_accounts,
         "notify_bark_url": get_setting("notify_bark_url", ""),
         "notify_tg_token_set": bool(get_setting("notify_tg_token", "")),
         "notify_tg_chat": get_setting("notify_tg_chat", ""),
@@ -911,8 +903,6 @@ async def put_settings(body: SettingsBody):
         set_setting("clean_server", "1" if body.clean_server else "0")
     if body.digest_hour is not None:
         set_setting("digest_hour", str(min(23, max(0, body.digest_hour))))
-    if body.alias_account_id is not None:
-        set_setting("alias_account_id", str(max(0, body.alias_account_id)))
     if body.notify_bark_url is not None:
         set_setting("notify_bark_url", body.notify_bark_url.strip())
     if body.notify_tg_token:
@@ -944,166 +934,6 @@ async def ai_test():
         return {"ok": True, "reply": reply.strip()[:50]}
     except Exception as e:
         return {"ok": False, "msg": str(e)[:200]}
-
-
-# ---------- 外部 API：注册机取码（cloudflare_temp_email 兼容协议） ----------
-# 注册机「Cloudflare Worker 自建」通道直接指向本站即可：
-#   API 地址填你的 MailHub 地址（MAILHUB_PUBLIC_URL），管理员令牌填设置页的外部 API Token
-# POST /admin/new_address 分配加号别名（基于 Gmail/Outlook 账户）
-# GET  /admin/mails?address= 查询该别名邮件（查询自动触发突发同步）
-
-import hmac as _hmac
-
-
-def _check_ext(request: Request):
-    token = get_setting("ext_token", "")
-    provided = request.headers.get("x-admin-auth", "") \
-        or request.headers.get("Authorization", "").removeprefix("Bearer ").strip() \
-        or request.query_params.get("token", "")
-    if not token or not provided or not _hmac.compare_digest(token, provided):
-        raise HTTPException(status_code=401, detail="无效的外部 API 令牌")
-
-
-def _alias_base_account(conn, domain: str = ""):
-    """选择别名基座账户：显式 domain 参数 > 设置指定 > 第一个支持加号别名的账户"""
-    if domain:
-        row = conn.execute(
-            "SELECT * FROM accounts WHERE enabled=1 AND email LIKE ? ORDER BY id LIMIT 1",
-            (f"%@{domain}",)).fetchone()
-        if row:
-            return row
-    aid = int(get_setting("alias_account_id", "0") or 0)
-    if aid:
-        row = conn.execute("SELECT * FROM accounts WHERE id=? AND enabled=1", (aid,)).fetchone()
-        if row:
-            return row
-    return conn.execute(
-        "SELECT * FROM accounts WHERE enabled=1 AND provider IN ('gmail','outlook') "
-        "ORDER BY id LIMIT 1").fetchone()
-
-
-@app.post("/admin/new_address")
-async def ext_new_address(request: Request):
-    _check_ext(request)
-    try:
-        body = await request.json()
-    except Exception:
-        body = {}
-    name = re.sub(r"[^a-z0-9]", "", str(body.get("name", "")).lower()) or pysecrets.token_hex(5)
-    conn = get_conn()
-    acc = _alias_base_account(conn, str(body.get("domain", "")).strip())
-    if not acc:
-        raise HTTPException(status_code=400,
-                            detail="没有可用的别名基座账户（需要已启用的 Gmail/Outlook 账户）")
-    local, _, dom = acc["email"].partition("@")
-    local = local.split("+")[0]
-    alias = f"{local}+{name}@{dom}"
-    conn.execute(
-        "INSERT OR IGNORE INTO aliases(alias, account_id, name, created_ts) VALUES(?,?,?,?)",
-        (alias, acc["id"], name, time.time()))
-    conn.commit()
-    # 同时给出 email/address 与 token/jwt 两种键名，兼容不同版本的取码客户端
-    return {"email": alias, "address": alias, "token": alias, "jwt": alias}
-
-
-def _pseudo_raw(row) -> str:
-    """把入库邮件还原成近似 RFC822 文本：取码客户端在 \r\n\r\n 之后的部分里抠验证码"""
-    body = row["body_html"] or row["body_text"] or ""
-    return (f"Subject: {row['subject']}\r\nFrom: {row['sender_addr']}\r\n"
-            f"To: {row['to_addr']}\r\n\r\n{body}")
-
-
-@app.get("/admin/mails")
-async def ext_mails(request: Request, address: str = "", limit: int = 20, offset: int = 0):
-    _check_ext(request)
-    address = address.strip().lower()
-    if not address:
-        raise HTTPException(status_code=400, detail="缺少 address 参数")
-    conn = get_conn()
-    arow = conn.execute("SELECT * FROM aliases WHERE alias=?", (address,)).fetchone()
-    if arow:
-        acc_id = arow["account_id"]
-        conn.execute("UPDATE aliases SET last_query_ts=? WHERE id=?", (time.time(), arow["id"]))
-        conn.commit()
-        cond, args = "account_id=? AND to_addr LIKE ?", [acc_id, f"%{address}%"]
-    else:
-        # 也允许直接查真实账户地址
-        acc = conn.execute("SELECT * FROM accounts WHERE email=? AND enabled=1", (address,)).fetchone()
-        if not acc:
-            return {"results": [], "count": 0}
-        acc_id = acc["id"]
-        cond, args = "account_id=?", [acc_id]
-    # 查询即触发突发同步：注册机 3 秒一轮询，同步节奏由查询驱动
-    sync.maybe_burst_sync(acc_id)
-    rows = conn.execute(
-        f"""SELECT id, subject, sender_addr, to_addr, body_text, body_html, date_ts
-            FROM messages WHERE {cond} AND deleted_ts=0 ORDER BY date_ts DESC LIMIT ? OFFSET ?""",
-        args + [min(50, limit), offset]).fetchall()
-    results = [{
-        "id": r["id"],
-        "address": address,
-        "source": r["sender_addr"],
-        "subject": r["subject"],
-        "raw": _pseudo_raw(r),
-        "created_at": datetime.fromtimestamp(r["date_ts"], sync.TZ).isoformat(),
-    } for r in rows]
-    return {"results": results, "count": len(results)}
-
-
-@app.get("/ext/otp/latest")
-async def ext_otp_latest(request: Request, address: str = "", sender: str = "", max_age: int = 300):
-    """通用取码接口（自有脚本用）：返回最新验证码。address 可为别名或真实账户地址"""
-    _check_ext(request)
-    conn = get_conn()
-    where, args = ["otp_code != ''"], []
-    address = address.strip().lower()
-    if address:
-        arow = conn.execute("SELECT * FROM aliases WHERE alias=?", (address,)).fetchone()
-        if arow:
-            where.append("account_id=? AND to_addr LIKE ?")
-            args += [arow["account_id"], f"%{address}%"]
-            sync.maybe_burst_sync(arow["account_id"])
-        else:
-            acc = conn.execute("SELECT id FROM accounts WHERE email=?", (address,)).fetchone()
-            if acc:
-                where.append("account_id=?")
-                args.append(acc["id"])
-                sync.maybe_burst_sync(acc["id"])
-    else:
-        for r in conn.execute("SELECT id FROM accounts WHERE enabled=1").fetchall():
-            sync.maybe_burst_sync(r["id"])
-    if sender:
-        where.append("sender_addr LIKE ?")
-        args.append(f"%{sender}%")
-    where.append("deleted_ts=0")
-    where.append("date_ts > ?")
-    args.append(time.time() - max(30, max_age))
-    row = conn.execute(
-        f"SELECT otp_code, subject, sender_addr, date_ts FROM messages "
-        f"WHERE {' AND '.join(where)} ORDER BY date_ts DESC LIMIT 1", args).fetchone()
-    if not row:
-        return JSONResponse({"found": False, "hint": "暂无符合条件的验证码，稍后重试（查询已触发同步）"},
-                            status_code=404)
-    return {"found": True, "code": row["otp_code"], "subject": row["subject"],
-            "sender": row["sender_addr"], "ts": row["date_ts"]}
-
-
-@app.post("/api/ext/regen-token")
-async def regen_ext_token():
-    token = "mh-" + pysecrets.token_urlsafe(24)
-    set_setting("ext_token", token)
-    return {"ok": True, "token": token}
-
-
-@app.get("/api/ext/aliases")
-async def list_aliases(limit: int = 20):
-    conn = get_conn()
-    rows = conn.execute(
-        """SELECT al.alias, al.created_ts, al.last_query_ts, a.name AS account_name
-           FROM aliases al JOIN accounts a ON a.id=al.account_id
-           ORDER BY al.id DESC LIMIT ?""", (limit,)).fetchall()
-    total = conn.execute("SELECT COUNT(*) c FROM aliases").fetchone()["c"]
-    return {"total": total, "items": [dict(r) for r in rows]}
 
 
 @app.post("/api/notify/test")
