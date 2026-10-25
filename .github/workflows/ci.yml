@@ -31,7 +31,23 @@ jobs:
         run: python -m pip install -r requirements.txt pytest
 
       - name: Run tests
-        run: python -m pytest tests -q
+        run: |
+          set -o pipefail
+          python -m pytest tests -q -rfE --tb=short 2>&1 | tee pytest.log
+
+      - name: Report test failures
+        if: failure()
+        run: |
+          # 把失败用例和断言写成注解与 Job Summary，便于不打开完整日志也能定位
+          grep -E '^(FAILED|ERROR) ' pytest.log | head -10 | while IFS= read -r line; do
+            echo "::error title=pytest::${line}"
+          done
+          {
+            echo '### pytest failures'
+            echo '```'
+            grep -E '^(FAILED|ERROR) |^E   |^tests/.*:[0-9]+: ' pytest.log | head -120
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Python syntax check
         run: python -m py_compile *.py scripts/*.py
