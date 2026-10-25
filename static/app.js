@@ -127,6 +127,7 @@ const ICONS = {
   bell: `<path d="M18 9a6 6 0 1 0-12 0c0 5-2 6.5-2 6.5h16S18 14 18 9Z"/><path d="M13.7 19a2 2 0 0 1-3.4 0"/>`,
   broom: `<path d="M15.5 3.5 20 8"/><path d="M9.5 12 12 9.5l2.5 2.5"/><path d="m4 20 4.2-1.4a3 3 0 0 0 1.9-1.9L11.5 12l4 4-4.8 1.4a3 3 0 0 0-1.9 1.9Z"/>`,
   key: `<circle cx="8" cy="12" r="4.2"/><path d="M12.2 12H21"/><path d="M17.5 12v3.4"/><path d="M20.4 12v2.4"/>`,
+  shield: `<path d="M12 3 5 6v5.4c0 4.4 3 8.2 7 9.6 4-1.4 7-5.2 7-9.6V6Z"/>`,
   ruler: `<path d="m4.5 15.5 11-11a2 2 0 0 1 2.8 0l1.2 1.2a2 2 0 0 1 0 2.8l-11 11a2 2 0 0 1-2.8 0l-1.2-1.2a2 2 0 0 1 0-2.8Z"/><path d="m9 11 1.6 1.6"/><path d="m12 8 1.6 1.6"/><path d="m6 14 1.6 1.6"/>`,
   chart: `<path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M21 20H3"/>`,
   pie: `<path d="M12 3a9 9 0 1 0 9 9h-9Z"/><path d="M15 3.6A9 9 0 0 1 20.4 9H15Z"/>`,
@@ -629,9 +630,11 @@ async function renderAccounts() {
           <span>上次同步 <b>${a.last_sync ? ago(a.last_sync) : "从未"}</b></span>
         </div>
         ${a.last_error ? `<div class="err">⚠ ${esc(a.last_error)}</div>` : ""}
+        ${a.auth_type === "oauth" && a.oauth_reauth_required ? `<div class="err">⚠ 授权已失效，需要重新登录该账户</div>` : ""}
         <div class="ops">
           <button class="btn sm" data-op="sync" data-id="${a.id}">↻ 同步</button>
           <button class="btn sm" data-op="test" data-id="${a.id}">测试连接</button>
+          ${a.auth_type === "oauth" ? `<button class="btn sm" data-op="reauth" data-id="${a.id}">重新授权</button>` : ""}
           <button class="btn sm" data-op="edit" data-id="${a.id}">编辑</button>
           <button class="btn sm danger" data-op="del" data-id="${a.id}">删除</button>
         </div>
@@ -650,6 +653,21 @@ async function renderAccounts() {
     if (op === "edit") {
       const acc = accounts.find(x => x.id === id);
       accountModal(acc);
+    }
+    if (op === "reauth") {
+      const acc = accounts.find(x => x.id === id);
+      if (!acc) return;
+      b.disabled = true; b.textContent = "打开授权…";
+      try {
+        const r = await api("/oauth/start", { method: "POST", body: {
+          provider: acc.provider, email: acc.email, account_id: acc.id,
+          name: acc.name, color: acc.color, poll_interval: acc.poll_interval,
+        }});
+        const win = window.open(r.authorization_url, "mailhub-reauth", "popup=yes,width=560,height=720");
+        if (!win) toast("浏览器拦截了授权窗口，请允许弹窗后重试", true);
+        else toast("请在弹出的窗口完成授权");
+      } catch (e) { toast(e.message, true); }
+      b.disabled = false; b.textContent = "重新授权";
     }
     if (op === "del" && confirm("删除该账户？本地已同步的邮件也会一并删除（不影响邮箱服务器）")) {
       await api(`/accounts/${id}`, { method: "DELETE" }); toast("已删除"); renderAccounts();
@@ -1004,6 +1022,10 @@ async function renderSettings() {
             <label class="switch"><input type="checkbox" id="s-microsoft-clear" ${s.microsoft_oauth_source === "environment" ? "disabled" : ""}></label></div>
         </div>
         <div class="card" style="margin-bottom:14px">
+          <h3>${ico("shield")} 登录通道自检</h3>
+          <div id="s-deploy"><div class="provider-help">读取中…</div></div>
+        </div>
+        <div class="card" style="margin-bottom:14px">
           <h3>${ico("plug")} 注册机对接（外部取码 API）</h3>
           <div class="provider-help">注册机「Cloudflare Worker 自建」通道：API 地址填 <code>https://email.11451405.xyz</code>，管理员令牌填下方 Token。会自动分配 Gmail/Outlook 加号别名并在查询时触发突发同步。</div>
           <div class="set-row"><div class="l">外部 API Token</div>
@@ -1163,6 +1185,34 @@ async function renderSettings() {
   $$("[data-rule-del]", el).forEach(b => b.addEventListener("click", async () => {
     await api(`/rules/${b.dataset.ruleDel}`, { method: "DELETE" }); renderSettings();
   }));
+  loadDeployStatus();
+}
+
+async function loadDeployStatus() {
+  const box = $("#s-deploy");
+  if (!box) return;
+  let st;
+  try { st = await api("/oauth/status"); }
+  catch (e) { box.innerHTML = `<div class="err">${esc(e.message)}</div>`; return; }
+  const badge = c => c.ok
+    ? '<span class="badge cat-通知">通过</span>'
+    : (c.optional ? '<span class="badge cat-未分类">可选</span>'
+      : '<span class="badge" style="color:var(--danger)">失败</span>');
+  const checks = (st.checks || []).map(c =>
+    `<div class="set-row"><div class="l">${esc(c.name)}<small>${esc(c.detail || "")}</small></div>${badge(c)}</div>`).join("");
+  const channels = Object.entries(st.channels || {}).map(([, v]) => {
+    const mode = v.oauth_browser
+      ? (v.channel === "outlook" ? "OAuth 登录（Outlook 通道）" : "OAuth 登录")
+      : (v.oauth_device ? "设备码登录" : (v.secret_label || "授权码"));
+    const tag = v.oauth_browser ? "OAuth" : (v.oauth_device ? "设备码" : "授权码");
+    return `<div class="set-row"><div class="l">${esc(v.label)}<small>${esc(mode)}</small></div>`
+      + `<span class="badge ${v.oauth_browser || v.oauth_device ? "cat-通知" : "cat-未分类"}">${tag}</span></div>`;
+  }).join("");
+  const reauth = st.accounts?.reauth_required || [];
+  box.innerHTML = `
+    <div class="provider-help">部署完成后打开本页即可确认回调域名、各服务商登录方式和待重新授权账户。</div>
+    ${reauth.length ? `<div class="err">⚠ ${reauth.length} 个账户需要重新授权：${esc(reauth.map(r => `${r.provider}/${r.email}`).join("、"))}</div>` : ""}
+    ${checks}${channels}`;
 }
 
 /* ---------- 弹窗 ---------- */
