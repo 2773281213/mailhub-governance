@@ -1,4 +1,4 @@
-"""AI 辅助模块：对接 OpenAI 兼容接口（默认指向自建中转 api.11451405.xyz），分类与每日摘要"""
+"""AI 辅助模块：对接 OpenAI 兼容接口（地址需在设置页显式配置），分类与每日摘要"""
 import json
 import re
 
@@ -12,19 +12,27 @@ from rules import CATEGORIES
 def ai_config() -> dict:
     return {
         "enabled": get_setting("ai_enabled", "0") == "1",
-        "base_url": get_setting("ai_base_url", "https://api.11451405.xyz/v1").rstrip("/"),
+        # 没有默认地址：邮件元数据只会发往部署者自己在设置页填写的接口
+        "base_url": get_setting("ai_base_url", "").strip().rstrip("/"),
         "api_key": decrypt(get_setting("ai_key_enc", "")),
         "model": get_setting("ai_model", "gemini-2.5-flash"),
         "send_body": get_setting("ai_send_body", "1") == "1",
     }
 
 
+def _require_base_url(cfg: dict) -> str:
+    if not cfg["base_url"]:
+        raise RuntimeError("未配置 AI 接口地址，请在设置页填写 OpenAI 兼容接口地址")
+    return cfg["base_url"]
+
+
 def chat(messages: list, max_tokens: int = 2000, temperature: float = 0.1) -> str:
     cfg = ai_config()
+    base_url = _require_base_url(cfg)
     if not cfg["api_key"]:
         raise RuntimeError("未配置 AI API Key")
     r = httpx.post(
-        f"{cfg['base_url']}/chat/completions",
+        f"{base_url}/chat/completions",
         headers={"Authorization": f"Bearer {cfg['api_key']}"},
         json={
             "model": cfg["model"],
@@ -40,7 +48,8 @@ def chat(messages: list, max_tokens: int = 2000, temperature: float = 0.1) -> st
 
 def list_models() -> list[str]:
     cfg = ai_config()
-    r = httpx.get(f"{cfg['base_url']}/models",
+    base_url = _require_base_url(cfg)
+    r = httpx.get(f"{base_url}/models",
                   headers={"Authorization": f"Bearer {cfg['api_key']}"}, timeout=30)
     r.raise_for_status()
     return sorted(m.get("id", "") for m in r.json().get("data", []))

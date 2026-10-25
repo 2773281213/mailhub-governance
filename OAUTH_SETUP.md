@@ -17,7 +17,7 @@ QQ、网易及任意自定义服务商若没有面向第三方 IMAP 客户端开
 ## 公共地址
 
 ```env
-MAILHUB_PUBLIC_URL=https://email.11451405.xyz
+MAILHUB_PUBLIC_URL=https://<你的域名>
 ```
 
 反向代理必须把 `/api/oauth/*` 原样转发给 MailHub。当前 nginx 的全路径代理无需新增 location。
@@ -27,7 +27,7 @@ MAILHUB_PUBLIC_URL=https://email.11451405.xyz
 在 Microsoft Entra 中注册应用，并登记以下 Web 重定向地址：
 
 ```text
-https://email.11451405.xyz/api/oauth/outlook/callback
+https://<你的域名>/api/oauth/outlook/callback
 ```
 
 可直接在 MailHub 的“设置 → Microsoft 登录导入”填写，也可以使用环境变量（完整环境变量配置优先）：
@@ -46,7 +46,7 @@ MICROSOFT_CLIENT_SECRET=<应用客户端密钥>
 在 Google Cloud 创建 OAuth Web 客户端，并登记：
 
 ```text
-https://email.11451405.xyz/api/oauth/gmail/callback
+https://<你的域名>/api/oauth/gmail/callback
 ```
 
 配置有两种方式，完整的环境变量配置优先：
@@ -79,13 +79,13 @@ NETEASE_CLIENT_ID=<网易批准的 appid，outlook 通道留空即可>
 NETEASE_DEVICE_ID=<固定设备标识；留空时首次生成并写入 settings>
 NETEASE_REDIRECT_STYLE=web     # web=本项目回调；olmoauth=Outlook 中转（仅协议对照）
 NETEASE_OLMOAUTH_PACKAGE=com.microsoft.office.outlook
-NETEASE_163_REDIRECT_URI=https://email.11451405.xyz/api/oauth/163/callback
-NETEASE_126_REDIRECT_URI=https://email.11451405.xyz/api/oauth/126/callback
-NETEASE_YEAH_REDIRECT_URI=https://email.11451405.xyz/api/oauth/yeah/callback
-NETEASE_188_REDIRECT_URI=https://email.11451405.xyz/api/oauth/188/callback
-NETEASE_VIP163_REDIRECT_URI=https://email.11451405.xyz/api/oauth/vip163/callback
-NETEASE_VIP126_REDIRECT_URI=https://email.11451405.xyz/api/oauth/vip126/callback
-NETEASE_VIP188_REDIRECT_URI=https://email.11451405.xyz/api/oauth/vip188/callback
+NETEASE_163_REDIRECT_URI=https://<你的域名>/api/oauth/163/callback
+NETEASE_126_REDIRECT_URI=https://<你的域名>/api/oauth/126/callback
+NETEASE_YEAH_REDIRECT_URI=https://<你的域名>/api/oauth/yeah/callback
+NETEASE_188_REDIRECT_URI=https://<你的域名>/api/oauth/188/callback
+NETEASE_VIP163_REDIRECT_URI=https://<你的域名>/api/oauth/vip163/callback
+NETEASE_VIP126_REDIRECT_URI=https://<你的域名>/api/oauth/vip126/callback
+NETEASE_VIP188_REDIRECT_URI=https://<你的域名>/api/oauth/vip188/callback
 ```
 
 `own` 通道要求网易侧登记回调地址；`outlook` 通道默认仍把 `redirectUrl` 指向本项目回调，这样 fragment 才能被捕获页读回。`NETEASE_REDIRECT_STYLE=olmoauth` 会还原 APK 里的中转地址：

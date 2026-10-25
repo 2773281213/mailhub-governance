@@ -1,6 +1,6 @@
 """MailHub 邮箱管理中心 —— FastAPI 主应用
 聚合多邮箱（IMAP）+ 规则/AI 分类 + 验证码看板 + 每日摘要
-仅监听 127.0.0.1，经 nginx (email.11451405.xyz) 对外提供 HTTPS
+仅监听 127.0.0.1，经 nginx 反向代理对外提供 HTTPS
 """
 import asyncio
 import json
@@ -948,7 +948,7 @@ async def ai_test():
 
 # ---------- 外部 API：注册机取码（cloudflare_temp_email 兼容协议） ----------
 # 注册机「Cloudflare Worker 自建」通道直接指向本站即可：
-#   API 地址 https://email.11451405.xyz，管理员令牌填设置页的外部 API Token
+#   API 地址填你的 MailHub 地址（MAILHUB_PUBLIC_URL），管理员令牌填设置页的外部 API Token
 # POST /admin/new_address 分配加号别名（基于 Gmail/Outlook 账户）
 # GET  /admin/mails?address= 查询该别名邮件（查询自动触发突发同步）
 
