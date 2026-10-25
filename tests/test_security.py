@@ -324,6 +324,83 @@ def test_scan_never_raises_on_weird_input():
         ss.scan(*args)
 
 
+def test_ip_link_hidden_in_html_href_is_high_risk():
+    """回归：纯 HTML 邮件转文本时 href 被删掉，扫描曾经看不到真实链接"""
+    html = '<p>Your account will be suspended. <a href="http://203.0.113.7/login">Click here</a></p>'
+    r = ss.scan("Please review your account", "Your account will be suspended. Click here",
+                "Security Team", "alerts@example-bank.com", html=html)
+    assert r["risk"] == ss.RISK_HIGH
+    assert any("203.0.113.7" in x for x in r["reasons"])
+
+
+def test_brand_link_text_pointing_elsewhere_is_high_risk():
+    html = '<a href="https://paypa1-secure.example/verify">https://www.paypal.com/signin</a>'
+    r = ss.scan("Action required", "", "Service", "notice@mailer.example", html=html)
+    assert r["risk"] == ss.RISK_HIGH
+    assert any("paypal.com" in x and "paypa1-secure.example" in x for x in r["reasons"])
+
+
+def test_click_tracking_redirect_is_only_low_risk():
+    """营销邮件常经第三方统计域名跳转：只提示，不强制归为可疑"""
+    html = '<a href="https://click.tracker.example/r?u=1">www.shop-example.com</a>'
+    r = ss.scan("本周上新", "", "Shop", "news@shop-example.com", html=html)
+    assert r["risk"] == ss.RISK_LOW
+
+
+def test_link_to_senders_own_domain_is_not_flagged():
+    html = '<a href="https://email.github.com/x">github.com/settings</a>'
+    r = ss.scan("Security settings", "", "GitHub", "noreply@github.com", html=html)
+    assert r["risk"] == ss.RISK_NONE
+
+
+@pytest.mark.parametrize("header, expected", [
+    ("mx.google.com; dkim=pass header.i=@a.com; spf=pass; dmarc=fail (p=REJECT) header.from=a.com",
+     ss.RISK_MEDIUM),
+    ("mx.example; spf=fail smtp.mailfrom=b.com; dkim=none", ss.RISK_MEDIUM),
+    ("mx.example; spf=softfail smtp.mailfrom=b.com", ss.RISK_MEDIUM),
+    ("mx.example; spf=fail smtp.mailfrom=b.com; dkim=pass header.d=b.com", ss.RISK_NONE),
+    ("mx.example; spf=pass; dkim=pass; dmarc=pass", ss.RISK_NONE),
+    ("", ss.RISK_NONE),
+])
+def test_authentication_results(header, expected):
+    r = ss.scan("周会纪要", "详见正文", "李四", "lisi@corp.com", auth_results=header)
+    assert r["risk"] == expected
+
+
+def test_only_the_topmost_authentication_results_header_is_used():
+    import mail_client
+
+    raw = (b"Authentication-Results: mx.receiver.example; dmarc=fail header.from=bank.example\r\n"
+           b"Authentication-Results: forged.example; dmarc=pass\r\n"
+           b"From: bank@bank.example\r\nSubject: hi\r\n\r\nbody\r\n")
+    parsed = mail_client.parse_message(raw)
+    assert ss.parse_authentication_results(parsed["auth_results"]) == {"dmarc": "fail"}
+
+
+@pytest.mark.parametrize("name", ["Pineapple Kitchen", "Googleplex Fan Club", "Amazonia Tours"])
+def test_brand_names_inside_other_words_are_not_impersonation(name):
+    r = ss.scan("Weekly menu", "", name, "hello@kitchen.example")
+    assert r["risk"] == ss.RISK_NONE
+
+
+@pytest.mark.parametrize("domain, expected", [
+    ("mail.example.com", "example.com"),
+    ("a.b.example.co.uk", "example.co.uk"),
+    ("shop.example.com.cn", "example.com.cn"),
+    ("www.example.ne.jp", "example.ne.jp"),
+    ("service.example.com.tw", "example.com.tw"),
+    ("example.io", "example.io"),
+    ("localhost", "localhost"),
+])
+def test_registrable_domain(domain, expected):
+    assert ss._registrable(domain) == expected
+
+
+def test_malformed_html_does_not_break_scan():
+    for html in ["<a href=", "<a href='javascript:alert(1)'>x</a>", "<a>no href</a>", "<<<>>>"]:
+        ss.scan("s", "b", "n", "a@b.com", html=html)
+
+
 # ---------------- 规则引擎 ----------------
 
 def test_otp_extraction_from_subject():

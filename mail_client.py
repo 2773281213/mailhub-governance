@@ -199,6 +199,8 @@ def parse_message(raw_bytes: bytes) -> dict:
         "body_html": body_html[:300000],
         "has_attach": has_attach,
         "unsubscribe": 1 if msg.get("List-Unsubscribe") else 0,
+        # 只取最上面一条：它由收件服务器写入；更靠下的同名头可能是发件人伪造的
+        "auth_results": str((msg.get_all("Authentication-Results") or [""])[0])[:2000],
     }
 
 
@@ -218,6 +220,7 @@ def unparsable_message() -> dict:
         "body_html": "",
         "has_attach": 0,
         "unsubscribe": 0,
+        "auth_results": "",
     }
 
 
