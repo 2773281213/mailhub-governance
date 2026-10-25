@@ -595,3 +595,72 @@ def test_html_to_text_strips_script():
         "<div>hello<script>alert(1)</script><style>b{}</style>world</div>")
     assert "alert" not in out and "b{}" not in out
     assert "hello" in out and "world" in out
+
+
+# ---------------- IMAP 删除只清除自己的邮件 ----------------
+
+class FakeImapConn:
+    """记录命令的假 imaplib 连接；already_deleted 模拟其他客户端已标删的邮件。"""
+
+    def __init__(self, already_deleted=()):
+        self.calls = []
+        self.flagged = set(already_deleted)
+
+    def uid(self, command, *args):
+        command = command.upper()
+        self.calls.append((command,) + args)
+        if command == "STORE":
+            self.flagged.update(int(u) for u in args[0].split(","))
+        if command == "SEARCH":
+            return "OK", [" ".join(str(u) for u in sorted(self.flagged)).encode()]
+        return "OK", [None]
+
+    def expunge(self):
+        self.calls.append(("EXPUNGE-ALL",))
+        return "OK", [None]
+
+
+def _session(conn, caps=()):
+    session = object.__new__(mail_client.ImapSession)
+    session.conn = conn
+    session.caps = frozenset(caps)
+    return session
+
+
+def test_delete_with_uidplus_expunges_only_given_uids():
+    conn = FakeImapConn(already_deleted={99})
+    result = _session(conn, {"IMAP4REV1", "UIDPLUS"}).delete([5, 3])
+
+    assert result == "expunged"
+    assert ("EXPUNGE", "3,5") in conn.calls
+    assert ("EXPUNGE-ALL",) not in conn.calls
+
+
+def test_delete_without_uidplus_leaves_other_clients_mail_alone():
+    conn = FakeImapConn(already_deleted={99})
+    result = _session(conn, {"IMAP4REV1"}).delete([3])
+
+    assert result == "flagged"
+    assert ("EXPUNGE-ALL",) not in conn.calls
+    assert any(call[0] == "STORE" for call in conn.calls)
+
+
+def test_delete_without_uidplus_expunges_when_only_ours_are_flagged():
+    conn = FakeImapConn()
+    result = _session(conn, {"IMAP4REV1"}).delete([3, 4])
+
+    assert result == "expunged"
+    assert ("EXPUNGE-ALL",) in conn.calls
+
+
+def test_delete_raises_when_store_fails():
+    class Refusing(FakeImapConn):
+        def uid(self, command, *args):
+            if command.upper() == "STORE":
+                return "NO", [b"read-only mailbox"]
+            return super().uid(command, *args)
+
+    conn = Refusing()
+    with pytest.raises(RuntimeError, match="read-only"):
+        _session(conn, {"UIDPLUS"}).delete([3])
+    assert ("EXPUNGE-ALL",) not in conn.calls
