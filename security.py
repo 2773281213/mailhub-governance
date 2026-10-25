@@ -12,6 +12,8 @@ from cryptography.fernet import Fernet, InvalidToken
 _SECRET = os.environ.get("MAILHUB_SECRET", "")
 if not _SECRET:
     raise RuntimeError("缺少环境变量 MAILHUB_SECRET，请检查 /opt/mailhub/.env")
+if _SECRET == "replace-with-a-long-random-secret":
+    raise RuntimeError("MAILHUB_SECRET 仍是 .env.example 里的占位值，请换成随机生成的长密钥")
 
 # 由主密钥派生 Fernet 密钥与会话签名密钥，避免直接复用
 _fernet = Fernet(base64.urlsafe_b64encode(hashlib.sha256(("enc:" + _SECRET).encode()).digest()))

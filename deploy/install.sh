@@ -2,7 +2,11 @@
 set -euo pipefail
 
 archive=${1:-/tmp/mailhub-governance-deploy.tar.gz}
-domain=${2:-email.11451405.xyz}
+domain=${2:-}
+if [ -z "$domain" ] || ! printf '%s' "$domain" | grep -Eq '^[A-Za-z0-9.-]+$'; then
+  echo "usage: $0 <deploy-archive.tar.gz> <your-domain>" >&2
+  exit 2
+fi
 stamp=$(date +%Y%m%d%H%M%S)
 
 export DEBIAN_FRONTEND=noninteractive
@@ -40,6 +44,7 @@ sudo -u mailhub bash -c \
 
 sudo install -m 0644 /opt/mailhub/deploy/mailhub.service /etc/systemd/system/mailhub.service
 sudo install -m 0644 /opt/mailhub/deploy/nginx-mailhub.conf /etc/nginx/sites-available/mailhub
+sudo sed -i "s/__MAILHUB_DOMAIN__/${domain}/g" /etc/nginx/sites-available/mailhub
 sudo install -d -m 0750 /etc/nginx/ssl
 if [ ! -s /etc/nginx/ssl/mailhub-origin.crt ] || [ ! -s /etc/nginx/ssl/mailhub-origin.key ]; then
   sudo openssl req -x509 -newkey rsa:2048 -nodes -days 30 \

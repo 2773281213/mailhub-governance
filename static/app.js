@@ -1041,7 +1041,7 @@ async function renderSettings() {
         </div>
         <div class="card" style="margin-bottom:14px">
           <h3>${ico("plug")} 注册机对接（外部取码 API）</h3>
-          <div class="provider-help">注册机「Cloudflare Worker 自建」通道：API 地址填 <code>https://email.11451405.xyz</code>，管理员令牌填下方 Token。会自动分配 Gmail/Outlook 加号别名并在查询时触发突发同步。</div>
+          <div class="provider-help">注册机「Cloudflare Worker 自建」通道：API 地址填你的 MailHub 地址，管理员令牌填下方 Token。会自动分配 Gmail/Outlook 加号别名并在查询时触发突发同步。</div>
           <div class="set-row"><div class="l">外部 API Token</div>
             <div class="set-ctl">
               <input id="s-ext-token" value="${esc(s.ext_token)}" readonly onclick="this.select()">

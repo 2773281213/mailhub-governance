@@ -20,7 +20,7 @@ NETEASE_PROVIDERS = frozenset(
 )
 IMAP_ID_PAYLOAD = (
     '("name" "MailHub" "version" "1.1" "vendor" "MailHub" '
-    '"support-email" "support@11451405.xyz")'
+    '"support-email" "mailhub@localhost")'
 )
 NETEASE_LOGIN_HELP = (
     "网易邮箱认证失败：请使用完整邮箱地址登录，确认网页邮箱已开启 IMAP/SMTP，"

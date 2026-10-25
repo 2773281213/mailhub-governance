@@ -799,3 +799,58 @@ def test_fetch_messages_keeps_unparsable_mail(monkeypatch):
     assert len(messages) == 1
     assert messages[0]["uid"] == 8 and messages[0]["unread"] == 0
     assert "无法解析" in messages[0]["subject"]
+
+
+# ---------------- 默认配置不指向个人域名 ----------------
+
+def test_default_public_url_stays_on_this_machine(monkeypatch):
+    import oauth_auth
+
+    monkeypatch.delenv("MAILHUB_PUBLIC_URL", raising=False)
+    monkeypatch.delenv("GMAIL_REDIRECT_URI", raising=False)
+    assert oauth_auth._public_base_url() == "http://127.0.0.1:8018"
+    assert oauth_auth._redirect_uri("gmail") == "http://127.0.0.1:8018/api/oauth/gmail/callback"
+
+
+def _clear_ai_settings(conn):
+    conn.execute("DELETE FROM settings WHERE k IN ('ai_base_url', 'ai_enabled', 'ai_key_enc')")
+    conn.commit()
+
+
+def test_ai_has_no_default_endpoint(fresh_db):
+    import ai
+
+    _clear_ai_settings(fresh_db)
+    db.set_setting("ai_enabled", "1")
+    db.set_setting("ai_key_enc", db_encrypt("sk-test"))
+    db.set_setting("ai_base_url", "")
+    try:
+        assert ai.ai_config()["base_url"] == ""
+        with pytest.raises(RuntimeError, match="未配置 AI 接口地址"):
+            ai.chat([{"role": "user", "content": "hi"}])
+        with pytest.raises(RuntimeError, match="未配置 AI 接口地址"):
+            ai.list_models()
+    finally:
+        _clear_ai_settings(fresh_db)
+
+
+def test_existing_ai_deployment_keeps_previous_endpoint(fresh_db):
+    _clear_ai_settings(fresh_db)
+    db.set_setting("ai_enabled", "1")
+    try:
+        db.init_db()
+        assert db.get_setting("ai_base_url") == db._LEGACY_AI_BASE_URL
+    finally:
+        _clear_ai_settings(fresh_db)
+
+
+def test_new_deployment_gets_no_ai_endpoint(fresh_db):
+    _clear_ai_settings(fresh_db)
+    db.init_db()
+    assert db.get_setting("ai_base_url", None) is None
+
+
+def db_encrypt(value: str) -> str:
+    import security
+
+    return security.encrypt(value)
