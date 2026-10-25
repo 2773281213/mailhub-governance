@@ -52,6 +52,34 @@ def _decode_header(raw) -> str:
         return str(raw)
 
 
+# 常见群发/营销投递平台（Return-Path 或 DKIM d= 出现即视为群发）。
+# 不含 Amazon SES、Postmark 这类大量承载验证码和回执的事务邮件通道。
+_ESP_RE = re.compile(
+    r"sendgrid\.net|mcsv\.net|mcdlv\.net|rsgsv\.net|mailchimp|mandrillapp\.com|mailgun\.org"
+    r"|sparkpostmail\.com|sendinblue\.com|brevo\.com|mailjet\.com|exacttarget\.com"
+    r"|createsend\.com|cmail\d+\.com|klaviyomail\.com|hubspotemail\.net|constantcontact\.com"
+    r"|mktomail\.com|rsys\d*\.net|mailerlite\.com|sendcloud\.(net|org)",
+    re.I,
+)
+_DKIM_DOMAIN_RE = re.compile(r"(?<![a-z])d=([\w.-]+)", re.I)
+
+
+def header_signals(msg) -> dict:
+    """从邮件头提取群发/自动化信号，只返回布尔值，不保存头的原文。"""
+    precedence = str(msg.get("Precedence") or "").strip().lower()
+    auto = str(msg.get("Auto-Submitted") or "").strip().lower()
+    dkim = " ".join(str(h) for h in (msg.get_all("DKIM-Signature") or []))
+    dkim_domains = " ".join(_DKIM_DOMAIN_RE.findall(dkim))
+    origin = str(msg.get("Return-Path") or "") + " " + dkim_domains
+    return {
+        "list_id": bool(msg.get("List-Id")),
+        "precedence_bulk": precedence in ("bulk", "list", "junk"),
+        "auto_submitted": bool(auto) and auto != "no",
+        "feedback_id": bool(msg.get("Feedback-ID")),
+        "esp": bool(_ESP_RE.search(origin)),
+    }
+
+
 def parse_message(raw_bytes: bytes) -> dict:
     """把原始 RFC822 字节解析成入库字段"""
     msg = email.message_from_bytes(raw_bytes)
@@ -124,6 +152,7 @@ def parse_message(raw_bytes: bytes) -> dict:
         "body_html": body_html[:300000],
         "has_attach": has_attach,
         "unsubscribe": 1 if msg.get("List-Unsubscribe") else 0,
+        "header_signals": header_signals(msg),
         # 只取最上面一条：它由收件服务器写入；更靠下的同名头可能是发件人伪造的
         "auth_results": str((msg.get_all("Authentication-Results") or [""])[0])[:2000],
     }
@@ -145,6 +174,7 @@ def unparsable_message() -> dict:
         "body_html": "",
         "has_attach": 0,
         "unsubscribe": 0,
+        "header_signals": {},
         "auth_results": "",
     }
 

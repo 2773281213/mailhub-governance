@@ -840,6 +840,8 @@ async def _run_governance_api(trigger: str):
     result = await asyncio.to_thread(
         governance.run_governance, limit=0, trigger=trigger
     )
+    # 裁决后才推送重要/安全新邮件；推送条目不随接口返回
+    sync.push_alerts(result.pop("alerts", None))
     if result.get("busy"):
         raise HTTPException(status_code=409, detail="已有自动分拣任务正在运行")
     return result
@@ -875,6 +877,8 @@ class SettingsBody(BaseModel):
     ai_key: str | None = None
     ai_model: str | None = None
     ai_send_body: bool | None = None
+    ai_scope: str | None = None             # all / uncertain / other
+    ai_backfill_days: int | None = None     # 0 = 不限
     clean_otp_days: int | None = None
     clean_server: bool | None = None
     digest_hour: int | None = None
@@ -907,6 +911,8 @@ async def get_settings():
         "ai_key_set": bool(cfg["api_key"]),
         "ai_model": cfg["model"],
         "ai_send_body": cfg["send_body"],
+        "ai_scope": cfg["scope"],
+        "ai_backfill_days": cfg["backfill_days"],
         "clean_otp_days": int(get_setting("clean_otp_days", "0") or 0),
         "clean_server": get_setting("clean_server", "0") == "1",
         "digest_hour": int(get_setting("digest_hour", "8") or 8),
@@ -974,6 +980,8 @@ async def put_settings(body: SettingsBody):
             raise HTTPException(status_code=400, detail="原密码错误")
         if len(body.new_password) < 8:
             raise HTTPException(status_code=400, detail="新密码至少 8 位")
+    if body.ai_scope is not None and body.ai_scope not in ai.AI_SCOPES:
+        raise HTTPException(status_code=400, detail="AI 判定范围必须是 all / uncertain / other")
     onepush_text = (body.notify_onepush_config or "").strip()
     if onepush_text and not body.clear_notify_onepush:
         try:
@@ -1003,6 +1011,10 @@ async def put_settings(body: SettingsBody):
         set_setting("ai_model", body.ai_model.strip())
     if body.ai_send_body is not None:
         set_setting("ai_send_body", "1" if body.ai_send_body else "0")
+    if body.ai_scope is not None:
+        set_setting("ai_scope", body.ai_scope)
+    if body.ai_backfill_days is not None:
+        set_setting("ai_backfill_days", str(min(365, max(0, body.ai_backfill_days))))
     if body.clean_otp_days is not None:
         set_setting("clean_otp_days", str(max(0, body.clean_otp_days)))
     if body.clean_server is not None:

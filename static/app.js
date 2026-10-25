@@ -1073,7 +1073,7 @@ async function renderSettings() {
     <div class="grid settings-grid">
       <div class="card">
         <h3>${ico("sparkle")} AI 智能分类与摘要</h3>
-        <div class="set-row"><div class="l">启用 AI<small>规则拿不准的邮件交给 AI 精分类，并生成每日晨报</small></div>
+        <div class="set-row"><div class="l">启用 AI<small>由 AI 阅读邮件内容判定分类（规则作参考和兜底），并生成每日晨报</small></div>
           <label class="switch"><input type="checkbox" id="s-ai" ${s.ai_enabled ? "checked" : ""}></label></div>
         <div class="set-row"><div class="l">接口地址<small>OpenAI 兼容 /v1</small></div>
           <input id="s-base" value="${esc(s.ai_base_url)}"></div>
@@ -1084,8 +1084,14 @@ async function renderSettings() {
             <input id="s-model" value="${esc(s.ai_model)}" list="model-list"><datalist id="model-list"></datalist>
             <button class="btn sm" id="s-fetch-models" title="从接口拉取模型列表">拉取</button>
           </div></div>
-        <div class="set-row"><div class="l">发送正文片段<small>关闭后仅发送主题+发件人给 AI（更隐私，分类稍差）</small></div>
+        <div class="set-row"><div class="l">发送正文<small>每封最多 1500 字，验证码和密码已遮蔽、链接只保留域名；关闭后仅发送主题+发件人（更隐私，分类稍差）</small></div>
           <label class="switch"><input type="checkbox" id="s-body" ${s.ai_send_body ? "checked" : ""}></label></div>
+        <div class="set-row"><div class="l">AI 判定范围<small>注入和中高风险邮件始终不发给 AI</small></div>
+          <select id="s-ai-scope" style="width:auto">${[
+            ["all", "全部邮件"], ["uncertain", "规则拿不准的邮件"], ["other", "仅规则未识别的邮件"],
+          ].map(([v, label]) => `<option value="${v}" ${s.ai_scope === v ? "selected" : ""}>${label}</option>`).join("")}</select></div>
+        <div class="set-row"><div class="l">历史邮件回溯天数<small>升级后重新治理旧邮件时，只把这些天内的交给 AI；0 = 不限</small></div>
+          <input id="s-ai-backfill" type="number" min="0" max="365" value="${s.ai_backfill_days}" style="max-width:90px"></div>
         <div class="set-row"><div class="l">晨报生成时间</div>
           <select id="s-hour">${Array.from({ length: 24 }, (_, h) =>
             `<option value="${h}" ${s.digest_hour === h ? "selected" : ""}>${String(h).padStart(2, "0")}:00</option>`).join("")}</select></div>
@@ -1206,6 +1212,8 @@ async function renderSettings() {
       ai_base_url: $("#s-base").value.trim(),
       ai_model: $("#s-model").value.trim(),
       ai_send_body: $("#s-body").checked,
+      ai_scope: $("#s-ai-scope").value,
+      ai_backfill_days: +$("#s-ai-backfill").value || 0,
       clean_otp_days: +$("#s-clean-days").value || 0,
       clean_server: $("#s-clean-server").checked,
       digest_hour: +$("#s-hour").value,

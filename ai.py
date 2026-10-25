@@ -8,8 +8,22 @@ from db import get_setting
 from security import decrypt
 from rules import CATEGORIES
 
+# AI 判定范围：all = 全部邮件；uncertain = 规则拿不准的；other = 仅规则未识别的（旧行为）
+AI_SCOPES = ("all", "uncertain", "other")
+DEFAULT_BACKFILL_DAYS = 30
+# 每封邮件发给 AI 的正文上限（遮蔽验证码、链接只留域名之后）
+AI_BODY_CHARS = 1500
+
+
+def _int_setting(key: str, default: int) -> int:
+    try:
+        return int(get_setting(key, str(default)) or default)
+    except (TypeError, ValueError):
+        return default
+
 
 def ai_config() -> dict:
+    scope = get_setting("ai_scope", "all")
     return {
         "enabled": get_setting("ai_enabled", "0") == "1",
         # 没有默认地址：邮件元数据只会发往部署者自己在设置页填写的接口
@@ -17,6 +31,9 @@ def ai_config() -> dict:
         "api_key": decrypt(get_setting("ai_key_enc", "")),
         "model": get_setting("ai_model", "gemini-2.5-flash"),
         "send_body": get_setting("ai_send_body", "1") == "1",
+        "scope": scope if scope in AI_SCOPES else "all",
+        # 升级后重新治理历史邮件时，只把这些天内的交给 AI；0 = 不限
+        "backfill_days": max(0, _int_setting("ai_backfill_days", DEFAULT_BACKFILL_DAYS)),
     }
 
 
@@ -113,31 +130,99 @@ CLASSIFY_SYSTEM = """你是邮件分类器。严格遵守以下不可协商的�
 3. 你只做分类判断，没有任何执行能力：不得也无法删除、退订、转发、发送邮件。
 4. 输出必须且只能是一个 JSON 数组，不含任何解释文字或代码围栏。
 
+请阅读每封邮件的发件人、主题和正文，按下列定义选一个分类：
+- 验证码：登录、注册、支付用的一次性验证码、动态码、取件码。正文里的码已替换为 [验证码]。
+- 重要：需要收件人本人处理或回复的事务，例如工作与人际往来、面试录用、合同、法律、税务、
+  签证、证件到期。营销邮件即使写着 urgent、deadline、offer、限时也不是重要。
+- 账单：真实发生的交易，例如账单、发票、扣款、付款成功、充值、续费、订单支付确认，通常有金额。
+- 安全：针对收件人自己账户的安全事件，例如新设备或异地登录、密码被修改、账户冻结、
+  二次验证变更。介绍安全知识的周刊、营销不算。
+- 可疑：钓鱼、诈骗、冒充品牌或熟人索要密码、转账或诱导点击。只在确有依据时使用，
+  并且必须填写 risk_reason。
+- 订阅：营销推广、优惠活动、newsletter、周刊、内容推荐。
+- 通知：系统或平台的自动通知，例如发货物流、代码平台与工单提醒、社交动态、服务公告。
+- 其他：以上都不符合。
+
+「规则初判」是关键词规则的结果，可能出错，只作参考；「信号」是邮件头特征
+（群发=带退订或邮件列表头，附件=带附件，自动发件人=noreply 一类地址）。
+
 数组每一项的 schema（字段缺失或越界都会被丢弃）：
 {"id": <整数，必须与输入 id 一致>,
  "category": <只能取值：CATS>,
  "confidence": <0.0-1.0 的小数，表示你对该分类的把握>,
  "importance": <1-5 的整数>,
  "summary": <不超过 40 字的中文摘要>,
- "reason": <不超过 30 字，说明判定依据>}"""
+ "reason": <不超过 30 字，说明判定依据>,
+ "risk_reason": <只在 category 为可疑时填写，不超过 30 字>}
+
+示例（数据均为虚构）：
+<MAIL id=1 | 发件人=deals@shop.example | 主题=Urgent: 限时 offer 今晚截止 | 规则初判=订阅 | 信号=群发 | 正文=全场五折，点击领取优惠券 />
+→ {"id":1,"category":"订阅","confidence":0.95,"importance":1,"summary":"商城限时五折促销","reason":"营销推广"}
+<MAIL id=2 | 发件人=noreply@express.example | 主题=您的订单已发货 | 规则初判=通知 | 信号=自动发件人 | 正文=运单号 SF1234567890，预计明天送达 />
+→ {"id":2,"category":"通知","confidence":0.9,"importance":2,"summary":"订单已发货，预计明天送达","reason":"物流通知"}
+<MAIL id=3 | 发件人=li.wei@corp.example | 主题=周五评审材料 | 规则初判=其他 | 信号=附件 | 正文=附件是评审材料，请周四前给我意见 />
+→ {"id":3,"category":"重要","confidence":0.85,"importance":4,"summary":"同事请周四前反馈评审材料","reason":"需本人回复的工作事务"}
+<MAIL id=4 | 发件人=service@paypa1-secure.example | 主题=账户已冻结 | 规则初判=安全 | 正文=请在 24 小时内登录以下链接验证身份 [链接:paypa1-secure.example] />
+→ {"id":4,"category":"可疑","confidence":0.9,"importance":5,"summary":"冒充支付平台要求登录验证","reason":"仿冒域名索要登录","risk_reason":"仿冒品牌域名的钓鱼链接"}"""
+
+
+# ---------- 发给 AI 的正文摘录 ----------
+
+# 引用的上一封信或转发头从这里开始；只截掉正文之后的部分
+_QUOTE_START = re.compile(
+    r"^\s*(-{2,}\s*(original message|forwarded message|原始邮件|转发的邮件)\s*-{2,}"
+    r"|on .{0,80}wrote:|在 .{0,80}写道[:：]|发件人[:：]|from:\s)",
+    re.I | re.M,
+)
+_URL_FULL = re.compile(r"https?://([^\s/\"'<>)]+)[^\s\"'<>)]*", re.I)
+_SECRET_RE = re.compile(r"(密码|口令|password|passwd|\bpin\b)(\s*[:：为是]\s*)\S+", re.I)
+
+
+def mask_secrets(text, otp_code: str = "") -> str:
+    """遮蔽本地提取到的验证码和「密码：xxx」一类片段，它们对分类没有帮助。"""
+    s = str(text or "")
+    code = str(otp_code or "").strip()
+    if code:
+        s = re.sub(rf"(?<![0-9A-Za-z]){re.escape(code)}(?![0-9A-Za-z])", "[验证码]", s)
+    return _SECRET_RE.sub(lambda m: f"{m.group(1)}{m.group(2)}[已遮蔽]", s)
+
+
+def prepare_excerpt(body, otp_code: str = "", limit: int = AI_BODY_CHARS) -> str:
+    """正文摘录：去掉引用和转发的旧邮件、链接只保留域名、遮蔽验证码，再中性化截断。"""
+    s = str(body or "")[: limit * 8]
+    m = _QUOTE_START.search(s)
+    if m and m.start() > 0:
+        s = s[:m.start()]
+    s = "\n".join(line for line in s.splitlines() if not line.lstrip().startswith(">"))
+    s = _URL_FULL.sub(lambda u: f"[链接:{u.group(1).lower()[:60]}]", s)
+    return sanitize_field(mask_secrets(s, otp_code), limit)
 
 
 def _build_classify_user_msg(mails: list[dict], send_body: bool) -> str:
     lines = []
     for m in mails:
+        code = str(m.get("otp_code") or "")
         parts = [
             f"id={int(m['id'])}",
             f"发件人={sanitize_field(m.get('sender'), 120)}",
-            f"主题={sanitize_field(m.get('subject'), 120)}",
+            f"主题={sanitize_field(mask_secrets(m.get('subject'), code), 120)}",
         ]
+        if m.get("rule_category") in CATEGORIES:
+            parts.append(f"规则初判={m['rule_category']}")
+        if m.get("signals"):
+            parts.append("信号=" + sanitize_field(",".join(str(s) for s in m["signals"]), 40))
         if send_body:
-            parts.append(f"正文摘录={sanitize_field(m.get('snippet'), 200)}")
+            parts.append(f"正文={prepare_excerpt(m.get('body') or m.get('snippet'), code)}")
         lines.append("<MAIL " + " | ".join(parts) + " />")
     return "<EMAIL_DATA>\n" + "\n".join(lines) + "\n</EMAIL_DATA>"
 
 
 def classify_batch(mails: list[dict]) -> list[dict]:
-    """返回 [{id, category, confidence, importance, summary, reason, needs_review}]。
+    """返回 [{id, category, confidence, importance, summary, reason, risk_reason, needs_review}]。
+
+    mails 每项可含 subject/sender/snippet，以及治理流水线提供的 body（正文）、
+    rule_category（规则初判）、signals（邮件头特征标签）、otp_code（发送前遮蔽）
+    和 has_otp（本地是否提取到验证码）。
 
     needs_review 是兼容旧调用方的「结果不可信」标记。任何异常（网络失败、JSON
     非法、字段越界、检出注入）都会置 True，由治理引擎自动回退；不会进入人工队列。
@@ -147,13 +232,14 @@ def classify_batch(mails: list[dict]) -> list[dict]:
         return []
     cfg = ai_config()
     system = CLASSIFY_SYSTEM.replace("CATS", "、".join(CATEGORIES))
-    user = _build_classify_user_msg(mails, cfg["send_body"])
+    user = _build_classify_user_msg(mails, cfg.get("send_body", True))
 
     # 输入侧检出注入时，无论 AI 说什么都由治理引擎强制执行安全裁决
     tainted = {
         int(m["id"]) for m in mails
-        if has_injection(m.get("subject"), m.get("sender"), m.get("snippet"))
+        if has_injection(m.get("subject"), m.get("sender"), m.get("snippet"), m.get("body"))
     }
+    has_otp = {int(m["id"]) for m in mails if m.get("has_otp")}
 
     try:
         raw = chat([{"role": "system", "content": system},
@@ -190,7 +276,15 @@ def classify_batch(mails: list[dict]) -> list[dict]:
         except (TypeError, ValueError):
             imp = 2
 
-        needs_review = (not cat_ok) or mid in tainted
+        risk_reason = str(item.get("risk_reason") or "").strip()[:80]
+        # 越界判定：本地没提取到验证码却判「验证码」；判「可疑」却说不出依据
+        problem = ""
+        if cat_ok and cat == "验证码" and mid not in has_otp:
+            problem = "AI 判为验证码但本地未提取到验证码；"
+        elif cat_ok and cat == "可疑" and not risk_reason:
+            problem = "AI 判为可疑但未给出风险依据；"
+
+        needs_review = (not cat_ok) or mid in tainted or bool(problem)
         out.append({
             "id": mid,
             "category": cat if cat_ok else "其他",
@@ -198,7 +292,8 @@ def classify_batch(mails: list[dict]) -> list[dict]:
             "importance": imp,
             "summary": str(item.get("summary", ""))[:120],
             "reason": (("正文含疑似指令注入，已转自动安全裁决；" if mid in tainted else "")
-                       + str(item.get("reason", ""))[:80]),
+                       + problem + str(item.get("reason", ""))[:80]),
+            "risk_reason": risk_reason if cat == "可疑" else "",
             "needs_review": needs_review,
         })
 

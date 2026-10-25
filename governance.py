@@ -5,8 +5,9 @@
   - 门下省：自动驳回冲突、低置信度和被污染的 AI 结果；
   - 尚书省：只落地标签/优先级/摘要并写审计，不执行删除、转发或回复。
 
-六部是证据视角，不替代现有邮件分类。持久化证据只含枚举和布尔信号，
-不保存邮件正文、主题、发件地址或凭据。
+启用 AI 后，AI 读邮件内容做主判，本地规则是提示和兜底；判定范围由设置项
+ai_scope 决定。六部是证据视角，不替代现有邮件分类。持久化证据只含枚举和布尔
+信号，不保存邮件正文、主题、发件地址或凭据。
 """
 from __future__ import annotations
 
@@ -22,9 +23,11 @@ import rules
 from db import audit, get_conn
 
 
-VERSION = "mailhub-three-six-v1"
+VERSION = "mailhub-three-six-v2"
 MINISTRIES = ("吏部", "户部", "礼部", "兵部", "刑部", "工部")
+# 每次 AI 调用的邮件数：只发主题/发件人时 24 封；带正文时 8 封，控制单次输入长度
 AI_BATCH_SIZE = 24
+AI_BATCH_SIZE_WITH_BODY = 8
 RUN_STALE_SECONDS = 15 * 60
 # 每次从数据库读入并处理的邮件数；正文只读前 BODY_SCAN_CHARS 个字符做注入扫描
 CHUNK_SIZE = 200
@@ -33,6 +36,13 @@ BODY_SCAN_CHARS = 20000
 MAX_AI_RETRIES = 5
 AI_RETRY_BASE_SECONDS = 300
 AI_RETRY_MAX_SECONDS = 6 * 3600
+# ai_scope=uncertain 时，规则置信度低于此值才交 AI
+UNCERTAIN_BELOW = 0.8
+# 把邮件移出这些分类（受保护类和验证码）、或判为「可疑」，AI 置信度必须达到此值
+STICKY_CATEGORIES = frozenset(policy.PROTECTED_CATEGORIES | {"验证码"})
+HIGH_CONFIDENCE = 0.85
+# 只为入库不久的邮件推送；重新治理历史邮件不会补推
+ALERT_FRESH_SECONDS = 2 * 3600
 
 _RUN_LOCK = threading.Lock()
 _RISK_RANK = {"none": 0, "low": 1, "medium": 2, "high": 3}
@@ -71,12 +81,35 @@ def _default_importance(category: str) -> int:
     }.get(category, 2)
 
 
+def _baseline_confidence(message: dict) -> float:
+    """规则（或上一版治理）给出的置信度；旧数据没有时按原来的默认值。"""
+    category = _safe_category(message.get("category"))
+    try:
+        value = float(message.get("confidence") or 0)
+    except (TypeError, ValueError):
+        value = 0.0
+    if value <= 0:
+        value = 0.9 if category != "其他" else 0.55
+    return max(0.0, min(1.0, value))
+
+
+def _signals(message: dict) -> dict:
+    raw = message.get("header_signals")
+    if isinstance(raw, dict):
+        return raw
+    try:
+        value = json.loads(raw or "{}")
+    except (TypeError, ValueError):
+        return {}
+    return value if isinstance(value, dict) else {}
+
+
 def build_evidence(message: dict) -> dict:
     """生成六部共享的最小证据集合；返回值不得包含邮件原文或身份信息。"""
     category = _safe_category(message.get("category"))
     subject = str(message.get("subject") or "")
     snippet = str(message.get("snippet") or "")
-    # 正文只在本机做注入特征扫描：不进入 evidence，也不会发送给 AI（AI 仍只拿 snippet）。
+    # 正文在本机做注入特征扫描；它不进入 evidence。发给 AI 的正文摘录另经遮蔽和截断。
     body_text = str(message.get("body_text") or "")
     sender = str(message.get("sender_addr") or "")
     text = f"{subject}\n{snippet}"
@@ -97,6 +130,8 @@ def build_evidence(message: dict) -> dict:
         "otp": category == "验证码" or bool(message.get("otp_code")),
         "attachment": bool(message.get("has_attach")),
         "unsubscribe": bool(message.get("unsubscribe")),
+        "bulk": rules.is_bulk(_signals(message), bool(message.get("unsubscribe"))),
+        "rule_category": category,
     }
 
 
@@ -111,24 +146,53 @@ def zhongshu_propose(message: dict, ai_result: dict | None, *, ai_enabled: bool)
     }
 
 
+_CATEGORY_MINISTRY = {
+    "安全": "兵部",
+    "账单": "户部",
+    "验证码": "工部",
+    "重要": "吏部",
+    "订阅": "礼部",
+    "通知": "礼部",
+}
+
+
 def _primary_ministry(evidence: dict, category: str) -> str:
-    """按安全优先级选择主责部；其他部的证据仍完整保存在 decision 中。"""
+    """按最终分类选择主责部；「其他」才参考关键词证据。其他部的证据仍完整保存在 decision 中。"""
     if evidence["prompt_injection"] or _risk_at_least(evidence["risk_level"], "medium") \
             or category == "可疑":
         return "刑部"
-    if category == "安全" or evidence["security"]:
+    if category in _CATEGORY_MINISTRY:
+        return _CATEGORY_MINISTRY[category]
+    if evidence["security"]:
         return "兵部"
-    if category == "账单" or evidence["financial"]:
+    if evidence["financial"]:
         return "户部"
-    if category == "验证码" or evidence["otp"]:
+    if evidence["otp"]:
         return "工部"
-    if category == "重要" or evidence["important_relationship"]:
+    if evidence["important_relationship"]:
         return "吏部"
-    if category in ("订阅", "通知") or evidence["subscription"] or evidence["unsubscribe"]:
+    if evidence["subscription"] or evidence["unsubscribe"]:
         return "礼部"
     if evidence["attachment"] or evidence["sender_kind"] == "automated":
         return "工部"
     return "吏部"
+
+
+def _ai_guardrail(baseline: str, ai_category: str, ai_confidence: float, message: dict) -> str:
+    """门下省对有效 AI 结果的护栏；返回驳回理由，空串表示可以采纳。"""
+    if ai_confidence < policy.MIN_CONFIDENCE_GUARDED:
+        return (f"门下省自动驳回低置信度 AI（{ai_confidence:.0%}），"
+                f"保留本地分类「{baseline}」")
+    if ai_category == "可疑" and ai_confidence < HIGH_CONFIDENCE:
+        return (f"AI 判为可疑但置信度 {ai_confidence:.0%} 不足 {HIGH_CONFIDENCE:.0%}，"
+                f"保留本地分类「{baseline}」")
+    if ai_category == "验证码" and not message.get("otp_code"):
+        return f"AI 判为验证码但本地未提取到验证码，保留本地分类「{baseline}」"
+    if baseline in STICKY_CATEGORIES and ai_category != baseline \
+            and ai_confidence < HIGH_CONFIDENCE:
+        return (f"把邮件移出「{baseline}」需要 AI 置信度达到 {HIGH_CONFIDENCE:.0%}"
+                f"（实际 {ai_confidence:.0%}），保留本地分类")
+    return ""
 
 
 def menxia_arbitrate(proposal: dict) -> dict:
@@ -142,7 +206,7 @@ def menxia_arbitrate(proposal: dict) -> dict:
     source = "rules"
     fallback = False
     retry = False
-    confidence = float(message.get("confidence") or (0.9 if baseline != "其他" else 0.55))
+    confidence = _baseline_confidence(message)
     importance = int(message.get("importance") or _default_importance(baseline))
     summary = str(message.get("summary") or "")[:120]
     reason = f"本地规则确定为「{baseline}」"
@@ -156,44 +220,50 @@ def menxia_arbitrate(proposal: dict) -> dict:
         category, source, confidence = "可疑", "security", 1.0
         importance = max(importance, 5 if evidence["risk_level"] == "high" else 4)
         reason = f"刑部依据静态扫描 {evidence['risk_level']} 风险自动标记可疑"
-    elif baseline == "其他":
+    elif result is None:
         if not proposal["ai_enabled"]:
-            fallback = True
-            source = "ai_disabled"
-            reason = "AI 未启用，门下省采用本地保守分类「其他」"
-        elif not result or result.get("needs_review"):
+            if baseline == "其他":
+                fallback = True
+                source = "ai_disabled"
+                reason = "AI 未启用，门下省采用本地保守分类「其他」"
+        else:
+            reason = f"本地规则确定为「{baseline}」（不在 AI 判定范围内）"
+    elif result.get("needs_review"):
+        fallback = True
+        source = "fallback"
+        # 网络失败、超时、漏答属于临时问题，稍后自动重试；注入、越界等不重试
+        retry = bool(result.get("transient"))
+        detail = str(result.get("reason") or "AI 未返回有效判定")[:120]
+        reason = f"门下省自动驳回不可信 AI 结果：{detail}"
+        if retry:
+            reason += "（稍后自动重试）"
+    else:
+        try:
+            ai_confidence = max(0.0, min(1.0, float(result.get("confidence", 0))))
+        except (TypeError, ValueError):
+            ai_confidence = 0.0
+        ai_category = _safe_category(result.get("category"))
+        rejected = _ai_guardrail(baseline, ai_category, ai_confidence, message)
+        if rejected:
             fallback = True
             source = "fallback"
-            # 网络失败、超时、漏答属于临时问题，稍后自动重试；注入、越界等不重试
-            retry = bool(result and result.get("transient"))
-            detail = str((result or {}).get("reason") or "AI 未返回有效判定")[:120]
-            reason = f"门下省自动驳回不可信 AI 结果：{detail}"
-            if retry:
-                reason += "（稍后自动重试）"
+            if baseline == "其他":
+                # 规则本来就没有把握，记录 AI 的真实置信度
+                confidence = ai_confidence
+            reason = rejected
         else:
+            category = ai_category
+            source = "ai_risk" if ai_category == "可疑" else "ai"
+            confidence = ai_confidence
             try:
-                ai_confidence = max(0.0, min(1.0, float(result.get("confidence", 0))))
+                importance = max(1, min(5, int(result.get("importance", importance))))
             except (TypeError, ValueError):
-                ai_confidence = 0.0
-            ai_category = _safe_category(result.get("category"))
-            if ai_confidence < policy.MIN_CONFIDENCE_GUARDED:
-                fallback = True
-                source = "fallback"
-                confidence = ai_confidence
-                reason = (
-                    f"门下省自动驳回低置信度 AI（{ai_confidence:.0%}），"
-                    "保留本地分类「其他」"
-                )
-            else:
-                category = ai_category
-                source = "ai"
-                confidence = ai_confidence
-                try:
-                    importance = max(1, min(5, int(result.get("importance", importance))))
-                except (TypeError, ValueError):
-                    pass
-                summary = str(result.get("summary") or summary)[:120]
-                reason = f"门下省核准 AI 分类「{category}」：{str(result.get('reason') or '语义判定')[:100]}"
+                pass
+            if ai_category == "可疑":
+                importance = max(importance, 4)
+            summary = str(result.get("summary") or summary)[:120]
+            why = str(result.get("risk_reason") or result.get("reason") or "语义判定")[:100]
+            reason = f"门下省核准 AI 分类「{category}」：{why}"
 
     ministry = _primary_ministry(evidence, category)
     return {
@@ -207,7 +277,7 @@ def menxia_arbitrate(proposal: dict) -> dict:
         "importance": max(1, min(5, importance)),
         "summary": summary,
         "reason": reason[:500],
-        "evidence": evidence,
+        "evidence": dict(evidence, ai_consulted=result is not None),
     }
 
 
@@ -258,6 +328,35 @@ def shangshu_apply(conn, run_id: int, message: dict, verdict: dict, *, ts: float
     return True
 
 
+def _wants_alert(message: dict, verdict: dict, ts: float) -> bool:
+    """重要/安全（或重要度 ≥4）的新邮件在裁决后推送一次；可疑邮件不推送。"""
+    if verdict["category"] == "可疑":
+        return False
+    if verdict["category"] not in ("重要", "安全") and verdict["importance"] < 4:
+        return False
+    if float(message.get("alert_ts") or 0) > 0:
+        return False
+    return float(message.get("created_ts") or 0) >= ts - ALERT_FRESH_SECONDS
+
+
+def _queue_alert(conn, message: dict, verdict: dict, ts: float) -> dict | None:
+    """把推送标记写进库里（只标记一次），返回交给调用方推送的条目。"""
+    if not _wants_alert(message, verdict, ts):
+        return None
+    cur = conn.execute("UPDATE messages SET alert_ts=? WHERE id=? AND alert_ts=0",
+                       (ts, int(message["id"])))
+    if cur.rowcount != 1:
+        return None
+    return {
+        "account_name": message.get("account_name") or "",
+        "subject": message.get("subject") or "",
+        "sender_addr": message.get("sender_addr") or "",
+        "category": verdict["category"],
+        "otp_code": "",
+        "importance": verdict["importance"],
+    }
+
+
 # 待治理：未治理或旧版本、旧的人工复核标记、AI 临时失败且已到重试时间
 _PENDING_SQL = ("(COALESCE(m.governance_version,'') != ? OR m.needs_review=1"
                 " OR (m.ai_retry_ts > 0 AND m.ai_retry_ts <= ?))")
@@ -277,7 +376,7 @@ def _select_ids(conn, *, limit: int, force: bool, now: float) -> list[int]:
 
 
 def _load_messages(conn, ids: list[int]) -> list[dict]:
-    """按 id 读入一批邮件；正文截断后只用于本机注入扫描，不会发给 AI。"""
+    """按 id 读入一批邮件；正文截断后用于本机注入扫描和（遮蔽后的）AI 正文摘录。"""
     if not ids:
         return []
     ph = ",".join("?" * len(ids))
@@ -286,8 +385,10 @@ def _load_messages(conn, ids: list[int]) -> list[dict]:
                    substr(m.body_text, 1, {BODY_SCAN_CHARS}) AS body_text,
                    m.otp_code, m.importance, m.summary, m.confidence,
                    m.has_attach, m.unsubscribe, m.risk_level, m.needs_review, m.ai_retry_count,
-                   m.date_ts
-            FROM messages m WHERE m.id IN ({ph}) AND m.deleted_ts=0""",
+                   m.date_ts, m.created_ts, m.header_signals, m.governance_version, m.alert_ts,
+                   a.name AS account_name
+            FROM messages m LEFT JOIN accounts a ON a.id=m.account_id
+            WHERE m.id IN ({ph}) AND m.deleted_ts=0""",
         ids,
     ).fetchall()
     order = {mid: i for i, mid in enumerate(ids)}
@@ -299,28 +400,74 @@ def _select_messages(conn, *, limit: int, force: bool) -> list[dict]:
     return _load_messages(conn, _select_ids(conn, limit=limit, force=force, now=time.time()))
 
 
-def _ai_results(rows: list[dict], *, enabled: bool) -> tuple[dict[int, dict], int]:
+def _wants_ai(row: dict, evidence: dict, cfg: dict, now: float) -> bool:
+    """这封邮件是否交给 AI 判定。注入、中高风险和已判可疑的邮件永不外送。"""
+    if evidence["prompt_injection"] or _risk_at_least(evidence["risk_level"], "medium"):
+        return False
+    category = _safe_category(row.get("category"))
+    if category == "可疑":
+        return False
+    scope = cfg.get("scope", "all")
+    if scope == "other":
+        if category != "其他" or not rules.allows_cloud_ai(category):
+            return False
+    elif scope == "uncertain":
+        if category != "其他" and _baseline_confidence(row) >= UNCERTAIN_BELOW:
+            return False
+    # 回溯窗口只限制「上一版治理过的历史邮件」：新邮件和本版的重试不受影响
+    try:
+        backfill_days = int(cfg.get("backfill_days", ai.DEFAULT_BACKFILL_DAYS) or 0)
+    except (TypeError, ValueError):
+        backfill_days = ai.DEFAULT_BACKFILL_DAYS
+    old_version = str(row.get("governance_version") or "")
+    if backfill_days > 0 and old_version and old_version != VERSION \
+            and float(row.get("date_ts") or 0) < now - backfill_days * 86400:
+        return False
+    return True
+
+
+def _signal_tags(evidence: dict) -> list[str]:
+    tags = []
+    if evidence["bulk"]:
+        tags.append("群发")
+    if evidence["attachment"]:
+        tags.append("附件")
+    if evidence["sender_kind"] == "automated":
+        tags.append("自动发件人")
+    return tags
+
+
+def _ai_results(rows: list[dict], *, enabled: bool, cfg: dict | None = None,
+                now: float | None = None) -> tuple[dict[int, dict], int]:
     if not enabled:
         return {}, 0
+    cfg = cfg or {}
+    now = time.time() if now is None else now
     candidates = []
     for row in rows:
         evidence = build_evidence(row)
-        if _safe_category(row.get("category")) != "其他":
+        if not _wants_ai(row, evidence, cfg, now):
             continue
-        if evidence["prompt_injection"] or _risk_at_least(evidence["risk_level"], "medium"):
-            continue
-        if not rules.allows_cloud_ai("其他"):
-            continue
+        subject = str(row.get("subject") or "")
+        body = str(row.get("body_text") or "") or str(row.get("snippet") or "")
+        stored_otp = str(row.get("otp_code") or "")
         candidates.append({
             "id": row["id"],
-            "subject": row.get("subject", ""),
+            "subject": subject,
             "sender": row.get("sender_addr", ""),
             "snippet": row.get("snippet", ""),
+            "body": body,
+            "rule_category": _safe_category(row.get("category")),
+            "signals": _signal_tags(evidence),
+            # 发送前遮蔽：已存的验证码，或规则漏判时在正文里找到的码
+            "otp_code": stored_otp or rules.extract_otp(subject, body),
+            "has_otp": bool(stored_otp),
         })
 
+    size = AI_BATCH_SIZE_WITH_BODY if cfg.get("send_body", True) else AI_BATCH_SIZE
     results: dict[int, dict] = {}
-    for start in range(0, len(candidates), AI_BATCH_SIZE):
-        batch = candidates[start:start + AI_BATCH_SIZE]
+    for start in range(0, len(candidates), size):
+        batch = candidates[start:start + size]
         try:
             returned = ai.classify_batch(batch)
         except Exception as exc:  # 自定义适配器异常也必须自动回退
@@ -329,12 +476,13 @@ def _ai_results(rows: list[dict], *, enabled: bool) -> tuple[dict[int, dict], in
                  "reason": f"AI 分类异常：{str(exc)[:80]}"}
                 for item in batch
             ]
+        batch_ids = {int(item["id"]) for item in batch}
         for item in returned or []:
             try:
                 mid = int(item.get("id"))
             except (AttributeError, TypeError, ValueError):
                 continue
-            if any(int(candidate["id"]) == mid for candidate in batch):
+            if mid in batch_ids:
                 results[mid] = item
         for item in batch:
             results.setdefault(
@@ -371,7 +519,11 @@ def _claim_run(conn, *, trigger: str, started: float) -> int:
 
 
 def run_governance(*, limit: int = 0, force: bool = False, trigger: str = "system") -> dict:
-    """一键运行完整自动治理；重复运行只处理未治理/旧版本邮件。"""
+    """一键运行完整自动治理；重复运行只处理未治理/旧版本邮件。
+
+    返回值里的 alerts 是裁决后需要推送的新邮件，由调用方（sync.push_alerts）发送；
+    除 AI 判定请求外，本模块不发起任何对外请求。
+    """
     if not _RUN_LOCK.acquire(blocking=False):
         status = governance_status()
         status.update({"ok": False, "busy": True})
@@ -389,9 +541,10 @@ def run_governance(*, limit: int = 0, force: bool = False, trigger: str = "syste
 
         ids = _select_ids(conn, limit=limit, force=force, now=started)
         try:
-            enabled = bool(ai.ai_config().get("enabled"))
+            cfg = dict(ai.ai_config() or {})
         except Exception:
-            enabled = False
+            cfg = {}
+        enabled = bool(cfg.get("enabled"))
 
         ministry_counts: Counter = Counter()
         category_counts: Counter = Counter()
@@ -399,12 +552,13 @@ def run_governance(*, limit: int = 0, force: bool = False, trigger: str = "syste
         suspicious_count = 0
         ai_count = 0
         processed_ids = []
+        alerts: list[dict] = []
         decision_ts = time.time()
 
         # 分批读取和处理：首次治理大邮箱时不会把所有正文一次性读进内存
         for start in range(0, len(ids), CHUNK_SIZE):
             rows = _load_messages(conn, ids[start:start + CHUNK_SIZE])
-            ai_by_id, chunk_ai = _ai_results(rows, enabled=enabled)
+            ai_by_id, chunk_ai = _ai_results(rows, enabled=enabled, cfg=cfg, now=started)
             ai_count += chunk_ai
             for row in rows:
                 proposal = zhongshu_propose(
@@ -413,6 +567,9 @@ def run_governance(*, limit: int = 0, force: bool = False, trigger: str = "syste
                 verdict = menxia_arbitrate(proposal)
                 if not shangshu_apply(conn, run_id, row, verdict, ts=decision_ts):
                     continue
+                alert = _queue_alert(conn, row, verdict, decision_ts)
+                if alert:
+                    alerts.append(alert)
                 processed_ids.append(int(row["id"]))
                 ministry_counts[verdict["ministry"]] += 1
                 category_counts[verdict["category"]] += 1
@@ -442,7 +599,7 @@ def run_governance(*, limit: int = 0, force: bool = False, trigger: str = "syste
         )
         result = governance_status()
         # 本函数返回后才释放进程内锁；对调用者而言本次运行已经完成。
-        result.update({"ok": True, "busy": False, "running": False})
+        result.update({"ok": True, "busy": False, "running": False, "alerts": alerts})
         return result
     except Exception as exc:
         conn.rollback()

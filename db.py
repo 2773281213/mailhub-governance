@@ -188,6 +188,10 @@ MIGRATIONS = [
     # AI 临时失败后的自动重试（次数与下次重试时间）
     "ALTER TABLE messages ADD COLUMN ai_retry_count INTEGER DEFAULT 0",
     "ALTER TABLE messages ADD COLUMN ai_retry_ts REAL DEFAULT 0",
+    # 邮件头群发信号（只含布尔值的 JSON），供规则与 AI 判定
+    "ALTER TABLE messages ADD COLUMN header_signals TEXT DEFAULT '{}'",
+    # 重要/安全推送在治理裁决后发出；非 0 表示已排队推送，避免重复
+    "ALTER TABLE messages ADD COLUMN alert_ts REAL DEFAULT 0",
 ]
 
 

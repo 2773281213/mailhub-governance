@@ -13,6 +13,7 @@ _TMP = tempfile.mkdtemp()
 os.environ["MAILHUB_DB"] = os.path.join(_TMP, "test.db")
 
 import asyncio  # noqa: E402
+import base64  # noqa: E402
 import json  # noqa: E402
 import time  # noqa: E402
 
@@ -988,3 +989,224 @@ def test_classify_batch_marks_network_failures_as_transient(monkeypatch):
     monkeypatch.setattr(ai, "chat", lambda *a, **k: "[]")
     out = ai.classify_batch([{"id": 2, "subject": "s", "sender": "a@b.com", "snippet": ""}])
     assert out[0]["transient"] is True
+
+
+# ---------------- AI 读内容主判与门下省护栏 ----------------
+
+def _fake_classifier(verdicts: dict):
+    """按 id 返回预设判定的假 classify_batch，并记录送给 AI 的邮件。"""
+    sent: list[dict] = []
+
+    def classify(mails):
+        sent.extend(mails)
+        return [{"id": m["id"], "needs_review": False, "importance": 2, "summary": "s",
+                 "reason": "r", **verdicts[m["id"]]}
+                for m in mails if m["id"] in verdicts]
+
+    return classify, sent
+
+
+def _row(conn, mid):
+    return dict(conn.execute(
+        """SELECT category, importance, governance_source, governance_ministry,
+                  governance_reason FROM messages WHERE id=?""", (mid,)).fetchone())
+
+
+def test_ai_corrects_rule_misclassification(fresh_db, monkeypatch):
+    acc = _mk_account(fresh_db)
+    mid = _insert_msg(fresh_db, acc, 1, category="重要", subject="Urgent offer")
+    monkeypatch.setattr(governance.ai, "ai_config", lambda: {"enabled": True})
+    classify, sent = _fake_classifier({mid: {"category": "订阅", "confidence": 0.92}})
+    monkeypatch.setattr(governance.ai, "classify_batch", classify)
+
+    governance.run_governance(trigger="test")
+    row = _row(fresh_db, mid)
+    assert [m["id"] for m in sent] == [mid]
+    assert sent[0]["rule_category"] == "重要"
+    assert row["category"] == "订阅" and row["governance_source"] == "ai"
+    assert row["governance_ministry"] == "礼部"
+
+
+def test_leaving_protected_category_needs_high_confidence(fresh_db, monkeypatch):
+    acc = _mk_account(fresh_db)
+    mid = _insert_msg(fresh_db, acc, 1, category="账单")
+    monkeypatch.setattr(governance.ai, "ai_config", lambda: {"enabled": True})
+    classify, _sent = _fake_classifier({mid: {"category": "订阅", "confidence": 0.8}})
+    monkeypatch.setattr(governance.ai, "classify_batch", classify)
+
+    governance.run_governance(trigger="test")
+    row = _row(fresh_db, mid)
+    assert row["category"] == "账单" and row["governance_source"] == "fallback"
+    assert "85%" in row["governance_reason"]
+
+
+def test_ai_suspicious_needs_high_confidence(fresh_db, monkeypatch):
+    acc = _mk_account(fresh_db)
+    unsure = _insert_msg(fresh_db, acc, 1, category="其他")
+    sure = _insert_msg(fresh_db, acc, 2, category="其他")
+    monkeypatch.setattr(governance.ai, "ai_config", lambda: {"enabled": True})
+    classify, _sent = _fake_classifier({
+        unsure: {"category": "可疑", "confidence": 0.8, "risk_reason": "可能是钓鱼"},
+        sure: {"category": "可疑", "confidence": 0.93, "risk_reason": "仿冒品牌域名"},
+    })
+    monkeypatch.setattr(governance.ai, "classify_batch", classify)
+
+    governance.run_governance(trigger="test")
+    assert _row(fresh_db, unsure)["category"] == "其他"
+    row = _row(fresh_db, sure)
+    assert row["category"] == "可疑" and row["governance_source"] == "ai_risk"
+    assert row["governance_ministry"] == "刑部" and row["importance"] >= 4
+    assert "仿冒品牌域名" in row["governance_reason"]
+
+
+def test_ai_cannot_invent_otp_category(fresh_db, monkeypatch):
+    acc = _mk_account(fresh_db)
+    mid = _insert_msg(fresh_db, acc, 1, category="其他")
+    monkeypatch.setattr(governance.ai, "ai_config", lambda: {"enabled": True})
+    classify, _sent = _fake_classifier({mid: {"category": "验证码", "confidence": 0.95}})
+    monkeypatch.setattr(governance.ai, "classify_batch", classify)
+
+    governance.run_governance(trigger="test")
+    row = _row(fresh_db, mid)
+    assert row["category"] == "其他"
+    assert "未提取到验证码" in row["governance_reason"]
+
+
+def test_scope_other_keeps_legacy_behavior(fresh_db, monkeypatch):
+    acc = _mk_account(fresh_db)
+    notice = _insert_msg(fresh_db, acc, 1, category="通知")
+    other = _insert_msg(fresh_db, acc, 2, category="其他")
+    monkeypatch.setattr(governance.ai, "ai_config", lambda: {"enabled": True, "scope": "other"})
+    classify, sent = _fake_classifier({other: {"category": "订阅", "confidence": 0.9}})
+    monkeypatch.setattr(governance.ai, "classify_batch", classify)
+
+    governance.run_governance(trigger="test")
+    assert [m["id"] for m in sent] == [other]
+    assert _row(fresh_db, notice)["governance_source"] == "rules"
+    assert _row(fresh_db, other)["category"] == "订阅"
+
+
+def test_scope_uncertain_sends_only_low_confidence_rules(fresh_db, monkeypatch):
+    acc = _mk_account(fresh_db)
+    sure = _insert_msg(fresh_db, acc, 1, category="通知")
+    unsure = _insert_msg(fresh_db, acc, 2, category="通知")
+    other = _insert_msg(fresh_db, acc, 3, category="其他")
+    fresh_db.execute("UPDATE messages SET confidence=0.9 WHERE id=?", (sure,))
+    fresh_db.execute("UPDATE messages SET confidence=0.6 WHERE id=?", (unsure,))
+    fresh_db.commit()
+    monkeypatch.setattr(governance.ai, "ai_config",
+                        lambda: {"enabled": True, "scope": "uncertain"})
+    classify, sent = _fake_classifier({
+        mid: {"category": "通知", "confidence": 0.9} for mid in (sure, unsure, other)})
+    monkeypatch.setattr(governance.ai, "classify_batch", classify)
+
+    governance.run_governance(trigger="test")
+    assert sorted(m["id"] for m in sent) == sorted([unsure, other])
+
+
+def test_backfill_window_limits_regoverned_history(fresh_db, monkeypatch):
+    acc = _mk_account(fresh_db)
+    now = time.time()
+    old_history = _insert_msg(fresh_db, acc, 1, category="其他", date_ts=now - 90 * 86400)
+    recent_history = _insert_msg(fresh_db, acc, 2, category="其他", date_ts=now - 86400)
+    new_mail = _insert_msg(fresh_db, acc, 3, category="其他", date_ts=now - 90 * 86400)
+    fresh_db.execute("UPDATE messages SET governance_version='mailhub-three-six-v1' WHERE id IN (?,?)",
+                     (old_history, recent_history))
+    fresh_db.commit()
+    monkeypatch.setattr(governance.ai, "ai_config",
+                        lambda: {"enabled": True, "backfill_days": 30})
+    classify, sent = _fake_classifier({
+        mid: {"category": "通知", "confidence": 0.9}
+        for mid in (old_history, recent_history, new_mail)})
+    monkeypatch.setattr(governance.ai, "classify_batch", classify)
+
+    governance.run_governance(trigger="test")
+    assert sorted(m["id"] for m in sent) == sorted([recent_history, new_mail])
+    row = _row(fresh_db, old_history)
+    assert row["category"] == "其他" and row["governance_source"] == "rules"
+
+
+def test_ai_payload_masks_otp_and_carries_rule_hint(fresh_db, monkeypatch):
+    acc = _mk_account(fresh_db)
+    mid = _insert_msg(fresh_db, acc, 1, category="验证码", subject="验证码 384756")
+    fresh_db.execute("UPDATE messages SET otp_code='384756', body_text=? WHERE id=?",
+                     ("您的验证码为 384756，请勿泄露", mid))
+    fresh_db.commit()
+    monkeypatch.setattr(governance.ai, "ai_config", lambda: {
+        "enabled": True, "base_url": "http://x/v1", "api_key": "k", "model": "m",
+        "send_body": True})
+    captured = []
+
+    def chat(messages, **_kw):
+        captured.append(messages[1]["content"])
+        return "[]"
+
+    monkeypatch.setattr(governance.ai, "chat", chat)
+    governance.run_governance(trigger="test")
+    payload = captured[0]
+    assert "384756" not in payload
+    assert "[验证码]" in payload and "规则初判=验证码" in payload and "请勿泄露" in payload
+    # AI 漏答属于临时问题：保留规则分类，稍后重试
+    assert _row(fresh_db, mid)["category"] == "验证码"
+
+
+# ---------------- 裁决后推送 ----------------
+
+def _raw_utf8_mail(msg_id: str, subject: str) -> bytes:
+    encoded = base64.b64encode(subject.encode()).decode()
+    return (f"Message-ID: {msg_id}\r\nFrom: sender@example.com\r\n"
+            f"Subject: =?utf-8?B?{encoded}?=\r\n\r\nhello\r\n").encode()
+
+
+def test_sync_pushes_only_otp_before_governance(fresh_db, monkeypatch):
+    acc = _mk_account(fresh_db)
+    fresh_db.execute("UPDATE accounts SET uidvalidity=7 WHERE id=?", (acc,))
+    fresh_db.commit()
+    pushed = []
+    monkeypatch.setattr(sync.notify, "notify_new_messages",
+                        lambda items, _name: pushed.extend(items))
+    mailbox = {1: _raw_utf8_mail("<otp@x>", "验证码 384756"),
+               2: _raw_utf8_mail("<job@x>", "面试邀请")}
+
+    assert _run_sync(monkeypatch, acc, FakeSyncSession(7, mailbox)) == 2
+    assert [item["otp_code"] for item in pushed] == ["384756"]
+    confidence = {r["subject"]: r["confidence"] for r in fresh_db.execute(
+        "SELECT subject, confidence FROM messages WHERE account_id=?", (acc,)).fetchall()}
+    assert confidence == {"验证码 384756": 0.95, "面试邀请": 0.9}
+
+
+def test_important_mail_is_pushed_once_after_verdict(fresh_db, monkeypatch):
+    acc = _mk_account(fresh_db, name="工作邮箱")
+    fresh = _insert_msg(fresh_db, acc, 1, category="重要", subject="面试邀请")
+    old = _insert_msg(fresh_db, acc, 2, category="安全", subject="异常登录")
+    fresh_db.execute("UPDATE messages SET created_ts=? WHERE id=?", (time.time(), fresh))
+    fresh_db.commit()
+    monkeypatch.setattr(governance.ai, "ai_config", lambda: {"enabled": False})
+    pushed = []
+    monkeypatch.setattr(sync.notify, "notify_new_messages",
+                        lambda items, name: pushed.append((name, [i["subject"] for i in items])))
+
+    result = sync.ai_classify_pending(limit=0)
+    # 只推刚入库的重要邮件；入库很久的安全邮件（old）重新治理时不补推
+    assert pushed == [("工作邮箱", ["面试邀请"])]
+    assert "alerts" not in result
+    assert _row(fresh_db, old)["category"] == "安全"
+
+    # 重新治理（例如版本升级）不会重复推送
+    fresh_db.execute("UPDATE messages SET governance_version=''")
+    fresh_db.commit()
+    sync.ai_classify_pending(limit=0)
+    assert len(pushed) == 1
+
+
+def test_ai_scope_setting_is_validated(fresh_db):
+    try:
+        with pytest.raises(mailhub_app.HTTPException):
+            asyncio.run(mailhub_app.put_settings(mailhub_app.SettingsBody(ai_scope="everything")))
+        asyncio.run(mailhub_app.put_settings(
+            mailhub_app.SettingsBody(ai_scope="uncertain", ai_backfill_days=999)))
+        settings = asyncio.run(mailhub_app.get_settings())
+        assert settings["ai_scope"] == "uncertain" and settings["ai_backfill_days"] == 365
+    finally:
+        fresh_db.execute("DELETE FROM settings WHERE k IN ('ai_scope', 'ai_backfill_days')")
+        fresh_db.commit()

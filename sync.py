@@ -1,4 +1,5 @@
 """后台同步引擎：定时拉取各账户新邮件 → 规则分类 → AI 补充分类 → 每日摘要 / 自动清理"""
+import json
 import threading
 import time
 import traceback
@@ -194,12 +195,15 @@ def sync_account(acc_id: int) -> int:
                         reply_to=m.get("reply_to", ""), attachments=m.get("attach_names") or [],
                         html=m.get("body_html", ""), auth_results=m.get("auth_results", ""))
 
-                    cat, otp = rules.classify(
-                        m["subject"], m["body_text"], m["sender_addr"], bool(m["unsubscribe"]), custom)
+                    signals = m.get("header_signals") or {}
+                    ruled = rules.classify_detailed(
+                        m["subject"], m["body_text"], m["sender_addr"], bool(m["unsubscribe"]),
+                        custom, signals)
+                    cat, otp, confidence = ruled["category"], ruled["otp"], ruled["confidence"]
                     # 中/高风险立即保守标记「可疑」；后续三省六部流水线会补齐证据与审计。
                     # 这里只打本地标签，不访问链接、附件，也不执行移动或删除。
                     if security_scan.risk_at_least(scan["risk"], security_scan.RISK_MEDIUM):
-                        cat, otp = "可疑", ""
+                        cat, otp, confidence = "可疑", "", 1.0
 
                     try:
                         cur = conn.execute(
@@ -207,19 +211,24 @@ def sync_account(acc_id: int) -> int:
                                (account_id, uid, msg_id, subject, sender_name, sender_addr, to_addr,
                                 date_ts, snippet, body_text, body_html, category, otp_code, unread,
                                 has_attach, unsubscribe, created_ts, risk_level, risk_reasons,
-                                needs_review)
-                               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                                needs_review, confidence, header_signals)
+                               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                             (acc_id, m["uid"], m["msg_id"], m["subject"], m["sender_name"],
                              m["sender_addr"], m.get("to_addr", ""), m["date_ts"], m["snippet"],
                              m["body_text"], m["body_html"], cat, otp, m["unread"], m["has_attach"],
                              m["unsubscribe"], time.time(), scan["risk"],
-                              " · ".join(scan["reasons"])[:500], 0),
+                             " · ".join(scan["reasons"])[:500], 0, confidence,
+                             json.dumps(signals, sort_keys=True)),
                         )
                         if cur.rowcount:
                             new_count += 1
-                            fresh.append({"subject": m["subject"], "sender_addr": m["sender_addr"],
-                                          "category": cat, "otp_code": otp, "importance": 0,
-                                          "risk": scan["risk"]})
+                            # 验证码在这里立即推送（规则提取，保证时效）；重要/安全邮件
+                            # 等治理裁决后再推送，避免按规则初判误推
+                            if otp:
+                                fresh.append({"subject": m["subject"],
+                                              "sender_addr": m["sender_addr"],
+                                              "category": cat, "otp_code": otp, "importance": 0,
+                                              "risk": scan["risk"]})
                     except Exception as exc:
                         # 入库失败不能被水位跳过，记为失败，下次同步重试
                         failed.add(m["uid"])
@@ -279,9 +288,23 @@ def trim_old_bodies():
         conn.execute("VACUUM")
 
 
+def push_alerts(alerts) -> None:
+    """推送治理裁决后的重要/安全新邮件；按账户分组，失败不影响治理结果。"""
+    by_account: dict[str, list[dict]] = {}
+    for item in alerts or []:
+        by_account.setdefault(str(item.get("account_name") or ""), []).append(item)
+    for account_name, items in by_account.items():
+        try:
+            notify.notify_new_messages(items, account_name)
+        except Exception:
+            traceback.print_exc()
+
+
 def ai_classify_pending(limit: int = 30):
     """兼容旧调用名：执行完整自动三省六部治理，而不是创建人工复核队列。"""
-    return governance.run_governance(limit=limit, trigger="sync")
+    result = governance.run_governance(limit=limit, trigger="sync")
+    push_alerts(result.pop("alerts", None))
+    return result
 
 
 def generate_digest(force: bool = False) -> str:
