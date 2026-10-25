@@ -7,7 +7,9 @@ MailHub 按服务商能力选择认证方式，不会把普通邮箱密码伪装
 | Microsoft Outlook / Hotmail | Microsoft 登录（授权码 + PKCE）；自有应用设备码登录备用 | 暂不启用登录 |
 | Gmail / Google Workspace | Google 登录（授权码 + PKCE） | Google 应用专用密码 |
 | QQ 邮箱 | 服务商客户端授权码 | 必须使用授权码 |
-| 网易 163 / 126 / yeah.net | 已批准的合作方 OAuth，或客户端授权密码 | 客户端授权密码 |
+| 腾讯企业邮 | 客户端专用密码 | 必须使用专用密码，主机固定 `imap.exmail.qq.com` |
+| 网易企业邮 | 客户端授权密码 | 主机固定 `imap.qiye.163.com`，企业自有域名需手动选择 |
+| 网易 163 / 126 / yeah.net / 188 / VIP | 已批准的合作方 OAuth，或客户端授权密码 | 客户端授权密码 |
 | 自定义 IMAP | 服务商允许的密码或应用专用密码 | 手工填写 IMAP SSL 地址 |
 
 QQ、网易及任意自定义服务商若没有面向第三方 IMAP 客户端开放 OAuth，MailHub 无法通过技术手段绕过其授权码或应用专用密码策略。
@@ -60,25 +62,49 @@ Google IMAP XOAUTH2 使用 `https://mail.google.com/` 范围。配置完成后�
 
 Outlook APK 也使用 OAuth + PKCE，但其 Client ID、Android 包名/签名、`olmoauth.outlook.com` 回调和 Microsoft token 兑换后端构成一组私有注册。MailHub 会明确拒绝该 Client ID 和回调；复制它们既不能把授权结果送回 MailHub，也会把 authorization code 交给 Microsoft 控制的服务。
 
-## QQ 与网易 163 / 126 / yeah.net
+## QQ 与网易 163 / 126 / yeah.net / 188 / VIP
 
-当前没有可供普通第三方 IMAP 客户端使用的公开邮箱 OAuth 配置，因此不能安全实现与 Google、Microsoft 完全相同的 Token 登录。QQ Connect 或网易开放平台的普通身份登录 Token 不等于邮箱 IMAP 访问权限。
+QQ 邮箱与网易都没有面向普通第三方 IMAP 客户端的公开 OAuth 注册，因此不能安全实现与 Google、Microsoft 完全相同的 Token 登录。QQ 互联或网易开放平台的普通身份登录 Token 不等于邮箱 IMAP 访问权限；QQ 邮箱 APK 自身也只做腾讯账号栈 + 自家协议，没有 IMAP OAuth（见 [QQMAIL_ANALYSIS.md](QQMAIL_ANALYSIS.md)）。企业微信 5.0.13 的邮件模块（`com.tencent.qqmail.*` + native mailplugin）同样如此：企业邮登录返回私有 `tkspwd` ticket，QQ 邮箱登录用的是应用内 QQ 互联 SSO，二者都不对第三方开放，详见 [WECOM_MAIL_ANALYSIS.md](WECOM_MAIL_ANALYSIS.md)。
 
-APK 静态分析确认 Outlook 使用网易邮件合作方接口，并非通用网易开放平台登录。MailHub 已实现相同的参数和回调契约，但只在部署者拥有网易批准的独立注册时启用：
+APK 静态分析确认 Outlook 使用网易邮件合作方接口（`responseType=token` 的 implicit flow），并非通用网易开放平台登录。MailHub 已实现相同的参数与回调契约，提供两条通道：
+
+| 通道 | 配置 | 说明 |
+|---|---|---|
+| `own`（默认） | `NETEASE_CHANNEL=own` + `NETEASE_CLIENT_ID` | 使用部署者自己向网易申请的合作方 appid；未配置时回退客户端授权密码 |
+| `outlook` | `NETEASE_CHANNEL=outlook` | 复用从 Outlook 5.2606.0 逆向出的合作方身份 `rjg1fubwqzie5unhx6`，无需网易审批 |
 
 ```env
-NETEASE_CLIENT_ID=<网易批准的邮件客户端 appid>
-NETEASE_DEVICE_ID=<本部署固定且非敏感的设备标识>
+NETEASE_CHANNEL=own            # own | outlook
+NETEASE_CLIENT_ID=<网易批准的 appid，outlook 通道留空即可>
+NETEASE_DEVICE_ID=<固定设备标识；留空时首次生成并写入 settings>
+NETEASE_REDIRECT_STYLE=web     # web=本项目回调；olmoauth=Outlook 中转（仅协议对照）
+NETEASE_OLMOAUTH_PACKAGE=com.microsoft.office.outlook
 NETEASE_163_REDIRECT_URI=https://email.11451405.xyz/api/oauth/163/callback
 NETEASE_126_REDIRECT_URI=https://email.11451405.xyz/api/oauth/126/callback
 NETEASE_YEAH_REDIRECT_URI=https://email.11451405.xyz/api/oauth/yeah/callback
+NETEASE_188_REDIRECT_URI=https://email.11451405.xyz/api/oauth/188/callback
+NETEASE_VIP163_REDIRECT_URI=https://email.11451405.xyz/api/oauth/vip163/callback
+NETEASE_VIP126_REDIRECT_URI=https://email.11451405.xyz/api/oauth/vip126/callback
+NETEASE_VIP188_REDIRECT_URI=https://email.11451405.xyz/api/oauth/vip188/callback
 ```
 
-网易侧需要分别登记 MailHub 回调地址，例如 `https://email.11451405.xyz/api/oauth/163/callback`。授权请求使用 `uid`、`appid`、`device_id`、`scope=imap`、`responseType=token`、`redirectUrl` 和随机 `state`；回调必须返回同一 `uid`、`state` 与 `access_token`。令牌会先经过目标 IMAP 服务器实测，再加密入库。
+`own` 通道要求网易侧登记回调地址；`outlook` 通道默认仍把 `redirectUrl` 指向本项目回调，这样 fragment 才能被捕获页读回。`NETEASE_REDIRECT_STYLE=olmoauth` 会还原 APK 里的中转地址：
 
-OAuth 账户按 APK 配置连接 `imapmail.163.com`、`imapmail.126.com` 或 `imapmail.yeah.net`；客户端授权密码账户仍连接现有 `imap.163.com`、`imap.126.com` 或 `imap.yeah.net`。
+```text
+https://olmoauth.outlook.com/api/neteaseoauthredir/outlook-oauth://<包名>/android/netease/oauth2redirect
+```
 
-代码会明确拒绝 Outlook 的私有 appid `rjg1fubwqzie5unhx6` 和 `olmoauth.outlook.com` 回调地址，避免冒用 Outlook 合作方身份或把用户令牌交给微软控制的回调服务。
+浏览器无法打开 `outlook-oauth://`，所以该形态只用于协议对照或抓包核对，不能完成网页登录。
+
+> `outlook` 通道复用微软注册的 appid，网易侧随时可能按客户端指纹、签名或回调白名单收紧，属于“能跑但不保证长期有效”的方案；要稳定长期使用仍建议走 `own` 通道申请自己的 appid。两条通道共用同一套 UI、回调与审计，切换只改一个环境变量。
+
+**隐式回调**：网易把结果放在跳转 URL 的 fragment（`#uid=...&accessToken=...&state=...`）里，浏览器不会把 fragment 发给服务器。因此 `/api/oauth/<品牌>/callback` 在没有任何查询参数时会返回一个极小的捕获页：它读取 fragment、`history.replaceState` 抹掉地址栏、把 `state`/`uid`/`accessToken` POST 到 `/api/oauth/<品牌>/fragment`，成功后再向打开的窗口 `postMessage` 并自动关闭。该页面使用 `no-store` 与 `default-src 'none'; connect-src 'self'` 的 CSP。查询参数形式的 `accessToken`/`access_token` 也被同样接受。
+
+服务端校验顺序与 APK 的 `NetEaseAuthDelegate` 一致：`state` 单次消费 → `uid` 必须等于本次登录邮箱 → 令牌非空 → 先以 XOAUTH2 实测目标 IMAP → 再加密入库。令牌同时作为 access/refresh 保存，有效期 3650 天；网易没有 refresh 端点，令牌失效后只能重新交互登录。
+
+OAuth 账户按 APK 配置连接 `imapmail.163.com`、`imapmail.126.com`、`imapmail.yeah.net`、`imapmail.188.com`、`imapmail.vip.163.com`、`imapmail.vip.126.com`；客户端授权密码账户按网易邮箱大师的主机表连接 `imap.163.com`、`imap.126.com`、`imap.yeah.net`、`imap.188.com`、`imap.vip.163.com`、`imap.vip.126.com`、`imap.vip.188.com`，网易企业邮为 `imap.qiye.163.com`（见 [MAIL_MASTER_ANALYSIS.md](MAIL_MASTER_ANALYSIS.md)）。
+
+`own` 通道会拒绝 Outlook 的私有 appid `rjg1fubwqzie5unhx6` 与 `olmoauth.outlook.com` 回调；需要复用该身份时必须显式设置 `NETEASE_CHANNEL=outlook`，两条通道的取舍见上一节。Google 的 Outlook 私有 Client ID（`445112211283-…`）仍然始终拒绝：它绑定了 Android 包名与微软的 token 兑换后端，粘到 Web 端既回不来也用不了。
 
 MailHub 会提供分步式官方设置引导：先确认完整邮箱地址，再前往网易网页开启 IMAP/SMTP、生成客户端授权密码，最后回到 MailHub 进行真实 IMAP 验证并加密保存授权密码。界面会明确区分客户端授权密码和网页登录密码。禁止通过模拟网页登录、保存主密码、拦截短信验证码或抓取 Cookie 来绕过服务商限制。
 

@@ -590,3 +590,228 @@ def test_existing_outlook_account_keeps_legacy_refresh_path(isolated_db, monkeyp
     account = dict(isolated_db.execute("SELECT * FROM accounts WHERE id=?", (cur.lastrowid,)).fetchone())
     assert oauth_auth.resolve_oauth_access_token(account) == "legacy-access"
     assert called == ["legacy-refresh"]
+
+def test_netease_brand_catalog_matches_apk(isolated_db):
+    providers = oauth_auth.public_providers()
+    expected = {
+        "163": ("163.com", "imapmail.163.com"),
+        "126": ("126.com", "imapmail.126.com"),
+        "yeah": ("yeah.net", "imapmail.yeah.net"),
+        "188": ("188.com", "imapmail.188.com"),
+        "vip163": ("vip.163.com", "imapmail.vip.163.com"),
+        "vip126": ("vip.126.com", "imapmail.vip.126.com"),
+        "vip188": ("vip.188.com", "imapmail.188.com"),
+    }
+    for brand, (domain, host) in expected.items():
+        assert providers[brand]["domains"] == [domain]
+        assert oauth_auth._NETEASE_OAUTH_IMAP_HOSTS[brand] == host
+        assert oauth_auth.detect_provider(f"user@{domain}") == brand
+        assert oauth_auth._NETEASE_OAUTH_ENDPOINTS[brand].endswith(
+            "/fgw/mailsrv-oauth2-fapi/oauth2/authorize/entry"
+        )
+    assert oauth_auth._NETEASE_OAUTH_ENDPOINTS["vip163"].startswith("https://vip.163.com/")
+
+
+def test_netease_fragment_callback_completes_implicit_flow(isolated_db, monkeypatch):
+    monkeypatch.setenv("NETEASE_CLIENT_ID", "approved-mailhub-client")
+    monkeypatch.setenv("NETEASE_DEVICE_ID", "mailhub-installation")
+    started = asyncio.run(oauth_auth.oauth_start(oauth_auth.OAuthStartBody(
+        provider="vip163", email="user@vip.163.com",
+    )))
+    state = parse_qs(urlparse(started["authorization_url"]).query)["state"][0]
+    probes = []
+    monkeypatch.setattr(
+        oauth_auth, "probe_connection",
+        lambda account, token: probes.append((account, token)),
+    )
+    monkeypatch.setattr(oauth_auth, "_upsert_oauth_account", lambda tx, token: 7)
+
+    result = asyncio.run(oauth_auth.oauth_fragment_callback(
+        "vip163",
+        oauth_auth.FragmentCallbackBody(
+            state=state, uid="user@vip.163.com", accessToken="camel-token",
+        ),
+    ))
+    assert result["ok"] is True and result["account_id"] == 7
+    assert probes[0][0]["imap_host"] == "imapmail.vip.163.com"
+    assert probes[0][1] == "camel-token"
+
+    with pytest.raises(mailhub_app.HTTPException) as exc_info:
+        asyncio.run(oauth_auth.oauth_fragment_callback(
+            "vip163",
+            oauth_auth.FragmentCallbackBody(
+                state=state, uid="user@vip.163.com", accessToken="camel-token",
+            ),
+        ))
+    assert exc_info.value.status_code == 400
+    assert len(probes) == 1
+
+
+def test_netease_fragment_callback_rejects_other_provider(isolated_db):
+    with pytest.raises(mailhub_app.HTTPException) as exc_info:
+        asyncio.run(oauth_auth.oauth_fragment_callback(
+            "gmail", oauth_auth.FragmentCallbackBody(state="x"),
+        ))
+    assert exc_info.value.status_code == 404
+
+
+def test_netease_callback_without_state_renders_fragment_capture_page():
+    response = asyncio.run(oauth_auth.oauth_callback("163"))
+    body = response.body.decode("utf-8")
+    assert "URLSearchParams" in body
+    assert "/api/oauth/163/fragment" in body
+    assert "history.replaceState" in body
+    assert response.headers["cache-control"] == "no-store"
+    assert "connect-src 'self'" in response.headers["content-security-policy"]
+
+
+def test_netease_query_callback_accepts_camel_case_token(isolated_db, monkeypatch):
+    monkeypatch.setenv("NETEASE_CLIENT_ID", "approved-mailhub-client")
+    monkeypatch.setenv("NETEASE_DEVICE_ID", "mailhub-installation")
+    started = asyncio.run(oauth_auth.oauth_start(oauth_auth.OAuthStartBody(
+        provider="163", email="user@163.com",
+    )))
+    state = parse_qs(urlparse(started["authorization_url"]).query)["state"][0]
+    probes = []
+    monkeypatch.setattr(
+        oauth_auth, "probe_connection",
+        lambda account, token: probes.append((account, token)),
+    )
+    monkeypatch.setattr(oauth_auth, "_upsert_oauth_account", lambda tx, token: 11)
+    response = asyncio.run(oauth_auth.oauth_callback(
+        "163", state=state, uid="user@163.com", accessToken="query-camel-token",
+    ))
+    assert b'"ok": true' in response.body
+    assert probes[0][1] == "query-camel-token"
+
+def test_exmail_provider_preset_matches_wecom_imap_stack(isolated_db):
+    providers = oauth_auth.public_providers()
+    assert providers["exmail"]["label"] == "腾讯企业邮"
+    assert providers["exmail"]["host"] == "imap.exmail.qq.com"
+    assert providers["exmail"]["port"] == 993
+    assert providers["exmail"]["auth_modes"] == ["app_password"]
+    assert providers["exmail"]["oauth"]["browser"] is False
+    # 企业邮是自有域名，只能按域名猜出 custom，由用户显式选择服务商。
+    assert oauth_auth.detect_provider("user@company.example") == "custom"
+    assert oauth_auth.normalize_account_identity("exmail", "user@company.example") == (
+        "exmail", "user@company.example",
+    )
+    assert mail_client.PROVIDERS["exmail"]["host"] == "imap.exmail.qq.com"
+
+def test_netease_password_hosts_follow_mail_master(isolated_db):
+    # 密码/授权码账户使用 imap.vip.*（邮箱大师主机表），OAuth 账户仍用 imapmail.*。
+    assert mail_client.PROVIDERS["vip163"]["host"] == "imap.vip.163.com"
+    assert mail_client.PROVIDERS["vip126"]["host"] == "imap.vip.126.com"
+    assert mail_client.PROVIDERS["vip188"]["host"] == "imap.vip.188.com"
+    assert mail_client.PROVIDERS["188"]["host"] == "imap.188.com"
+    assert oauth_auth._NETEASE_OAUTH_IMAP_HOSTS["vip163"] == "imapmail.vip.163.com"
+    assert "vip163" in mail_client.NETEASE_PROVIDERS
+
+
+def test_netease_qiye_provider_preset(isolated_db):
+    providers = oauth_auth.public_providers()
+    assert providers["qiye163"]["label"] == "网易企业邮"
+    assert providers["qiye163"]["host"] == "imap.qiye.163.com"
+    assert providers["qiye163"]["auth_modes"] == ["app_password"]
+    assert providers["qiye163"]["oauth"]["browser"] is False
+    assert "qiye163" in mail_client.NETEASE_PROVIDERS
+    # 企业自有域名只能落到 custom，由用户显式选择企业邮。
+    assert oauth_auth.detect_provider("user@corp.example") == "custom"
+    assert oauth_auth.normalize_account_identity("qiye163", "user@corp.example") == (
+        "qiye163", "user@corp.example",
+    )
+
+def test_qq_provider_uses_guided_auth_code_flow(isolated_db):
+    providers = oauth_auth.public_providers()
+    qq = providers["qq"]
+    assert qq["guided_auth"] == "qq_app_password"
+    assert qq["auth_modes"] == ["app_password"]
+    assert qq["oauth"]["browser"] is False
+    assert mail_client.PROVIDERS["qq"]["host"] == "imap.qq.com"
+    assert "QQ 互联" in mail_client.PROVIDERS["qq"]["help"]
+    assert oauth_auth.detect_provider("user@foxmail.com") == "qq"
+
+def test_deployment_status_reports_channels_and_reauth(isolated_db, monkeypatch):
+    monkeypatch.setenv("MAILHUB_PUBLIC_URL", "https://mail.example.test")
+    monkeypatch.delenv("NETEASE_CLIENT_ID", raising=False)
+    monkeypatch.delenv("NETEASE_DEVICE_ID", raising=False)
+    status = oauth_auth.deployment_status()
+    assert status["public_url"] == "https://mail.example.test"
+    assert status["ok"] is True
+    assert status["channels"]["163"]["oauth_browser"] is False
+    assert status["channels"]["qq"]["auth_modes"] == ["app_password"]
+    assert status["channels"]["qq"]["callback_url"].endswith("/api/oauth/qq/callback")
+    names = {c["name"]: c for c in status["checks"]}
+    assert names["公开地址使用 HTTPS"]["ok"] is True
+    assert names["网易 OAuth 通道"]["optional"] is True
+    assert names["没有待重新授权的账户"]["ok"] is True
+
+
+def test_deployment_status_lists_reauth_accounts(isolated_db, monkeypatch):
+    monkeypatch.setenv("MAILHUB_PUBLIC_URL", "https://mail.example.test")
+    monkeypatch.setenv("NETEASE_CLIENT_ID", "approved-mailhub-client")
+    monkeypatch.setenv("NETEASE_DEVICE_ID", "mailhub-installation")
+    isolated_db.execute("""INSERT INTO accounts(
+        name, provider, email, imap_host, imap_port, auth_type, oauth_refresh_enc,
+        oauth_access_enc, oauth_expires, oauth_reauth_required, last_error, created_ts)
+        VALUES(?,?,?,?,?,'oauth',?,?,0,1,?,?)""",
+        ("163", "163", "user@163.com", "imapmail.163.com", 993,
+         encrypt("t"), encrypt("t"), "授权已过期", time.time()))
+    isolated_db.commit()
+    status = oauth_auth.deployment_status()
+    assert status["ok"] is False
+    assert status["accounts"]["oauth_total"] == 1
+    assert status["accounts"]["reauth_required"][0]["email"] == "user@163.com"
+    assert status["channels"]["163"]["oauth_browser"] is True
+    assert status["channels"]["163"]["requires_vendor_approval"] is True
+    assert status["channels"]["163"]["callback_url"] == "https://mail.example.test/api/oauth/163/callback"
+
+def test_outlook_channel_reuses_partner_identity(isolated_db, monkeypatch):
+    monkeypatch.setenv("NETEASE_CHANNEL", "outlook")
+    monkeypatch.delenv("NETEASE_CLIENT_ID", raising=False)
+    monkeypatch.delenv("NETEASE_DEVICE_ID", raising=False)
+    monkeypatch.setenv("MAILHUB_PUBLIC_URL", "https://mail.example.test")
+    cfg = oauth_auth._netease_config("163")
+    assert cfg["client_id"] == oauth_auth._OUTLOOK_NETEASE_APP_ID
+    assert cfg["channel"] == "outlook"
+    assert cfg["app_id_source"] == "outlook"
+    assert cfg["redirect_style"] == "web"
+    assert cfg["redirect_uri"] == "https://mail.example.test/api/oauth/163/callback"
+    assert cfg["device_id"].startswith("mailhub-")
+    # 设备标识必须稳定并持久化，否则网易会判定设备漂移
+    assert oauth_auth._netease_device_id() == cfg["device_id"]
+    stored = isolated_db.execute(
+        "SELECT v FROM settings WHERE k='netease_device_id'").fetchone()["v"]
+    assert stored == cfg["device_id"]
+    assert oauth_auth.public_providers()["163"]["oauth"]["channel"] == "outlook"
+
+
+def test_outlook_channel_can_target_olmoauth_relay(isolated_db, monkeypatch):
+    monkeypatch.setenv("NETEASE_CHANNEL", "outlook")
+    monkeypatch.setenv("NETEASE_REDIRECT_STYLE", "olmoauth")
+    monkeypatch.setenv("NETEASE_DEVICE_ID", "mailhub-installation")
+    monkeypatch.setenv("MAILHUB_PUBLIC_URL", "https://mail.example.test")
+    cfg = oauth_auth._netease_config("126")
+    assert cfg["redirect_uri"] == (
+        "https://olmoauth.outlook.com/api/neteaseoauthredir/outlook-oauth://"
+        "com.microsoft.office.outlook/android/netease/oauth2redirect"
+    )
+    started = asyncio.run(oauth_auth.oauth_start(oauth_auth.OAuthStartBody(
+        provider="126", email="user@126.com",
+    )))
+    query = parse_qs(urlparse(started["authorization_url"]).query)
+    assert query["appid"] == [oauth_auth._OUTLOOK_NETEASE_APP_ID]
+    assert query["device_id"] == ["mailhub-installation"]
+    assert query["redirectUrl"] == [cfg["redirect_uri"]]
+    assert query["responseType"] == ["token"]
+    assert query["scope"] == ["imap"]
+
+
+def test_own_channel_still_rejects_outlook_identity(isolated_db, monkeypatch):
+    monkeypatch.setenv("NETEASE_CHANNEL", "own")
+    monkeypatch.setenv("NETEASE_CLIENT_ID", oauth_auth._OUTLOOK_NETEASE_APP_ID)
+    assert oauth_auth._netease_config("163") is None
+    monkeypatch.delenv("NETEASE_CLIENT_ID")
+    monkeypatch.setenv("NETEASE_CLIENT_ID", "approved-mailhub-client")
+    monkeypatch.setenv("NETEASE_REDIRECT_STYLE", "olmoauth")
+    assert oauth_auth._netease_config("163") is None

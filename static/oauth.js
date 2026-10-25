@@ -137,12 +137,14 @@
     customFields.hidden = key !== 'custom';
 
     const actions = createNode('div', {className: 'mh-auth-actions'});
-    if (provider.guided_auth === 'netease_app_password' && !useOAuth) {
-      renderNeteaseGuide(authBox, help, secretField, customFields, actions, provider);
+    if (GUIDED_AUTH[provider.guided_auth] && !useOAuth) {
+      renderGuidedPassword(authBox, help, secretField, customFields, actions, provider);
       return;
     }
     if (useOAuth) {
-      const brand = key === 'gmail' ? 'Google' : (['163', '126', 'yeah'].includes(key) ? '网易' : 'Microsoft');
+      const brand = key === 'gmail'
+        ? 'Google'
+        : (provider.guided_auth === 'netease_app_password' ? '网易' : 'Microsoft');
       const login = createNode('button', {
         className: 'mh-auth-btn primary', type: 'button', text: `使用 ${brand} 登录`,
       });
@@ -152,6 +154,12 @@
         else startDeviceOAuth();
       });
       actions.append(login);
+      if (provider.oauth?.channel === 'outlook') {
+        actions.append(createNode('div', {
+          className: 'mh-auth-muted',
+          text: '当前使用 Outlook 合作方通道登录网易邮箱；如遇网易校验变化，可改用客户端授权密码。',
+        }));
+      }
     } else {
       const save = createNode('button', {
         className: 'mh-auth-btn primary', type: 'button', text: '验证并添加',
@@ -185,28 +193,52 @@
     authBox.replaceChildren(help, secretField, customFields, actions);
   }
 
-  function renderNeteaseGuide(authBox, help, secretField, customFields, actions, provider) {
+  const GUIDED_AUTH = {
+    netease_app_password: {
+      button: '前往网易官方设置',
+      note: 'MailHub 不会读取或保存你的网易网页登录密码。当前部署未配置网易合作方 OAuth 应用，因此这里使用网易开放的客户端授权密码通道。',
+      steps: [
+        '我已在官方邮箱设置中开启 IMAP/SMTP 服务',
+        '我已生成客户端授权密码（不是网页登录密码）',
+      ],
+      placeholder: '完成上方步骤后填写授权密码',
+    },
+    qq_app_password: {
+      button: '前往 QQ 邮箱设置',
+      note: 'MailHub 不会读取或保存你的 QQ 登录密码，授权码可以随时在网页版停用。QQ 邮箱的 IMAP 只接受「授权码」，QQ 密码和 QQ 互联 OAuth 都不能用于 IMAP。',
+      steps: [
+        '我已在 QQ 邮箱网页版 → 设置 → 账号 开启 IMAP/SMTP 服务',
+        '我已生成「授权码」并确认它不是 QQ 登录密码',
+      ],
+      placeholder: '完成上方步骤后填写 16 位授权码',
+    },
+  };
+
+  function renderGuidedPassword(authBox, help, secretField, customFields, actions, provider) {
+    const config = GUIDED_AUTH[provider.guided_auth];
     const officialLogin = createNode('a', {
       className: 'mh-auth-btn primary', href: provider.setup_url,
-      target: '_blank', rel: 'noopener', text: '前往网易官方设置',
+      target: '_blank', rel: 'noopener', text: config.button,
     });
     actions.append(officialLogin);
 
-    const checks = [
-      '我已在官方邮箱设置中开启 IMAP/SMTP 服务',
-      '我已生成客户端授权密码（不是网页登录密码）',
-    ].map((text, index) => {
-      const checkbox = createNode('input', {type: 'checkbox', id: `mh-netease-step-${index}`});
-      return {checkbox, node: createNode('label', {className: 'mh-auth-step', for: checkbox.id}, [checkbox, text])};
+    const checks = config.steps.map((text, index) => {
+      const checkbox = createNode('input', {
+        type: 'checkbox', id: `mh-guided-step-${provider.guided_auth}-${index}`,
+      });
+      return {
+        checkbox,
+        node: createNode('label', {className: 'mh-auth-step', for: checkbox.id}, [checkbox, text]),
+      };
     });
     const guide = createNode('div', {className: 'mh-auth-guide'}, [
-      createNode('div', {className: 'mh-auth-privacy', text: 'MailHub 不会读取或保存你的网易网页登录密码。网易目前未向普通第三方 IMAP 客户端开放 OAuth Token 登录。'}),
+      createNode('div', {className: 'mh-auth-privacy', text: config.note}),
       ...checks.map(item => item.node),
     ]);
 
     const secretInput = secretField.querySelector('#mh-secret');
     secretInput.disabled = true;
-    secretInput.placeholder = '完成上方步骤后填写授权密码';
+    secretInput.placeholder = config.placeholder;
     const save = createNode('button', {
       className: 'mh-auth-btn primary', type: 'button', text: '验证授权并添加', disabled: 'disabled',
     });

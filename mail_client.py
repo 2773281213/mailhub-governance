@@ -13,8 +13,12 @@ import httpx
 # imaplib 默认不认识 ID 命令（RFC 2971），163 不发 ID 会拒绝收信（Unsafe Login）
 imaplib.Commands["ID"] = ("NONAUTH", "AUTH", "SELECTED")
 
-# 网易邮箱客户端需要在认证后发送 RFC 2971 ID；三个品牌使用各自的服务器。
-NETEASE_PROVIDERS = frozenset({"163", "126", "yeah"})
+# 网易邮箱客户端需要在认证后发送 RFC 2971 ID；各品牌使用各自的服务器。
+# Outlook Android 5.2606.0 的 authspecificconfigs/NetEase.kt 里共有七个域名，
+# 这里保持同一份品牌清单，避免网页登录拿到的账户被识别成 custom。
+NETEASE_PROVIDERS = frozenset(
+    {"163", "126", "yeah", "188", "vip163", "vip126", "vip188", "qiye163"}
+)
 IMAP_ID_PAYLOAD = (
     '("name" "MailHub" "version" "1.1" "vendor" "MailHub" '
     '"support-email" "support@11451405.xyz")'
@@ -30,7 +34,14 @@ PROVIDERS = {
     "qq": {
         "label": "QQ 邮箱",
         "host": "imap.qq.com", "port": 993, "auth": "password", "need_id": False,
-        "help": "网页版 QQ 邮箱 → 设置 → 账号 → 开启 IMAP/SMTP 服务，生成「授权码」，此处填授权码而非 QQ 密码",
+        "help": "网页版 QQ 邮箱 → 设置 → 账号 → 开启 IMAP/SMTP 服务，生成 16 位「授权码」，"
+                "此处填授权码而非 QQ 密码；QQ 互联的 OAuth token 没有 IMAP 权限",
+    },
+    "exmail": {
+        "label": "腾讯企业邮",
+        "host": "imap.exmail.qq.com", "port": 993, "auth": "password", "need_id": False,
+        "help": "企业邮网页版 → 设置 → 客户端专用密码；登录名用完整邮箱地址，密码用专用密码。"
+                "主机来自企业微信邮件模块的 IMAP 配置，企业自有域名无法自动识别，需要手动选择本项",
     },
     "163": {
         "label": "网易 163",
@@ -46,6 +57,32 @@ PROVIDERS = {
         "label": "网易 yeah.net",
         "host": "imap.yeah.net", "port": 993, "auth": "password", "need_id": True,
         "help": "网页版 yeah.net 邮箱 → 设置 → POP3/SMTP/IMAP → 开启 IMAP/SMTP；登录时使用完整邮箱地址和客户端授权密码",
+    },
+    "188": {
+        "label": "网易 188",
+        "host": "imap.188.com", "port": 993, "auth": "password", "need_id": True,
+        "help": "网页版 188 邮箱 → 设置 → POP3/SMTP/IMAP → 开启 IMAP/SMTP；登录时使用完整邮箱地址和客户端授权密码",
+    },
+    "qiye163": {
+        "label": "网易企业邮",
+        "host": "imap.qiye.163.com", "port": 993, "auth": "password", "need_id": True,
+        "help": "网易企业邮（qiye.163.com）→ 管理后台开启 IMAP/SMTP 并生成客户端授权密码；"
+                "企业自有域名无法自动识别，需要手动选择本项",
+    },
+    "vip163": {
+        "label": "网易 VIP 163",
+        "host": "imap.vip.163.com", "port": 993, "auth": "password", "need_id": True,
+        "help": "VIP 163 邮箱 → 设置 → POP3/SMTP/IMAP → 开启 IMAP/SMTP；登录时使用完整邮箱地址和客户端授权密码",
+    },
+    "vip126": {
+        "label": "网易 VIP 126",
+        "host": "imap.vip.126.com", "port": 993, "auth": "password", "need_id": True,
+        "help": "VIP 126 邮箱 → 设置 → POP3/SMTP/IMAP → 开启 IMAP/SMTP；登录时使用完整邮箱地址和客户端授权密码",
+    },
+    "vip188": {
+        "label": "网易 VIP 188",
+        "host": "imap.vip.188.com", "port": 993, "auth": "password", "need_id": True,
+        "help": "VIP 188 邮箱 → 设置 → POP3/SMTP/IMAP → 开启 IMAP/SMTP；登录时使用完整邮箱地址和客户端授权密码",
     },
     "gmail": {
         "label": "Gmail",
