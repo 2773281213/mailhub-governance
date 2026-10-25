@@ -38,28 +38,35 @@ MailHub Governance 是一个本地优先的多邮箱聚合与自动治理服务�
 
 ## 账户接入
 
-| 服务商 | 自动识别域名 | 认证方式 | 默认 IMAP |
-|---|---|---|---|
-| QQ | `qq.com`, `foxmail.com` | 客户端授权码 | `imap.qq.com:993` |
-| 腾讯企业邮 | 企业自有域名 | 客户端专用密码 | `imap.exmail.qq.com:993` |
-| 网易 163 | `163.com` | 客户端授权密码 | `imap.163.com:993` |
-| 网易 126 | `126.com` | 客户端授权密码 | `imap.126.com:993` |
-| 网易 yeah.net | `yeah.net` | 客户端授权密码 | `imap.yeah.net:993` |
-| 网易 188 | `188.com` | 客户端授权密码 | `imapmail.188.com:993` |
-| 网易 VIP 163/126/188 | `vip.163.com`, `vip.126.com`, `vip.188.com` | 客户端授权密码 | `imap.vip.<品牌>:993` |
-| 网易企业邮 | 企业自有域名 | 客户端授权密码 | `imap.qiye.163.com:993` |
-| Gmail | `gmail.com`, `googlemail.com` | OAuth 或应用专用密码 | `imap.gmail.com:993` |
-| Outlook | `outlook.com`, `hotmail.com`, `live.com`, `msn.com` | 浏览器 OAuth 或设备码 | `outlook.office365.com:993` |
-| 自定义 | 其他域名 | 服务商允许的密码/应用密码 | 手工填写 |
+所有服务商的域名、IMAP 主机和认证方式只在 `providers.py` 里定义一次，前端添加账户的界面按它渲染。认证方式只有四种：
 
-网易邮箱登录名必须是完整邮箱地址，凭据必须是客户端授权密码而不是网页登录密码。相关配置说明见 [OAUTH_SETUP.md](OAUTH_SETUP.md)。
+| 方式 | 说明 | 何时可用 |
+|---|---|---|
+| 浏览器 OAuth（`oauth_browser`） | 弹窗打开服务商登录页，授权后自动添加 | 部署者配置了该服务商的自有 OAuth 客户端 |
+| 设备码（`oauth_device`） | 在 Microsoft 登录页输入设备码 | 配置了 `MICROSOFT_CLIENT_ID` |
+| 授权码（`app_password`） | 服务商生成的授权码 / 应用专用密码 / 客户端专用密码 | 始终可用（Outlook 除外） |
+| 密码（`password`） | 自定义 IMAP 的普通密码 | 仅自定义邮箱 |
+
+| 服务商 | 自动识别域名 | 可用方式（按推荐顺序） | IMAP 主机 |
+|---|---|---|---|
+| QQ | `qq.com`, `foxmail.com` | 授权码 | `imap.qq.com:993` |
+| 网易 163 / 126 / yeah.net / 188 | `163.com`, `126.com`, `yeah.net`, `188.com` | 浏览器 OAuth（需网易批准的 appid）、授权码 | 授权码 `imap.<品牌>`；OAuth `imapmail.<品牌>` |
+| 网易 VIP 163 / 126 / 188 | `vip.163.com`, `vip.126.com`, `vip.188.com` | 浏览器 OAuth（同上）、授权码 | 授权码 `imap.vip.<品牌>`；OAuth `imapmail.vip.<品牌>`（VIP 188 为 `imapmail.188.com`） |
+| 腾讯企业邮 | 企业自有域名，需手动选择 | 授权码（客户端专用密码） | `imap.exmail.qq.com:993` |
+| 网易企业邮 | 企业自有域名，需手动选择 | 授权码（客户端授权密码） | `imap.qiye.163.com:993` |
+| Gmail | `gmail.com`, `googlemail.com` | 浏览器 OAuth（需 Google 客户端）、应用专用密码 | `imap.gmail.com:993` |
+| Outlook / Hotmail | `outlook.com`, `hotmail.com`, `live.com`, `msn.com` | 浏览器 OAuth、设备码（需 Microsoft 客户端） | `outlook.office365.com:993` |
+| 自定义 | 其他域名 | 密码 | 手工填写 |
+
+网易邮箱登录名必须是完整邮箱地址，凭据必须是客户端授权密码而不是网页登录密码。同一个邮箱不能重复添加，需要更换凭据或重新授权时在账户卡片上「编辑」或「重新授权」。OAuth 客户端的配置见 [OAUTH_SETUP.md](OAUTH_SETUP.md)。
 
 ## 项目结构
 
 ```text
 app.py             FastAPI 路由、账户和消息操作
+providers.py       服务商注册表：域名、IMAP 主机、认证方式
 mail_client.py     IMAP 会话、网易 ID、邮件解析
-oauth_auth.py      OAuth、设备码和账户探测
+oauth_auth.py      OAuth、设备码、可用认证方式和账户探测
 sync.py            多账户同步与凭据解析
 governance.py      三省六部治理编排和审计
 rules.py           本地分类规则
