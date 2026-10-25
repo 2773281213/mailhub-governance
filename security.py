@@ -111,13 +111,14 @@ def rotate_encrypted_values(conn) -> dict:
         return None
 
     for table, columns in ENCRYPTED_COLUMNS.items():
-        rows = conn.execute(f"SELECT rowid, {', '.join(columns)} FROM {table}").fetchall()
+        # 显式起别名：表有 INTEGER PRIMARY KEY 时，SQLite 会把 rowid 列名报告为主键名
+        rows = conn.execute(f"SELECT rowid AS _rid, {', '.join(columns)} FROM {table}").fetchall()
         for row in rows:
             for column in columns:
                 new_value = handle(row[column])
                 if new_value is not None:
                     conn.execute(f"UPDATE {table} SET {column}=? WHERE rowid=?",
-                                 (new_value, row["rowid"]))
+                                 (new_value, row["_rid"]))
     for row in conn.execute("SELECT k, v FROM settings WHERE k LIKE '%\\_enc' ESCAPE '\\'").fetchall():
         new_value = handle(row["v"])
         if new_value is not None:
