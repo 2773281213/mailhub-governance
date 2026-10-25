@@ -664,3 +664,138 @@ def test_delete_raises_when_store_fails():
     with pytest.raises(RuntimeError, match="read-only"):
         _session(conn, {"UIDPLUS"}).delete([3])
     assert ("EXPUNGE-ALL",) not in conn.calls
+
+
+# ---------------- 同步水位与 UIDVALIDITY ----------------
+
+@pytest.mark.parametrize("last_uid, requested, failed, expected", [
+    (0, [], set(), 0),
+    (10, [11, 12, 13], set(), 13),
+    (10, [11, 12, 13], {12}, 11),
+    (10, [11, 12, 13], {11}, 10),
+    (10, [13, 11, 12], {13}, 12),     # 顺序无关
+    (0, [5, 9], {7}, 9),              # 不在本轮请求里的失败不影响
+])
+def test_advance_watermark(last_uid, requested, failed, expected):
+    assert sync._advance_watermark(last_uid, requested, failed) == expected
+
+
+def _raw_mail(msg_id: str, subject: str) -> bytes:
+    return (f"Message-ID: {msg_id}\r\nFrom: sender@example.com\r\n"
+            f"Subject: {subject}\r\n\r\nhello\r\n").encode()
+
+
+class FakeSyncSession:
+    def __init__(self, uidvalidity, mailbox, failed=()):
+        self.uidvalidity = uidvalidity
+        self.mailbox = mailbox            # {uid: raw bytes}
+        self.failed = set(failed)
+        self.searched_from = None
+
+    def select_inbox(self):
+        return self.uidvalidity
+
+    def search_uids(self, last_uid):
+        self.searched_from = last_uid
+        return sorted(u for u in self.mailbox if u > last_uid)
+
+    def fetch_messages(self, uids):
+        out = []
+        for uid in uids:
+            if uid in self.failed:
+                continue
+            parsed = mail_client.parse_message(self.mailbox[uid])
+            parsed["uid"], parsed["unread"] = uid, 1
+            out.append(parsed)
+        return out, {u for u in uids if u in self.failed}
+
+    def close(self):
+        pass
+
+
+def _run_sync(monkeypatch, acc, session):
+    monkeypatch.setattr(mail_client, "open_session", lambda _acc, _secret: session)
+    monkeypatch.setattr(sync, "resolve_secret", lambda _acc: "secret")
+    return sync.sync_account(acc)
+
+
+def test_uidvalidity_reset_keeps_new_mail_and_rebinds_old_rows(fresh_db, monkeypatch):
+    acc = _mk_account(fresh_db)
+    fresh_db.execute("UPDATE accounts SET uidvalidity=100, last_uid=3 WHERE id=?", (acc,))
+    old_a = _insert_msg(fresh_db, acc, 1, msg_id="<a@x>", category="通知")
+    old_b = _insert_msg(fresh_db, acc, 2, msg_id="<b@x>", category="账单", deleted_ts=55.0)
+    old_c = _insert_msg(fresh_db, acc, 3, msg_id="<c@x>", category="通知")
+
+    # 邮箱重建：<b> 变成 UID 1，新邮件占用 UID 2（旧库里 UID 2 属于 <b>）
+    session = FakeSyncSession(200, {1: _raw_mail("<b@x>", "bill"),
+                                    2: _raw_mail("<new@x>", "brand new")})
+    assert _run_sync(monkeypatch, acc, session) == 1
+    assert session.searched_from == 0
+
+    rows = {r["id"]: dict(r) for r in fresh_db.execute(
+        "SELECT id, uid, msg_id, subject, category, deleted_ts FROM messages WHERE account_id=?",
+        (acc,)).fetchall()}
+    assert rows[old_b]["uid"] == 1
+    assert rows[old_b]["category"] == "账单" and rows[old_b]["deleted_ts"] == 55.0
+    assert rows[old_a]["uid"] < 0 and rows[old_c]["uid"] < 0
+    new_rows = [r for r in rows.values() if r["msg_id"] == "<new@x>"]
+    assert len(new_rows) == 1 and new_rows[0]["uid"] == 2
+
+    account = fresh_db.execute("SELECT last_uid, uidvalidity FROM accounts WHERE id=?",
+                               (acc,)).fetchone()
+    assert account["last_uid"] == 2 and account["uidvalidity"] == 200
+
+
+def test_failed_fetch_does_not_advance_watermark(fresh_db, monkeypatch):
+    acc = _mk_account(fresh_db)
+    fresh_db.execute("UPDATE accounts SET uidvalidity=7, last_uid=4 WHERE id=?", (acc,))
+    fresh_db.commit()
+    mailbox = {u: _raw_mail(f"<m{u}@x>", f"mail {u}") for u in (5, 6, 7)}
+
+    assert _run_sync(monkeypatch, acc, FakeSyncSession(7, mailbox, failed={6})) == 2
+    account = fresh_db.execute("SELECT last_uid, last_error FROM accounts WHERE id=?",
+                               (acc,)).fetchone()
+    assert account["last_uid"] == 5
+    assert "下次同步重试" in account["last_error"]
+
+    # 下一轮从水位之后重拉：6 补进来，7 已存在被幂等跳过
+    assert _run_sync(monkeypatch, acc, FakeSyncSession(7, mailbox)) == 1
+    account = fresh_db.execute("SELECT last_uid, last_error FROM accounts WHERE id=?",
+                               (acc,)).fetchone()
+    assert account["last_uid"] == 7 and account["last_error"] == ""
+    count = fresh_db.execute("SELECT COUNT(*) c FROM messages WHERE account_id=?",
+                             (acc,)).fetchone()["c"]
+    assert count == 3
+
+
+class FakeFetchConn:
+    def __init__(self, responses):
+        self.responses = list(responses)
+
+    def uid(self, command, *args):
+        return self.responses.pop(0)
+
+
+def test_fetch_messages_reports_failed_batches():
+    session = object.__new__(mail_client.ImapSession)
+    session.conn = FakeFetchConn([("NO", [b"server busy"])])
+
+    messages, failed = session.fetch_messages([1, 2, 3])
+
+    assert messages == [] and failed == {1, 2, 3}
+
+
+def test_fetch_messages_keeps_unparsable_mail(monkeypatch):
+    def broken(_raw):
+        raise ValueError("bad mime")
+
+    monkeypatch.setattr(mail_client, "parse_message", broken)
+    session = object.__new__(mail_client.ImapSession)
+    session.conn = FakeFetchConn([("OK", [(b"1 (UID 8 FLAGS (\\Seen) BODY[] {3}", b"???"), b")"])])
+
+    messages, failed = session.fetch_messages([8])
+
+    assert failed == set()
+    assert len(messages) == 1
+    assert messages[0]["uid"] == 8 and messages[0]["unread"] == 0
+    assert "无法解析" in messages[0]["subject"]

@@ -243,6 +243,25 @@ def parse_message(raw_bytes: bytes) -> dict:
     }
 
 
+def unparsable_message() -> dict:
+    """解析失败时的占位记录：邮件仍然入库，用户能看到并到网页邮箱查看原文。"""
+    return {
+        "msg_id": "",
+        "subject": "（无法解析的邮件）",
+        "sender_name": "",
+        "sender_addr": "",
+        "to_addr": "",
+        "reply_to": "",
+        "attach_names": [],
+        "date_ts": time.time(),
+        "snippet": "MailHub 无法解析这封邮件，请在邮箱网页版查看原文。",
+        "body_text": "MailHub 无法解析这封邮件，请在邮箱网页版查看原文。",
+        "body_html": "",
+        "has_attach": 0,
+        "unsubscribe": 0,
+    }
+
+
 # ---------- IMAP 会话 ----------
 
 def _uid_chunks(uids: list[int], size: int = 100):
@@ -310,16 +329,27 @@ class ImapSession:
             uids = uids[-first_limit:]
         return uids
 
-    def fetch_messages(self, uids: list[int]) -> list[dict]:
-        """按 UID 批量抓取完整邮件（BODY.PEEK 不改变已读状态），返回解析后的 dict 列表"""
-        out = []
+    def fetch_messages(self, uids: list[int]) -> tuple[list[dict], set[int]]:
+        """按 UID 批量抓取完整邮件（BODY.PEEK 不改变已读状态）。
+
+        返回 (解析后的邮件, 抓取失败的 UID)。调用方只能把同步水位推进到第一个
+        失败 UID 之前，下一轮会重试。批次成功但缺少某个 UID 时，视为该邮件
+        已被服务器删除，不算失败。无法解析的邮件生成占位记录，而不是静默丢弃。
+        """
+        out: list[dict] = []
+        failed: set[int] = set()
         for i in range(0, len(uids), 20):
             batch = uids[i:i + 20]
             uidset = ",".join(str(u) for u in batch)
-            typ, data = self.conn.uid("fetch", uidset, "(UID FLAGS BODY.PEEK[])")
-            if typ != "OK" or not data:
+            try:
+                typ, data = self.conn.uid("fetch", uidset, "(UID FLAGS BODY.PEEK[])")
+            except Exception:
+                failed.update(batch)
                 continue
-            for item in data:
+            if typ != "OK":
+                failed.update(batch)
+                continue
+            for item in data or []:
                 if not isinstance(item, tuple) or len(item) < 2:
                     continue
                 head = item[0].decode(errors="replace") if isinstance(item[0], bytes) else str(item[0])
@@ -333,11 +363,11 @@ class ImapSession:
                 try:
                     parsed = parse_message(item[1])
                 except Exception:
-                    continue
+                    parsed = unparsable_message()
                 parsed["uid"] = int(m_uid.group(1))
                 parsed["unread"] = 0 if "\\Seen" in flags else 1
                 out.append(parsed)
-        return out
+        return out, failed
 
     def store_flags(self, uids: list[int], flag: str, add: bool = True):
         if not uids:
