@@ -970,7 +970,7 @@ def _save_oauth_settings(body: SettingsBody, *, prefix: str, provider: str, labe
 
 
 @app.put("/api/settings")
-async def put_settings(body: SettingsBody, response: Response = None):  # type: ignore[assignment]
+async def put_settings(body: SettingsBody):
     # 先校验密码，避免密码错误时其他设置已被部分保存
     if body.new_password is not None:
         if not verify_password(body.old_password or "", get_setting("admin_hash")):
@@ -984,8 +984,7 @@ async def put_settings(body: SettingsBody, response: Response = None):  # type: 
         _remove_initial_password_file()
         # 改密码让所有旧会话失效，当前设备换发新会话继续使用
         count = sessions.revoke_all_sessions()
-        if response is not None:
-            _set_session_cookie(response, sessions.create_session())
+        new_session = sessions.create_session()
         audit("change_password", actor="user", tier="A",
               reason=f"修改管理密码，吊销 {count} 个会话")
     if body.ai_enabled is not None:
@@ -1016,6 +1015,11 @@ async def put_settings(body: SettingsBody, response: Response = None):  # type: 
         set_setting("notify_otp", "1" if body.notify_otp else "0")
     if body.body_keep_days is not None:
         set_setting("body_keep_days", str(max(0, body.body_keep_days)))
+    if body.new_password is not None:
+        # 当前设备换发新会话继续使用；其他设备的会话已在上面全部吊销
+        response = JSONResponse({"ok": True})
+        _set_session_cookie(response, new_session)
+        return response
     return {"ok": True}
 
 
