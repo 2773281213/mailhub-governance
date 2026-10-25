@@ -26,6 +26,13 @@ VERSION = "mailhub-three-six-v1"
 MINISTRIES = ("吏部", "户部", "礼部", "兵部", "刑部", "工部")
 AI_BATCH_SIZE = 24
 RUN_STALE_SECONDS = 15 * 60
+# 每次从数据库读入并处理的邮件数；正文只读前 BODY_SCAN_CHARS 个字符做注入扫描
+CHUNK_SIZE = 200
+BODY_SCAN_CHARS = 20000
+# AI 临时失败（网络、超时、漏答）后的重试：5 分钟起指数退避，最长 6 小时，最多 5 次
+MAX_AI_RETRIES = 5
+AI_RETRY_BASE_SECONDS = 300
+AI_RETRY_MAX_SECONDS = 6 * 3600
 
 _RUN_LOCK = threading.Lock()
 _RISK_RANK = {"none": 0, "low": 1, "medium": 2, "high": 3}
@@ -134,6 +141,7 @@ def menxia_arbitrate(proposal: dict) -> dict:
     category = baseline
     source = "rules"
     fallback = False
+    retry = False
     confidence = float(message.get("confidence") or (0.9 if baseline != "其他" else 0.55))
     importance = int(message.get("importance") or _default_importance(baseline))
     summary = str(message.get("summary") or "")[:120]
@@ -156,8 +164,12 @@ def menxia_arbitrate(proposal: dict) -> dict:
         elif not result or result.get("needs_review"):
             fallback = True
             source = "fallback"
+            # 网络失败、超时、漏答属于临时问题，稍后自动重试；注入、越界等不重试
+            retry = bool(result and result.get("transient"))
             detail = str((result or {}).get("reason") or "AI 未返回有效判定")[:120]
             reason = f"门下省自动驳回不可信 AI 结果：{detail}"
+            if retry:
+                reason += "（稍后自动重试）"
         else:
             try:
                 ai_confidence = max(0.0, min(1.0, float(result.get("confidence", 0))))
@@ -190,6 +202,7 @@ def menxia_arbitrate(proposal: dict) -> dict:
         "action": "label_only",
         "source": source,
         "fallback": fallback,
+        "retry": retry,
         "confidence": max(0.0, min(1.0, confidence)),
         "importance": max(1, min(5, importance)),
         "summary": summary,
@@ -198,20 +211,33 @@ def menxia_arbitrate(proposal: dict) -> dict:
     }
 
 
+def _next_retry(message: dict, verdict: dict, ts: float) -> tuple[int, float]:
+    """返回 (ai_retry_count, ai_retry_ts)。ai_retry_ts=0 表示不再重试。"""
+    if not verdict.get("retry"):
+        return 0, 0.0
+    count = int(message.get("ai_retry_count") or 0) + 1
+    if count > MAX_AI_RETRIES:
+        return count, 0.0
+    delay = min(AI_RETRY_MAX_SECONDS, AI_RETRY_BASE_SECONDS * 2 ** (count - 1))
+    return count, ts + delay
+
+
 def shangshu_apply(conn, run_id: int, message: dict, verdict: dict, *, ts: float) -> bool:
     """尚书省：仅写入分类元数据和审计轨迹，绝不调用邮箱或外部动作。"""
     mid = int(message["id"])
+    retry_count, retry_ts = _next_retry(message, verdict, ts)
     cur = conn.execute(
         """UPDATE messages
            SET category=?, importance=?, summary=?, confidence=?, ai_reason=?,
                needs_review=0, ai_done=1, governance_version=?, governance_ministry=?,
-               governance_action=?, governance_source=?, governance_reason=?, governance_ts=?
+               governance_action=?, governance_source=?, governance_reason=?, governance_ts=?,
+               ai_retry_count=?, ai_retry_ts=?
            WHERE id=? AND deleted_ts=0""",
         (
             verdict["category"], verdict["importance"], verdict["summary"],
             verdict["confidence"], verdict["reason"][:200], VERSION,
             verdict["ministry"], verdict["action"], verdict["source"],
-            verdict["reason"], ts, mid,
+            verdict["reason"], ts, retry_count, retry_ts, mid,
         ),
     )
     # 邮件可能在中书省选取后被并发移入回收站；此时不伪造“已治理”决策。
@@ -232,21 +258,45 @@ def shangshu_apply(conn, run_id: int, message: dict, verdict: dict, *, ts: float
     return True
 
 
-def _select_messages(conn, *, limit: int, force: bool) -> list[dict]:
+# 待治理：未治理或旧版本、旧的人工复核标记、AI 临时失败且已到重试时间
+_PENDING_SQL = ("(COALESCE(m.governance_version,'') != ? OR m.needs_review=1"
+                " OR (m.ai_retry_ts > 0 AND m.ai_retry_ts <= ?))")
+
+
+def _select_ids(conn, *, limit: int, force: bool, now: float) -> list[int]:
     where = "m.deleted_ts=0"
     args: list = []
     if not force:
-        where += " AND (COALESCE(m.governance_version,'') != ? OR m.needs_review=1)"
-        args.append(VERSION)
-    sql = f"""SELECT m.id, m.category, m.subject, m.sender_addr, m.snippet, m.body_text,
-                     m.otp_code, m.importance, m.summary, m.confidence,
-                     m.has_attach, m.unsubscribe, m.risk_level, m.needs_review
-              FROM messages m WHERE {where}
-              ORDER BY m.date_ts DESC, m.id DESC"""
+        where += " AND " + _PENDING_SQL
+        args += [VERSION, now]
+    sql = f"SELECT m.id FROM messages m WHERE {where} ORDER BY m.date_ts DESC, m.id DESC"
     if limit > 0:
         sql += " LIMIT ?"
         args.append(min(10000, max(1, int(limit))))
-    return [dict(row) for row in conn.execute(sql, args).fetchall()]
+    return [int(row["id"]) for row in conn.execute(sql, args).fetchall()]
+
+
+def _load_messages(conn, ids: list[int]) -> list[dict]:
+    """按 id 读入一批邮件；正文截断后只用于本机注入扫描，不会发给 AI。"""
+    if not ids:
+        return []
+    ph = ",".join("?" * len(ids))
+    rows = conn.execute(
+        f"""SELECT m.id, m.category, m.subject, m.sender_addr, m.snippet,
+                   substr(m.body_text, 1, {BODY_SCAN_CHARS}) AS body_text,
+                   m.otp_code, m.importance, m.summary, m.confidence,
+                   m.has_attach, m.unsubscribe, m.risk_level, m.needs_review, m.ai_retry_count,
+                   m.date_ts
+            FROM messages m WHERE m.id IN ({ph}) AND m.deleted_ts=0""",
+        ids,
+    ).fetchall()
+    order = {mid: i for i, mid in enumerate(ids)}
+    return sorted((dict(r) for r in rows), key=lambda r: order[int(r["id"])])
+
+
+def _select_messages(conn, *, limit: int, force: bool) -> list[dict]:
+    """兼容旧调用：一次性读入全部待治理邮件。run_governance 改为分批读取。"""
+    return _load_messages(conn, _select_ids(conn, limit=limit, force=force, now=time.time()))
 
 
 def _ai_results(rows: list[dict], *, enabled: bool) -> tuple[dict[int, dict], int]:
@@ -275,7 +325,7 @@ def _ai_results(rows: list[dict], *, enabled: bool) -> tuple[dict[int, dict], in
             returned = ai.classify_batch(batch)
         except Exception as exc:  # 自定义适配器异常也必须自动回退
             returned = [
-                {"id": item["id"], "needs_review": True,
+                {"id": item["id"], "needs_review": True, "transient": True,
                  "reason": f"AI 分类异常：{str(exc)[:80]}"}
                 for item in batch
             ]
@@ -289,7 +339,8 @@ def _ai_results(rows: list[dict], *, enabled: bool) -> tuple[dict[int, dict], in
         for item in batch:
             results.setdefault(
                 int(item["id"]),
-                {"id": int(item["id"]), "needs_review": True, "reason": "AI 漏答"},
+                {"id": int(item["id"]), "needs_review": True, "transient": True,
+                 "reason": "AI 漏答"},
             )
     return results, len(candidates)
 
@@ -336,32 +387,38 @@ def run_governance(*, limit: int = 0, force: bool = False, trigger: str = "syste
             status.update({"ok": False, "busy": True})
             return status
 
-        rows = _select_messages(conn, limit=limit, force=force)
+        ids = _select_ids(conn, limit=limit, force=force, now=started)
         try:
             enabled = bool(ai.ai_config().get("enabled"))
         except Exception:
             enabled = False
-        ai_by_id, ai_count = _ai_results(rows, enabled=enabled)
 
         ministry_counts: Counter = Counter()
         category_counts: Counter = Counter()
         fallback_count = 0
         suspicious_count = 0
+        ai_count = 0
         processed_ids = []
         decision_ts = time.time()
 
-        for row in rows:
-            proposal = zhongshu_propose(
-                row, ai_by_id.get(int(row["id"])), ai_enabled=enabled
-            )
-            verdict = menxia_arbitrate(proposal)
-            if not shangshu_apply(conn, run_id, row, verdict, ts=decision_ts):
-                continue
-            processed_ids.append(int(row["id"]))
-            ministry_counts[verdict["ministry"]] += 1
-            category_counts[verdict["category"]] += 1
-            fallback_count += int(verdict["fallback"])
-            suspicious_count += int(verdict["category"] == "可疑")
+        # 分批读取和处理：首次治理大邮箱时不会把所有正文一次性读进内存
+        for start in range(0, len(ids), CHUNK_SIZE):
+            rows = _load_messages(conn, ids[start:start + CHUNK_SIZE])
+            ai_by_id, chunk_ai = _ai_results(rows, enabled=enabled)
+            ai_count += chunk_ai
+            for row in rows:
+                proposal = zhongshu_propose(
+                    row, ai_by_id.get(int(row["id"])), ai_enabled=enabled
+                )
+                verdict = menxia_arbitrate(proposal)
+                if not shangshu_apply(conn, run_id, row, verdict, ts=decision_ts):
+                    continue
+                processed_ids.append(int(row["id"]))
+                ministry_counts[verdict["ministry"]] += 1
+                category_counts[verdict["category"]] += 1
+                fallback_count += int(verdict["fallback"])
+                suspicious_count += int(verdict["category"] == "可疑")
+            conn.commit()
 
         finished = time.time()
         conn.execute(
@@ -371,7 +428,7 @@ def run_governance(*, limit: int = 0, force: bool = False, trigger: str = "syste
                    ministry_counts=?, category_counts=?
                WHERE id=?""",
             (
-                finished, len(rows), len(processed_ids), ai_count, fallback_count,
+                finished, len(ids), len(processed_ids), ai_count, fallback_count,
                 suspicious_count,
                 json.dumps({m: ministry_counts.get(m, 0) for m in MINISTRIES}, ensure_ascii=False),
                 json.dumps(dict(category_counts), ensure_ascii=False), run_id,
@@ -409,9 +466,8 @@ def governance_status() -> dict:
     """返回最近运行和待治理数量，供一键入口展示。"""
     conn = get_conn()
     pending = conn.execute(
-        """SELECT COUNT(*) AS c FROM messages
-           WHERE deleted_ts=0 AND (COALESCE(governance_version,'') != ? OR needs_review=1)""",
-        (VERSION,),
+        f"SELECT COUNT(*) AS c FROM messages m WHERE m.deleted_ts=0 AND {_PENDING_SQL}",
+        (VERSION, time.time()),
     ).fetchone()["c"]
     row = conn.execute(
         "SELECT * FROM governance_runs ORDER BY id DESC LIMIT 1"
