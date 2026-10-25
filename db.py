@@ -152,6 +152,14 @@ CREATE TABLE IF NOT EXISTS governance_decisions(
 );
 CREATE INDEX IF NOT EXISTS idx_governance_decisions_message
   ON governance_decisions(message_id, ts DESC);
+
+-- 管理员会话：只保存令牌的 SHA-256，可逐个吊销
+CREATE TABLE IF NOT EXISTS sessions(
+  id_hash TEXT PRIMARY KEY,
+  created_ts REAL NOT NULL,
+  expires_ts REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_sessions_expiry ON sessions(expires_ts);
 """
 
 # 增量迁移：旧库补列（新库建表语句里已包含则忽略报错）
