@@ -1051,10 +1051,15 @@ async def ai_test():
         return {"ok": False, "msg": str(e)[:200]}
 
 
+class NotifyTestBody(BaseModel):
+    # 设置页里尚未保存的 Onepush 配置；为空时测试已保存的全部通道
+    onepush_config: str = ""
+
+
 @app.post("/api/notify/test")
-async def notify_test():
+async def notify_test(body: NotifyTestBody | None = None):
     try:
-        msg = await asyncio.to_thread(notify.test_push)
+        msg = await asyncio.to_thread(notify.test_push, (body.onepush_config if body else ""))
         return {"ok": True, "msg": msg}
     except Exception as e:
         return {"ok": False, "msg": str(e)[:200]}

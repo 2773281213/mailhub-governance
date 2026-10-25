@@ -211,3 +211,110 @@ def test_new_mail_notification_reaches_onepush(clean_settings, fake_notifier, mo
         [{"subject": "合同签署", "sender_addr": "boss@corp.example", "category": "重要"}], "工作邮箱")
     assert fake_notifier.calls[0]["title"] == "[重要] 工作邮箱"
     assert "合同签署" in fake_notifier.calls[0]["content"]
+
+
+# ---------------- 真实 onepush 库 + 本地 HTTP 服务端到端 ----------------
+
+import http.server  # noqa: E402
+import json  # noqa: E402
+import threading  # noqa: E402
+
+
+class _Hook(http.server.BaseHTTPRequestHandler):
+    def do_POST(self):
+        body = self.rfile.read(int(self.headers.get("Content-Length") or 0))
+        self.server.requests.append((self.path, body))
+        status, payload = self.server.reply
+        data = json.dumps(payload).encode()
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
+    def log_message(self, *_args):
+        pass
+
+
+@pytest.fixture
+def hook(monkeypatch):
+    for name in ("HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy", "ALL_PROXY", "all_proxy"):
+        monkeypatch.delenv(name, raising=False)
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), _Hook)
+    server.requests = []
+    server.reply = (200, {"code": 200, "message": "success"})
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    yield server
+    server.shutdown()
+    server.server_close()
+
+
+def _json_body(raw: bytes) -> dict:
+    return json.loads(raw.decode("utf-8"))
+
+
+def test_real_custom_webhook_delivers_title_and_content(hook):
+    url = f"http://127.0.0.1:{hook.server_port}/hook"
+    error = notify.send_onepush(f"provider: custom\nurl: {url}\ndata:\n  source: mailhub\n",
+                                "标题", "正文")
+    assert error is None
+    path, body = hook.requests[0]
+    assert path == "/hook"
+    assert _json_body(body) == {"source": "mailhub", "title": "标题", "content": "正文"}
+
+
+def test_real_bark_accepts_alas_style_url_key(hook):
+    """Alas 文档里自建 Bark 把完整地址写在 key 里；新版 onepush 需要拆成 base_url + key"""
+    key_url = f"http://127.0.0.1:{hook.server_port}/DEVICEKEY123"
+    assert notify.validate_onepush_config(f"provider: bark\nkey: {key_url}") == "bark"
+    assert notify.send_onepush(f"provider: bark\nkey: {key_url}\nsound: alert", "T", "C") is None
+    path, body = hook.requests[0]
+    assert path == "/push"
+    payload = _json_body(body)
+    assert payload["device_key"] == "DEVICEKEY123"
+    assert payload["title"] == "T" and payload["body"] == "C" and payload["sound"] == "alert"
+
+
+def test_error_code_inside_http_200_is_reported(hook):
+    hook.reply = (200, {"code": 400, "message": "failed to get device token"})
+    key_url = f"http://127.0.0.1:{hook.server_port}/BADKEY"
+    error = notify.send_onepush(f"provider: bark\nkey: {key_url}", "T", "C")
+    assert error and "failed to get device token" in error
+
+
+def test_unreachable_server_is_reported(hook):
+    port = hook.server_port
+    hook.shutdown()
+    hook.server_close()
+    error = notify.send_onepush(f"provider: custom\nurl: http://127.0.0.1:{port}/hook", "T", "C")
+    assert error and "没有收到服务端响应" in error
+
+
+def test_test_push_can_use_unsaved_config(clean_settings, hook):
+    url = f"http://127.0.0.1:{hook.server_port}/hook"
+    message = notify.test_push(f"provider: custom\nurl: {url}")
+    assert "尚未保存" in message
+    assert _json_body(hook.requests[0][1])["title"] == notify.TEST_TITLE
+    assert db.get_setting(notify.ONEPUSH_SETTING, "") == ""
+
+
+def test_test_push_with_invalid_unsaved_config_explains_why(clean_settings):
+    with pytest.raises(RuntimeError, match="provider"):
+        notify.test_push("key: abc")
+
+
+@pytest.mark.parametrize("key, base_url, device", [
+    ("https://bark.example.com/ABC", "https://bark.example.com", "ABC"),
+    ("https://example.com/bark/ABC/", "https://example.com/bark", "ABC"),
+    ("https://bark.example.com/ABC/push", "https://bark.example.com", "ABC"),
+])
+def test_normalize_bark_url_key(key, base_url, device):
+    config = {"key": key}
+    notify._normalize_bark(config)
+    assert config == {"key": device, "base_url": base_url}
+
+
+def test_normalize_bark_rejects_url_without_key():
+    with pytest.raises(notify.OnepushConfigError, match="设备 key"):
+        notify._normalize_bark({"key": "https://bark.example.com/"})
