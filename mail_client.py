@@ -7,7 +7,6 @@ import imaplib
 import re
 import time
 
-import httpx
 
 # imaplib 默认不认识 ID 命令（RFC 2971），163 不发 ID 会拒绝收信（Unsafe Login）
 imaplib.Commands["ID"] = ("NONAUTH", "AUTH", "SELECTED")
@@ -99,46 +98,6 @@ PROVIDERS = {
         "help": "填写任意支持 IMAP SSL 的邮箱服务器",
     },
 }
-
-# ---------- Microsoft OAuth2 设备码流程（Thunderbird 公共客户端，个人账户可用） ----------
-MS_CLIENT_ID = "9e5f94bc-e8a4-4e73-b8be-63364c29d753"
-MS_AUTH_BASE = "https://login.microsoftonline.com/common/oauth2/v2.0"
-MS_SCOPE = "https://outlook.office.com/IMAP.AccessAsUser.All offline_access"
-
-
-def ms_device_code() -> dict:
-    """发起设备码授权，返回 user_code / verification_uri / device_code / interval"""
-    r = httpx.post(f"{MS_AUTH_BASE}/devicecode",
-                   data={"client_id": MS_CLIENT_ID, "scope": MS_SCOPE}, timeout=20)
-    r.raise_for_status()
-    return r.json()
-
-
-def ms_poll_token(device_code: str) -> dict:
-    """轮询一次令牌端点；未完成授权时返回 {'pending': True}"""
-    r = httpx.post(f"{MS_AUTH_BASE}/token", data={
-        "client_id": MS_CLIENT_ID,
-        "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
-        "device_code": device_code,
-    }, timeout=20)
-    data = r.json()
-    if "access_token" in data:
-        return data
-    if data.get("error") in ("authorization_pending", "slow_down"):
-        return {"pending": True}
-    raise RuntimeError(data.get("error_description", data.get("error", "授权失败")))
-
-
-def ms_refresh(refresh_token: str) -> dict:
-    r = httpx.post(f"{MS_AUTH_BASE}/token", data={
-        "client_id": MS_CLIENT_ID,
-        "grant_type": "refresh_token",
-        "refresh_token": refresh_token,
-        "scope": MS_SCOPE,
-    }, timeout=20)
-    r.raise_for_status()
-    return r.json()
-
 
 # ---------- 邮件解析辅助 ----------
 

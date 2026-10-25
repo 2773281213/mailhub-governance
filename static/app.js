@@ -1189,7 +1189,7 @@ async function loadDeployStatus() {
     `<div class="set-row"><div class="l">${esc(c.name)}<small>${esc(c.detail || "")}</small></div>${badge(c)}</div>`).join("");
   const channels = Object.entries(st.channels || {}).map(([, v]) => {
     const mode = v.oauth_browser
-      ? (v.channel === "outlook" ? "OAuth 登录（Outlook 通道）" : "OAuth 登录")
+      ? "OAuth 登录"
       : (v.oauth_device ? "设备码登录" : (v.secret_label || "授权码"));
     const tag = v.oauth_browser ? "OAuth" : (v.oauth_device ? "设备码" : "授权码");
     return `<div class="set-row"><div class="l">${esc(v.label)}<small>${esc(mode)}</small></div>`

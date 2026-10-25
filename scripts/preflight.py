@@ -68,22 +68,13 @@ def check_env():
 
 
 def check_providers(base):
-    channel = os.environ.get("NETEASE_CHANNEL", "own").strip().lower() or "own"
     netease_id = os.environ.get("NETEASE_CLIENT_ID", "").strip()
-    style = os.environ.get("NETEASE_REDIRECT_STYLE", "web").strip().lower() or "web"
-    if channel == "outlook":
-        report("网易通道", True, "outlook：复用 Outlook APK 的合作方 appid")
-        if netease_id and netease_id != "rjg1fubwqzie5unhx6":
-            report("outlook 通道的 appid 覆盖", True, f"自定义 appid {netease_id[:6]}…", required=False)
-    else:
-        report("网易通道", bool(netease_id), f"own：appid={netease_id[:6]}…" if netease_id
-               else "own：未配置 appid，网易走客户端授权密码", required=False)
-        if netease_id == "rjg1fubwqzie5unhx6":
-            report("own 通道未冒用 Outlook appid", False,
-                   "检测到 rjg1fubwqzie5unhx6；请改用 NETEASE_CHANNEL=outlook 或填写自有 appid")
-    if style == "olmoauth":
-        report("网易回调风格", True, "olmoauth：浏览器无法完成授权，仅供协议对照", required=False)
-    elif base:
+    report("网易 OAuth（可选）", bool(netease_id), f"appid={netease_id[:6]}…" if netease_id
+           else "未配置自有 appid，网易走客户端授权密码", required=False)
+    if netease_id == "rjg1fubwqzie5unhx6":
+        report("网易 appid 不是 Outlook 的合作方身份", False,
+               "检测到 rjg1fubwqzie5unhx6；必须使用网易批准给本部署的 appid")
+    if base:
         callback = f"{base}/api/oauth/163/callback"
         report("网易回调未指向 olmoauth", "olmoauth" not in callback, callback)
     report("Gmail OAuth 已配置（可选）",

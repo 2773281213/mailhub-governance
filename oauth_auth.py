@@ -35,12 +35,8 @@ _OUTLOOK_GOOGLE_CLIENT_ID = (
     "445112211283-sk04feuogpcjd3dq8eshrdnr4bpm1sfk.apps.googleusercontent.com"
 )
 _OUTLOOK_OAUTH_HOST = "olmoauth.outlook.com"
-# Outlook APK 里网易通道的两个回调形态（authspecificconfigs/NetEase.kt）。
-_OUTLOOK_NETEASE_RELAY = "https://olmoauth.outlook.com/api/neteaseoauthredir"
-_OUTLOOK_NETEASE_RELAY_CUSTOM_TAB = (
-    "https://olmoauth.outlook.com/api/neteaseoauthredir"
-    "/outlook-oauth://{package}/android/netease/oauth2redirect"
-)
+# 以上三个常量只用于拒绝：它们是 Outlook 与 Google/网易之间的私有注册，
+# MailHub 不能借用别家客户端的身份，必须使用部署者自己申请的客户端。
 _refresh_locks: dict[int, threading.Lock] = {}
 _refresh_locks_guard = threading.Lock()
 
@@ -265,7 +261,24 @@ def init_oauth_db():
         except sqlite3.OperationalError as exc:
             if "duplicate column" not in str(exc).lower():
                 raise
+    _require_reauth_for_borrowed_identities(conn)
     conn.commit()
+
+
+def _require_reauth_for_borrowed_identities(conn):
+    """借用他人客户端身份登录的账户必须用部署者自己的客户端重新授权（幂等）。
+
+    - 旧版 Outlook 设备码登录使用 Thunderbird 的 Client ID，账户上没有记录 oauth_client_id；
+    - 网易 outlook 通道复用了 Outlook 的合作方 appid。
+    """
+    message = "该账户使用的是已停用的借用登录身份，请配置自有 OAuth 客户端后重新登录"
+    conn.execute(
+        """UPDATE accounts SET oauth_reauth_required=1, last_error=?
+           WHERE auth_type='oauth' AND oauth_reauth_required=0
+             AND ((provider='outlook' AND COALESCE(oauth_client_id, '')='')
+                  OR oauth_client_id=?)""",
+        (message, _OUTLOOK_NETEASE_APP_ID),
+    )
 
 
 def _normalize_start(body: OAuthStartBody, expected_provider: str = "") -> dict:
@@ -321,17 +334,6 @@ def _browser_config(provider: str) -> dict | None:
     return None
 
 
-def _netease_channel() -> str:
-    """网易 OAuth 通道：own=自有 appid，outlook=复用 Outlook APK 逆向出的合作方身份。"""
-    channel = os.environ.get("NETEASE_CHANNEL", "own").strip().lower()
-    return channel if channel in {"own", "outlook"} else "own"
-
-
-def _netease_redirect_style() -> str:
-    style = os.environ.get("NETEASE_REDIRECT_STYLE", "web").strip().lower()
-    return style if style in {"web", "olmoauth"} else "web"
-
-
 def _netease_device_id() -> str:
     """设备标识必须长期稳定，首次使用时生成并持久化。"""
     env_value = os.environ.get("NETEASE_DEVICE_ID", "").strip()
@@ -346,35 +348,25 @@ def _netease_device_id() -> str:
 
 
 def _netease_redirect_uri(provider: str) -> str:
-    style = _netease_redirect_style()
-    package = os.environ.get(
-        "NETEASE_OLMOAUTH_PACKAGE", "com.microsoft.office.outlook",
-    ).strip() or "com.microsoft.office.outlook"
-    if style == "olmoauth":
-        return _OUTLOOK_NETEASE_RELAY_CUSTOM_TAB.format(package=package)
     explicit = os.environ.get(f"NETEASE_{provider.upper()}_REDIRECT_URI", "").strip()
     return explicit or _redirect_uri(provider)
 
 
 def _netease_config(provider: str) -> dict | None:
-    """解析网易 OAuth 配置；own 通道拒绝 Outlook 身份，outlook 通道显式复用。"""
+    """解析网易 OAuth 配置：只接受部署者自己向网易申请的 appid。
+
+    Outlook 的合作方 appid 和 olmoauth 中转回调一律拒绝，未配置时回退客户端授权密码。
+    """
     if provider not in _NETEASE_OAUTH_ENDPOINTS:
         return None
-    channel = _netease_channel()
-    env_client_id = os.environ.get("NETEASE_CLIENT_ID", "").strip()
-    if channel == "outlook":
-        client_id = env_client_id or _OUTLOOK_NETEASE_APP_ID
-        source = "environment" if env_client_id else "outlook"
-    else:
-        if not env_client_id or env_client_id == _OUTLOOK_NETEASE_APP_ID:
-            return None
-        client_id = env_client_id
-        source = "environment"
+    client_id = os.environ.get("NETEASE_CLIENT_ID", "").strip()
+    if not client_id or client_id == _OUTLOOK_NETEASE_APP_ID:
+        return None
     device_id = _netease_device_id()
     if not device_id:
         return None
     redirect_uri = _netease_redirect_uri(provider)
-    if channel != "outlook" and "olmoauth.outlook.com" in redirect_uri.lower():
+    if (urlparse(redirect_uri).hostname or "").lower() == _OUTLOOK_OAUTH_HOST:
         return None
     return {
         "authorize_url": _NETEASE_OAUTH_ENDPOINTS[provider],
@@ -382,9 +374,6 @@ def _netease_config(provider: str) -> dict | None:
         "device_id": device_id,
         "scope": "imap",
         "redirect_uri": redirect_uri,
-        "channel": channel,
-        "app_id_source": source,
-        "redirect_style": _netease_redirect_style(),
     }
 
 
@@ -415,10 +404,6 @@ def deployment_status() -> dict:
             "secret_label": meta["secret_label"],
             "requires_vendor_approval": key in _NETEASE_OAUTH_ENDPOINTS,
         }
-        if key in _NETEASE_OAUTH_ENDPOINTS:
-            entry["channel"] = netease["channel"] if netease else _netease_channel()
-            entry["app_id_source"] = netease["app_id_source"] if netease else ""
-            entry["redirect_style"] = netease["redirect_style"] if netease else _netease_redirect_style()
         channels[key] = entry
 
     checks = []
@@ -430,13 +415,11 @@ def deployment_status() -> dict:
     check("公开地址使用 HTTPS", base.startswith("https://") or local_dev,
           base if base.startswith("https://") else f"{base}（本地开发地址；生产环境必须是 HTTPS）")
     netease_ready = [brand for brand in _NETEASE_BRANDS if _netease_config(brand)]
-    channel = _netease_channel()
     check(
         "网易 OAuth 通道",
         bool(netease_ready),
-        (f"通道 {channel}；已启用品牌: " + ", ".join(netease_ready)) if netease_ready
-        else f"通道 {channel} 未生效，网易将回退客户端授权密码"
-             "（自有 appid 或 NETEASE_CHANNEL=outlook 均可启用）",
+        ("已启用品牌: " + ", ".join(netease_ready)) if netease_ready
+        else "未配置网易批准的自有 appid，网易将使用客户端授权密码",
         optional=True,
     )
     check("Gmail OAuth 已配置", _browser_config("gmail") is not None,
@@ -504,9 +487,6 @@ def public_providers() -> dict:
             "browser": browser_enabled,
             "device": key == "outlook" and bool(_device_client_id()),
         }
-        if key in _NETEASE_OAUTH_ENDPOINTS:
-            oauth_info["channel"] = netease["channel"] if netease else _netease_channel()
-            oauth_info["redirect_style"] = netease["redirect_style"] if netease else _netease_redirect_style()
         result[key] = {
             "label": preset["label"],
             "host": preset["host"],
@@ -582,8 +562,8 @@ def exchange_code(provider: str, code: str, verifier: str, redirect_uri: str,
 
 def refresh_provider_token(provider: str, refresh_token: str, client_id: str, scope: str) -> dict:
     config = _browser_config(provider)
-    if provider == "outlook" and not client_id:
-        return mail_client.ms_refresh(refresh_token)
+    if not client_id:
+        raise OAuthError("该账户由已停用的旧登录方式创建，请重新登录", reauth_required=True)
     if not config:
         raise OAuthError("该服务商的 OAuth 客户端未配置", reauth_required=True)
     if config["client_id"] != client_id:
@@ -732,17 +712,12 @@ def _mark_reauth_required(account_id: int, message: str):
 def _refresh_account_token(current: dict, refresh_token: str) -> dict:
     if current["provider"] in _NETEASE_OAUTH_ENDPOINTS:
         raise OAuthError("网易邮箱授权已到期，请重新登录", reauth_required=True)
-    if current["provider"] != "outlook" or current.get("oauth_client_id"):
-        return refresh_provider_token(
-            current["provider"],
-            refresh_token,
-            current.get("oauth_client_id", ""),
-            current.get("oauth_scope", ""),
-        )
-    try:
-        return mail_client.ms_refresh(refresh_token)
-    except Exception as exc:
-        raise OAuthError("Microsoft 登录已失效，请重新登录", reauth_required=True) from exc
+    return refresh_provider_token(
+        current["provider"],
+        refresh_token,
+        current.get("oauth_client_id", ""),
+        current.get("oauth_scope", ""),
+    )
 
 
 def _save_refreshed_token(account_id: int, refresh_token: str, data: dict) -> str:

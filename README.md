@@ -10,7 +10,7 @@ MailHub Governance 是一个本地优先的多邮箱聚合与自动治理服务�
 - 输入邮箱地址后自动识别服务商；未知域名才显示高级 IMAP 设置。
 - 网易邮箱使用各自的 IMAP SSL 主机，并在认证后发送 RFC 2971 `ID`。
 - Outlook 支持项目自有 Microsoft 应用的浏览器 OAuth 和设备码登录，设备凭据保留在服务器端。
-- 网易合作方 OAuth 是 implicit flow：回调页先读取 URL fragment，再提交给服务端校验，令牌不经过第三方中转；`NETEASE_CHANNEL=own|outlook` 可切换自有 appid 或 Outlook 逆向通道。
+- 网易合作方 OAuth 是 implicit flow：回调页先读取 URL fragment，再提交给服务端校验，令牌不经过第三方中转；需要部署者自己向网易申请的 appid，未配置时使用客户端授权密码。
 - 三省六部自动治理，AI 失败或低置信度时自动回退本地规则。
 - AI 不会自动删除、回复、转发或退订邮件，也不会创建人工复核队列。
 - 软删除可撤销；服务器永久删除失败时不会移除本地记录。

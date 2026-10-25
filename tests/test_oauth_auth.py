@@ -572,24 +572,49 @@ def test_refresh_dispatch_updates_rotated_token(isolated_db, monkeypatch):
     assert row["oauth_reauth_required"] == 0
 
 
-def test_existing_outlook_account_keeps_legacy_refresh_path(isolated_db, monkeypatch):
-    cur = isolated_db.execute("""INSERT INTO accounts(
+def _insert_oauth_account(conn, provider, email, client_id=""):
+    cur = conn.execute("""INSERT INTO accounts(
         name, provider, email, imap_host, imap_port, auth_type, oauth_refresh_enc,
-        oauth_access_enc, oauth_expires, created_ts)
-        VALUES(?,?,?,?,?,'oauth',?,?,0,?)""",
-        ("Outlook", "outlook", "user@outlook.com", "outlook.office365.com", 993,
-         encrypt("legacy-refresh"), encrypt("expired-access"), time.time()))
-    isolated_db.commit()
-    called = []
+        oauth_access_enc, oauth_expires, oauth_client_id, created_ts)
+        VALUES(?,?,?,?,?,'oauth',?,?,0,?,?)""",
+        (provider, provider, email, "imap.example.test", 993,
+         encrypt("legacy-refresh"), encrypt("expired-access"), client_id, time.time()))
+    conn.commit()
+    return cur.lastrowid
 
-    def legacy(refresh):
-        called.append(refresh)
-        return {"access_token": "legacy-access", "expires_in": 3600}
 
-    monkeypatch.setattr(mail_client, "ms_refresh", legacy)
-    account = dict(isolated_db.execute("SELECT * FROM accounts WHERE id=?", (cur.lastrowid,)).fetchone())
-    assert oauth_auth.resolve_oauth_access_token(account) == "legacy-access"
-    assert called == ["legacy-refresh"]
+def test_legacy_outlook_account_without_own_client_requires_reauth(isolated_db):
+    """旧版设备码登录借用了 Thunderbird 的 Client ID：不再刷新，要求重新授权"""
+    acc = _insert_oauth_account(isolated_db, "outlook", "user@outlook.com")
+    account = dict(isolated_db.execute("SELECT * FROM accounts WHERE id=?", (acc,)).fetchone())
+
+    with pytest.raises(oauth_auth.OAuthError) as exc_info:
+        oauth_auth.resolve_oauth_access_token(account)
+
+    assert exc_info.value.reauth_required is True
+    row = isolated_db.execute("SELECT oauth_reauth_required FROM accounts WHERE id=?", (acc,)).fetchone()
+    assert row["oauth_reauth_required"] == 1
+    assert not hasattr(mail_client, "ms_refresh")
+    assert not hasattr(mail_client, "MS_CLIENT_ID")
+
+
+def test_startup_marks_borrowed_identity_accounts_for_reauth(isolated_db):
+    legacy_outlook = _insert_oauth_account(isolated_db, "outlook", "old@outlook.com")
+    own_outlook = _insert_oauth_account(isolated_db, "outlook", "new@outlook.com", "own-client")
+    borrowed_netease = _insert_oauth_account(
+        isolated_db, "163", "user@163.com", oauth_auth._OUTLOOK_NETEASE_APP_ID)
+    own_netease = _insert_oauth_account(isolated_db, "126", "user@126.com", "approved-client")
+
+    oauth_auth.init_oauth_db()
+    oauth_auth.init_oauth_db()   # 幂等
+
+    flags = {r["id"]: r["oauth_reauth_required"] for r in isolated_db.execute(
+        "SELECT id, oauth_reauth_required FROM accounts").fetchall()}
+    assert flags == {legacy_outlook: 1, own_outlook: 0, borrowed_netease: 1, own_netease: 0}
+    error = isolated_db.execute(
+        "SELECT last_error FROM accounts WHERE id=?", (legacy_outlook,)).fetchone()["last_error"]
+    assert "重新登录" in error
+
 
 def test_netease_brand_catalog_matches_apk(isolated_db):
     providers = oauth_auth.public_providers()
@@ -766,52 +791,39 @@ def test_deployment_status_lists_reauth_accounts(isolated_db, monkeypatch):
     assert status["channels"]["163"]["requires_vendor_approval"] is True
     assert status["channels"]["163"]["callback_url"] == "https://mail.example.test/api/oauth/163/callback"
 
-def test_outlook_channel_reuses_partner_identity(isolated_db, monkeypatch):
+def test_netease_never_uses_outlook_partner_identity(isolated_db, monkeypatch):
+    """设置旧的 NETEASE_CHANNEL=outlook 也不会再借用 Outlook 的合作方 appid"""
     monkeypatch.setenv("NETEASE_CHANNEL", "outlook")
     monkeypatch.delenv("NETEASE_CLIENT_ID", raising=False)
-    monkeypatch.delenv("NETEASE_DEVICE_ID", raising=False)
-    monkeypatch.setenv("MAILHUB_PUBLIC_URL", "https://mail.example.test")
-    cfg = oauth_auth._netease_config("163")
-    assert cfg["client_id"] == oauth_auth._OUTLOOK_NETEASE_APP_ID
-    assert cfg["channel"] == "outlook"
-    assert cfg["app_id_source"] == "outlook"
-    assert cfg["redirect_style"] == "web"
-    assert cfg["redirect_uri"] == "https://mail.example.test/api/oauth/163/callback"
-    assert cfg["device_id"].startswith("mailhub-")
-    # 设备标识必须稳定并持久化，否则网易会判定设备漂移
-    assert oauth_auth._netease_device_id() == cfg["device_id"]
-    stored = isolated_db.execute(
-        "SELECT v FROM settings WHERE k='netease_device_id'").fetchone()["v"]
-    assert stored == cfg["device_id"]
-    assert oauth_auth.public_providers()["163"]["oauth"]["channel"] == "outlook"
-
-
-def test_outlook_channel_can_target_olmoauth_relay(isolated_db, monkeypatch):
-    monkeypatch.setenv("NETEASE_CHANNEL", "outlook")
-    monkeypatch.setenv("NETEASE_REDIRECT_STYLE", "olmoauth")
     monkeypatch.setenv("NETEASE_DEVICE_ID", "mailhub-installation")
-    monkeypatch.setenv("MAILHUB_PUBLIC_URL", "https://mail.example.test")
-    cfg = oauth_auth._netease_config("126")
-    assert cfg["redirect_uri"] == (
-        "https://olmoauth.outlook.com/api/neteaseoauthredir/outlook-oauth://"
-        "com.microsoft.office.outlook/android/netease/oauth2redirect"
-    )
-    started = asyncio.run(oauth_auth.oauth_start(oauth_auth.OAuthStartBody(
-        provider="126", email="user@126.com",
-    )))
-    query = parse_qs(urlparse(started["authorization_url"]).query)
-    assert query["appid"] == [oauth_auth._OUTLOOK_NETEASE_APP_ID]
-    assert query["device_id"] == ["mailhub-installation"]
-    assert query["redirectUrl"] == [cfg["redirect_uri"]]
-    assert query["responseType"] == ["token"]
-    assert query["scope"] == ["imap"]
+    assert oauth_auth._netease_config("163") is None
+    assert oauth_auth.public_providers()["163"]["oauth"]["browser"] is False
 
-
-def test_own_channel_still_rejects_outlook_identity(isolated_db, monkeypatch):
-    monkeypatch.setenv("NETEASE_CHANNEL", "own")
     monkeypatch.setenv("NETEASE_CLIENT_ID", oauth_auth._OUTLOOK_NETEASE_APP_ID)
     assert oauth_auth._netease_config("163") is None
-    monkeypatch.delenv("NETEASE_CLIENT_ID")
+
+
+def test_netease_rejects_olmoauth_redirect(isolated_db, monkeypatch):
     monkeypatch.setenv("NETEASE_CLIENT_ID", "approved-mailhub-client")
+    monkeypatch.setenv("NETEASE_DEVICE_ID", "mailhub-installation")
     monkeypatch.setenv("NETEASE_REDIRECT_STYLE", "olmoauth")
+    monkeypatch.setenv("MAILHUB_PUBLIC_URL", "https://mail.example.test")
+    cfg = oauth_auth._netease_config("163")
+    assert cfg["redirect_uri"] == "https://mail.example.test/api/oauth/163/callback"
+    assert set(cfg) == {"authorize_url", "client_id", "device_id", "scope", "redirect_uri"}
+
+    monkeypatch.setenv(
+        "NETEASE_163_REDIRECT_URI",
+        "https://olmoauth.outlook.com/api/neteaseoauthredir/outlook-oauth://x/android/netease",
+    )
     assert oauth_auth._netease_config("163") is None
+
+
+def test_netease_device_id_is_generated_once_and_persisted(isolated_db, monkeypatch):
+    monkeypatch.delenv("NETEASE_DEVICE_ID", raising=False)
+    first = oauth_auth._netease_device_id()
+    assert first.startswith("mailhub-")
+    assert oauth_auth._netease_device_id() == first
+    stored = isolated_db.execute(
+        "SELECT v FROM settings WHERE k='netease_device_id'").fetchone()["v"]
+    assert stored == first
