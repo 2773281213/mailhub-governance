@@ -384,3 +384,78 @@ def test_every_category_has_policy():
 @pytest.mark.parametrize("cat", ["验证码", "账单", "安全", "可疑"])
 def test_sensitive_categories_never_sent_to_cloud_ai(cat):
     assert rules.allows_cloud_ai(cat) is False
+
+
+# ---------------- 密钥派生与轮换 ----------------
+
+import logging  # noqa: E402
+import sqlite3  # noqa: E402
+
+import security  # noqa: E402
+from cryptography.fernet import Fernet  # noqa: E402
+
+
+def _encrypt_with(key: bytes, plain: str) -> str:
+    return Fernet(key).encrypt(plain.encode()).decode()
+
+
+def test_new_values_use_hkdf_derived_key():
+    token = security.encrypt("app-password")
+    assert security._primary.decrypt(token.encode()).decode() == "app-password"
+
+
+def test_values_from_the_old_derivation_still_decrypt():
+    legacy = _encrypt_with(security._legacy_key(security._SECRET), "old-app-password")
+    assert security.decrypt(legacy) == "old-app-password"
+
+
+def test_previous_secret_decrypts_after_rotation(monkeypatch):
+    old = _encrypt_with(security._hkdf_key("the-old-secret"), "token-from-before")
+    assert security.decrypt(old) == ""
+    monkeypatch.setattr(security, "_fernet",
+                        security._build_fernet(security._SECRET, "the-old-secret"))
+    assert security.decrypt(old) == "token-from-before"
+
+
+def test_unreadable_value_logs_without_leaking(caplog):
+    junk = _encrypt_with(security._hkdf_key("someone-else"), "do-not-log-me")
+    with caplog.at_level(logging.WARNING, logger="mailhub.security"):
+        assert security.decrypt(junk) == ""
+    assert "MAILHUB_SECRET_PREVIOUS" in caplog.text
+    assert junk not in caplog.text and "do-not-log-me" not in caplog.text
+
+
+def _key_db():
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    conn.execute("CREATE TABLE settings(k TEXT PRIMARY KEY, v TEXT)")
+    conn.execute("CREATE TABLE accounts(id INTEGER PRIMARY KEY, secret_enc TEXT,"
+                 " oauth_refresh_enc TEXT, oauth_access_enc TEXT)")
+    return conn
+
+
+def test_rotate_reencrypts_old_values_and_is_idempotent(monkeypatch):
+    monkeypatch.setattr(security, "_fernet",
+                        security._build_fernet(security._SECRET, "the-old-secret"))
+    conn = _key_db()
+    legacy = _encrypt_with(security._legacy_key(security._SECRET), "legacy")
+    previous = _encrypt_with(security._hkdf_key("the-old-secret"), "previous")
+    current = security.encrypt("current")
+    unreadable = _encrypt_with(security._hkdf_key("unknown"), "lost")
+    conn.execute("INSERT INTO accounts VALUES(1, ?, ?, ?)", (legacy, previous, ""))
+    conn.execute("INSERT INTO accounts VALUES(2, ?, ?, ?)", (current, unreadable, None))
+    conn.execute("INSERT INTO settings VALUES('ai_key_enc', ?)", (previous,))
+    conn.execute("INSERT INTO settings VALUES('ai_model', 'not-encrypted')")
+
+    assert security.rotate_encrypted_values(conn) == {"rotated": 3, "unreadable": 1}
+    assert security.rotate_encrypted_values(conn) == {"rotated": 0, "unreadable": 1}
+
+    row = conn.execute("SELECT * FROM accounts WHERE id=1").fetchone()
+    for column, plain in (("secret_enc", "legacy"), ("oauth_refresh_enc", "previous")):
+        assert security._primary.decrypt(row[column].encode()).decode() == plain
+    row2 = conn.execute("SELECT * FROM accounts WHERE id=2").fetchone()
+    assert row2["secret_enc"] == current
+    assert row2["oauth_refresh_enc"] == unreadable     # 解不开的值原样保留
+    key = conn.execute("SELECT v FROM settings WHERE k='ai_key_enc'").fetchone()["v"]
+    assert security._primary.decrypt(key.encode()).decode() == "previous"
+    assert conn.execute("SELECT v FROM settings WHERE k='ai_model'").fetchone()["v"] == "not-encrypted"
