@@ -13,7 +13,7 @@ import oauth_auth
 import policy
 import rules
 import security_scan
-from db import audit, get_conn, get_setting, set_setting
+from db import audit, get_conn, get_setting
 from security import decrypt
 
 TZ = ZoneInfo("Asia/Shanghai")
@@ -191,7 +191,8 @@ def sync_account(acc_id: int) -> int:
                     # —— 安全扫描：静态分析，绝不访问其中的链接或附件 ——
                     scan = security_scan.scan(
                         m["subject"], m["body_text"], m["sender_name"], m["sender_addr"],
-                        reply_to=m.get("reply_to", ""), attachments=m.get("attach_names") or [])
+                        reply_to=m.get("reply_to", ""), attachments=m.get("attach_names") or [],
+                        html=m.get("body_html", ""), auth_results=m.get("auth_results", ""))
 
                     cat, otp = rules.classify(
                         m["subject"], m["body_text"], m["sender_addr"], bool(m["unsubscribe"]), custom)

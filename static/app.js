@@ -29,6 +29,13 @@ async function api(path, opts = {}) {
   return data;
 }
 
+// 点击只读输入框时全选内容（替代内联 onclick="this.select()"）
+document.addEventListener("click", ev => {
+  if (ev.target instanceof HTMLInputElement && ev.target.classList.contains("select-on-click")) {
+    ev.target.select();
+  }
+});
+
 function toast(msg, isErr = false) {
   const t = $("#toast");
   t.textContent = msg;
@@ -355,7 +362,7 @@ async function renderDashboard() {
 function mailRowHtml(m) {
   return `
   <div class="mail-row ${m.unread ? "unread" : ""}" data-id="${m.id}">
-    <input type="checkbox" class="m-check" data-id="${m.id}" onclick="event.stopPropagation()">
+    <input type="checkbox" class="m-check" data-id="${m.id}">
     <span class="acc-dot" style="background:${esc(m.account_color || "#1a73e8")}" title="${esc(m.account_name || "")}"></span>
     <span class="m-sender" title="${esc(m.sender_addr)}">${esc(m.sender_name || m.sender_addr)}</span>
     <span class="m-main">
@@ -375,6 +382,8 @@ function bindMailRows(root) {
   $$(".m-otp", root).forEach(o => o.addEventListener("click", ev => {
     ev.stopPropagation(); copyText(o.dataset.otp);
   }));
+  // 勾选框不触发整行的"打开邮件"（不用内联 onclick，便于启用严格 CSP）
+  $$(".m-check", root).forEach(cb => cb.addEventListener("click", ev => ev.stopPropagation()));
   $$(".m-check", root).forEach(cb => cb.addEventListener("change", () => {
     const id = +cb.dataset.id;
     cb.checked ? inboxState.selected.add(id) : inboxState.selected.delete(id);
@@ -1006,7 +1015,7 @@ async function renderSettings() {
           <div class="set-row"><div class="l">状态<small>${s.google_oauth_configured ? "已启用登录式导入" : "尚未配置完整客户端"}</small></div>
             <span class="badge ${s.google_oauth_configured ? "cat-通知" : "cat-未分类"}">${s.google_oauth_source === "environment" ? "环境变量" : (s.google_oauth_configured ? "设置页" : "未启用")}</span></div>
           <div class="set-row"><div class="l">回调地址<small>复制到 Google OAuth 客户端的已获授权重定向 URI</small></div>
-            <div class="set-ctl"><input id="s-google-callback" value="${esc(s.google_oauth_callback_url)}" readonly onclick="this.select()"><button class="btn sm" id="s-google-copy">复制</button></div></div>
+            <div class="set-ctl"><input id="s-google-callback" value="${esc(s.google_oauth_callback_url)}" readonly class="select-on-click"><button class="btn sm" id="s-google-copy">复制</button></div></div>
           <div class="set-row"><div class="l">Client ID</div>
             <input id="s-google-id" value="${esc(s.google_oauth_client_id || "")}" ${s.google_oauth_source === "environment" ? "disabled" : ""}></div>
           <div class="set-row"><div class="l">Client Secret<small>${s.google_oauth_client_secret_set ? "已设置（留空不修改）" : "未设置"}</small></div>
@@ -1027,7 +1036,7 @@ async function renderSettings() {
           <div class="set-row"><div class="l">配置来源</div>
             <span class="badge cat-未分类">${s.microsoft_oauth_source === "environment" ? "环境变量" : (s.microsoft_oauth_source === "settings" ? "设置页" : "未配置")}</span></div>
           <div class="set-row"><div class="l">回调地址<small>复制到 Web 平台的重定向 URI</small></div>
-            <div class="set-ctl"><input id="s-microsoft-callback" value="${esc(s.microsoft_oauth_callback_url)}" readonly onclick="this.select()"><button class="btn sm" id="s-microsoft-copy">复制</button></div></div>
+            <div class="set-ctl"><input id="s-microsoft-callback" value="${esc(s.microsoft_oauth_callback_url)}" readonly class="select-on-click"><button class="btn sm" id="s-microsoft-copy">复制</button></div></div>
           <div class="set-row"><div class="l">Client ID</div>
             <input id="s-microsoft-id" value="${esc(s.microsoft_oauth_client_id || "")}" ${s.microsoft_oauth_source === "environment" ? "disabled" : ""}></div>
           <div class="set-row"><div class="l">Client Secret<small>${s.microsoft_oauth_client_secret_set ? "已设置（留空不修改）" : "网页登录尚未设置"}</small></div>
