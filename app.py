@@ -19,10 +19,10 @@ from pydantic import BaseModel
 
 import ai
 import governance
-import mail_client
 import notify
 import oauth_auth
 import policy
+import providers
 import rules as rules_mod
 import sync
 from db import (audit, get_conn, get_setting, init_db, remove_external_api_settings,
@@ -245,9 +245,12 @@ async def list_accounts():
 
 
 def _resolve_host(body: AccountBody) -> tuple[str, int]:
-    preset = mail_client.PROVIDERS.get(body.provider, {})
-    host = body.imap_host or preset.get("host", "")
-    port = body.imap_port or preset.get("port", 993)
+    """密码类账户的 IMAP 主机：自定义邮箱用用户填写的，其他用服务商表里的。"""
+    meta = providers.get(body.provider)
+    if body.provider == "custom" or meta is None:
+        host, port = body.imap_host.strip(), body.imap_port or 993
+    else:
+        host, port = meta.host_for("password"), meta.imap_port
     if not host:
         raise HTTPException(status_code=400, detail="缺少 IMAP 服务器地址")
     return host, port
@@ -260,13 +263,20 @@ def _normalize_account_body(body: AccountBody):
     if requested in ("", "auto"):
         requested = detected
     elif detected != "custom" and requested != detected:
-        label = mail_client.PROVIDERS.get(detected, {}).get("label", detected)
+        label = providers.get(detected).label
         raise HTTPException(
             status_code=400,
             detail=f"邮箱域名已识别为「{label}」，请使用自动识别或选择匹配的服务商",
         )
     body.provider, body.email = oauth_auth.normalize_account_identity(requested, normalized_email)
     body.poll_interval = min(86400, max(60, body.poll_interval or 300))
+
+
+def _require_secret_method(provider: str):
+    meta = providers.get(provider)
+    if meta is not None and meta.secret is None:
+        raise HTTPException(status_code=400,
+                            detail=f"{meta.label} 只能通过 OAuth 登录添加，不支持授权码或密码")
 
 
 def _resolve_update_host(row, body: AccountBody) -> tuple[str, int]:
@@ -312,13 +322,18 @@ async def _probe_password_account(body: AccountBody, host: str, port: int):
 @app.post("/api/accounts")
 async def create_account(body: AccountBody):
     _normalize_account_body(body)
-    if body.provider == "outlook":
-        raise HTTPException(status_code=400, detail="Outlook 请走 OAuth 授权流程")
+    _require_secret_method(body.provider)
     if not body.secret:
         raise HTTPException(status_code=400, detail="缺少授权码/密码")
+    conn = get_conn()
+    existing = conn.execute(
+        "SELECT id FROM accounts WHERE provider=? AND lower(email)=?",
+        (body.provider, body.email)).fetchone()
+    if existing:
+        raise HTTPException(status_code=409,
+                            detail="这个邮箱已经添加过了，请在账户列表里编辑或重新授权")
     host, port = _resolve_host(body)
     await _probe_password_account(body, host, port)
-    conn = get_conn()
     cur = conn.execute(
         """INSERT INTO accounts(name, provider, email, imap_host, imap_port, auth_type,
                                 secret_enc, poll_interval, color, enabled, created_ts)
@@ -338,6 +353,8 @@ async def update_account(acc_id: int, body: AccountBody):
     if not row:
         raise HTTPException(status_code=404, detail="账户不存在")
     _normalize_account_body(body)
+    if body.secret:
+        _require_secret_method(body.provider)
     host, port = _resolve_update_host(row, body)
     await _probe_password_account(body, host, port)
     conn.execute(
@@ -393,31 +410,6 @@ async def sync_all():
 @app.get("/api/status")
 async def sync_status():
     return sync.get_status()
-
-
-# ---------- Outlook OAuth 设备码 ----------
-
-class DevicePollBody(BaseModel):
-    device_code: str
-    email: str
-    name: str = ""
-    color: str = "#0ea5e9"
-
-
-@app.post("/api/outlook/devicecode")
-async def outlook_devicecode():
-    raise HTTPException(
-        status_code=410,
-        detail="旧版 Outlook 登录已停用，请使用项目自有 Microsoft OAuth 客户端重新发起登录",
-    )
-
-
-@app.post("/api/outlook/poll")
-async def outlook_poll(body: DevicePollBody):
-    raise HTTPException(
-        status_code=410,
-        detail="旧版 Outlook 登录已停用，请使用项目自有 Microsoft OAuth 客户端重新发起登录",
-    )
 
 
 # ---------- 邮件 ----------
