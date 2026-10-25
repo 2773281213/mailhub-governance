@@ -5,7 +5,6 @@ import email.utils
 import html as html_mod
 import imaplib
 import re
-import socket
 import time
 
 import httpx
@@ -246,17 +245,31 @@ def parse_message(raw_bytes: bytes) -> dict:
 
 # ---------- IMAP 会话 ----------
 
+def _uid_chunks(uids: list[int], size: int = 100):
+    for i in range(0, len(uids), size):
+        yield ",".join(str(u) for u in uids[i:i + size])
+
+
 class ImapSession:
     def __init__(self, host: str, port: int = 993, timeout: int = 30):
-        socket.setdefaulttimeout(timeout)
-        self.conn = imaplib.IMAP4_SSL(host, port)
+        # 超时只作用于本连接；不再用 socket.setdefaulttimeout 改动整个进程的默认值
+        self.conn = imaplib.IMAP4_SSL(host, port, timeout=timeout)
+        self.caps = frozenset(str(c).upper() for c in getattr(self.conn, "capabilities", ()))
+
+    def _refresh_capabilities(self):
+        """登录后重新读取能力列表：Gmail 等服务器在认证前不会通告 UIDPLUS。"""
+        typ, data = self.conn.capability()
+        if typ == "OK" and data:
+            self.caps = frozenset(_imap_response_text(data).upper().split())
 
     def login_password(self, user: str, password: str):
         self.conn.login(user, password)
+        self._refresh_capabilities()
 
     def login_oauth2(self, user: str, access_token: str):
         auth = f"user={user}\x01auth=Bearer {access_token}\x01\x01"
         self.conn.authenticate("XOAUTH2", lambda _: auth.encode())
+        self._refresh_capabilities()
 
     def send_id(self):
         """认证后提交客户端身份；网易未收到有效 ID 时会拒绝 SELECT。"""
@@ -330,19 +343,49 @@ class ImapSession:
         if not uids:
             return
         op = "+FLAGS" if add else "-FLAGS"
-        for i in range(0, len(uids), 100):
-            uidset = ",".join(str(u) for u in uids[i:i + 100])
-            self.conn.uid("store", uidset, op, f"({flag})")
+        for uidset in _uid_chunks(list(uids)):
+            typ, data = self.conn.uid("store", uidset, op, f"({flag})")
+            if typ != "OK":
+                detail = _imap_response_text(data)
+                raise RuntimeError(f"设置邮件标记失败{f'：{detail[:120]}' if detail else ''}")
 
     def mark_read(self, uids: list[int], read: bool = True):
         self.store_flags(uids, "\\Seen", add=read)
 
-    def delete(self, uids: list[int]):
-        self.store_flags(uids, "\\Deleted", add=True)
-        try:
-            self.conn.expunge()
-        except Exception:
-            pass
+    def delete(self, uids: list[int]) -> str:
+        """永久删除指定 UID，只清除 MailHub 自己标记的邮件。
+
+        返回 "expunged"（已从服务器清除）或 "flagged"（已打上 \\Deleted，
+        但收件箱里还有其他客户端标记待删的邮件，为避免连带清除而暂不 EXPUNGE；
+        大多数客户端会隐藏这些邮件，并在下次清除时一并移除）。
+        """
+        targets = sorted({int(u) for u in uids if int(u) > 0})
+        if not targets:
+            return "expunged"
+        self.store_flags(targets, "\\Deleted", add=True)
+
+        if "UIDPLUS" in getattr(self, "caps", frozenset()):
+            # RFC 4315：UID EXPUNGE 只清除列出的 UID
+            for uidset in _uid_chunks(targets):
+                typ, data = self.conn.uid("EXPUNGE", uidset)
+                if typ != "OK":
+                    detail = _imap_response_text(data)
+                    raise RuntimeError(f"服务器拒绝清除邮件{f'：{detail[:120]}' if detail else ''}")
+            return "expunged"
+
+        # 没有 UIDPLUS 时，普通 EXPUNGE 会清掉收件箱里所有带 \Deleted 的邮件。
+        # 只有当待删集合恰好都是本次标记的邮件时才执行。
+        typ, data = self.conn.uid("search", None, "DELETED")
+        if typ != "OK":
+            return "flagged"
+        flagged = {int(u) for u in (data[0] or b"").split()} if data else set()
+        if not flagged <= set(targets):
+            return "flagged"
+        typ, data = self.conn.expunge()
+        if typ != "OK":
+            detail = _imap_response_text(data)
+            raise RuntimeError(f"服务器拒绝清除邮件{f'：{detail[:120]}' if detail else ''}")
+        return "expunged"
 
     def close(self):
         try:
