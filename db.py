@@ -185,6 +185,9 @@ MIGRATIONS = [
     "CREATE INDEX IF NOT EXISTS idx_msg_msgid ON messages(msg_id)",
     "CREATE INDEX IF NOT EXISTS idx_msg_deleted ON messages(deleted_ts)",
     "CREATE INDEX IF NOT EXISTS idx_msg_governance ON messages(governance_version, deleted_ts)",
+    # AI 临时失败后的自动重试（次数与下次重试时间）
+    "ALTER TABLE messages ADD COLUMN ai_retry_count INTEGER DEFAULT 0",
+    "ALTER TABLE messages ADD COLUMN ai_retry_ts REAL DEFAULT 0",
 ]
 
 

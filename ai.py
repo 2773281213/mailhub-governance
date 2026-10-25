@@ -141,6 +141,7 @@ def classify_batch(mails: list[dict]) -> list[dict]:
 
     needs_review 是兼容旧调用方的「结果不可信」标记。任何异常（网络失败、JSON
     非法、字段越界、检出注入）都会置 True，由治理引擎自动回退；不会进入人工队列。
+    transient=True 表示网络失败或漏答这类临时问题，治理引擎会稍后自动重试。
     """
     if not mails:
         return []
@@ -159,7 +160,7 @@ def classify_batch(mails: list[dict]) -> list[dict]:
                     {"role": "user", "content": user}], max_tokens=3000)
     except Exception as e:
         # 服务不可用：整批标记不可信，治理引擎会自动保留本地规则分类
-        return [{"id": int(m["id"]), "needs_review": True,
+        return [{"id": int(m["id"]), "needs_review": True, "transient": True,
                  "reason": f"AI 调用失败：{str(e)[:60]}"} for m in mails]
 
     valid_ids = {int(m["id"]) for m in mails}
@@ -205,7 +206,8 @@ def classify_batch(mails: list[dict]) -> list[dict]:
     for m in mails:
         mid = int(m["id"])
         if mid not in seen:
-            out.append({"id": mid, "needs_review": True, "reason": "AI 未返回该邮件的判定"})
+            out.append({"id": mid, "needs_review": True, "transient": True,
+                        "reason": "AI 未返回该邮件的判定"})
     return out
 
 

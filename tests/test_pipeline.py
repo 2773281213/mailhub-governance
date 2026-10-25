@@ -14,6 +14,7 @@ os.environ["MAILHUB_DB"] = os.path.join(_TMP, "test.db")
 
 import asyncio  # noqa: E402
 import json  # noqa: E402
+import time  # noqa: E402
 
 import pytest  # noqa: E402
 
@@ -873,3 +874,117 @@ def test_external_api_settings_are_cleared(fresh_db):
     assert db.get_setting("alias_account_id", None) is None
     settings = asyncio.run(mailhub_app.get_settings())
     assert "ext_token" not in settings and "alias_accounts" not in settings
+
+
+# ---------------- AI 临时失败重试与分批 ----------------
+
+def _retry_state(conn, mid):
+    return dict(conn.execute(
+        "SELECT ai_retry_count, ai_retry_ts, governance_source FROM messages WHERE id=?", (mid,)
+    ).fetchone())
+
+
+def test_transient_ai_failure_is_retried_with_backoff(fresh_db, monkeypatch):
+    acc = _mk_account(fresh_db)
+    mid = _insert_msg(fresh_db, acc, 1, category="其他")
+    monkeypatch.setattr(governance.ai, "ai_config", lambda: {"enabled": True})
+    calls = []
+
+    def flaky(mails):
+        calls.append([m["id"] for m in mails])
+        return [{"id": m["id"], "needs_review": True, "transient": True,
+                 "reason": "AI 调用失败：timeout"} for m in mails]
+
+    monkeypatch.setattr(governance.ai, "classify_batch", flaky)
+    governance.run_governance(trigger="test")
+    first = _retry_state(fresh_db, mid)
+    assert first["ai_retry_count"] == 1 and first["ai_retry_ts"] > time.time()
+    assert first["governance_source"] == "fallback"
+
+    # 还没到重试时间：不会再处理
+    assert governance.governance_status()["pending"] == 0
+    governance.run_governance(trigger="test")
+    assert len(calls) == 1
+
+    # 到期后自动重试，这次 AI 正常返回
+    fresh_db.execute("UPDATE messages SET ai_retry_ts=? WHERE id=?", (time.time() - 1, mid))
+    fresh_db.commit()
+    assert governance.governance_status()["pending"] == 1
+    monkeypatch.setattr(governance.ai, "classify_batch", lambda mails: [{
+        "id": m["id"], "category": "通知", "confidence": 0.95, "importance": 1,
+        "summary": "s", "reason": "r", "needs_review": False} for m in mails])
+    governance.run_governance(trigger="test")
+    done = _retry_state(fresh_db, mid)
+    assert done == {"ai_retry_count": 0, "ai_retry_ts": 0, "governance_source": "ai"}
+
+
+def test_ai_retry_stops_after_the_limit(fresh_db, monkeypatch):
+    message = {"ai_retry_count": governance.MAX_AI_RETRIES}
+    assert governance._next_retry(message, {"retry": True}, 1000.0) == (
+        governance.MAX_AI_RETRIES + 1, 0.0)
+    assert governance._next_retry({"ai_retry_count": 0}, {"retry": True}, 1000.0) == (
+        1, 1000.0 + governance.AI_RETRY_BASE_SECONDS)
+    assert governance._next_retry({"ai_retry_count": 3}, {"retry": True}, 0.0)[1] == (
+        governance.AI_RETRY_BASE_SECONDS * 8)
+    assert governance._next_retry({"ai_retry_count": 2}, {"retry": False}, 1000.0) == (0, 0.0)
+
+
+def test_low_confidence_is_not_retried(fresh_db, monkeypatch):
+    acc = _mk_account(fresh_db)
+    mid = _insert_msg(fresh_db, acc, 1, category="其他")
+    monkeypatch.setattr(governance.ai, "ai_config", lambda: {"enabled": True})
+    monkeypatch.setattr(governance.ai, "classify_batch", lambda mails: [{
+        "id": m["id"], "category": "通知", "confidence": 0.2, "importance": 1,
+        "needs_review": False} for m in mails])
+    governance.run_governance(trigger="test")
+    assert _retry_state(fresh_db, mid)["ai_retry_ts"] == 0
+
+
+def test_governance_processes_in_chunks(fresh_db, monkeypatch):
+    acc = _mk_account(fresh_db)
+    ids = [_insert_msg(fresh_db, acc, uid, category="通知", date_ts=1000.0 + uid)
+           for uid in range(1, 8)]
+    monkeypatch.setattr(governance, "CHUNK_SIZE", 3)
+    monkeypatch.setattr(governance.ai, "ai_config", lambda: {"enabled": False})
+    loaded = []
+    original = governance._load_messages
+
+    def spy(conn, chunk):
+        loaded.append(list(chunk))
+        return original(conn, chunk)
+
+    monkeypatch.setattr(governance, "_load_messages", spy)
+    result = governance.run_governance(trigger="test")
+
+    assert [len(c) for c in loaded] == [3, 3, 1]
+    assert result["last_run"]["processed_count"] == len(ids)
+    assert result["last_run"]["selected_count"] == len(ids)
+
+
+def test_governance_body_scan_is_truncated(fresh_db):
+    acc = _mk_account(fresh_db)
+    mid = _insert_msg(fresh_db, acc, 1, category="通知")
+    fresh_db.execute("UPDATE messages SET body_text=? WHERE id=?",
+                     ("x" * (governance.BODY_SCAN_CHARS + 500), mid))
+    fresh_db.commit()
+    row = governance._load_messages(fresh_db, [mid])[0]
+    assert len(row["body_text"]) == governance.BODY_SCAN_CHARS
+
+
+def test_classify_batch_marks_network_failures_as_transient(monkeypatch):
+    import ai
+
+    monkeypatch.setattr(ai, "ai_config", lambda: {
+        "enabled": True, "base_url": "http://x/v1", "api_key": "k", "model": "m",
+        "send_body": False})
+
+    def down(*_a, **_k):
+        raise RuntimeError("connection reset")
+
+    monkeypatch.setattr(ai, "chat", down)
+    out = ai.classify_batch([{"id": 1, "subject": "s", "sender": "a@b.com", "snippet": ""}])
+    assert out[0]["transient"] is True
+
+    monkeypatch.setattr(ai, "chat", lambda *a, **k: "[]")
+    out = ai.classify_batch([{"id": 2, "subject": "s", "sender": "a@b.com", "snippet": ""}])
+    assert out[0]["transient"] is True
