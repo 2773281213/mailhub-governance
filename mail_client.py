@@ -1,4 +1,4 @@
-"""IMAP 客户端封装：多服务商预设、163 ID 命令、Outlook XOAUTH2、增量拉取与邮件解析"""
+"""IMAP 客户端封装：登录（密码 / XOAUTH2）、网易 ID 命令、增量拉取与邮件解析"""
 import email
 import email.policy
 import email.utils
@@ -7,16 +7,13 @@ import imaplib
 import re
 import time
 
+import providers
+
 
 # imaplib 默认不认识 ID 命令（RFC 2971），163 不发 ID 会拒绝收信（Unsafe Login）
 imaplib.Commands["ID"] = ("NONAUTH", "AUTH", "SELECTED")
 
-# 网易邮箱客户端需要在认证后发送 RFC 2971 ID；各品牌使用各自的服务器。
-# Outlook Android 5.2606.0 的 authspecificconfigs/NetEase.kt 里共有七个域名，
-# 这里保持同一份品牌清单，避免网页登录拿到的账户被识别成 custom。
-NETEASE_PROVIDERS = frozenset(
-    {"163", "126", "yeah", "188", "vip163", "vip126", "vip188", "qiye163"}
-)
+# 服务商的主机、认证方式以及是否需要发送 ID 统一定义在 providers.py
 IMAP_ID_PAYLOAD = (
     '("name" "MailHub" "version" "1.1" "vendor" "MailHub" '
     '"support-email" "mailhub@localhost")'
@@ -26,78 +23,6 @@ NETEASE_LOGIN_HELP = (
     "并填写客户端授权密码（不是网页登录密码）"
 )
 
-
-# 服务商预设；help 文案会显示在前端添加账户界面
-PROVIDERS = {
-    "qq": {
-        "label": "QQ 邮箱",
-        "host": "imap.qq.com", "port": 993, "auth": "password", "need_id": False,
-        "help": "网页版 QQ 邮箱 → 设置 → 账号 → 开启 IMAP/SMTP 服务，生成 16 位「授权码」，"
-                "此处填授权码而非 QQ 密码；QQ 互联的 OAuth token 没有 IMAP 权限",
-    },
-    "exmail": {
-        "label": "腾讯企业邮",
-        "host": "imap.exmail.qq.com", "port": 993, "auth": "password", "need_id": False,
-        "help": "企业邮网页版 → 设置 → 客户端专用密码；登录名用完整邮箱地址，密码用专用密码。"
-                "主机来自企业微信邮件模块的 IMAP 配置，企业自有域名无法自动识别，需要手动选择本项",
-    },
-    "163": {
-        "label": "网易 163",
-        "host": "imap.163.com", "port": 993, "auth": "password", "need_id": True,
-        "help": "网页版 163 邮箱 → 设置 → POP3/SMTP/IMAP → 开启 IMAP/SMTP；登录时使用完整邮箱地址和客户端授权密码",
-    },
-    "126": {
-        "label": "网易 126",
-        "host": "imap.126.com", "port": 993, "auth": "password", "need_id": True,
-        "help": "网页版 126 邮箱 → 设置 → POP3/SMTP/IMAP → 开启 IMAP/SMTP；登录时使用完整邮箱地址和客户端授权密码",
-    },
-    "yeah": {
-        "label": "网易 yeah.net",
-        "host": "imap.yeah.net", "port": 993, "auth": "password", "need_id": True,
-        "help": "网页版 yeah.net 邮箱 → 设置 → POP3/SMTP/IMAP → 开启 IMAP/SMTP；登录时使用完整邮箱地址和客户端授权密码",
-    },
-    "188": {
-        "label": "网易 188",
-        "host": "imap.188.com", "port": 993, "auth": "password", "need_id": True,
-        "help": "网页版 188 邮箱 → 设置 → POP3/SMTP/IMAP → 开启 IMAP/SMTP；登录时使用完整邮箱地址和客户端授权密码",
-    },
-    "qiye163": {
-        "label": "网易企业邮",
-        "host": "imap.qiye.163.com", "port": 993, "auth": "password", "need_id": True,
-        "help": "网易企业邮（qiye.163.com）→ 管理后台开启 IMAP/SMTP 并生成客户端授权密码；"
-                "企业自有域名无法自动识别，需要手动选择本项",
-    },
-    "vip163": {
-        "label": "网易 VIP 163",
-        "host": "imap.vip.163.com", "port": 993, "auth": "password", "need_id": True,
-        "help": "VIP 163 邮箱 → 设置 → POP3/SMTP/IMAP → 开启 IMAP/SMTP；登录时使用完整邮箱地址和客户端授权密码",
-    },
-    "vip126": {
-        "label": "网易 VIP 126",
-        "host": "imap.vip.126.com", "port": 993, "auth": "password", "need_id": True,
-        "help": "VIP 126 邮箱 → 设置 → POP3/SMTP/IMAP → 开启 IMAP/SMTP；登录时使用完整邮箱地址和客户端授权密码",
-    },
-    "vip188": {
-        "label": "网易 VIP 188",
-        "host": "imap.vip.188.com", "port": 993, "auth": "password", "need_id": True,
-        "help": "VIP 188 邮箱 → 设置 → POP3/SMTP/IMAP → 开启 IMAP/SMTP；登录时使用完整邮箱地址和客户端授权密码",
-    },
-    "gmail": {
-        "label": "Gmail",
-        "host": "imap.gmail.com", "port": 993, "auth": "password", "need_id": False,
-        "help": "Google 账号需开启两步验证，然后在 myaccount.google.com/apppasswords 创建「应用专用密码」填入此处（服务器在美国，直连无碍）",
-    },
-    "outlook": {
-        "label": "Outlook / Hotmail",
-        "host": "outlook.office365.com", "port": 993, "auth": "oauth", "need_id": False,
-        "help": "微软已停用 IMAP 密码登录，点击下方按钮走 OAuth 设备码授权（浏览器打开链接输入代码即可）",
-    },
-    "custom": {
-        "label": "自定义 IMAP",
-        "host": "", "port": 993, "auth": "password", "need_id": False,
-        "help": "填写任意支持 IMAP SSL 的邮箱服务器",
-    },
-}
 
 # ---------- 邮件解析辅助 ----------
 
@@ -393,7 +318,7 @@ class ImapSession:
 def open_session(account: dict, secret: str) -> ImapSession:
     """按账户配置建立并登录 IMAP 会话；secret 为解密后的密码/授权码或 OAuth access_token"""
     sess = ImapSession(account["imap_host"], account["imap_port"])
-    needs_id = account.get("provider") in NETEASE_PROVIDERS or bool(account.get("need_id"))
+    needs_id = providers.needs_imap_id(account.get("provider", "")) or bool(account.get("need_id"))
     try:
         if account["auth_type"] == "oauth":
             sess.login_oauth2(account["email"], secret)
@@ -405,7 +330,7 @@ def open_session(account: dict, secret: str) -> ImapSession:
         return sess
     except Exception as exc:
         sess.close()
-        if account.get("provider") in NETEASE_PROVIDERS and _is_auth_failure(exc):
+        if needs_id and _is_auth_failure(exc):
             raise RuntimeError(NETEASE_LOGIN_HELP) from exc
         raise
 

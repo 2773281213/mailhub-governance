@@ -14,6 +14,7 @@ import app as mailhub_app
 import db
 import mail_client
 import oauth_auth
+import providers as provider_registry
 from security import decrypt, encrypt
 
 
@@ -76,12 +77,13 @@ def test_public_provider_metadata_never_exposes_oauth_credentials(isolated_db, m
     assert "visible-only-to-server" not in rendered
     assert result["gmail"]["oauth"]["browser"] is True
     assert result["outlook"]["oauth"]["device"] is False
-    assert result["qq"]["setup_url"].startswith("https://mail.qq.com/")
-    assert result["163"]["setup_url"].startswith("https://mail.163.com/")
-    assert result["163"]["guided_auth"] == "netease_app_password"
-    assert result["126"]["guided_auth"] == "netease_app_password"
-    assert result["yeah"]["guided_auth"] == "netease_app_password"
-    assert result["gmail"]["guided_auth"] == ""
+    assert result["qq"]["methods"][0]["setup_url"].startswith("https://mail.qq.com/")
+    assert result["163"]["methods"][0]["setup_url"].startswith("https://mail.163.com/")
+    for brand in ("163", "126", "yeah"):
+        assert [m["type"] for m in result[brand]["methods"]] == ["app_password"]
+        assert result[brand]["methods"][0]["steps"]
+    # Gmail 配置了 OAuth 时排在授权码前面
+    assert [m["type"] for m in result["gmail"]["methods"]] == ["oauth_browser", "app_password"]
     assert result["126"]["host"] == "imap.126.com"
     assert result["yeah"]["host"] == "imap.yeah.net"
     assert result["yeah"]["domains"] == ["yeah.net"]
@@ -446,16 +448,10 @@ def test_probe_always_closes_session(monkeypatch):
     assert session.closed is True
 
 
-def test_legacy_outlook_login_endpoints_are_disabled(isolated_db):
-    with pytest.raises(mailhub_app.HTTPException) as exc_info:
-        asyncio.run(mailhub_app.outlook_devicecode())
-    assert exc_info.value.status_code == 410
-    with pytest.raises(mailhub_app.HTTPException) as exc_info:
-        asyncio.run(mailhub_app.outlook_poll(mailhub_app.DevicePollBody(
-            device_code="legacy-code", email="claimed@outlook.com",
-        )))
-    assert exc_info.value.status_code == 410
-    assert isolated_db.execute("SELECT COUNT(*) c FROM accounts").fetchone()["c"] == 0
+def test_legacy_outlook_login_endpoints_are_removed():
+    paths = {getattr(route, "path", "") for route in mailhub_app.app.routes}
+    assert "/api/outlook/devicecode" not in paths
+    assert "/api/outlook/poll" not in paths
 
 
 def test_netease_probe_order_is_login_then_id_then_select_and_close(monkeypatch):
@@ -628,13 +624,14 @@ def test_netease_brand_catalog_matches_apk(isolated_db):
         "vip188": ("vip.188.com", "imapmail.188.com"),
     }
     for brand, (domain, host) in expected.items():
+        meta = provider_registry.get(brand)
         assert providers[brand]["domains"] == [domain]
-        assert oauth_auth._NETEASE_OAUTH_IMAP_HOSTS[brand] == host
+        assert meta.host_for("oauth") == host
         assert oauth_auth.detect_provider(f"user@{domain}") == brand
-        assert oauth_auth._NETEASE_OAUTH_ENDPOINTS[brand].endswith(
+        assert meta.netease_authorize_url.endswith(
             "/fgw/mailsrv-oauth2-fapi/oauth2/authorize/entry"
         )
-    assert oauth_auth._NETEASE_OAUTH_ENDPOINTS["vip163"].startswith("https://vip.163.com/")
+    assert provider_registry.get("vip163").netease_authorize_url.startswith("https://vip.163.com/")
 
 
 def test_netease_fragment_callback_completes_implicit_flow(isolated_db, monkeypatch):
@@ -714,32 +711,33 @@ def test_exmail_provider_preset_matches_wecom_imap_stack(isolated_db):
     assert providers["exmail"]["label"] == "腾讯企业邮"
     assert providers["exmail"]["host"] == "imap.exmail.qq.com"
     assert providers["exmail"]["port"] == 993
-    assert providers["exmail"]["auth_modes"] == ["app_password"]
+    assert [m["type"] for m in providers["exmail"]["methods"]] == ["app_password"]
     assert providers["exmail"]["oauth"]["browser"] is False
     # 企业邮是自有域名，只能按域名猜出 custom，由用户显式选择服务商。
     assert oauth_auth.detect_provider("user@company.example") == "custom"
     assert oauth_auth.normalize_account_identity("exmail", "user@company.example") == (
         "exmail", "user@company.example",
     )
-    assert mail_client.PROVIDERS["exmail"]["host"] == "imap.exmail.qq.com"
+    assert provider_registry.get("exmail").host_for("password") == "imap.exmail.qq.com"
 
 def test_netease_password_hosts_follow_mail_master(isolated_db):
     # 密码/授权码账户使用 imap.vip.*（邮箱大师主机表），OAuth 账户仍用 imapmail.*。
-    assert mail_client.PROVIDERS["vip163"]["host"] == "imap.vip.163.com"
-    assert mail_client.PROVIDERS["vip126"]["host"] == "imap.vip.126.com"
-    assert mail_client.PROVIDERS["vip188"]["host"] == "imap.vip.188.com"
-    assert mail_client.PROVIDERS["188"]["host"] == "imap.188.com"
-    assert oauth_auth._NETEASE_OAUTH_IMAP_HOSTS["vip163"] == "imapmail.vip.163.com"
-    assert "vip163" in mail_client.NETEASE_PROVIDERS
+    get = provider_registry.get
+    assert get("vip163").host_for("password") == "imap.vip.163.com"
+    assert get("vip126").host_for("password") == "imap.vip.126.com"
+    assert get("vip188").host_for("password") == "imap.vip.188.com"
+    assert get("188").host_for("password") == "imap.188.com"
+    assert get("vip163").host_for("oauth") == "imapmail.vip.163.com"
+    assert provider_registry.needs_imap_id("vip163")
 
 
 def test_netease_qiye_provider_preset(isolated_db):
     providers = oauth_auth.public_providers()
     assert providers["qiye163"]["label"] == "网易企业邮"
     assert providers["qiye163"]["host"] == "imap.qiye.163.com"
-    assert providers["qiye163"]["auth_modes"] == ["app_password"]
+    assert [m["type"] for m in providers["qiye163"]["methods"]] == ["app_password"]
     assert providers["qiye163"]["oauth"]["browser"] is False
-    assert "qiye163" in mail_client.NETEASE_PROVIDERS
+    assert provider_registry.needs_imap_id("qiye163")
     # 企业自有域名只能落到 custom，由用户显式选择企业邮。
     assert oauth_auth.detect_provider("user@corp.example") == "custom"
     assert oauth_auth.normalize_account_identity("qiye163", "user@corp.example") == (
@@ -749,11 +747,12 @@ def test_netease_qiye_provider_preset(isolated_db):
 def test_qq_provider_uses_guided_auth_code_flow(isolated_db):
     providers = oauth_auth.public_providers()
     qq = providers["qq"]
-    assert qq["guided_auth"] == "qq_app_password"
-    assert qq["auth_modes"] == ["app_password"]
+    assert [m["type"] for m in qq["methods"]] == ["app_password"]
+    assert qq["methods"][0]["input_label"] == "QQ 邮箱授权码"
+    assert len(qq["methods"][0]["steps"]) == 2
     assert qq["oauth"]["browser"] is False
-    assert mail_client.PROVIDERS["qq"]["host"] == "imap.qq.com"
-    assert "QQ 互联" in mail_client.PROVIDERS["qq"]["help"]
+    assert qq["host"] == "imap.qq.com"
+    assert "QQ 互联" in qq["note"]
     assert oauth_auth.detect_provider("user@foxmail.com") == "qq"
 
 def test_deployment_status_reports_channels_and_reauth(isolated_db, monkeypatch):
@@ -764,7 +763,7 @@ def test_deployment_status_reports_channels_and_reauth(isolated_db, monkeypatch)
     assert status["public_url"] == "https://mail.example.test"
     assert status["ok"] is True
     assert status["channels"]["163"]["oauth_browser"] is False
-    assert status["channels"]["qq"]["auth_modes"] == ["app_password"]
+    assert status["channels"]["qq"]["methods"] == ["app_password"]
     assert status["channels"]["qq"]["callback_url"].endswith("/api/oauth/qq/callback")
     names = {c["name"]: c for c in status["checks"]}
     assert names["公开地址使用 HTTPS"]["ok"] is True

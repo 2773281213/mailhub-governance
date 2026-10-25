@@ -18,6 +18,7 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
 import mail_client
+import providers
 from db import get_conn, get_setting, set_setting
 from security import decrypt, encrypt
 
@@ -40,72 +41,6 @@ _OUTLOOK_OAUTH_HOST = "olmoauth.outlook.com"
 _refresh_locks: dict[int, threading.Lock] = {}
 _refresh_locks_guard = threading.Lock()
 
-_PROVIDER_META = {
-    "qq": {
-        "domains": ["qq.com", "foxmail.com"],
-        "auth_modes": ["app_password"],
-        "guided_auth": "qq_app_password",
-        "secret_label": "QQ 邮箱授权码",
-        "setup_url": "https://mail.qq.com/",
-        "setup_label": "登录 QQ 邮箱并开启 IMAP",
-    },
-    # 企业邮使用企业自有域名，无法按域名识别；主机取自企业微信邮件模块的 IMAP 配置。
-    "exmail": {
-        "domains": [],
-        "auth_modes": ["app_password"],
-        "secret_label": "企业邮客户端专用密码",
-        "setup_url": "https://exmail.qq.com/",
-        "setup_label": "登录腾讯企业邮并生成客户端专用密码",
-    },
-    # 网易企业邮（qiye.163.com）同样使用自有域名，主机来自网易邮箱大师的 IMAP 主机表。
-    "qiye163": {
-        "domains": [],
-        "auth_modes": ["app_password"],
-        "secret_label": "企业邮客户端授权密码",
-        "setup_url": "https://qiye.163.com/",
-        "setup_label": "登录网易企业邮并生成客户端授权密码",
-    },
-    "163": {
-        "domains": ["163.com"],
-        "auth_modes": ["app_password"],
-        "guided_auth": "netease_app_password",
-        "secret_label": "网易客户端授权密码",
-        "setup_url": "https://mail.163.com/",
-        "setup_label": "登录网易邮箱并获取客户端授权密码",
-    },
-    "126": {
-        "domains": ["126.com"],
-        "auth_modes": ["app_password"],
-        "guided_auth": "netease_app_password",
-        "secret_label": "网易客户端授权密码",
-        "setup_url": "https://mail.126.com/",
-        "setup_label": "登录网易邮箱并获取客户端授权密码",
-    },
-    "yeah": {
-        "domains": ["yeah.net"],
-        "auth_modes": ["app_password"],
-        "guided_auth": "netease_app_password",
-        "secret_label": "网易客户端授权密码",
-        "setup_url": "https://mail.yeah.net/",
-        "setup_label": "登录网易邮箱并获取客户端授权密码",
-    },
-    "gmail": {
-        "domains": ["gmail.com", "googlemail.com"],
-        "auth_modes": ["oauth", "app_password"],
-        "secret_label": "Google 应用专用密码",
-    },
-    "outlook": {
-        "domains": ["outlook.com", "hotmail.com", "live.com", "msn.com"],
-        "auth_modes": ["oauth"],
-        "secret_label": "",
-    },
-    "custom": {
-        "domains": [],
-        "auth_modes": ["password"],
-        "secret_label": "邮箱密码或服务商要求的应用专用密码",
-    },
-}
-
 _OAUTH_SPECS = {
     "outlook": {
         "authorize_url": "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
@@ -127,57 +62,6 @@ _OAUTH_SPECS = {
         "prompt": "consent select_account",
     },
 }
-
-# NetEase 品牌表。域名、授权入口、IMAP 主机全部来自 Outlook Android 5.2606.0
-# 的 authspecificconfigs/NetEase.kt，不要凭记忆改动其中的主机名。
-_NETEASE_BRANDS = {
-    "163": {
-        "domain": "163.com", "web": "https://mail.163.com",
-        "imap": "imapmail.163.com", "setup": "https://mail.163.com/",
-    },
-    "126": {
-        "domain": "126.com", "web": "https://mail.126.com",
-        "imap": "imapmail.126.com", "setup": "https://mail.126.com/",
-    },
-    "yeah": {
-        "domain": "yeah.net", "web": "https://mail.yeah.net",
-        "imap": "imapmail.yeah.net", "setup": "https://mail.yeah.net/",
-    },
-    "188": {
-        "domain": "188.com", "web": "https://mail.188.com",
-        "imap": "imapmail.188.com", "setup": "https://mail.188.com/",
-    },
-    "vip163": {
-        "domain": "vip.163.com", "web": "https://vip.163.com",
-        "imap": "imapmail.vip.163.com", "setup": "https://vip.163.com/",
-    },
-    "vip126": {
-        "domain": "vip.126.com", "web": "https://vip.126.com",
-        "imap": "imapmail.vip.126.com", "setup": "https://vip.126.com/",
-    },
-    # APK 只给出 vip.188.com 的授权入口，IMAP 仍复用 188 的 imapmail 主机。
-    "vip188": {
-        "domain": "vip.188.com", "web": "https://vip.188.com",
-        "imap": "imapmail.188.com", "setup": "https://vip.188.com/",
-    },
-}
-_NETEASE_OAUTH_ENDPOINTS = {
-    brand: f"{meta['web']}/fgw/mailsrv-oauth2-fapi/oauth2/authorize/entry"
-    for brand, meta in _NETEASE_BRANDS.items()
-}
-_NETEASE_OAUTH_IMAP_HOSTS = {brand: meta["imap"] for brand, meta in _NETEASE_BRANDS.items()}
-
-for _brand, _meta in _NETEASE_BRANDS.items():
-    _PROVIDER_META.setdefault(_brand, {
-        "domains": [_meta["domain"]],
-        "auth_modes": ["app_password"],
-        "guided_auth": "netease_app_password",
-        "secret_label": "网易客户端授权密码",
-        "setup_url": _meta["setup"],
-        "setup_label": "登录网易邮箱并获取客户端授权密码",
-    })
-del _brand, _meta
-
 
 class OAuthError(RuntimeError):
     def __init__(self, message: str, *, reauth_required: bool = False):
@@ -202,7 +86,7 @@ def normalize_account_identity(provider: str, email_addr: str) -> tuple[str, str
     """规范化并校验服务商和邮箱地址。"""
     normalized_provider = provider.strip().lower()
     normalized_email = email_addr.strip().lower()
-    if normalized_provider not in mail_client.PROVIDERS:
+    if providers.get(normalized_provider) is None:
         raise HTTPException(status_code=400, detail="不支持的邮箱服务商")
     if not _EMAIL_RE.fullmatch(normalized_email):
         raise HTTPException(status_code=400, detail="邮箱地址格式不正确")
@@ -298,11 +182,7 @@ def _normalize_start(body: OAuthStartBody, expected_provider: str = "") -> dict:
 
 
 def detect_provider(email_addr: str) -> str:
-    domain = email_addr.strip().lower().rpartition("@")[2]
-    for provider, meta in _PROVIDER_META.items():
-        if domain and domain in meta["domains"]:
-            return provider
-    return "custom"
+    return providers.detect(email_addr)
 
 
 def oauth_client_identity_error(provider: str, client_id: str) -> str:
@@ -357,7 +237,8 @@ def _netease_config(provider: str) -> dict | None:
 
     Outlook 的合作方 appid 和 olmoauth 中转回调一律拒绝，未配置时回退客户端授权密码。
     """
-    if provider not in _NETEASE_OAUTH_ENDPOINTS:
+    meta = providers.get(provider)
+    if meta is None or meta.oauth != "netease":
         return None
     client_id = os.environ.get("NETEASE_CLIENT_ID", "").strip()
     if not client_id or client_id == _OUTLOOK_NETEASE_APP_ID:
@@ -369,7 +250,7 @@ def _netease_config(provider: str) -> dict | None:
     if (urlparse(redirect_uri).hostname or "").lower() == _OUTLOOK_OAUTH_HOST:
         return None
     return {
-        "authorize_url": _NETEASE_OAUTH_ENDPOINTS[provider],
+        "authorize_url": meta.netease_authorize_url,
         "client_id": client_id,
         "device_id": device_id,
         "scope": "imap",
@@ -390,21 +271,17 @@ def deployment_status() -> dict:
     ).fetchone()["c"]
 
     channels = {}
-    published = public_providers()
-    for key in mail_client.PROVIDERS:
-        meta = _PROVIDER_META.get(key, _PROVIDER_META["custom"])
+    for key, meta in providers.PROVIDERS.items():
         netease = _netease_config(key)
-        browser = _browser_config(key) or netease
-        entry = {
-            "label": mail_client.PROVIDERS[key]["label"],
-            "oauth_browser": browser is not None,
-            "oauth_device": key == "outlook" and bool(_device_client_id()),
-            "auth_modes": published[key]["auth_modes"],
+        methods = auth_methods(key)
+        channels[key] = {
+            "label": meta.label,
+            "methods": [m["type"] for m in methods],
+            "oauth_browser": any(m["type"] == providers.OAUTH_BROWSER for m in methods),
+            "oauth_device": any(m["type"] == providers.OAUTH_DEVICE for m in methods),
             "callback_url": netease["redirect_uri"] if netease else _redirect_uri(key),
-            "secret_label": meta["secret_label"],
-            "requires_vendor_approval": key in _NETEASE_OAUTH_ENDPOINTS,
+            "requires_vendor_approval": meta.oauth == "netease",
         }
-        channels[key] = entry
 
     checks = []
 
@@ -414,7 +291,7 @@ def deployment_status() -> dict:
     local_dev = base.startswith("http://127.0.0.1") or base.startswith("http://localhost")
     check("公开地址使用 HTTPS", base.startswith("https://") or local_dev,
           base if base.startswith("https://") else f"{base}（本地开发地址；生产环境必须是 HTTPS）")
-    netease_ready = [brand for brand in _NETEASE_BRANDS if _netease_config(brand)]
+    netease_ready = [key for key in providers.netease_keys() if _netease_config(key)]
     check(
         "网易 OAuth 通道",
         bool(netease_ready),
@@ -474,31 +351,60 @@ def _device_client_id() -> str:
     return get_setting("microsoft_oauth_client_id", "").strip()
 
 
+def oauth_available(provider: str) -> dict:
+    """部署者是否为该服务商配置了 OAuth 客户端：{"browser": bool, "device": bool}。"""
+    meta = providers.get(provider)
+    if meta is None or not meta.oauth:
+        return {"browser": False, "device": False}
+    if meta.oauth == "netease":
+        return {"browser": _netease_config(provider) is not None, "device": False}
+    return {
+        "browser": _browser_config(provider) is not None,
+        "device": meta.device_flow and bool(_device_client_id()),
+    }
+
+
+def auth_methods(provider: str) -> list[dict]:
+    """当前部署下该服务商可用的认证方式，按推荐顺序排列（OAuth 优先）。"""
+    meta = providers.get(provider)
+    if meta is None:
+        return []
+    available = oauth_available(provider)
+    methods: list[dict] = []
+    if available["browser"]:
+        methods.append({"type": providers.OAUTH_BROWSER, "label": meta.oauth_label})
+    if available["device"]:
+        methods.append({"type": providers.OAUTH_DEVICE, "label": "用设备码登录"})
+    if meta.secret is not None:
+        methods.append({
+            "type": meta.secret.kind,
+            "label": "使用授权码" if meta.secret.kind == providers.APP_PASSWORD else "使用密码",
+            "input_label": meta.secret.input_label,
+            "setup_url": meta.secret.setup_url,
+            "setup_label": meta.secret.setup_label,
+            "steps": list(meta.secret.steps),
+        })
+    return methods
+
+
 def public_providers() -> dict:
+    """给前端的服务商列表。只包含公开信息，不含任何客户端密钥。"""
     result = {}
-    for key, preset in mail_client.PROVIDERS.items():
-        meta = _PROVIDER_META.get(key, _PROVIDER_META["custom"])
-        netease = _netease_config(key)
-        browser_enabled = _browser_config(key) is not None or netease is not None
-        auth_modes = list(meta["auth_modes"])
-        if netease is not None and "oauth" not in auth_modes:
-            auth_modes.insert(0, "oauth")
-        oauth_info = {
-            "browser": browser_enabled,
-            "device": key == "outlook" and bool(_device_client_id()),
-        }
+    for key, meta in providers.PROVIDERS.items():
+        methods = auth_methods(key)
+        unavailable = ""
+        if not methods:
+            unavailable = ("管理员尚未配置 Microsoft OAuth 客户端（MICROSOFT_CLIENT_ID），暂时不能添加该邮箱"
+                           if key == "outlook" else "当前部署没有可用的登录方式")
         result[key] = {
-            "label": preset["label"],
-            "host": preset["host"],
-            "port": preset["port"],
-            "help": preset["help"],
-            "domains": meta["domains"],
-            "auth_modes": auth_modes,
-            "secret_label": meta["secret_label"],
-            "setup_url": meta.get("setup_url", ""),
-            "setup_label": meta.get("setup_label", ""),
-            "guided_auth": meta.get("guided_auth", ""),
-            "oauth": oauth_info,
+            "label": meta.label,
+            "domains": list(meta.domains),
+            "host": meta.imap_host,
+            "port": meta.imap_port,
+            "note": meta.note,
+            "methods": methods,
+            "oauth": oauth_available(key),
+            "unavailable": unavailable,
         }
     return result
 
@@ -647,9 +553,21 @@ def _store_device_transaction(data: dict, device: dict, client_id: str, scope: s
     return tx_id
 
 
+def _oauth_probe_account(provider: str, email_addr: str) -> dict:
+    """OAuth 登录后先用这个账户配置实测 IMAP，再入库。"""
+    meta = providers.get(provider)
+    return {
+        "provider": provider,
+        "auth_type": "oauth",
+        "imap_host": meta.host_for("oauth"),
+        "imap_port": meta.imap_port,
+        "email": email_addr,
+    }
+
+
 def _upsert_oauth_account(tx: dict, token_data: dict) -> int:
     provider = tx["provider"]
-    preset = mail_client.PROVIDERS[provider]
+    meta = providers.get(provider)
     conn = get_conn()
     row = None
     if int(tx.get("account_id") or 0):
@@ -668,9 +586,9 @@ def _upsert_oauth_account(tx: dict, token_data: dict) -> int:
     if not access:
         raise OAuthError("服务商未返回访问令牌")
     expires = time.time() + max(60, int(token_data.get("expires_in", 3600)))
-    imap_host = _NETEASE_OAUTH_IMAP_HOSTS.get(provider, preset["host"])
     common_values = (
-        tx["display_name"] or tx["email"], provider, tx["email"], imap_host, preset["port"],
+        tx["display_name"] or tx["email"], provider, tx["email"], meta.host_for("oauth"),
+        meta.imap_port,
         encrypt(refresh), encrypt(access), expires, tx["client_id"], tx["scope"],
         int(tx["sync_interval"]), tx["color"],
     )
@@ -710,7 +628,7 @@ def _mark_reauth_required(account_id: int, message: str):
 
 
 def _refresh_account_token(current: dict, refresh_token: str) -> dict:
-    if current["provider"] in _NETEASE_OAUTH_ENDPOINTS:
+    if current["provider"] in providers.netease_keys():
         raise OAuthError("网易邮箱授权已到期，请重新登录", reauth_required=True)
     return refresh_provider_token(
         current["provider"],
@@ -837,14 +755,14 @@ setTimeout(()=>window.close(), payload.ok ? 300 : 2500);
 
 
 @router.get("/api/oauth/providers")
-async def providers():
+async def list_providers():
     return {"providers": public_providers()}
 
 
 @router.post("/api/oauth/start")
 async def oauth_start(body: OAuthStartBody):
     data = _normalize_start(body)
-    if data["provider"] in _NETEASE_OAUTH_ENDPOINTS:
+    if data["provider"] in providers.netease_keys():
         return _netease_oauth_start(data)
     config = _browser_config(data["provider"])
     if not config:
@@ -899,17 +817,6 @@ def _netease_oauth_start(data: dict) -> dict:
     }
 
 
-def _netease_probe_account(provider: str, email_addr: str) -> dict:
-    preset = mail_client.PROVIDERS[provider]
-    return {
-        "provider": provider,
-        "auth_type": "oauth",
-        "imap_host": _NETEASE_OAUTH_IMAP_HOSTS.get(provider, preset["host"]),
-        "imap_port": preset["port"],
-        "email": email_addr,
-    }
-
-
 def _complete_netease_login(provider: str, tx: dict, uid: str, token: str) -> int:
     """按 NetEaseAuthDelegate 的顺序校验 uid、state 绑定和令牌，再建账户。"""
     config = _netease_config(provider)
@@ -919,7 +826,7 @@ def _complete_netease_login(provider: str, tx: dict, uid: str, token: str) -> in
         raise OAuthError("网易返回的邮箱地址与登录账户不一致")
     if not token:
         raise OAuthError("网易未返回邮箱访问令牌")
-    probe_connection(_netease_probe_account(provider, tx["email"]), token)
+    probe_connection(_oauth_probe_account(provider, tx["email"]), token)
     # APK 把同一个 token 同时当作 access/refresh，并写入 3650 天有效期。
     return _upsert_oauth_account(tx, {
         "access_token": token,
@@ -936,10 +843,10 @@ async def oauth_callback(provider: str, state: str = "", code: str = "",
     # APK 读的是 accessToken（驼峰），这里同时接受两种写法，避免令牌被静默丢弃。
     netease_token = (access_token or accessToken or "").strip()
     try:
-        if provider not in _OAUTH_SPECS and provider not in _NETEASE_OAUTH_ENDPOINTS:
+        is_netease = provider in providers.netease_keys()
+        if provider not in _OAUTH_SPECS and not is_netease:
             raise OAuthError("无效的 OAuth 回调")
-        if (provider in _NETEASE_OAUTH_ENDPOINTS
-                and not (code or netease_token or error)):
+        if is_netease and not (code or netease_token or error):
             # 隐式 flow：令牌只在 fragment 里，交给回调页读出来再提交。
             return _fragment_capture_page(provider)
         if not state:
@@ -947,7 +854,7 @@ async def oauth_callback(provider: str, state: str = "", code: str = "",
         tx = _take_browser_transaction(state, provider)
         if error:
             raise OAuthError(error_description or error)
-        if provider in _NETEASE_OAUTH_ENDPOINTS:
+        if is_netease:
             account_id = await asyncio.to_thread(
                 _complete_netease_login, provider, tx, uid, netease_token,
             )
@@ -960,14 +867,7 @@ async def oauth_callback(provider: str, state: str = "", code: str = "",
             token_data = await asyncio.to_thread(
                 exchange_code, provider, code, verifier, tx["redirect_uri"], tx["client_id"],
             )
-            preset = mail_client.PROVIDERS[provider]
-            probe = {
-                "provider": provider,
-                "auth_type": "oauth",
-                "imap_host": preset["host"],
-                "imap_port": preset["port"],
-                "email": tx["email"],
-            }
+            probe = _oauth_probe_account(provider, tx["email"])
             await asyncio.to_thread(probe_connection, probe, token_data["access_token"])
             account_id = await asyncio.to_thread(_upsert_oauth_account, tx, token_data)
         return _callback_html({
@@ -997,7 +897,7 @@ class FragmentCallbackBody(BaseModel):
 async def oauth_fragment_callback(provider: str, body: FragmentCallbackBody):
     """接收回调页从 URL fragment 里读出的网易令牌（implicit flow）。"""
     provider = provider.strip().lower()
-    if provider not in _NETEASE_OAUTH_ENDPOINTS:
+    if provider not in providers.netease_keys():
         raise HTTPException(status_code=404, detail="该服务商不使用片段回调")
     token = (body.access_token or body.accessToken or "").strip()
     try:
@@ -1130,14 +1030,7 @@ async def outlook_device_poll(body: DevicePollBody):
     if pending:
         return pending
     _delete_transaction(tx["id"])
-    preset = mail_client.PROVIDERS["outlook"]
-    probe = {
-        "provider": "outlook",
-        "auth_type": "oauth",
-        "imap_host": preset["host"],
-        "imap_port": preset["port"],
-        "email": tx["email"],
-    }
+    probe = _oauth_probe_account("outlook", tx["email"])
     try:
         await asyncio.to_thread(probe_connection, probe, token_data["access_token"])
         account_id = await asyncio.to_thread(_upsert_oauth_account, tx, token_data)
