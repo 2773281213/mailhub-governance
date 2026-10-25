@@ -81,6 +81,8 @@ cp .env.example .env
 
 生产环境必须使用长度足够、不会提交到 Git 的密钥。账户授权码、OAuth Token、数据库和备份均属于运行时数据，已由 `.gitignore` 排除。
 
+`MAILHUB_PUBLIC_URL` 默认是 `http://127.0.0.1:8018`，只适合本机使用；对外部署时必须改成你自己的 HTTPS 域名，否则 OAuth 回调无法完成。AI 接口没有默认地址，启用 AI 前请在设置页填写 OpenAI 兼容接口地址（例如本地 Ollama）。
+
 ## 本地运行
 
 ```bash
