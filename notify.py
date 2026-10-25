@@ -185,6 +185,10 @@ def send_onepush(text: str, title: str, content: str) -> str | None:
         config["data"] = data
     if provider == "gocqhttp" and config.get("access_token"):
         config["token"] = config.pop("access_token")
+    if provider == "wechatworkbot" and str(config.get("markdown", "")).strip() in ("", "0"):
+        # onepush 1.10 的企业微信机器人在 markdown=0 时把正文置空，服务端返回 errcode 44004；
+        # 改用 markdown 消息，标题和正文都能显示
+        config["markdown"] = 1
     config.update({"title": title, "content": content})
 
     try:
