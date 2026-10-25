@@ -9,10 +9,10 @@ import re
 import secrets as pysecrets
 import time
 from contextlib import asynccontextmanager
-from datetime import datetime, timedelta
+from datetime import datetime
 from urllib.parse import urlparse
 
-from fastapi import Cookie, FastAPI, HTTPException, Request, Response
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -29,7 +29,7 @@ from db import (audit, get_conn, get_setting, init_db, remove_external_api_setti
                 set_setting)
 import db
 import sessions
-from security import (decrypt, encrypt, hash_password, rotate_encrypted_values,
+from security import (encrypt, hash_password, rotate_encrypted_values,
                       verify_password)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -772,7 +772,6 @@ async def otp_list(limit: int = 24):
 @app.get("/api/overview")
 async def overview():
     conn = get_conn()
-    now = time.time()
     day_start = datetime.now(sync.TZ).replace(hour=0, minute=0, second=0, microsecond=0).timestamp()
 
     def q1(sql, *args):

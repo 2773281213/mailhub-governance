@@ -13,7 +13,7 @@ import oauth_auth
 import policy
 import rules
 import security_scan
-from db import audit, get_conn, get_setting, set_setting
+from db import audit, get_conn, get_setting
 from security import decrypt
 
 TZ = ZoneInfo("Asia/Shanghai")
