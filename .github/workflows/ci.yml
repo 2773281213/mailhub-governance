@@ -56,4 +56,4 @@ jobs:
         run: python -m py_compile *.py scripts/*.py
 
       - name: JavaScript syntax check
-        run: node --check static/app.js && node --check static/oauth.js
+        run: node --check static/app.js

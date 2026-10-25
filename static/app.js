@@ -677,28 +677,21 @@ async function renderAccounts() {
       const acc = accounts.find(x => x.id === id);
       accountModal(acc);
     }
-    if (op === "reauth") {
-      const acc = accounts.find(x => x.id === id);
-      if (!acc) return;
-      b.disabled = true; b.textContent = "打开授权…";
-      try {
-        const r = await api("/oauth/start", { method: "POST", body: {
-          provider: acc.provider, email: acc.email, account_id: acc.id,
-          name: acc.name, color: acc.color, poll_interval: acc.poll_interval,
-        }});
-        const win = window.open(r.authorization_url, "mailhub-reauth", "popup=yes,width=560,height=720");
-        if (!win) toast("浏览器拦截了授权窗口，请允许弹窗后重试", true);
-        else toast("请在弹出的窗口完成授权");
-      } catch (e) { toast(e.message, true); }
-      b.disabled = false; b.textContent = "重新授权";
-    }
+    if (op === "reauth") accountModal(accounts.find(x => x.id === id));
     if (op === "del" && confirm("删除该账户？本地已同步的邮件也会一并删除（不影响邮箱服务器）")) {
       await api(`/accounts/${id}`, { method: "DELETE" }); toast("已删除"); renderAccounts();
     }
   }));
 }
 
-function detectAccountProvider(email, providers = META.providers) {
+const METHOD_TAGS = {
+  oauth_browser: "OAuth 登录",
+  oauth_device: "设备码登录",
+  app_password: "授权码",
+  password: "密码",
+};
+
+function detectAccountProvider(email, providers) {
   const domain = String(email || "").trim().toLowerCase().split("@").pop();
   if (!domain || !String(email || "").includes("@")) return "custom";
   for (const [key, provider] of Object.entries(providers || {})) {
@@ -707,160 +700,257 @@ function detectAccountProvider(email, providers = META.providers) {
   return "custom";
 }
 
-function accountModal(acc = null) {
+// OAuth 弹窗完成后，回调页通过 postMessage 通知这里（只接受同源消息）
+window.addEventListener("message", ev => {
+  if (ev.origin !== location.origin || ev.data?.type !== "mailhub-oauth") return;
+  if (ev.data.ok) {
+    closeModal();
+    toast("邮箱登录成功，正在同步…");
+    if (!$("#view-accounts").classList.contains("hidden")) renderAccounts();
+  } else {
+    const status = $("#ac-status");
+    if (status) status.innerHTML = `<div class="err">${esc(ev.data.message || "邮箱登录失败")}</div>`;
+    else toast(ev.data.message || "邮箱登录失败", true);
+  }
+});
+
+/**
+ * 添加、编辑和重新授权共用的账户弹窗。
+ * 认证方式完全来自后端 /api/oauth/providers 的 methods 列表：
+ * oauth_browser（弹窗登录）、oauth_device（设备码）、app_password / password（授权码或密码）。
+ */
+async function accountModal(acc = null) {
   const editing = !!acc;
-  const providers = META.providers;
+  let providers;
+  try { providers = (await api("/oauth/providers")).providers; }
+  catch (e) { toast(e.message, true); return; }
+  META.providers = providers;
+
   openModal(`
     <h3>${editing ? "编辑账户" : "添加邮箱账户"}</h3>
-    <div class="account-onboard-note">输入邮箱即可自动匹配服务商、服务器和授权方式。</div>
+    ${editing ? "" : `<div class="account-onboard-note">输入邮箱即可自动匹配服务商和可用的登录方式。</div>`}
     <label class="field"><span>邮箱地址</span>
-      <input id="ac-email" type="email" value="${esc(acc?.email || "")}" placeholder="you@example.com" autocomplete="email">
-    </label>
+      <input id="ac-email" type="email" value="${esc(acc?.email || "")}" placeholder="you@example.com"
+        autocomplete="email" ${editing ? "disabled" : ""}></label>
     <label class="field"><span>邮箱服务商</span>
       <select id="ac-provider" ${editing ? "disabled" : ""}>
         ${editing ? "" : '<option value="auto" selected>自动识别（推荐）</option>'}
         ${Object.entries(providers).map(([k, p]) =>
-          `<option value="${k}" ${acc?.provider === k ? "selected" : ""}>${esc(p.label)}</option>`).join("")}
-      </select>
-    </label>
+          `<option value="${esc(k)}" ${acc?.provider === k ? "selected" : ""}>${esc(p.label)}</option>`).join("")}
+      </select></label>
     <div class="provider-detected" id="ac-detected"></div>
-    <div class="provider-help" id="ac-help"></div>
-    <div id="ac-auth-fields"></div>
-    <label class="field"><span>显示名称（可选）</span><input id="ac-name" value="${esc(acc?.name || "")}" placeholder="如：主力邮箱"></label>
-    <label class="field"><span>标记颜色</span><input id="ac-color" type="color" value="${esc(acc?.color || "#1a73e8")}" style="height:36px;padding:2px"></label>
-    <label class="field"><span>轮询间隔（秒）</span><input id="ac-poll" type="number" value="${acc?.poll_interval || 300}" min="60"></label>
-    ${editing ? `<label class="switch"><input type="checkbox" id="ac-enabled" ${acc.enabled ? "checked" : ""}> 启用该账户</label>` : ""}
+    <div id="ac-methods"></div>
+    <div id="ac-method-body"></div>
+    <div id="ac-status"></div>
+    <details class="imap-advanced" ${editing ? "open" : ""}>
+      <summary>显示名称、颜色和同步间隔</summary>
+      <label class="field"><span>显示名称（可选）</span><input id="ac-name" value="${esc(acc?.name || "")}" placeholder="如：主力邮箱"></label>
+      <label class="field"><span>标记颜色</span><input id="ac-color" type="color" value="${esc(acc?.color || "#1a73e8")}" style="height:36px;padding:2px"></label>
+      <label class="field"><span>轮询间隔（秒）</span><input id="ac-poll" type="number" value="${acc?.poll_interval || 300}" min="60"></label>
+      ${editing ? `<label class="switch"><input type="checkbox" id="ac-enabled" ${acc.enabled ? "checked" : ""}> 启用该账户</label>` : ""}
+    </details>
     <div class="ops">
-      <button class="btn" id="ac-cancel">取消</button>
-      <button class="btn primary" id="ac-save">${editing ? "保存" : "一键测试并添加"}</button>
+      <button class="btn" id="ac-cancel">${editing ? "取消" : "关闭"}</button>
+      ${editing ? '<button class="btn primary" id="ac-save">保存</button>' : ""}
     </div>`);
 
-  let paintedProvider = "";
-  const selectedProvider = () => {
-    const choice = editing ? acc.provider : $("#ac-provider").value;
+  let current = { provider: "", method: "" };
+  const providerKey = () => {
+    if (editing) return acc.provider;
+    const choice = $("#ac-provider").value;
     return choice === "auto" ? detectAccountProvider($("#ac-email").value, providers) : choice;
   };
-  const paint = () => {
-    const prov = selectedProvider();
-    const p = providers[prov] || providers.custom;
-    const automatic = !editing && $("#ac-provider").value === "auto";
-    const hasAddress = $("#ac-email").value.includes("@");
-    $("#ac-detected").innerHTML = automatic
-      ? (hasAddress
-        ? `<span class="ok">✓ 已自动识别</span> ${esc(p.label)}${prov === "custom" ? "，请补充服务器设置" : ""}`
-        : "填写邮箱地址后自动识别")
-      : `<span>手动设置：</span>${esc(p.label)}`;
-    if (automatic && !hasAddress) {
-      $("#ac-help").textContent = "支持自动识别 QQ、网易、Gmail、Outlook；其他邮箱可使用高级 IMAP 设置。";
-      $("#ac-auth-fields").innerHTML = "";
-      paintedProvider = "";
-      $("#ac-save").textContent = "一键测试并添加";
-      return;
-    }
-    const setupUrl = /^https:\/\//i.test(p.setup_url || "") ? p.setup_url : "";
-    $("#ac-help").innerHTML = `${esc(p.help || "")}${setupUrl ? ` <a href="${esc(setupUrl)}" target="_blank" rel="noopener">${esc(p.setup_label || "打开设置")}</a>` : ""}`;
-    if (paintedProvider === prov) return;
-    paintedProvider = prov;
+  const commonFields = () => ({
+    name: $("#ac-name").value.trim(),
+    color: $("#ac-color").value || "#1a73e8",
+    poll_interval: Math.max(60, +$("#ac-poll").value || 300),
+  });
+  const oauthPayload = () => ({
+    provider: providerKey(), email: (editing ? acc.email : $("#ac-email").value).trim(),
+    account_id: editing ? acc.id : 0, ...commonFields(),
+  });
+  const setStatus = html => { $("#ac-status").innerHTML = html; };
 
-    if (prov === "outlook" && !editing) {
-      $("#ac-auth-fields").innerHTML = '<div id="ac-device"></div>';
-      $("#ac-save").textContent = "开始 OAuth 授权";
+  const renderMethodBody = (p, method) => {
+    const body = $("#ac-method-body");
+    setStatus("");
+    if (!method) {
+      body.innerHTML = `<div class="err">${esc(p.unavailable || "当前没有可用的登录方式")}</div>`;
       return;
     }
-    if (acc?.auth_type === "oauth") {
-      $("#ac-auth-fields").innerHTML = "";
-    } else {
-      const secretLabel = p.secret_label || "授权码 / 应用专用密码";
-      $("#ac-auth-fields").innerHTML = `
-        ${prov === "custom" ? `<details class="imap-advanced" open>
-          <summary>高级 IMAP 设置</summary>
-          <label class="field"><span>IMAP 服务器</span><input id="ac-host" value="${esc(acc?.imap_host || "")}" placeholder="imap.example.com"></label>
-          <label class="field"><span>端口（SSL）</span><input id="ac-port" type="number" value="${acc?.imap_port || 993}"></label>
-        </details>` : ""}
-        <label class="field"><span>${esc(secretLabel)}${editing ? "（留空则不修改）" : ""}</span>
-          <input id="ac-secret" type="password" autocomplete="new-password"></label>`;
+    if (method.type === "oauth_browser") {
+      body.innerHTML = `
+        <div class="provider-help">将在新窗口打开服务商的登录页面，授权后自动完成${editing ? "重新授权" : "添加"}，MailHub 不会接触你的登录密码。</div>
+        <div class="ops" style="justify-content:flex-start;margin:0 0 12px"><button class="btn primary" id="ac-oauth">${esc(method.label)}</button></div>`;
+      $("#ac-oauth").addEventListener("click", () => startBrowserOAuth(oauthPayload()));
+      return;
     }
-    $("#ac-save").textContent = editing ? "保存" : "一键测试并添加";
+    if (method.type === "oauth_device") {
+      body.innerHTML = `
+        <div class="provider-help">获取一个设备码，在 Microsoft 登录页输入并确认后自动完成${editing ? "重新授权" : "添加"}。</div>
+        <div class="ops" style="justify-content:flex-start;margin:0 0 12px"><button class="btn primary" id="ac-device-start">获取设备码</button></div>
+        <div id="ac-device"></div>`;
+      $("#ac-device-start").addEventListener("click", () => startDeviceOAuth(oauthPayload()));
+      return;
+    }
+    // app_password / password
+    const isOAuthAccount = editing && acc.auth_type === "oauth";
+    const steps = (method.steps || []).map(s => `<li>${esc(s)}</li>`).join("");
+    const setupUrl = /^https:\/\//i.test(method.setup_url || "") ? method.setup_url : "";
+    body.innerHTML = `
+      ${steps || setupUrl ? `<div class="provider-help">
+        ${steps ? `<ol class="auth-steps">${steps}</ol>` : ""}
+        ${setupUrl ? `<a href="${esc(setupUrl)}" target="_blank" rel="noopener">${esc(method.setup_label || "打开服务商设置")} ↗</a>` : ""}
+      </div>` : ""}
+      ${providerKey() === "custom" ? `
+        <label class="field"><span>IMAP 服务器（SSL）</span><input id="ac-host" value="${esc(acc?.imap_host || "")}" placeholder="imap.example.com"></label>
+        <label class="field"><span>端口</span><input id="ac-port" type="number" value="${acc?.imap_port || 993}"></label>` : ""}
+      <label class="field"><span>${esc(method.input_label || "密码")}${editing && !isOAuthAccount ? "（留空则不修改）" : ""}</span>
+        <input id="ac-secret" type="password" autocomplete="new-password" placeholder="不会在页面中回显"></label>
+      ${isOAuthAccount ? `<div class="provider-help">保存后该账户将从 OAuth 改为用${esc(method.input_label)}登录。</div>` : ""}
+      ${editing ? "" : `<div class="ops" style="justify-content:flex-start;margin:0 0 12px"><button class="btn primary" id="ac-add">测试连接并添加</button></div>`}`;
+    $("#ac-add")?.addEventListener("click", addSecretAccount);
   };
 
-  paint();
-  $("#ac-email").addEventListener("input", () => {
-    if (!editing && $("#ac-provider").value === "auto") paint();
-  });
-  $("#ac-provider").addEventListener("change", () => {
-    paintedProvider = "";
-    paint();
-  });
-  $("#ac-cancel").addEventListener("click", closeModal);
-  $("#ac-save").addEventListener("click", async () => {
-    const prov = selectedProvider();
-    const email = $("#ac-email")?.value.trim();
-    if (!email || !email.includes("@")) { toast("请填写完整邮箱地址", true); return; }
-    if (prov === "outlook" && !editing) { await outlookFlow(email); return; }
+  const paint = (force = false) => {
+    const key = providerKey();
+    const p = providers[key] || providers.custom;
+    const hasAddress = editing || $("#ac-email").value.includes("@");
+    const automatic = !editing && $("#ac-provider").value === "auto";
+    $("#ac-detected").innerHTML = !hasAddress && automatic
+      ? "填写邮箱地址后自动识别"
+      : `${automatic ? '<span class="ok">✓ 已自动识别</span> ' : ""}${esc(p.label)}`
+        + (p.note ? `<div class="provider-note">${esc(p.note)}</div>` : "");
+    if (!hasAddress && automatic) {
+      $("#ac-methods").innerHTML = ""; $("#ac-method-body").innerHTML = "";
+      current = { provider: "", method: "" };
+      return;
+    }
+    const methods = p.methods || [];
+    let chosen = current.provider === key ? current.method : "";
+    if (!methods.some(m => m.type === chosen)) {
+      // 编辑时默认显示该账户现在使用的方式
+      const preferOAuth = !editing || acc.auth_type === "oauth";
+      const match = methods.find(m => m.type.startsWith("oauth") === preferOAuth);
+      chosen = (match || methods[0] || {}).type || "";
+    }
+    if (!force && current.provider === key && current.method === chosen) return;
+    current = { provider: key, method: chosen };
+    $("#ac-methods").innerHTML = methods.length > 1
+      ? `<div class="chips auth-methods">${methods.map(m =>
+          `<button class="chip ${m.type === chosen ? "active" : ""}" data-method="${esc(m.type)}">${esc(METHOD_TAGS[m.type] || m.label)}</button>`).join("")}</div>`
+      : "";
+    $$("[data-method]", $("#ac-methods")).forEach(b => b.addEventListener("click", () => {
+      current.method = b.dataset.method;
+      paint(true);
+    }));
+    renderMethodBody(p, methods.find(m => m.type === chosen));
+  };
+
+  async function addSecretAccount(ev) {
+    const email = $("#ac-email").value.trim();
+    if (!email.includes("@")) { setStatus('<div class="err">请填写完整邮箱地址</div>'); return; }
     const body = {
-      provider: prov, email,
-      name: $("#ac-name")?.value.trim() || "",
-      secret: $("#ac-secret")?.value || "",
+      provider: providerKey(), email, ...commonFields(),
+      secret: $("#ac-secret").value,
       imap_host: $("#ac-host")?.value.trim() || "",
       imap_port: +($("#ac-port")?.value || 993),
-      poll_interval: Math.max(60, +($("#ac-poll")?.value || 300)),
-      color: $("#ac-color")?.value || "#1a73e8",
-      enabled: editing ? $("#ac-enabled").checked : true,
     };
-    const btn = $("#ac-save");
-    btn.disabled = true; btn.textContent = editing ? "保存中…" : "正在测试连接…";
+    if (!body.secret) { setStatus('<div class="err">请填写授权码或密码</div>'); return; }
+    ev.target.disabled = true; ev.target.textContent = "正在测试连接…";
     try {
-      if (editing) await api(`/accounts/${acc.id}`, { method: "PUT", body });
-      else await api("/accounts", { method: "POST", body });
-      closeModal(); toast(editing ? "已保存" : "连接成功，账户已添加并开始同步"); renderAccounts();
+      await api("/accounts", { method: "POST", body });
+      closeModal(); toast("连接成功，账户已添加并开始同步"); renderAccounts();
     } catch (e) {
-      toast(e.message, true);
-      btn.disabled = false;
-      btn.textContent = editing ? "保存" : "一键测试并添加";
+      setStatus(`<div class="err">${esc(e.message)}</div>`);
+      ev.target.disabled = false; ev.target.textContent = "测试连接并添加";
+    }
+  }
+
+  paint(true);
+  if (!editing) {
+    $("#ac-email").addEventListener("input", () => { if ($("#ac-provider").value === "auto") paint(); });
+    $("#ac-provider").addEventListener("change", () => paint(true));
+  }
+  $("#ac-cancel").addEventListener("click", closeModal);
+  $("#ac-save")?.addEventListener("click", async ev => {
+    const body = {
+      provider: acc.provider, email: acc.email, ...commonFields(),
+      secret: $("#ac-secret")?.value || "",
+      imap_host: $("#ac-host")?.value.trim() || acc.imap_host,
+      imap_port: +($("#ac-port")?.value || acc.imap_port || 993),
+      enabled: $("#ac-enabled").checked,
+    };
+    ev.target.disabled = true; ev.target.textContent = body.secret ? "正在测试连接…" : "保存中…";
+    try {
+      await api(`/accounts/${acc.id}`, { method: "PUT", body });
+      closeModal(); toast("已保存"); renderAccounts();
+    } catch (e) {
+      setStatus(`<div class="err">${esc(e.message)}</div>`);
+      ev.target.disabled = false; ev.target.textContent = "保存";
     }
   });
 }
 
-async function outlookFlow(email) {
-  const box = $("#ac-device") || $("#ac-fields");
-  let dc;
+async function startBrowserOAuth(payload) {
+  if (!payload.email.includes("@")) { toast("请填写完整邮箱地址", true); return; }
+  // 弹窗必须在点击事件里同步打开，否则会被浏览器拦截；拿到授权地址后再跳转
+  const popup = window.open("about:blank", "mailhub-oauth", "popup=yes,width=560,height=720");
+  const status = $("#ac-status");
   try {
-    dc = await api("/oauth/outlook/device/start", { method: "POST", body: {
-      provider: "outlook", email,
-      name: $("#ac-name")?.value.trim() || "",
-      color: $("#ac-color")?.value || "#1a73e8",
-      poll_interval: Math.max(60, +($("#ac-poll")?.value || 300)),
-    }});
+    const r = await api("/oauth/start", { method: "POST", body: payload });
+    if (popup) {
+      popup.location.replace(r.authorization_url);
+      if (status) status.innerHTML = '<div class="provider-help">请在弹出的窗口完成登录，完成后这里会自动关闭。</div>';
+    } else if (status) {
+      status.innerHTML = `<div class="provider-help">浏览器拦截了弹窗，<a href="${esc(r.authorization_url)}" target="_blank" rel="noopener">点此继续登录</a></div>`;
+    }
+  } catch (e) {
+    popup?.close();
+    if (status) status.innerHTML = `<div class="err">${esc(e.message)}</div>`;
+    else toast(e.message, true);
   }
-  catch (e) { toast(e.message, true); return; }
+}
+
+async function startDeviceOAuth(payload) {
+  if (!payload.email.includes("@")) { toast("请填写完整邮箱地址", true); return; }
+  const box = $("#ac-device");
+  let dc;
+  try { dc = await api("/oauth/outlook/device/start", { method: "POST", body: payload }); }
+  catch (e) { $("#ac-status").innerHTML = `<div class="err">${esc(e.message)}</div>`; return; }
+  const url = dc.verification_uri_complete || dc.verification_uri;
   box.innerHTML = `
-    <p style="font-size:13px">1️⃣ 打开 <a href="${esc(dc.verification_uri)}" target="_blank" rel="noopener">${esc(dc.verification_uri)}</a></p>
-    <p style="font-size:13px">2️⃣ 输入下方代码并登录 <b>${esc(email)}</b>：</p>
+    <p style="font-size:13px">1. 打开 <a href="${esc(url)}" target="_blank" rel="noopener">${esc(dc.verification_uri)}</a></p>
+    <p style="font-size:13px">2. 输入下方代码，并用 <b>${esc(payload.email)}</b> 登录：</p>
     <div class="device-code" title="点击复制">${esc(dc.user_code)}</div>
-    <p id="ac-poll-state" style="color:var(--muted);font-size:12px">等待授权中…（本窗口会自动完成）</p>`;
+    <p id="ac-device-state" style="color:var(--muted);font-size:12px">等待授权中…（完成后自动关闭）</p>`;
   $(".device-code", box).addEventListener("click", () => copyText(dc.user_code));
-  $("#ac-save").style.display = "none";
-  const deadline = Date.now() + dc.expires_in * 1000;
-  const timer = setInterval(async () => {
+  const startBtn = $("#ac-device-start");
+  if (startBtn) startBtn.disabled = true;
+  const deadline = Date.now() + (dc.expires_in || 900) * 1000;
+  let interval = dc.interval || 5;
+  const poll = async () => {
+    const state = $("#ac-device-state");
+    if (!state) return;                       // 弹窗已关闭
     if (Date.now() > deadline) {
-      clearInterval(timer);
-      const state = $("#ac-poll-state"); if (state) state.textContent = "授权超时，可重新发起";
-      const save = $("#ac-save"); if (save) { save.style.display = "inline-flex"; save.textContent = "重新授权"; }
+      state.textContent = "设备码已过期，请重新获取";
+      if (startBtn) startBtn.disabled = false;
       return;
     }
-    if (!$("#ac-poll-state")) { clearInterval(timer); return; }   // 弹窗已关闭
     try {
-      const r = await api("/oauth/outlook/device/poll", {
-        method: "POST", body: { transaction_id: dc.transaction_id },
-      });
-      if (r.pending) return;
-      clearInterval(timer); closeModal(); toast("Outlook 授权成功，正在同步…"); renderAccounts();
+      const r = await api("/oauth/outlook/device/poll", { method: "POST", body: { transaction_id: dc.transaction_id } });
+      if (r.pending) {
+        interval = r.interval || interval;
+        setTimeout(poll, interval * 1000);
+        return;
+      }
+      closeModal(); toast("授权成功，正在同步…"); renderAccounts();
     } catch (e) {
-      clearInterval(timer);
-      const el = $("#ac-poll-state"); if (el) el.textContent = "授权失败: " + e.message;
-      const save = $("#ac-save"); if (save) { save.style.display = "inline-flex"; save.textContent = "重新授权"; }
+      state.textContent = "授权失败：" + e.message;
+      if (startBtn) startBtn.disabled = false;
     }
-  }, (dc.interval || 5) * 1000);
+  };
+  setTimeout(poll, interval * 1000);
 }
 
 
@@ -1217,12 +1307,11 @@ async function loadDeployStatus() {
   const checks = (st.checks || []).map(c =>
     `<div class="set-row"><div class="l">${esc(c.name)}<small>${esc(c.detail || "")}</small></div>${badge(c)}</div>`).join("");
   const channels = Object.entries(st.channels || {}).map(([, v]) => {
-    const mode = v.oauth_browser
-      ? "OAuth 登录"
-      : (v.oauth_device ? "设备码登录" : (v.secret_label || "授权码"));
-    const tag = v.oauth_browser ? "OAuth" : (v.oauth_device ? "设备码" : "授权码");
+    const methods = v.methods || [];
+    const mode = methods.length ? methods.map(m => METHOD_TAGS[m] || m).join(" / ") : "暂不可用";
+    const oauth = methods.some(m => m.startsWith("oauth"));
     return `<div class="set-row"><div class="l">${esc(v.label)}<small>${esc(mode)}</small></div>`
-      + `<span class="badge ${v.oauth_browser || v.oauth_device ? "cat-通知" : "cat-未分类"}">${tag}</span></div>`;
+      + `<span class="badge ${oauth ? "cat-通知" : "cat-未分类"}">${oauth ? "OAuth" : (methods.length ? "授权码" : "不可用")}</span></div>`;
   }).join("");
   const reauth = st.accounts?.reauth_required || [];
   box.innerHTML = `
