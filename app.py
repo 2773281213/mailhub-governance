@@ -389,40 +389,12 @@ class BatchBody(BaseModel):
     override_protection: bool = False
 
 
-def _server_op(conn, ids: list[int], action: str) -> tuple[list[int], list[str]]:
-    """把批量操作按账户分组回放到 IMAP，返回成功的本地 ID 和错误。"""
-    if not ids:
-        return [], []
-    rows = conn.execute(
-        f"SELECT id, account_id, uid FROM messages WHERE id IN ({','.join('?' * len(ids))})", ids
-    ).fetchall()
-    by_acc: dict = {}
-    for r in rows:
-        by_acc.setdefault(r["account_id"], []).append((r["id"], r["uid"]))
-    errors, succeeded = [], []
-    for acc_id, messages in by_acc.items():
-        sess = None
-        try:
-            acc_row = conn.execute("SELECT * FROM accounts WHERE id=?", (acc_id,)).fetchone()
-            if not acc_row:
-                raise RuntimeError("账户不存在")
-            acc = dict(acc_row)
-            sess = mail_client.open_session(acc, sync.resolve_secret(acc))
-            sess.select_inbox()
-            uids = [uid for _msg_id, uid in messages]
-            if action == "delete":
-                sess.delete(uids)
-            elif action == "read":
-                sess.mark_read(uids, True)
-            elif action == "unread":
-                sess.mark_read(uids, False)
-            succeeded.extend(msg_id for msg_id, _uid in messages)
-        except Exception as e:
-            errors.append(f"账户{acc_id}: {str(e)[:100]}")
-        finally:
-            if sess is not None:
-                sess.close()
-    return succeeded, errors
+def _server_op(ids: list[int], action: str) -> tuple[list[int], list[str]]:
+    """把批量操作回放到 IMAP，返回服务器确认成功的本地 ID 和错误。
+
+    通过 asyncio.to_thread 在工作线程执行，并在该线程内取自己的 SQLite 连接。
+    """
+    return sync.apply_server_action(ids, action)
 
 
 def _load_for_policy(conn, ids: list[int]) -> list[dict]:
@@ -476,7 +448,7 @@ async def batch_messages(body: BatchBody):
     undo_payload = None
     if action == "purge":
         # 不可逆：先在服务器删，再从本地移除，审计记录标注不可撤销
-        succeeded, errors = await asyncio.to_thread(_server_op, conn, allowed_ids, "delete")
+        succeeded, errors = await asyncio.to_thread(_server_op, allowed_ids, "delete")
         allowed_ids = succeeded
         if allowed_ids:
             ph = ",".join("?" * len(allowed_ids))
@@ -488,7 +460,7 @@ async def batch_messages(body: BatchBody):
         undo_payload = {"ids": allowed_ids}
     elif action in ("read", "unread"):
         if body.server:
-            succeeded, errors = await asyncio.to_thread(_server_op, conn, allowed_ids, body.action)
+            succeeded, errors = await asyncio.to_thread(_server_op, allowed_ids, body.action)
             allowed_ids = succeeded
         prev = {m["id"]: m["unread"] for m in msgs if m["id"] in set(allowed_ids)}
         if allowed_ids:
@@ -561,7 +533,7 @@ async def clean_messages(body: CleanBody):
     errors, undo_payload = [], None
     ph = ",".join("?" * len(ids))
     if body.server:
-        succeeded, errors = await asyncio.to_thread(_server_op, conn, ids, "delete")
+        succeeded, errors = await asyncio.to_thread(_server_op, ids, "delete")
         ids = succeeded
         if ids:
             ph = ",".join("?" * len(ids))

@@ -140,7 +140,7 @@ def test_failed_server_purge_keeps_local_message(fresh_db, monkeypatch):
     mid = _insert_msg(fresh_db, acc, 1, category="订阅")
     monkeypatch.setattr(
         mailhub_app, "_server_op",
-        lambda _conn, _ids, _action: ([], ["账户1: server unavailable"]),
+        lambda _ids, _action: ([], ["账户1: server unavailable"]),
     )
 
     result = asyncio.run(mailhub_app.batch_messages(mailhub_app.BatchBody(
@@ -158,7 +158,7 @@ def test_failed_server_clean_keeps_local_message(fresh_db, monkeypatch):
     mid = _insert_msg(fresh_db, acc, 1, category="验证码")
     monkeypatch.setattr(
         mailhub_app, "_server_op",
-        lambda _conn, _ids, _action: ([], ["账户1: server unavailable"]),
+        lambda _ids, _action: ([], ["账户1: server unavailable"]),
     )
 
     result = asyncio.run(mailhub_app.clean_messages(mailhub_app.CleanBody(
@@ -275,7 +275,7 @@ def test_server_read_updates_only_successful_messages(fresh_db, monkeypatch):
     second = _insert_msg(fresh_db, acc, 2, category="通知")
     monkeypatch.setattr(
         mailhub_app, "_server_op",
-        lambda _conn, _ids, _action: ([first], ["账户1: partial failure"]),
+        lambda _ids, _action: ([first], ["账户1: partial failure"]),
     )
 
     result = asyncio.run(mailhub_app.batch_messages(mailhub_app.BatchBody(
@@ -292,8 +292,114 @@ def test_server_read_updates_only_successful_messages(fresh_db, monkeypatch):
     assert states[second] == 1
 
 
+class FakeSession:
+    """记录 IMAP 调用的假会话；fail=True 时模拟服务器不可用。"""
+
+    def __init__(self, calls, fail=False):
+        self.calls = calls
+        self.fail = fail
+
+    def select_inbox(self):
+        self.calls.append(("select",))
+        return 1
+
+    def delete(self, uids):
+        if self.fail:
+            raise RuntimeError("server unavailable")
+        self.calls.append(("delete", sorted(uids)))
+
+    def mark_read(self, uids, read=True):
+        self.calls.append(("read" if read else "unread", sorted(uids)))
+
+    def close(self):
+        self.calls.append(("close",))
+
+
+def _fake_imap(monkeypatch, fail=False):
+    calls = []
+    monkeypatch.setattr(mail_client, "open_session",
+                        lambda _acc, _secret: FakeSession(calls, fail=fail))
+    monkeypatch.setattr(sync, "resolve_secret", lambda _acc: "secret")
+    return calls
+
+
+def test_server_purge_runs_on_worker_thread_connection(fresh_db, monkeypatch):
+    """回归：handler 曾把事件循环线程的 SQLite 连接传给 to_thread，必然 ProgrammingError"""
+    calls = _fake_imap(monkeypatch)
+    acc = _mk_account(fresh_db)
+    mid = _insert_msg(fresh_db, acc, 7, category="订阅")
+
+    result = asyncio.run(mailhub_app.batch_messages(mailhub_app.BatchBody(
+        ids=[mid], action="delete", server=True, confirmed=True,
+    )))
+
+    assert result["ok"] is True and result["count"] == 1
+    assert ("delete", [7]) in calls
+    assert calls[-1] == ("close",)
+    assert fresh_db.execute("SELECT id FROM messages WHERE id=?", (mid,)).fetchone() is None
+
+
+def test_server_read_runs_on_worker_thread_connection(fresh_db, monkeypatch):
+    calls = _fake_imap(monkeypatch)
+    acc = _mk_account(fresh_db)
+    mid = _insert_msg(fresh_db, acc, 9, category="通知")
+
+    result = asyncio.run(mailhub_app.batch_messages(mailhub_app.BatchBody(
+        ids=[mid], action="read", server=True,
+    )))
+
+    assert result["ok"] is True and result["count"] == 1
+    assert ("read", [9]) in calls
+
+
+def test_auto_clean_server_failure_keeps_local_rows(fresh_db, monkeypatch):
+    _fake_imap(monkeypatch, fail=True)
+    acc = _mk_account(fresh_db)
+    mid = _insert_msg(fresh_db, acc, 1, category="验证码", date_ts=1000.0)
+    db.set_setting("clean_otp_days", "1")
+    db.set_setting("clean_server", "1")
+    try:
+        sync.auto_clean()
+    finally:
+        db.set_setting("clean_otp_days", "0")
+        db.set_setting("clean_server", "0")
+
+    assert fresh_db.execute("SELECT id FROM messages WHERE id=?", (mid,)).fetchone() is not None
+    row = fresh_db.execute("SELECT reason FROM audit_log ORDER BY id DESC LIMIT 1").fetchone()
+    assert "服务器删除失败" in row["reason"]
+
+
+def test_auto_clean_server_success_removes_local_rows(fresh_db, monkeypatch):
+    calls = _fake_imap(monkeypatch)
+    acc = _mk_account(fresh_db)
+    mid = _insert_msg(fresh_db, acc, 3, category="验证码", date_ts=1000.0)
+    db.set_setting("clean_otp_days", "1")
+    db.set_setting("clean_server", "1")
+    try:
+        sync.auto_clean()
+    finally:
+        db.set_setting("clean_otp_days", "0")
+        db.set_setting("clean_server", "0")
+
+    assert ("delete", [3]) in calls
+    assert fresh_db.execute("SELECT id FROM messages WHERE id=?", (mid,)).fetchone() is None
+
+
+def test_server_action_skips_unbound_uids(fresh_db, monkeypatch):
+    calls = _fake_imap(monkeypatch)
+    acc = _mk_account(fresh_db)
+    mid = _insert_msg(fresh_db, acc, 5, category="订阅")
+    fresh_db.execute("UPDATE messages SET uid=-id WHERE id=?", (mid,))
+    fresh_db.commit()
+
+    succeeded, errors = sync.apply_server_action([mid], "delete")
+
+    assert succeeded == [] and errors
+    assert not any(call[0] == "delete" for call in calls)
+
+
 def test_server_helpers_accept_empty_id_list(fresh_db):
-    assert mailhub_app._server_op(fresh_db, [], "read") == ([], [])
+    assert mailhub_app._server_op([], "read") == ([], [])
     assert mailhub_app._load_for_policy(fresh_db, []) == []
 
 
