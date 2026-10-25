@@ -15,6 +15,7 @@ MailHub Governance 是一个本地优先的多邮箱聚合与自动治理服务�
 - AI 不会自动删除、回复、转发或退订邮件，也不会创建人工复核队列。
 - 软删除可撤销；服务器永久删除失败时不会移除本地记录。
 - SQLite 保存同步、治理判定、回退来源和安全审计。
+- 重要/安全邮件和验证码可推送到 Bark、Telegram，或通过 [Onepush](https://github.com/y1ndan/onepush) 推送到 Server酱、pushplus、企业微信、钉钉、Discord、邮件等。
 
 ## 治理流程
 
@@ -126,6 +127,36 @@ node --check static/app.js
 3. 健康检查失败时，自动恢复旧版本和更新前的数据。
 
 旧版本保留在 `/opt/mailhub.backup.<时间戳>`。systemd 配置见 `deploy/mailhub.service`。不要把真实的 `.env`、数据库或授权凭据复制到代码仓库。
+
+## 推送通知
+
+设置页「通知推送」除 Bark、Telegram 外，还支持 Onepush。配置写法与 [AzurLaneAutoScript 的 Onepush 配置](https://github.com/LmeSzinc/AzurLaneAutoScript/wiki/Onepush-configuration-%5BCN%5D)相同：一段 YAML，`provider` 指定服务商，其余是该服务商的参数。例如：
+
+```yaml
+provider: serverchanturbo
+sctkey: SCT16xxxxxxxxxxxxxxxx
+```
+
+```yaml
+provider: smtp
+host: smtp.qq.com
+user: 123456789@qq.com
+password: 邮箱授权码
+port: 465
+```
+
+```yaml
+provider: custom
+url: https://your.web.hook/path
+method: post
+data:
+  source: mailhub
+```
+
+- 保存时会检查 YAML 格式、服务商名称和必填参数。配置里含令牌，会加密保存，设置页只显示服务商名。
+- 自定义 Webhook 会以 JSON 发送 `data`，并自动加入 `title` 和 `content`。
+- 各服务商都可以加 `proxies` 参数，写法与 requests 相同。
+- 可以用「发送测试推送」验证配置；失败时会提示具体原因。
 
 ## 相关文档
 
