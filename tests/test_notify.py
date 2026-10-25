@@ -127,6 +127,39 @@ def test_gocqhttp_access_token_alias(fake_notifier):
     assert call["token"] == "tk" and "access_token" not in call
 
 
+@pytest.mark.parametrize("extra, expected", [("", 1), ("markdown: 0\n", 1), ("markdown: 2\n", 2)])
+def test_wechatworkbot_defaults_to_markdown(fake_notifier, extra, expected):
+    """onepush 的企业微信机器人在 markdown=0 时发送空正文（errcode 44004）"""
+    assert notify.send_onepush("provider: wechatworkbot\nkey: abc\n" + extra, "T", "C") is None
+    assert fake_notifier.calls[0]["markdown"] == expected
+
+
+def test_real_wechatworkbot_sends_title_and_content(monkeypatch):
+    from onepush import get_notifier
+
+    sent = []
+
+    def fake_request(method, url, proxies=None, **kwargs):
+        sent.append((url, kwargs.get("json")))
+        return FakeResponse(payload={"errcode": 0, "errmsg": "ok"})
+
+    notifier = get_notifier("wechatworkbot")
+    monkeypatch.setattr(type(notifier), "request", staticmethod(fake_request))
+    hook_url = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=KEY123"
+    assert notify.send_onepush(f"provider: wechatworkbot\nkey: {hook_url}", "标题", "正文") is None
+    url, payload = sent[0]
+    assert url == hook_url
+    text = json.dumps(payload, ensure_ascii=False)
+    assert "标题" in text and "正文" in text
+
+
+def test_wechatworkbot_empty_content_error_is_reported(monkeypatch):
+    response = FakeResponse(payload={"errcode": 44004, "errmsg": "empty content"})
+    monkeypatch.setattr(notify, "_get_notifier", lambda provider: FakeNotifier(response=response))
+    error = notify.send_onepush("provider: wechatworkbot\nkey: abc", "T", "C")
+    assert error and "44004" in error
+
+
 def test_send_reports_http_errors(monkeypatch):
     monkeypatch.setattr(notify, "_get_notifier",
                         lambda provider: FakeNotifier(response=FakeResponse(500)))
