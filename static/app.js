@@ -1056,6 +1056,14 @@ async function renderSettings() {
             <input id="s-tg-token" type="password" placeholder="123456:ABC…"></div>
           <div class="set-row"><div class="l">Telegram Chat ID</div>
             <input id="s-tg-chat" value="${esc(s.notify_tg_chat)}" placeholder="留空不启用"></div>
+          <div class="set-row" style="display:block"><div class="l">Onepush 推送<small>${s.notify_onepush_set
+              ? `已设置：${esc(s.notify_onepush_provider || "未知服务商")}（留空不修改）`
+              : "未设置"}。YAML 格式，与 <a href="https://github.com/LmeSzinc/AzurLaneAutoScript/wiki/Onepush-configuration-%5BCN%5D" target="_blank" rel="noopener">Alas 的 Onepush 配置</a>相同，可用 Bark、Server酱 Turbo、pushplus、Telegram、Discord、企业微信、钉钉、飞书、go-cqhttp、Qmsg、SMTP 邮件、自定义 Webhook 等 onepush 支持的服务商；保存时会校验必填参数</small></div>
+            <textarea id="s-onepush" rows="5" spellcheck="false" autocomplete="off"
+              style="width:100%;margin-top:8px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px"
+              placeholder="provider: serverchanturbo&#10;sctkey: SCT16xxxxxxxxxxxx"></textarea>
+            ${s.notify_onepush_set ? `<label style="display:flex;gap:6px;align-items:center;margin-top:6px;font-size:12px;color:var(--muted)">
+              <input type="checkbox" id="s-onepush-clear" style="width:auto"> 清除已保存的 Onepush 配置</label>` : ""}</div>
           <div class="set-row"><div class="l">推送重要/安全邮件</div>
             <label class="switch"><input type="checkbox" id="s-ntf-imp" ${s.notify_important ? "checked" : ""}></label></div>
           <div class="set-row"><div class="l">推送验证码<small>验证码多时会比较吵</small></div>
@@ -1134,6 +1142,9 @@ async function renderSettings() {
     if (key) body.ai_key = key;
     const tgToken = $("#s-tg-token").value.trim();
     if (tgToken) body.notify_tg_token = tgToken;
+    const onepush = $("#s-onepush").value.trim();
+    if (onepush) body.notify_onepush_config = onepush;
+    if ($("#s-onepush-clear")?.checked) body.clear_notify_onepush = true;
     const oldP = $("#s-old-pwd").value, newP = $("#s-new-pwd").value;
     if (newP) { body.old_password = oldP; body.new_password = newP; }
     try { await api("/settings", { method: "PUT", body }); toast("已保存"); renderSettings(); }

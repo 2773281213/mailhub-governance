@@ -29,7 +29,7 @@ from db import (audit, get_conn, get_setting, init_db, remove_external_api_setti
                 set_setting)
 import db
 import sessions
-from security import (encrypt, hash_password, rotate_encrypted_values,
+from security import (decrypt, encrypt, hash_password, rotate_encrypted_values,
                       verify_password)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -891,6 +891,8 @@ class SettingsBody(BaseModel):
     notify_bark_url: str | None = None
     notify_tg_token: str | None = None
     notify_tg_chat: str | None = None
+    notify_onepush_config: str | None = None    # Onepush YAML；留空不修改
+    clear_notify_onepush: bool | None = None
     notify_important: bool | None = None
     notify_otp: bool | None = None
     body_keep_days: int | None = None
@@ -919,6 +921,10 @@ async def get_settings():
         "notify_bark_url": get_setting("notify_bark_url", ""),
         "notify_tg_token_set": bool(get_setting("notify_tg_token", "")),
         "notify_tg_chat": get_setting("notify_tg_chat", ""),
+        # Onepush 配置含令牌，只返回是否已设置和服务商名
+        "notify_onepush_set": bool(get_setting(notify.ONEPUSH_SETTING, "")),
+        "notify_onepush_provider": notify.onepush_provider(
+            decrypt(get_setting(notify.ONEPUSH_SETTING, ""))),
         "notify_important": get_setting("notify_important", "1") == "1",
         "notify_otp": get_setting("notify_otp", "0") == "1",
         "body_keep_days": int(get_setting("body_keep_days", "90") or 90),
@@ -976,6 +982,15 @@ async def put_settings(body: SettingsBody):
             raise HTTPException(status_code=400, detail="原密码错误")
         if len(body.new_password) < 8:
             raise HTTPException(status_code=400, detail="新密码至少 8 位")
+    onepush_text = (body.notify_onepush_config or "").strip()
+    if onepush_text and not body.clear_notify_onepush:
+        try:
+            notify.validate_onepush_config(onepush_text)
+        except notify.OnepushConfigError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except ImportError as exc:
+            raise HTTPException(status_code=400,
+                                detail="服务器未安装 onepush/PyYAML，请先 pip install -r requirements.txt") from exc
     _save_oauth_settings(body, prefix="google", provider="gmail", label="Google")
     _save_oauth_settings(body, prefix="microsoft", provider="outlook", label="Microsoft")
     if body.new_password is not None:
@@ -1008,6 +1023,10 @@ async def put_settings(body: SettingsBody):
         set_setting("notify_tg_token", body.notify_tg_token.strip())
     if body.notify_tg_chat is not None:
         set_setting("notify_tg_chat", body.notify_tg_chat.strip())
+    if body.clear_notify_onepush:
+        set_setting(notify.ONEPUSH_SETTING, "")
+    elif onepush_text:
+        set_setting(notify.ONEPUSH_SETTING, encrypt(onepush_text))
     if body.notify_important is not None:
         set_setting("notify_important", "1" if body.notify_important else "0")
     if body.notify_otp is not None:
