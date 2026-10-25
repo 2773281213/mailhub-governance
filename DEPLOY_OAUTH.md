@@ -98,7 +98,7 @@ MICROSOFT_CLIENT_ID=
 MICROSOFT_CLIENT_SECRET=
 ```
 
-`MAILHUB_SECRET` 同时用于会话签名和 token 加密：**更换它等于让所有已保存的 OAuth 令牌失效**，必须与数据库一起备份。
+`MAILHUB_SECRET` 用于加密已保存的授权码和 token，必须与数据库一起备份。需要更换时，把旧值写进 `MAILHUB_SECRET_PREVIOUS` 并重启一次，启动时会用新密钥重新加密所有凭据；确认日志里没有"无法解开"的警告后即可删除该变量。
 
 ---
 
@@ -229,6 +229,8 @@ sqlite3 /var/lib/mailhub/mailhub.db ".backup '/backup/mailhub-$(date +%F).db'"
 ```
 
 数据库和 `MAILHUB_SECRET` 必须成对备份；只有库没有密钥，所有 token 都解不开。
+
+**首次登录**：首次启动生成的管理密码在数据目录的 `initial-admin-password.txt`（仅 mailhub 用户可读），登录后在设置页修改密码，该文件会被自动删除。
 
 **安全边界**
 
