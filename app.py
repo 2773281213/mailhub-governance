@@ -10,6 +10,7 @@ import secrets as pysecrets
 import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
+from urllib.parse import urlparse
 
 from fastapi import Cookie, FastAPI, HTTPException, Request, Response
 from fastapi.responses import FileResponse, JSONResponse
@@ -24,29 +25,56 @@ import oauth_auth
 import policy
 import rules as rules_mod
 import sync
-from db import audit, get_conn, get_setting, init_db, set_setting
-from security import (decrypt, encrypt, hash_password, make_session,
-                      verify_password, verify_session)
+from db import (audit, get_conn, get_setting, init_db, remove_external_api_settings,
+                set_setting)
+import db
+import sessions
+from security import (decrypt, encrypt, hash_password, rotate_encrypted_values,
+                      verify_password)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 COOKIE_NAME = "mailhub_session"
 
-# 登录失败限流：连续 5 次失败锁 5 分钟
-_login_fails: list[float] = []
+# 登录失败限流：按来源 IP 指数退避，另有全局上限（见 sessions.LoginThrottle）
+login_throttle = sessions.LoginThrottle()
+
+
+def _initial_password_path() -> str:
+    return os.path.join(os.path.dirname(os.path.abspath(db.DB_PATH)), "initial-admin-password.txt")
+
+
+def _write_initial_password(password: str) -> str:
+    """首次启动生成的管理密码写入数据目录下的 0600 文件，日志里只出现文件路径。"""
+    path = _initial_password_path()
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as fh:
+        fh.write(password + "\n")
+    return path
+
+
+def _remove_initial_password_file():
+    try:
+        os.remove(_initial_password_path())
+    except FileNotFoundError:
+        pass
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     init_db()
     oauth_auth.init_oauth_db()
-    # 首次启动生成随机管理密码，打印到日志（journalctl 可见），用户可在设置里修改
+    # 用旧密钥（MAILHUB_SECRET_PREVIOUS）或旧派生方式加密的凭据改为当前密钥加密
+    rotate_encrypted_values(get_conn())
+    # 首次启动生成随机管理密码。密码只写进数据目录下的 0600 文件，不进日志；
+    # 用户在设置里改密码后该文件会被删除。
     if not get_setting("admin_hash"):
-        pwd = pysecrets.token_urlsafe(9)
+        pwd = pysecrets.token_urlsafe(12)
         set_setting("admin_hash", hash_password(pwd))
-        print(f"[MailHub] 初始管理密码: {pwd}", flush=True)
-    # 外部 API 令牌（注册机取码用），设置页可查看/重置
-    if not get_setting("ext_token"):
-        set_setting("ext_token", "mh-" + pysecrets.token_urlsafe(24))
+        path = _write_initial_password(pwd)
+        print(f"[MailHub] 已生成初始管理密码，保存在 {path}（仅文件所有者可读）", flush=True)
+    # 旧版外部取码 API 已移除：清掉它留下的令牌和别名基座设置
+    remove_external_api_settings()
     sync.engine.start()
     yield
     sync.engine.stop()
@@ -58,19 +86,74 @@ app.include_router(oauth_auth.router)
 
 # ---------- 鉴权 ----------
 
-def require_auth(token: str | None):
-    if not token or not verify_session(token):
-        raise HTTPException(status_code=401, detail="未登录")
+_UNSAFE_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
+
+# 对所有响应生效、几乎不会影响页面的安全头；页面自己设置过的同名头不覆盖
+_BASE_SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "same-origin",
+    "Content-Security-Policy": "object-src 'none'; base-uri 'self'; form-action 'self'",
+    # 完整策略先以 Report-Only 运行：前端仍有内联事件处理器，
+    # 在浏览器控制台确认没有违规后，再把它并入上面的强制策略。
+    "Content-Security-Policy-Report-Only": (
+        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: https:; font-src 'self'; connect-src 'self'; frame-src 'self'; "
+        "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+    ),
+}
+
+
+def _is_same_origin(request: Request) -> bool:
+    """CSRF 防护：会改变状态的请求必须来自本站页面。
+
+    浏览器对跨站的 POST/PUT/DELETE 一定会带 Origin；没有 Origin 时再看
+    Sec-Fetch-Site。两者都没有的是 curl 等非浏览器客户端，不受 CSRF 影响。
+    """
+    origin = request.headers.get("origin")
+    if origin is None:
+        return request.headers.get("sec-fetch-site") in (None, "same-origin", "none")
+    if origin == "null":
+        return False
+    netloc = urlparse(origin).netloc.lower()
+    allowed = {request.headers.get("host", "").lower(),
+               urlparse(oauth_auth._public_base_url()).netloc.lower()}
+    return bool(netloc) and netloc in allowed
 
 
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
     path = request.url.path
+    if (path.startswith("/api/") and request.method in _UNSAFE_METHODS
+            and not _is_same_origin(request)):
+        return JSONResponse({"detail": "跨站请求已拒绝"}, status_code=403)
     if path.startswith("/api/") and path not in ("/api/login", "/api/health"):
         token = request.cookies.get(COOKIE_NAME)
-        if not token or not verify_session(token):
+        if not sessions.verify_session(token):
             return JSONResponse({"detail": "未登录"}, status_code=401)
     return await call_next(request)
+
+
+# 最后注册的中间件在最外层，401/403 等提前返回的响应也会带上安全头
+@app.middleware("http")
+async def security_headers_middleware(request: Request, call_next):
+    response = await call_next(request)
+    for name, value in _BASE_SECURITY_HEADERS.items():
+        response.headers.setdefault(name, value)
+    return response
+
+
+def _client_ip(request: Request | None) -> str:
+    # uvicorn 以 --proxy-headers --forwarded-allow-ips=127.0.0.1 运行，
+    # 这里拿到的已经是 nginx 转发的真实来源地址
+    return (request.client.host if request and request.client else "") or "unknown"
+
+
+def _set_session_cookie(response: Response, token: str):
+    response.set_cookie(
+        COOKIE_NAME, token, max_age=sessions.SESSION_TTL,
+        httponly=True, secure=True, samesite="lax",
+    )
 
 
 class LoginBody(BaseModel):
@@ -78,26 +161,35 @@ class LoginBody(BaseModel):
 
 
 @app.post("/api/login")
-async def login(body: LoginBody, response: Response):
-    now = time.time()
-    recent = [t for t in _login_fails if now - t < 300]
-    if len(recent) >= 5:
-        raise HTTPException(status_code=429, detail="尝试过多，请 5 分钟后再试")
+async def login(body: LoginBody, request: Request, response: Response):
+    ip = _client_ip(request)
+    wait = login_throttle.retry_after(ip)
+    if wait:
+        raise HTTPException(status_code=429, detail=f"尝试过多，请 {-(-wait // 60)} 分钟后再试",
+                            headers={"Retry-After": str(wait)})
     if not verify_password(body.password, get_setting("admin_hash")):
-        _login_fails.append(now)
+        login_throttle.record_failure(ip)
         raise HTTPException(status_code=401, detail="密码错误")
-    _login_fails.clear()
-    response.set_cookie(
-        COOKIE_NAME, make_session(), max_age=30 * 86400,
-        httponly=True, secure=True, samesite="lax",
-    )
+    login_throttle.record_success(ip)
+    _set_session_cookie(response, sessions.create_session())
     return {"ok": True}
 
 
 @app.post("/api/logout")
-async def logout(response: Response):
+async def logout(request: Request, response: Response):
+    """只吊销当前设备的会话。"""
+    sessions.revoke_session(request.cookies.get(COOKIE_NAME))
     response.delete_cookie(COOKIE_NAME)
     return {"ok": True}
+
+
+@app.post("/api/sessions/revoke-all")
+async def revoke_all_sessions(response: Response):
+    """退出所有设备：吊销全部会话，再给当前设备签发一个新会话。"""
+    count = sessions.revoke_all_sessions()
+    _set_session_cookie(response, sessions.create_session())
+    audit("revoke_sessions", actor="user", tier="A", reason=f"退出所有设备，吊销 {count} 个会话")
+    return {"ok": True, "revoked": count}
 
 
 @app.get("/api/health")
@@ -797,7 +889,6 @@ class SettingsBody(BaseModel):
     digest_hour: int | None = None
     old_password: str | None = None
     new_password: str | None = None
-    alias_account_id: int | None = None
     notify_bark_url: str | None = None
     notify_tg_token: str | None = None
     notify_tg_chat: str | None = None
@@ -815,10 +906,6 @@ class SettingsBody(BaseModel):
 @app.get("/api/settings")
 async def get_settings():
     cfg = ai.ai_config()
-    conn = get_conn()
-    alias_accounts = [dict(r) for r in conn.execute(
-        "SELECT id, name, email FROM accounts WHERE enabled=1 AND provider IN ('gmail','outlook')"
-    ).fetchall()]
     google_oauth = oauth_auth.browser_config_info("gmail")
     microsoft_oauth = oauth_auth.browser_config_info("outlook")
     return {
@@ -830,9 +917,6 @@ async def get_settings():
         "clean_otp_days": int(get_setting("clean_otp_days", "0") or 0),
         "clean_server": get_setting("clean_server", "0") == "1",
         "digest_hour": int(get_setting("digest_hour", "8") or 8),
-        "ext_token": get_setting("ext_token", ""),
-        "alias_account_id": int(get_setting("alias_account_id", "0") or 0),
-        "alias_accounts": alias_accounts,
         "notify_bark_url": get_setting("notify_bark_url", ""),
         "notify_tg_token_set": bool(get_setting("notify_tg_token", "")),
         "notify_tg_chat": get_setting("notify_tg_chat", ""),
@@ -887,14 +971,22 @@ def _save_oauth_settings(body: SettingsBody, *, prefix: str, provider: str, labe
 
 @app.put("/api/settings")
 async def put_settings(body: SettingsBody):
-    _save_oauth_settings(body, prefix="google", provider="gmail", label="Google")
-    _save_oauth_settings(body, prefix="microsoft", provider="outlook", label="Microsoft")
+    # 先校验密码，避免密码错误时其他设置已被部分保存
     if body.new_password is not None:
         if not verify_password(body.old_password or "", get_setting("admin_hash")):
             raise HTTPException(status_code=400, detail="原密码错误")
         if len(body.new_password) < 8:
             raise HTTPException(status_code=400, detail="新密码至少 8 位")
+    _save_oauth_settings(body, prefix="google", provider="gmail", label="Google")
+    _save_oauth_settings(body, prefix="microsoft", provider="outlook", label="Microsoft")
+    if body.new_password is not None:
         set_setting("admin_hash", hash_password(body.new_password))
+        _remove_initial_password_file()
+        # 改密码让所有旧会话失效，当前设备换发新会话继续使用
+        count = sessions.revoke_all_sessions()
+        new_session = sessions.create_session()
+        audit("change_password", actor="user", tier="A",
+              reason=f"修改管理密码，吊销 {count} 个会话")
     if body.ai_enabled is not None:
         set_setting("ai_enabled", "1" if body.ai_enabled else "0")
     if body.ai_base_url is not None:
@@ -911,8 +1003,6 @@ async def put_settings(body: SettingsBody):
         set_setting("clean_server", "1" if body.clean_server else "0")
     if body.digest_hour is not None:
         set_setting("digest_hour", str(min(23, max(0, body.digest_hour))))
-    if body.alias_account_id is not None:
-        set_setting("alias_account_id", str(max(0, body.alias_account_id)))
     if body.notify_bark_url is not None:
         set_setting("notify_bark_url", body.notify_bark_url.strip())
     if body.notify_tg_token:
@@ -925,6 +1015,11 @@ async def put_settings(body: SettingsBody):
         set_setting("notify_otp", "1" if body.notify_otp else "0")
     if body.body_keep_days is not None:
         set_setting("body_keep_days", str(max(0, body.body_keep_days)))
+    if body.new_password is not None:
+        # 当前设备换发新会话继续使用；其他设备的会话已在上面全部吊销
+        response = JSONResponse({"ok": True})
+        _set_session_cookie(response, new_session)
+        return response
     return {"ok": True}
 
 
@@ -944,166 +1039,6 @@ async def ai_test():
         return {"ok": True, "reply": reply.strip()[:50]}
     except Exception as e:
         return {"ok": False, "msg": str(e)[:200]}
-
-
-# ---------- 外部 API：注册机取码（cloudflare_temp_email 兼容协议） ----------
-# 注册机「Cloudflare Worker 自建」通道直接指向本站即可：
-#   API 地址填你的 MailHub 地址（MAILHUB_PUBLIC_URL），管理员令牌填设置页的外部 API Token
-# POST /admin/new_address 分配加号别名（基于 Gmail/Outlook 账户）
-# GET  /admin/mails?address= 查询该别名邮件（查询自动触发突发同步）
-
-import hmac as _hmac
-
-
-def _check_ext(request: Request):
-    token = get_setting("ext_token", "")
-    provided = request.headers.get("x-admin-auth", "") \
-        or request.headers.get("Authorization", "").removeprefix("Bearer ").strip() \
-        or request.query_params.get("token", "")
-    if not token or not provided or not _hmac.compare_digest(token, provided):
-        raise HTTPException(status_code=401, detail="无效的外部 API 令牌")
-
-
-def _alias_base_account(conn, domain: str = ""):
-    """选择别名基座账户：显式 domain 参数 > 设置指定 > 第一个支持加号别名的账户"""
-    if domain:
-        row = conn.execute(
-            "SELECT * FROM accounts WHERE enabled=1 AND email LIKE ? ORDER BY id LIMIT 1",
-            (f"%@{domain}",)).fetchone()
-        if row:
-            return row
-    aid = int(get_setting("alias_account_id", "0") or 0)
-    if aid:
-        row = conn.execute("SELECT * FROM accounts WHERE id=? AND enabled=1", (aid,)).fetchone()
-        if row:
-            return row
-    return conn.execute(
-        "SELECT * FROM accounts WHERE enabled=1 AND provider IN ('gmail','outlook') "
-        "ORDER BY id LIMIT 1").fetchone()
-
-
-@app.post("/admin/new_address")
-async def ext_new_address(request: Request):
-    _check_ext(request)
-    try:
-        body = await request.json()
-    except Exception:
-        body = {}
-    name = re.sub(r"[^a-z0-9]", "", str(body.get("name", "")).lower()) or pysecrets.token_hex(5)
-    conn = get_conn()
-    acc = _alias_base_account(conn, str(body.get("domain", "")).strip())
-    if not acc:
-        raise HTTPException(status_code=400,
-                            detail="没有可用的别名基座账户（需要已启用的 Gmail/Outlook 账户）")
-    local, _, dom = acc["email"].partition("@")
-    local = local.split("+")[0]
-    alias = f"{local}+{name}@{dom}"
-    conn.execute(
-        "INSERT OR IGNORE INTO aliases(alias, account_id, name, created_ts) VALUES(?,?,?,?)",
-        (alias, acc["id"], name, time.time()))
-    conn.commit()
-    # 同时给出 email/address 与 token/jwt 两种键名，兼容不同版本的取码客户端
-    return {"email": alias, "address": alias, "token": alias, "jwt": alias}
-
-
-def _pseudo_raw(row) -> str:
-    """把入库邮件还原成近似 RFC822 文本：取码客户端在 \r\n\r\n 之后的部分里抠验证码"""
-    body = row["body_html"] or row["body_text"] or ""
-    return (f"Subject: {row['subject']}\r\nFrom: {row['sender_addr']}\r\n"
-            f"To: {row['to_addr']}\r\n\r\n{body}")
-
-
-@app.get("/admin/mails")
-async def ext_mails(request: Request, address: str = "", limit: int = 20, offset: int = 0):
-    _check_ext(request)
-    address = address.strip().lower()
-    if not address:
-        raise HTTPException(status_code=400, detail="缺少 address 参数")
-    conn = get_conn()
-    arow = conn.execute("SELECT * FROM aliases WHERE alias=?", (address,)).fetchone()
-    if arow:
-        acc_id = arow["account_id"]
-        conn.execute("UPDATE aliases SET last_query_ts=? WHERE id=?", (time.time(), arow["id"]))
-        conn.commit()
-        cond, args = "account_id=? AND to_addr LIKE ?", [acc_id, f"%{address}%"]
-    else:
-        # 也允许直接查真实账户地址
-        acc = conn.execute("SELECT * FROM accounts WHERE email=? AND enabled=1", (address,)).fetchone()
-        if not acc:
-            return {"results": [], "count": 0}
-        acc_id = acc["id"]
-        cond, args = "account_id=?", [acc_id]
-    # 查询即触发突发同步：注册机 3 秒一轮询，同步节奏由查询驱动
-    sync.maybe_burst_sync(acc_id)
-    rows = conn.execute(
-        f"""SELECT id, subject, sender_addr, to_addr, body_text, body_html, date_ts
-            FROM messages WHERE {cond} AND deleted_ts=0 ORDER BY date_ts DESC LIMIT ? OFFSET ?""",
-        args + [min(50, limit), offset]).fetchall()
-    results = [{
-        "id": r["id"],
-        "address": address,
-        "source": r["sender_addr"],
-        "subject": r["subject"],
-        "raw": _pseudo_raw(r),
-        "created_at": datetime.fromtimestamp(r["date_ts"], sync.TZ).isoformat(),
-    } for r in rows]
-    return {"results": results, "count": len(results)}
-
-
-@app.get("/ext/otp/latest")
-async def ext_otp_latest(request: Request, address: str = "", sender: str = "", max_age: int = 300):
-    """通用取码接口（自有脚本用）：返回最新验证码。address 可为别名或真实账户地址"""
-    _check_ext(request)
-    conn = get_conn()
-    where, args = ["otp_code != ''"], []
-    address = address.strip().lower()
-    if address:
-        arow = conn.execute("SELECT * FROM aliases WHERE alias=?", (address,)).fetchone()
-        if arow:
-            where.append("account_id=? AND to_addr LIKE ?")
-            args += [arow["account_id"], f"%{address}%"]
-            sync.maybe_burst_sync(arow["account_id"])
-        else:
-            acc = conn.execute("SELECT id FROM accounts WHERE email=?", (address,)).fetchone()
-            if acc:
-                where.append("account_id=?")
-                args.append(acc["id"])
-                sync.maybe_burst_sync(acc["id"])
-    else:
-        for r in conn.execute("SELECT id FROM accounts WHERE enabled=1").fetchall():
-            sync.maybe_burst_sync(r["id"])
-    if sender:
-        where.append("sender_addr LIKE ?")
-        args.append(f"%{sender}%")
-    where.append("deleted_ts=0")
-    where.append("date_ts > ?")
-    args.append(time.time() - max(30, max_age))
-    row = conn.execute(
-        f"SELECT otp_code, subject, sender_addr, date_ts FROM messages "
-        f"WHERE {' AND '.join(where)} ORDER BY date_ts DESC LIMIT 1", args).fetchone()
-    if not row:
-        return JSONResponse({"found": False, "hint": "暂无符合条件的验证码，稍后重试（查询已触发同步）"},
-                            status_code=404)
-    return {"found": True, "code": row["otp_code"], "subject": row["subject"],
-            "sender": row["sender_addr"], "ts": row["date_ts"]}
-
-
-@app.post("/api/ext/regen-token")
-async def regen_ext_token():
-    token = "mh-" + pysecrets.token_urlsafe(24)
-    set_setting("ext_token", token)
-    return {"ok": True, "token": token}
-
-
-@app.get("/api/ext/aliases")
-async def list_aliases(limit: int = 20):
-    conn = get_conn()
-    rows = conn.execute(
-        """SELECT al.alias, al.created_ts, al.last_query_ts, a.name AS account_name
-           FROM aliases al JOIN accounts a ON a.id=al.account_id
-           ORDER BY al.id DESC LIMIT ?""", (limit,)).fetchall()
-    total = conn.execute("SELECT COUNT(*) c FROM aliases").fetchone()["c"]
-    return {"total": total, "items": [dict(r) for r in rows]}
 
 
 @app.post("/api/notify/test")

@@ -152,6 +152,14 @@ CREATE TABLE IF NOT EXISTS governance_decisions(
 );
 CREATE INDEX IF NOT EXISTS idx_governance_decisions_message
   ON governance_decisions(message_id, ts DESC);
+
+-- 管理员会话：只保存令牌的 SHA-256，可逐个吊销
+CREATE TABLE IF NOT EXISTS sessions(
+  id_hash TEXT PRIMARY KEY,
+  created_ts REAL NOT NULL,
+  expires_ts REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_sessions_expiry ON sessions(expires_ts);
 """
 
 # 增量迁移：旧库补列（新库建表语句里已包含则忽略报错）
@@ -239,6 +247,16 @@ def set_setting(key: str, value: str):
 
 def now() -> float:
     return time.time()
+
+
+def remove_external_api_settings():
+    """旧版"注册机取码"外部 API 已移除：删除它留下的访问令牌和别名基座设置。
+
+    aliases 表保留（不再写入），避免改动旧库结构。
+    """
+    conn = get_conn()
+    conn.execute("DELETE FROM settings WHERE k IN ('ext_token', 'alias_account_id')")
+    conn.commit()
 
 
 # ---------- 审计 ----------

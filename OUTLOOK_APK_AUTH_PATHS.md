@@ -89,12 +89,12 @@ Outlook 使用私有 appid，回调受 `olmoauth.outlook.com` 控制，这是 Ou
 |---|---|---|
 | Gmail 客户端 | Outlook 私有 Client ID + 微软后端兑换 | 部署者自有 Web 客户端，直接换 token |
 | Outlook | OneAuth/MSAL | 公开 OAuth v2：授权码 + PKCE 或设备码 |
-| 网易 | 私有 appid + `olmoauth` 回调 | 双通道：`NETEASE_CHANNEL=own` 用自有 appid；`=outlook` 直接复用 `rjg1fubwqzie5unhx6` |
+| 网易 | 私有 appid + `olmoauth` 回调 | 只用部署者自有 appid，拒绝 `rjg1fubwqzie5unhx6` 与 `olmoauth` 回调 |
 | 网易回调 | fragment 里的 `accessToken` | 回调页读取 fragment 后 POST 到 `/api/oauth/<brand>/fragment`，同时兼容 `access_token`/`accessToken` |
 | 网易令牌 | 同 token 兼作 refresh，3650 天 | 相同，但过期后强制重新交互登录 |
 | QQ | QQ SSO + WebView | 客户端授权码 + RFC 2971 `ID` |
 
-网易通道在代码里是显式开关：默认 `own` 会拒绝 `rjg1fubwqzie5unhx6` 与 `olmoauth.outlook.com`；设置 `NETEASE_CHANNEL=outlook` 后按 APK 原样复用该 appid，`redirectUrl` 仍指向本项目回调（`#uid&accessToken&state` 由捕获页读回），`NETEASE_REDIRECT_STYLE=olmoauth` 则还原中转地址用于协议对照。Google 的 Outlook 私有 Client ID 依旧始终拒绝——它绑定 Android 包名与微软后端兑换，Web 端拿不到结果。网易自家客户端（邮箱大师）走 URS 登录 + `imap.vip.*` 主机表，没有可移植的 refresh 端点，见 [MAIL_MASTER_ANALYSIS.md](MAIL_MASTER_ANALYSIS.md)。
+MailHub 拒绝 `rjg1fubwqzie5unhx6` 与 `olmoauth.outlook.com`：它们是 Outlook 与网易之间的合作注册，借用会冒用微软的客户端身份。Google 的 Outlook 私有 Client ID 依旧始终拒绝——它绑定 Android 包名与微软后端兑换，Web 端拿不到结果。网易自家客户端（邮箱大师）走 URS 登录 + `imap.vip.*` 主机表，没有可移植的 refresh 端点，见 [MAIL_MASTER_ANALYSIS.md](MAIL_MASTER_ANALYSIS.md)。
 
 ## 复现
 

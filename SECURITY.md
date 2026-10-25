@@ -101,10 +101,13 @@ medium/high 风险邮件强制归入「可疑」分类并进入只读风险观�
 
 ## 八、其他已实现的安全措施
 
-- 授权码/OAuth Token 用 Fernet 加密落库，主密钥在 `/opt/mailhub/.env`（0600）
-- 会话是 HMAC 签名 cookie，`httponly` + `secure` + `samesite=lax`
-- 登录失败 5 次锁 5 分钟
-- 外部取码 API 用 `hmac.compare_digest` 恒时比较，令牌可一键重置
+- 授权码/OAuth Token 用 Fernet 加密落库，密钥由 `MAILHUB_SECRET` 经 HKDF-SHA256 派生，主密钥在 `/opt/mailhub/.env`（0600）。更换密钥时把旧值设为 `MAILHUB_SECRET_PREVIOUS` 重启一次，启动时会把所有凭据改用新密钥重新加密；解密失败会写警告日志（不含密文）
+- 会话保存在服务端（只存令牌的 SHA-256），cookie 为 `httponly` + `secure` + `samesite=lax`。登出只吊销当前设备；修改密码或设置页"退出所有其他设备"会吊销全部会话
+- 登录失败按来源 IP 指数退避：前 5 次不限，之后等待 60 秒并逐次翻倍，最长 1 小时；所有来源合计 10 分钟内失败 100 次时暂停登录
+- 首次启动生成的管理密码写入数据目录下的 `initial-admin-password.txt`（0600），日志里只有文件路径；改密码后该文件被删除
+- CSRF：会改变状态的 `/api` 请求必须来自本站（`Origin` 与 Host 或 `MAILHUB_PUBLIC_URL` 一致，或 `Sec-Fetch-Site: same-origin`）；跨站请求返回 403
+- 所有响应带 `X-Content-Type-Options`、`X-Frame-Options: DENY`、`Referrer-Policy` 和基础 CSP；完整 CSP 暂以 Report-Only 运行，前端去掉内联事件处理器后再改为强制
+- nginx：80 端口只做 301 跳转到 HTTPS，启用 HSTS；所有服务商的 OAuth 回调不写访问日志
 - 邮件 HTML 在**全沙箱 iframe**（`sandbox=""`，禁脚本/表单/弹窗/同源）中渲染
 - **外部图片默认拦截**：CSP `img-src data:`，阻断追踪像素泄露阅读时间与 IP；用户可单封放行
 - `referrerpolicy="no-referrer"`
@@ -119,7 +122,7 @@ medium/high 风险邮件强制归入「可疑」分类并进入只读风险观�
 | 项目 | 状态 | 说明 |
 |---|---|---|
 | 多用户与 userId 隔离 | ❌ 未实现 | 单管理员设计，所有数据属同一人；无 userId 列，**不适合多租户部署** |
-| CSRF Token | ❌ 未实现 | 依赖 `samesite=lax` cookie 缓解；未实现独立 CSRF token |
+| CSRF Token | ⚠️ 部分 | 用 Origin / Sec-Fetch-Site 校验代替独立 token（见第八节） |
 | Gmail API / Microsoft Graph 原生 Connector | ❌ 未实现 | Gmail 走 IMAP + 应用专用密码；Outlook 走 OAuth 但仍是 IMAP 协议，非 Graph API |
 | IMAP IDLE 实时推送 | ❌ 未实现 | 使用轮询 + 查询驱动的突发同步 |
 | 规则模拟器 | ❌ 未实现 | 规则可增删，但无"预览会匹配哪些邮件"功能 |
@@ -131,7 +134,7 @@ medium/high 风险邮件强制归入「可疑」分类并进入只读风险观�
 | 死信队列 / 指数退避 | ⚠️ 部分 | 有单账户锁与失败记录，无正式 DLQ 与退避重试策略 |
 | 数据导出 | ❌ 未实现 | 可直接取 SQLite 文件，无导出 API |
 | 定时数据库备份 | ❌ 未实现 | 仓库内没有备份任务；可按 DEPLOY_OAUTH.md 第 7 节用 `sqlite3 .backup` 自行配置定时任务，数据库须与 `MAILHUB_SECRET` 成对备份 |
-| 密钥轮换 | ⚠️ 手动 | 更换 `MAILHUB_SECRET` 会使已加密的授权码全部失效，需重新录入；无平滑轮换机制 |
+| 密钥轮换 | ✅ 已实现 | 设置 `MAILHUB_SECRET_PREVIOUS` 为旧值后重启，凭据自动改用新密钥加密；之后可移除该变量 |
 
 ## 十、测试
 
@@ -148,7 +151,7 @@ GitHub Actions 在每次推送和 PR 时运行全部测试（`.github/workflows/
 
 - Microsoft 与 Google 网页登录采用授权码 + PKCE S256，并校验随机 `state`。
 - 临时 OAuth 事务十分钟过期且只能消费一次；设备码仅加密保存在服务器。
-- access token 与 refresh token 继续使用 `MAILHUB_SECRET` 派生的 Fernet 密钥加密。
+- access token 与 refresh token 使用 `MAILHUB_SECRET` 经 HKDF 派生的 Fernet 密钥加密。
 - OAuth 成功后必须先通过 IMAP XOAUTH2 打开目标账户的 `INBOX`，通过后才写入数据库。
 - 同一账户的令牌刷新使用进程内互斥锁串行执行；刷新失效会标记为需要重新登录。
 - QQ、网易等未提供通用第三方 IMAP OAuth 的服务商仍要求其官方授权码，系统不会保存或尝试普通账户密码绕过限制。

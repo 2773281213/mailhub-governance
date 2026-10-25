@@ -45,9 +45,7 @@ location /api/oauth/ {
 
 ## 2. 准备凭据
 
-### 2.1 网易 163（两条通道）
-
-**通道 A：`NETEASE_CHANNEL=own`（推荐长期使用）**
+### 2.1 网易 163
 
 1. 向网易申请**邮件客户端合作方** appid 与设备标识。
 2. 在网易侧登记回调，按实际使用的品牌逐个登记：
@@ -62,23 +60,9 @@ https://<你的域名>/api/oauth/vip126/callback
 https://<你的域名>/api/oauth/vip188/callback
 ```
 
-3. 写入 `NETEASE_CHANNEL=own` 与 `NETEASE_CLIENT_ID`。
+3. 写入 `NETEASE_CLIENT_ID`（`NETEASE_DEVICE_ID` 可留空，首次使用时生成并持久化）。
 
-**通道 B：`NETEASE_CHANNEL=outlook`（免审批，复用 Outlook 逆向所得身份）**
-
-```env
-NETEASE_CHANNEL=outlook
-# appid 自动使用 rjg1fubwqzie5unhx6，无需填 NETEASE_CLIENT_ID
-# device_id 留空时首次生成 mailhub-<32hex> 写入 settings，之后保持不变
-NETEASE_REDIRECT_STYLE=web     # 必须保持 web 才能完成网页授权
-```
-
-- 授权请求与 APK 完全一致：`uid`、`appid`、`device_id`、`scope=imap`、`responseType=token`、`redirectUrl`、`state`。
-- `NETEASE_REDIRECT_STYLE=olmoauth` 会还原 `https://olmoauth.outlook.com/api/neteaseoauthredir/outlook-oauth://<包名>/android/netease/oauth2redirect`；浏览器打不开该 scheme，只用于协议对照或抓包核对。
-- 该通道复用微软注册的 appid，网易可能按客户端指纹/回调白名单收紧，属于“能跑但不保证长期有效”；对外服务建议转通道 A。
-- 两条通道共用同一套 UI、回调捕获页、XOAUTH2 实测与审计，切换只改环境变量，已有账户重新授权即可。
-
-没有 appid 且未设置 `NETEASE_CHANNEL=outlook` 时，系统自动回退“客户端授权密码”，界面上仍然是同一个向导。
+没有 appid 时，系统自动使用"客户端授权密码"，界面上仍然是同一个向导。早期版本的 `NETEASE_CHANNEL=outlook` 通道借用了 Outlook 的合作方 appid，已经移除；用它登录过的账户升级后会出现在"待重新授权"列表里。
 
 ### 2.2 QQ 邮箱
 
@@ -99,13 +83,10 @@ MAILHUB_SECRET=<32 字节以上随机串>
 MAILHUB_PUBLIC_URL=https://<你的域名>
 MAILHUB_DB=/var/lib/mailhub/mailhub.db
 
-# 网易 OAuth（own=自有 appid；outlook=复用 Outlook 逆向身份）
-NETEASE_CHANNEL=own
+# 网易 OAuth（网易批准给本部署的 appid；留空则使用客户端授权密码）
 NETEASE_CLIENT_ID=
 # 留空时首次启动生成并持久化到 settings，之后保持不变
 NETEASE_DEVICE_ID=
-# web=本项目回调（唯一能完成网页授权的方式）；olmoauth=Outlook 中转（仅协议对照）
-NETEASE_REDIRECT_STYLE=web
 # 每个品牌的回调可单独覆盖，默认 ${MAILHUB_PUBLIC_URL}/api/oauth/<brand>/callback
 NETEASE_163_REDIRECT_URI=
 NETEASE_VIP163_REDIRECT_URI=
@@ -117,7 +98,7 @@ MICROSOFT_CLIENT_ID=
 MICROSOFT_CLIENT_SECRET=
 ```
 
-`MAILHUB_SECRET` 同时用于会话签名和 token 加密：**更换它等于让所有已保存的 OAuth 令牌失效**，必须与数据库一起备份。
+`MAILHUB_SECRET` 用于加密已保存的授权码和 token，必须与数据库一起备份。需要更换时，把旧值写进 `MAILHUB_SECRET_PREVIOUS` 并重启一次，启动时会用新密钥重新加密所有凭据；确认日志里没有"无法解开"的警告后即可删除该变量。
 
 ---
 
@@ -248,6 +229,8 @@ sqlite3 /var/lib/mailhub/mailhub.db ".backup '/backup/mailhub-$(date +%F).db'"
 ```
 
 数据库和 `MAILHUB_SECRET` 必须成对备份；只有库没有密钥，所有 token 都解不开。
+
+**首次登录**：首次启动生成的管理密码在数据目录的 `initial-admin-password.txt`（仅 mailhub 用户可读），登录后在设置页修改密码，该文件会被自动删除。
 
 **安全边界**
 
