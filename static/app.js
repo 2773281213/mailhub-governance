@@ -1065,7 +1065,9 @@ async function renderSettings() {
         <div class="card" style="margin-bottom:14px">
           <h3>${ico("key")} 修改管理密码</h3>
           <div class="set-row"><div class="l">原密码</div><input id="s-old-pwd" type="password"></div>
-          <div class="set-row"><div class="l">新密码<small>至少 8 位</small></div><input id="s-new-pwd" type="password"></div>
+          <div class="set-row"><div class="l">新密码<small>至少 8 位；修改后其他设备需要重新登录</small></div><input id="s-new-pwd" type="password"></div>
+          <div class="set-row"><div class="l">登录会话<small>怀疑密码或 Cookie 泄露时使用</small></div>
+            <button class="btn sm danger" id="s-revoke-sessions">退出所有其他设备</button></div>
         </div>
         <div class="card">
           <h3>${ico("ruler")} 自定义分类规则 <small style="font-weight:400">优先于内置规则</small></h3>
@@ -1127,6 +1129,13 @@ async function renderSettings() {
     if (newP) { body.old_password = oldP; body.new_password = newP; }
     try { await api("/settings", { method: "PUT", body }); toast("已保存"); renderSettings(); }
     catch (e) { toast(e.message, true); }
+  });
+  $("#s-revoke-sessions").addEventListener("click", async () => {
+    if (!confirm("所有其他设备上的登录都将失效，确认？")) return;
+    try {
+      const r = await api("/sessions/revoke-all", { method: "POST" });
+      toast(`已让 ${r.revoked} 个会话失效，当前设备已自动重新登录`);
+    } catch (e) { toast(e.message, true); }
   });
   $("#s-fetch-models").addEventListener("click", async ev => {
     ev.target.disabled = true;

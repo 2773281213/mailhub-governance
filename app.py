@@ -26,25 +26,49 @@ import rules as rules_mod
 import sync
 from db import (audit, get_conn, get_setting, init_db, remove_external_api_settings,
                 set_setting)
-from security import (decrypt, encrypt, hash_password, make_session,
-                      verify_password, verify_session)
+import db
+import sessions
+from security import decrypt, encrypt, hash_password, verify_password
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 COOKIE_NAME = "mailhub_session"
 
-# 登录失败限流：连续 5 次失败锁 5 分钟
-_login_fails: list[float] = []
+# 登录失败限流：按来源 IP 指数退避，另有全局上限（见 sessions.LoginThrottle）
+login_throttle = sessions.LoginThrottle()
+
+
+def _initial_password_path() -> str:
+    return os.path.join(os.path.dirname(os.path.abspath(db.DB_PATH)), "initial-admin-password.txt")
+
+
+def _write_initial_password(password: str) -> str:
+    """首次启动生成的管理密码写入数据目录下的 0600 文件，日志里只出现文件路径。"""
+    path = _initial_password_path()
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as fh:
+        fh.write(password + "\n")
+    return path
+
+
+def _remove_initial_password_file():
+    try:
+        os.remove(_initial_password_path())
+    except FileNotFoundError:
+        pass
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     init_db()
     oauth_auth.init_oauth_db()
-    # 首次启动生成随机管理密码，打印到日志（journalctl 可见），用户可在设置里修改
+    # 首次启动生成随机管理密码。密码只写进数据目录下的 0600 文件，不进日志；
+    # 用户在设置里改密码后该文件会被删除。
     if not get_setting("admin_hash"):
-        pwd = pysecrets.token_urlsafe(9)
+        pwd = pysecrets.token_urlsafe(12)
         set_setting("admin_hash", hash_password(pwd))
-        print(f"[MailHub] 初始管理密码: {pwd}", flush=True)
+        path = _write_initial_password(pwd)
+        print(f"[MailHub] 已生成初始管理密码，保存在 {path}（仅文件所有者可读）", flush=True)
     # 旧版外部取码 API 已移除：清掉它留下的令牌和别名基座设置
     remove_external_api_settings()
     sync.engine.start()
@@ -58,19 +82,27 @@ app.include_router(oauth_auth.router)
 
 # ---------- 鉴权 ----------
 
-def require_auth(token: str | None):
-    if not token or not verify_session(token):
-        raise HTTPException(status_code=401, detail="未登录")
-
-
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
     path = request.url.path
     if path.startswith("/api/") and path not in ("/api/login", "/api/health"):
         token = request.cookies.get(COOKIE_NAME)
-        if not token or not verify_session(token):
+        if not sessions.verify_session(token):
             return JSONResponse({"detail": "未登录"}, status_code=401)
     return await call_next(request)
+
+
+def _client_ip(request: Request | None) -> str:
+    # uvicorn 以 --proxy-headers --forwarded-allow-ips=127.0.0.1 运行，
+    # 这里拿到的已经是 nginx 转发的真实来源地址
+    return (request.client.host if request and request.client else "") or "unknown"
+
+
+def _set_session_cookie(response: Response, token: str):
+    response.set_cookie(
+        COOKIE_NAME, token, max_age=sessions.SESSION_TTL,
+        httponly=True, secure=True, samesite="lax",
+    )
 
 
 class LoginBody(BaseModel):
@@ -78,26 +110,35 @@ class LoginBody(BaseModel):
 
 
 @app.post("/api/login")
-async def login(body: LoginBody, response: Response):
-    now = time.time()
-    recent = [t for t in _login_fails if now - t < 300]
-    if len(recent) >= 5:
-        raise HTTPException(status_code=429, detail="尝试过多，请 5 分钟后再试")
+async def login(body: LoginBody, request: Request, response: Response):
+    ip = _client_ip(request)
+    wait = login_throttle.retry_after(ip)
+    if wait:
+        raise HTTPException(status_code=429, detail=f"尝试过多，请 {-(-wait // 60)} 分钟后再试",
+                            headers={"Retry-After": str(wait)})
     if not verify_password(body.password, get_setting("admin_hash")):
-        _login_fails.append(now)
+        login_throttle.record_failure(ip)
         raise HTTPException(status_code=401, detail="密码错误")
-    _login_fails.clear()
-    response.set_cookie(
-        COOKIE_NAME, make_session(), max_age=30 * 86400,
-        httponly=True, secure=True, samesite="lax",
-    )
+    login_throttle.record_success(ip)
+    _set_session_cookie(response, sessions.create_session())
     return {"ok": True}
 
 
 @app.post("/api/logout")
-async def logout(response: Response):
+async def logout(request: Request, response: Response):
+    """只吊销当前设备的会话。"""
+    sessions.revoke_session(request.cookies.get(COOKIE_NAME))
     response.delete_cookie(COOKIE_NAME)
     return {"ok": True}
+
+
+@app.post("/api/sessions/revoke-all")
+async def revoke_all_sessions(response: Response):
+    """退出所有设备：吊销全部会话，再给当前设备签发一个新会话。"""
+    count = sessions.revoke_all_sessions()
+    _set_session_cookie(response, sessions.create_session())
+    audit("revoke_sessions", actor="user", tier="A", reason=f"退出所有设备，吊销 {count} 个会话")
+    return {"ok": True, "revoked": count}
 
 
 @app.get("/api/health")
@@ -878,15 +919,24 @@ def _save_oauth_settings(body: SettingsBody, *, prefix: str, provider: str, labe
 
 
 @app.put("/api/settings")
-async def put_settings(body: SettingsBody):
-    _save_oauth_settings(body, prefix="google", provider="gmail", label="Google")
-    _save_oauth_settings(body, prefix="microsoft", provider="outlook", label="Microsoft")
+async def put_settings(body: SettingsBody, response: Response = None):  # type: ignore[assignment]
+    # 先校验密码，避免密码错误时其他设置已被部分保存
     if body.new_password is not None:
         if not verify_password(body.old_password or "", get_setting("admin_hash")):
             raise HTTPException(status_code=400, detail="原密码错误")
         if len(body.new_password) < 8:
             raise HTTPException(status_code=400, detail="新密码至少 8 位")
+    _save_oauth_settings(body, prefix="google", provider="gmail", label="Google")
+    _save_oauth_settings(body, prefix="microsoft", provider="outlook", label="Microsoft")
+    if body.new_password is not None:
         set_setting("admin_hash", hash_password(body.new_password))
+        _remove_initial_password_file()
+        # 改密码让所有旧会话失效，当前设备换发新会话继续使用
+        count = sessions.revoke_all_sessions()
+        if response is not None:
+            _set_session_cookie(response, sessions.create_session())
+        audit("change_password", actor="user", tier="A",
+              reason=f"修改管理密码，吊销 {count} 个会话")
     if body.ai_enabled is not None:
         set_setting("ai_enabled", "1" if body.ai_enabled else "0")
     if body.ai_base_url is not None:

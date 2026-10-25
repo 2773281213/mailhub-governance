@@ -1,10 +1,9 @@
-"""安全模块：秘密加密（Fernet）、口令哈希（PBKDF2）、会话签名（HMAC）"""
+"""安全模块：秘密加密（Fernet）与口令哈希（PBKDF2）"""
 import base64
 import hashlib
 import hmac
 import os
 import secrets
-import time
 
 from cryptography.fernet import Fernet, InvalidToken
 
@@ -15,9 +14,8 @@ if not _SECRET:
 if _SECRET == "replace-with-a-long-random-secret":
     raise RuntimeError("MAILHUB_SECRET 仍是 .env.example 里的占位值，请换成随机生成的长密钥")
 
-# 由主密钥派生 Fernet 密钥与会话签名密钥，避免直接复用
+# 由主密钥派生加密密钥（会话令牌改为服务端存储，见 sessions.py，不再需要签名密钥）
 _fernet = Fernet(base64.urlsafe_b64encode(hashlib.sha256(("enc:" + _SECRET).encode()).digest()))
-_session_key = hashlib.sha256(("sess:" + _SECRET).encode()).digest()
 
 
 def encrypt(plain: str) -> str:
@@ -50,21 +48,3 @@ def verify_password(password: str, stored: str) -> bool:
         return False
     dk = hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), 200_000)
     return hmac.compare_digest(dk.hex(), expect)
-
-
-# ---------- 会话令牌（无状态签名 cookie，重启不失效） ----------
-
-def make_session(days: int = 30) -> str:
-    exp = str(int(time.time()) + days * 86400)
-    sig = hmac.new(_session_key, exp.encode(), hashlib.sha256).hexdigest()
-    return f"{exp}.{sig}"
-
-
-def verify_session(token: str) -> bool:
-    if not token or "." not in token:
-        return False
-    exp, sig = token.rsplit(".", 1)
-    if not exp.isdigit() or int(exp) < time.time():
-        return False
-    expect = hmac.new(_session_key, exp.encode(), hashlib.sha256).hexdigest()
-    return hmac.compare_digest(sig, expect)
