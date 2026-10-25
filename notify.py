@@ -10,6 +10,7 @@ Onepush（https://github.com/y1ndan/onepush）的配置格式与 AzurLaneAutoScr
 """
 import logging
 import threading
+from urllib.parse import urlparse
 
 import httpx
 
@@ -82,6 +83,8 @@ def validate_onepush_config(text: str) -> str:
     """校验配置并返回 provider 名称；缺少必填参数时报错，不会真正发送。"""
     config = parse_onepush_config(text)
     notifier = _get_notifier(config["provider"])
+    if config["provider"] == "bark":
+        _normalize_bark(config)
     required = (getattr(notifier, "params", None) or {}).get("required", [])
     # 标题和正文由 MailHub 提供；bark 的 device_key 也可以写成 key
     provided = set(config) | {"title", "content"}
@@ -102,14 +105,74 @@ def onepush_provider(text: str) -> str:
         return ""
 
 
+_MISSING_DEPS = "服务器未安装 onepush 或 PyYAML，请在服务器上执行 pip install -r requirements.txt 后重启"
+
+
+def _normalize_bark(config: dict):
+    """兼容 Alas 文档的写法：自建 Bark 服务器时 key 填完整地址，如 https://bark.example.com/KEY。
+
+    新版 onepush 用 base_url 指定服务器、key 只填设备 key，这里自动拆开。
+    """
+    key = str(config.get("key") or config.get("device_key") or "").strip()
+    if not key.lower().startswith(("http://", "https://")):
+        return
+    parsed = urlparse(key.rstrip("/"))
+    parts = [part for part in parsed.path.split("/") if part]
+    if parts and parts[-1] == "push":
+        parts.pop()
+    if not parts:
+        raise OnepushConfigError("Bark 的 key 写成了地址，但地址里没有设备 key，例如 https://bark.example.com/你的Key")
+    config.pop("device_key", None)
+    config["key"] = parts[-1]
+    prefix = "/".join(parts[:-1])
+    config.setdefault("base_url", f"{parsed.scheme}://{parsed.netloc}" + (f"/{prefix}" if prefix else ""))
+
+
+def _response_error(provider: str, response) -> str | None:
+    """检查服务端结果。很多服务在 HTTP 200 里用 code/errcode/ok 表示失败，只看状态码会误报成功。"""
+    if response is None:
+        if provider == "smtp":
+            return None
+        # onepush 遇到网络错误只记日志并返回 None，不抛异常
+        return f"Onepush({provider}) 没有收到服务端响应，请检查服务器能否访问该推送服务（网络、DNS 或代理）"
+    status = getattr(response, "status_code", None)
+    if status is None:
+        return None
+    try:
+        body = response.json()
+    except Exception:
+        body = None
+    detail = ""
+    if isinstance(body, dict):
+        if body.get("ok") is False or body.get("success") is False:
+            detail = body.get("description") or body.get("reason") or body.get("message") or ""
+        elif "errcode" in body and str(body["errcode"]) != "0":
+            detail = f"errcode={body['errcode']} {body.get('errmsg') or ''}"
+        elif "code" in body and str(body["code"]) not in ("0", "200"):
+            detail = f"code={body['code']} {body.get('message') or body.get('msg') or ''}"
+        elif body.get("status") == "failed":
+            detail = str(body.get("wording") or body.get("msg") or "status=failed")
+        if not detail and status >= 400:
+            detail = str(body.get("message") or body.get("msg") or body.get("error") or "")
+    elif status >= 400:
+        detail = (getattr(response, "text", "") or "")[:120]
+    if status >= 400 or detail:
+        return f"Onepush({provider}) 推送失败：HTTP {status}" + (f"，{str(detail).strip()[:150]}" if detail else "")
+    return None
+
+
 def send_onepush(text: str, title: str, content: str) -> str | None:
     """按配置发送一条 Onepush 消息；成功返回 None，失败返回错误说明（不含凭据）。"""
     try:
         config = parse_onepush_config(text)
         provider = config.pop("provider")
         notifier = _get_notifier(provider)
+        if provider == "bark":
+            _normalize_bark(config)
     except OnepushConfigError as exc:
         return str(exc)
+    except ImportError:
+        return _MISSING_DEPS
 
     if provider == "custom":
         # 与 Alas 相同：POST 默认以 JSON 发送，标题和正文放进 data
@@ -129,20 +192,10 @@ def send_onepush(text: str, title: str, content: str) -> str | None:
     except Exception as exc:
         log.warning("Onepush(%s) 发送失败：%s", provider, type(exc).__name__)
         return f"Onepush({provider}) 发送失败：{type(exc).__name__}: {str(exc)[:120]}"
-    if response is None and provider != "smtp":
-        # onepush 在网络错误时会记录日志并返回 None，而不是抛异常
-        return f"Onepush({provider}) 没有收到服务端响应，可能是网络或代理问题"
-    status = getattr(response, "status_code", None)
-    if status is not None and status >= 400:
-        log.warning("Onepush(%s) 返回 HTTP %s", provider, status)
-        return f"Onepush({provider}) 返回 HTTP {status}"
-    if provider == "gocqhttp" and status is not None:
-        try:
-            if response.json().get("status") == "failed":
-                return f"Onepush({provider}) 返回失败：{str(response.json())[:120]}"
-        except ValueError:
-            pass
-    return None
+    error = _response_error(provider, response)
+    if error:
+        log.warning("%s", error)
+    return error
 
 
 # ---------- Bark / Telegram ----------
@@ -205,11 +258,27 @@ def notify_new_messages(msgs: list[dict], account_name: str):
     threading.Thread(target=run, daemon=True).start()
 
 
-def test_push() -> str:
+TEST_TITLE = "MailHub 测试推送"
+TEST_CONTENT = "如果你看到这条消息，说明推送配置正确"
+
+
+def test_push(onepush_text: str = "") -> str:
+    """发送测试推送。传入 onepush_text 时只用这段（尚未保存的）Onepush 配置测试。"""
+    if onepush_text.strip():
+        try:
+            provider = validate_onepush_config(onepush_text)
+        except OnepushConfigError as exc:
+            raise RuntimeError(str(exc)) from exc
+        except ImportError as exc:
+            raise RuntimeError(_MISSING_DEPS) from exc
+        error = send_onepush(onepush_text, TEST_TITLE, TEST_CONTENT)
+        if error:
+            raise RuntimeError(error)
+        return f"已发送到 Onepush({provider})（该配置尚未保存，确认收到后请点「保存全部设置」）"
     cfg = _cfg()
     if not _any_channel(cfg):
         raise RuntimeError("未配置任何推送通道")
-    results = _dispatch("MailHub 测试推送", "如果你看到这条消息，说明推送配置正确")
+    results = _dispatch(TEST_TITLE, TEST_CONTENT)
     failed = [f"{channel}：{error}" for channel, error in results if error]
     if failed and len(failed) == len(results):
         raise RuntimeError("；".join(failed))

@@ -1159,6 +1159,7 @@ async function renderSettings() {
           <div class="set-row"><div class="l">推送验证码<small>验证码多时会比较吵</small></div>
             <label class="switch"><input type="checkbox" id="s-ntf-otp" ${s.notify_otp ? "checked" : ""}></label></div>
           <div style="text-align:right;margin-top:8px"><button class="btn sm" id="s-ntf-test">发送测试推送</button></div>
+          <div id="s-ntf-result" style="font-size:12px;margin-top:6px;text-align:right"></div>
         </div>
         <div class="card" style="margin-bottom:14px">
           <h3>${ico("broom")} 自动清理</h3>
@@ -1276,8 +1277,12 @@ async function renderSettings() {
   $("#s-google-copy")?.addEventListener("click", () => copyText($("#s-google-callback").value));
   $("#s-ntf-test").addEventListener("click", async ev => {
     ev.target.disabled = true;
-    const r = await api("/notify/test", { method: "POST" }).catch(e => ({ ok: false, msg: e.message }));
-    toast(r.ok ? r.msg : r.msg, !r.ok);
+    // Onepush 输入框里有内容时，直接用它测试（不必先保存）；否则测试已保存的全部通道
+    const onepush = $("#s-onepush")?.value.trim() || "";
+    const r = await api("/notify/test", { method: "POST", body: onepush ? { onepush_config: onepush } : undefined })
+      .catch(e => ({ ok: false, msg: e.message }));
+    toast(r.msg, !r.ok);
+    $("#s-ntf-result").innerHTML = `<span style="color:${r.ok ? "#137333" : "var(--danger)"}">${esc(r.msg)}</span>`;
     ev.target.disabled = false;
   });
   $("#r-add").addEventListener("click", async () => {
