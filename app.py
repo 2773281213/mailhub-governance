@@ -10,6 +10,7 @@ import secrets as pysecrets
 import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
+from urllib.parse import urlparse
 
 from fastapi import Cookie, FastAPI, HTTPException, Request, Response
 from fastapi.responses import FileResponse, JSONResponse
@@ -82,14 +83,61 @@ app.include_router(oauth_auth.router)
 
 # ---------- 鉴权 ----------
 
+_UNSAFE_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
+
+# 对所有响应生效、几乎不会影响页面的安全头；页面自己设置过的同名头不覆盖
+_BASE_SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "same-origin",
+    "Content-Security-Policy": "object-src 'none'; base-uri 'self'; form-action 'self'",
+    # 完整策略先以 Report-Only 运行：前端仍有内联事件处理器，
+    # 在浏览器控制台确认没有违规后，再把它并入上面的强制策略。
+    "Content-Security-Policy-Report-Only": (
+        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: https:; font-src 'self'; connect-src 'self'; frame-src 'self'; "
+        "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+    ),
+}
+
+
+def _is_same_origin(request: Request) -> bool:
+    """CSRF 防护：会改变状态的请求必须来自本站页面。
+
+    浏览器对跨站的 POST/PUT/DELETE 一定会带 Origin；没有 Origin 时再看
+    Sec-Fetch-Site。两者都没有的是 curl 等非浏览器客户端，不受 CSRF 影响。
+    """
+    origin = request.headers.get("origin")
+    if origin is None:
+        return request.headers.get("sec-fetch-site") in (None, "same-origin", "none")
+    if origin == "null":
+        return False
+    netloc = urlparse(origin).netloc.lower()
+    allowed = {request.headers.get("host", "").lower(),
+               urlparse(oauth_auth._public_base_url()).netloc.lower()}
+    return bool(netloc) and netloc in allowed
+
+
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
     path = request.url.path
+    if (path.startswith("/api/") and request.method in _UNSAFE_METHODS
+            and not _is_same_origin(request)):
+        return JSONResponse({"detail": "跨站请求已拒绝"}, status_code=403)
     if path.startswith("/api/") and path not in ("/api/login", "/api/health"):
         token = request.cookies.get(COOKIE_NAME)
         if not sessions.verify_session(token):
             return JSONResponse({"detail": "未登录"}, status_code=401)
     return await call_next(request)
+
+
+# 最后注册的中间件在最外层，401/403 等提前返回的响应也会带上安全头
+@app.middleware("http")
+async def security_headers_middleware(request: Request, call_next):
+    response = await call_next(request)
+    for name, value in _BASE_SECURITY_HEADERS.items():
+        response.headers.setdefault(name, value)
+    return response
 
 
 def _client_ip(request: Request | None) -> str:

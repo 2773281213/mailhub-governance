@@ -147,3 +147,52 @@ def test_login_endpoint_returns_429_after_repeated_failures(client):
     r = _login(client, PASSWORD)
     assert r.status_code == 429
     assert int(r.headers["Retry-After"]) > 0
+
+
+# ---------------- CSRF 与安全头 ----------------
+
+def test_cross_site_post_is_rejected_even_with_a_session(client):
+    _login(client)
+    r = client.post("/api/sync-all", headers={"Origin": "https://evil.example"})
+    assert r.status_code == 403
+    r = client.post("/api/sync-all", headers={"Origin": "null"})
+    assert r.status_code == 403
+    r = client.post("/api/sync-all", headers={"Sec-Fetch-Site": "cross-site"})
+    assert r.status_code == 403
+
+
+def test_same_origin_and_non_browser_posts_are_allowed(client, monkeypatch):
+    monkeypatch.setattr(mailhub_app.sync.engine, "trigger_all", lambda: None)
+    _login(client)
+    assert client.post("/api/sync-all", headers={"Origin": "https://testserver"}).status_code == 200
+    assert client.post("/api/sync-all", headers={"Sec-Fetch-Site": "same-origin"}).status_code == 200
+    assert client.post("/api/sync-all").status_code == 200     # curl 等非浏览器客户端
+
+
+def test_public_url_origin_is_allowed(client, monkeypatch):
+    monkeypatch.setattr(mailhub_app.sync.engine, "trigger_all", lambda: None)
+    monkeypatch.setenv("MAILHUB_PUBLIC_URL", "https://mail.example.test")
+    _login(client)
+    r = client.post("/api/sync-all", headers={"Origin": "https://mail.example.test"})
+    assert r.status_code == 200
+
+
+def test_cross_site_login_is_rejected(client):
+    r = client.post("/api/login", json={"password": PASSWORD},
+                    headers={"Origin": "https://evil.example"})
+    assert r.status_code == 403
+
+
+def test_security_headers_on_pages_and_errors(client):
+    for response in (client.get("/api/health"), client.get("/api/me")):
+        assert response.headers["X-Frame-Options"] == "DENY"
+        assert response.headers["X-Content-Type-Options"] == "nosniff"
+        assert "object-src 'none'" in response.headers["Content-Security-Policy"]
+        assert "frame-ancestors 'none'" in response.headers["Content-Security-Policy-Report-Only"]
+
+
+def test_oauth_callback_keeps_its_own_strict_headers(client):
+    _login(client)
+    r = client.get("/api/oauth/163/callback")
+    assert r.headers["Referrer-Policy"] == "no-referrer"
+    assert r.headers["Content-Security-Policy"].startswith("default-src 'none'")
