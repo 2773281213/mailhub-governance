@@ -29,7 +29,8 @@ from db import (audit, get_conn, get_setting, init_db, remove_external_api_setti
                 set_setting)
 import db
 import sessions
-from security import decrypt, encrypt, hash_password, verify_password
+from security import (decrypt, encrypt, hash_password, rotate_encrypted_values,
+                      verify_password)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 COOKIE_NAME = "mailhub_session"
@@ -63,6 +64,8 @@ def _remove_initial_password_file():
 async def lifespan(_app: FastAPI):
     init_db()
     oauth_auth.init_oauth_db()
+    # 用旧密钥（MAILHUB_SECRET_PREVIOUS）或旧派生方式加密的凭据改为当前密钥加密
+    rotate_encrypted_values(get_conn())
     # 首次启动生成随机管理密码。密码只写进数据目录下的 0600 文件，不进日志；
     # 用户在设置里改密码后该文件会被删除。
     if not get_setting("admin_hash"):
