@@ -53,7 +53,7 @@
    - confidence / importance 越界即钳制
    - 输入侧检出注入的邮件，无论 AI 返回什么都标记为不可信结果；治理引擎直接将其自动裁决为「可疑」
 
-**降级策略**：AI 服务不可用、返回非法 JSON、漏答某封、分类越界、置信度低于 0.75 —— 一律由门下省自动驳回并保持规则给出的原分类，`needs_review` 落库时清零，不创建人工复核队列。
+**降级策略**：AI 服务不可用、返回非法 JSON、漏答某封、分类越界、置信度低于 0.75 —— 一律由门下省自动驳回并保持规则给出的原分类，`needs_review` 落库时清零，不创建人工复核队列。其中 AI 不可用和漏答属于临时问题，会按 5 分钟起、翻倍到最长 6 小时的间隔自动重试，最多 5 次（`ai_retry_count` / `ai_retry_ts`）。治理按 200 封一批读取和提交，正文只读前 2 万字符做本机注入扫描。
 
 覆盖测试：`tests/test_security.py` 中 8 类注入载荷 + 6 个降级场景。
 
@@ -84,10 +84,15 @@
 | 冒用知名品牌但发件域不符（PayPal/Apple/Google/微软/支付宝等） | high |
 | 域名含西里尔/希腊同形异义字符 | high |
 | 可执行附件（exe/scr/js/vbs/lnk 等 21 种） | high |
-| 正文链接指向裸 IP | high |
+| 正文链接指向裸 IP（纯文本里的 URL 与 HTML 里的 `href` 都会检查） | high |
+| 链接文字显示知名品牌域名，实际指向其他域名 | high |
 | 压缩包附件 | medium |
 | Reply-To 与发件域不一致 | medium |
 | 账户风险紧迫话术 + 外链 | medium |
+| 收件服务器判定 DMARC 失败，或 SPF 失败且没有有效 DKIM（只读最上面一条 `Authentication-Results`） | medium |
+| 链接文字显示的域名与实际目标不符（非品牌域名，常见于点击统计跳转） | low |
+
+显示名中的英文品牌按整词匹配；可注册域按常见 ccTLD 二级后缀（co.uk、com.cn、ne.jp、com.tw 等）计算，不是完整的 Public Suffix List。
 
 medium/high 风险邮件强制归入「可疑」分类并进入只读风险观察，优先级高于普通规则判定；不要求人工确认，也不自动执行破坏性动作。
 
@@ -106,7 +111,7 @@ medium/high 风险邮件强制归入「可疑」分类并进入只读风险观�
 - 登录失败按来源 IP 指数退避：前 5 次不限，之后等待 60 秒并逐次翻倍，最长 1 小时；所有来源合计 10 分钟内失败 100 次时暂停登录
 - 首次启动生成的管理密码写入数据目录下的 `initial-admin-password.txt`（0600），日志里只有文件路径；改密码后该文件被删除
 - CSRF：会改变状态的 `/api` 请求必须来自本站（`Origin` 与 Host 或 `MAILHUB_PUBLIC_URL` 一致，或 `Sec-Fetch-Site: same-origin`）；跨站请求返回 403
-- 所有响应带 `X-Content-Type-Options`、`X-Frame-Options: DENY`、`Referrer-Policy` 和基础 CSP；完整 CSP 暂以 Report-Only 运行，前端去掉内联事件处理器后再改为强制
+- 所有响应带 `X-Content-Type-Options`、`X-Frame-Options: DENY`、`Referrer-Policy` 和基础 CSP；完整 CSP 暂以 Report-Only 运行。前端已不再使用内联事件处理器，确认浏览器控制台没有违规后即可改为强制
 - nginx：80 端口只做 301 跳转到 HTTPS，启用 HSTS；所有服务商的 OAuth 回调不写访问日志
 - 邮件 HTML 在**全沙箱 iframe**（`sandbox=""`，禁脚本/表单/弹窗/同源）中渲染
 - **外部图片默认拦截**：CSP `img-src data:`，阻断追踪像素泄露阅读时间与 IP；用户可单封放行
@@ -131,7 +136,7 @@ medium/high 风险邮件强制归入「可疑」分类并进入只读风险观�
 | 账单金额/截止日期结构化提取 | ❌ 未实现 | 仅分类为「账单」，未提取金额、商家、到期日，无提醒生成 |
 | 待办/提醒系统 | ❌ 未实现 | 策略表里有 `remind` 动作定义，但无提醒存储与触达 |
 | 分类完整度 | ⚠️ 部分 | 实现 8 类，规格要求的 17 类中缺「等待回复/支付交易/快递行程/社交/系统告警/垃圾邮件」等 |
-| 死信队列 / 指数退避 | ⚠️ 部分 | 有单账户锁与失败记录，无正式 DLQ 与退避重试策略 |
+| 死信队列 / 指数退避 | ⚠️ 部分 | AI 临时失败有指数退避重试；邮件同步失败只记录 `last_error` 并在下个轮询周期重试，无正式 DLQ |
 | 数据导出 | ❌ 未实现 | 可直接取 SQLite 文件，无导出 API |
 | 定时数据库备份 | ❌ 未实现 | 仓库内没有备份任务；可按 DEPLOY_OAUTH.md 第 7 节用 `sqlite3 .backup` 自行配置定时任务，数据库须与 `MAILHUB_SECRET` 成对备份 |
 | 密钥轮换 | ✅ 已实现 | 设置 `MAILHUB_SECRET_PREVIOUS` 为旧值后重启，凭据自动改用新密钥加密；之后可移除该变量 |
