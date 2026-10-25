@@ -177,6 +177,56 @@ def test_high_importance_blocks_auto_delete():
     assert not ok
 
 
+@pytest.mark.parametrize("msg", [
+    {"category": "账单"},
+    {"category": "验证码", "has_attach": 1},
+    {"category": "通知", "importance": 5},
+])
+@pytest.mark.parametrize("action", ["soft_delete", "purge"])
+def test_confirmation_does_not_skip_protection(msg, action):
+    """前端的"已确认"只解除 C 类门槛，不能顺带删掉受保护邮件"""
+    ok, _, reason = policy.evaluate(action, msg, actor="user", confirmed=True)
+    assert not ok
+    assert reason
+
+
+@pytest.mark.parametrize("action", ["soft_delete", "purge"])
+def test_single_message_override_allows_protected_mail(action):
+    ok, _, _ = policy.evaluate(action, {"category": "账单", "has_attach": 1},
+                               actor="user", confirmed=True, override_protection=True)
+    assert ok
+
+
+def test_override_requires_user_confirmation():
+    """override 只有和用户确认同时出现才有效"""
+    msg = {"category": "账单"}
+    assert not policy.evaluate("soft_delete", msg, actor="user",
+                               override_protection=True)[0]
+    assert not policy.evaluate("soft_delete", msg, actor="system", user_rule=True,
+                               confirmed=True, override_protection=True)[0]
+
+
+@pytest.mark.parametrize("action", ["soft_delete", "purge"])
+def test_auto_clean_arguments_never_remove_protected_mail(action):
+    """sync.auto_clean 的调用参数：开启服务器清理时也不能带走受保护邮件"""
+    protected = {"category": "验证码", "has_attach": 1}
+    ok, _, reason = policy.evaluate(action, protected, actor="system",
+                                    user_rule=True, confirmed=action == "purge")
+    assert not ok and "附件" in reason
+
+
+def test_auto_clean_arguments_allow_plain_otp_purge():
+    ok, _, _ = policy.evaluate("purge", {"category": "验证码"}, actor="system",
+                               user_rule=True, confirmed=True)
+    assert ok
+
+
+def test_system_confirmation_without_user_rule_is_not_enough():
+    ok, _, _ = policy.evaluate("purge", {"category": "验证码"}, actor="system",
+                               confirmed=True)
+    assert not ok
+
+
 def test_low_confidence_ai_cannot_do_guarded_action():
     ok, _, reason = policy.evaluate("archive", {"category": "订阅"},
                                     actor="ai", confidence=0.3)

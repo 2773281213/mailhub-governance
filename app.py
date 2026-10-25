@@ -385,6 +385,8 @@ class BatchBody(BaseModel):
     action: str                 # read / unread / delete
     server: bool = False        # 是否同步操作 IMAP 服务器（= 不可逆的 purge）
     confirmed: bool = False     # 前端已弹窗确认（C 类动作必需）
+    # 用户对一封受保护邮件做了单独的二次确认；只在单封操作时生效
+    override_protection: bool = False
 
 
 def _server_op(conn, ids: list[int], action: str) -> tuple[list[int], list[str]]:
@@ -447,17 +449,28 @@ async def batch_messages(body: BatchBody):
     if not action:
         raise HTTPException(status_code=400, detail=f"不支持的动作 {body.action}")
 
+    # 受保护邮件只能逐封处理：批量请求即使带了 override 也不生效
+    override = body.override_protection and len(set(ids)) == 1
+
     msgs = _load_for_policy(conn, ids)
     blocked, allowed_ids = [], []
     for m in msgs:
-        ok, tier, reason = policy.evaluate(
-            action, m, actor="user", confirmed=body.confirmed)
-        (allowed_ids if ok else blocked).append(m["id"] if ok else {"id": m["id"], "reason": reason})
+        ok, _tier, reason = policy.evaluate(
+            action, m, actor="user", confirmed=body.confirmed,
+            override_protection=override)
+        if ok:
+            allowed_ids.append(m["id"])
+        else:
+            blocked.append({"id": m["id"], "reason": reason,
+                            "protected": action in policy.DESTRUCTIVE_ACTIONS
+                            and policy.is_protected(m)[0]})
 
     if not allowed_ids:
         first = blocked[0]["reason"] if blocked else "无可执行目标"
         audit(action, actor="user", target_ids=ids, allowed=False, reason=first)
-        raise HTTPException(status_code=403, detail=f"操作被安全策略拦截：{first}")
+        headers = {"X-MailHub-Protected": "1"} if blocked and blocked[0]["protected"] else None
+        raise HTTPException(status_code=403, detail=f"操作被安全策略拦截：{first}",
+                            headers=headers)
 
     errors = []
     undo_payload = None
@@ -485,11 +498,17 @@ async def batch_messages(body: BatchBody):
             undo_payload = {"unread": prev}
     conn.commit()
 
+    overrode = override and action in policy.DESTRUCTIVE_ACTIONS and any(
+        policy.is_protected(m)[0] for m in msgs if m["id"] in set(allowed_ids))
+    reason = ("用户对受保护邮件单封二次确认" if overrode else "用户批量操作")
+    if errors:
+        reason += f"；{len(errors)} 个账户执行失败"
+    elif blocked:
+        reason += f"，{len(blocked)} 封被策略拦截"
     audit_id = audit(action, actor="user", tier=policy.ACTION_TIER.get(action, "C"),
                      target_ids=allowed_ids,
                      allowed=bool(allowed_ids),
-                     reason=(f"用户批量操作；{len(errors)} 个账户执行失败" if errors else
-                             f"用户批量操作，{len(blocked)} 封被策略拦截" if blocked else "用户批量操作"),
+                     reason=reason,
                      reversible=undo_payload is not None, undo_payload=undo_payload)
     return {"ok": not errors, "count": len(allowed_ids), "blocked": blocked,
             "errors": errors, "audit_id": audit_id,

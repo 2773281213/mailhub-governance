@@ -244,9 +244,10 @@ def auto_clean():
     targets, blocked = [], []
     for r in rows:
         m = dict(r)
-        # user_rule=True：用户在设置里显式启用了这条清理策略，等价于建立了规则
+        # user_rule=True：用户在设置里显式启用了这条清理策略，等价于建立了规则。
+        # 这是无人值守的系统任务，受保护邮件（附件/重要/账单/安全）一律不动。
         allowed, tier, reason = policy.evaluate(
-            action, m, actor="user", user_rule=True, confirmed=server_too)
+            action, m, actor="system", user_rule=True, confirmed=server_too)
         (targets.append(m) if allowed else blocked.append(reason))
 
     if not targets:

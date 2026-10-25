@@ -20,7 +20,12 @@ async function api(path, opts = {}) {
   });
   if (res.status === 401) { showLogin(); throw new Error("未登录"); }
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.detail || `请求失败 (${res.status})`);
+  if (!res.ok) {
+    const err = new Error(data.detail || `请求失败 (${res.status})`);
+    err.status = res.status;
+    err.protected = res.headers.get("X-MailHub-Protected") === "1";
+    throw err;
+  }
   return data;
 }
 
@@ -573,8 +578,17 @@ async function openMail(id) {
   });
   const del = async server => {
     if (!confirm(server ? "永久删除？将同时从邮箱服务器删除，此操作不可撤销。" : "移入回收站？可在「回收站」中恢复。")) return;
+    const send = override => api("/messages/batch", { method: "POST", body: {
+      ids: [id], action: "delete", server, confirmed: true, override_protection: override } });
     try {
-      await api("/messages/batch", { method: "POST", body: { ids: [id], action: "delete", server, confirmed: true } });
+      try {
+        await send(false);
+      } catch (e) {
+        // 受保护邮件（账单/安全/重要/带附件）需要针对这一封单独再确认一次
+        if (!(e.status === 403 && e.protected)) throw e;
+        if (!confirm(`这封邮件受保护：${e.message.replace(/^操作被安全策略拦截：/, "")}\n\n仍要删除这一封吗？`)) return;
+        await send(true);
+      }
       toast(server ? "已永久删除" : "已移入回收站"); close();
       if (!$("#view-inbox").classList.contains("hidden")) loadMails();
     } catch (e) { toast(e.message, true); }
