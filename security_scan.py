@@ -5,6 +5,8 @@
 """
 import re
 import unicodedata
+from html.parser import HTMLParser
+from urllib.parse import urlparse
 
 RISK_NONE = "none"
 RISK_LOW = "low"
@@ -53,14 +55,77 @@ def _domain_of(addr: str) -> str:
     return addr.rsplit("@", 1)[-1].lower().strip() if "@" in (addr or "") else ""
 
 
+# 国家顶级域下常见的二级注册后缀（co.uk / com.cn / ne.jp / com.tw …）。
+# 不是完整的 Public Suffix List，但覆盖了邮件里最常见的情况，且不引入外部依赖。
+_SECOND_LEVEL_LABELS = frozenset({
+    "co", "com", "net", "org", "gov", "edu", "ac", "ne", "or", "go", "ltd", "plc",
+    "idv", "mil", "nom", "gen", "biz", "info",
+})
+
+
 def _registrable(domain: str) -> str:
-    """取可注册域（粗略：末两段；对 .co.uk 之类取三段）"""
-    parts = [p for p in (domain or "").split(".") if p]
+    """取可注册域：一般取末两段；ccTLD 下的 co/com/ne/ac… 二级后缀取三段。"""
+    parts = [p for p in (domain or "").lower().strip(".").split(".") if p]
     if len(parts) < 2:
-        return domain or ""
-    if len(parts) >= 3 and parts[-2] in ("co", "com", "net", "org", "gov", "edu") and len(parts[-1]) == 2:
+        return ".".join(parts)
+    if len(parts) >= 3 and len(parts[-1]) == 2 and parts[-2] in _SECOND_LEVEL_LABELS:
         return ".".join(parts[-3:])
     return ".".join(parts[-2:])
+
+
+_DOMAIN_TEXT_RE = re.compile(r"(?:https?://)?((?:[a-z0-9-]+\.)+[a-z]{2,})(?:[/:?#]|$)", re.I)
+
+
+class _LinkCollector(HTMLParser):
+    """从 HTML 正文里收集 (href, 链接文字)；纯解析，不发起任何请求。"""
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.links: list[tuple[str, str]] = []
+        self._href: str | None = None
+        self._text: list[str] = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            self._href = dict(attrs).get("href") or ""
+            self._text = []
+
+    def handle_data(self, data):
+        if self._href is not None:
+            self._text.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._href is not None:
+            self.links.append((self._href.strip(), " ".join("".join(self._text).split())))
+            self._href = None
+
+
+def extract_html_links(html: str, limit: int = 200) -> list[tuple[str, str]]:
+    collector = _LinkCollector()
+    try:
+        collector.feed((html or "")[:300000])
+        collector.close()
+    except Exception:
+        pass   # 畸形 HTML：保留已经解析出的链接
+    return collector.links[:limit]
+
+
+def _link_host(href: str) -> str:
+    try:
+        parsed = urlparse(href)
+    except ValueError:
+        return ""
+    if parsed.scheme not in ("http", "https"):
+        return ""
+    return (parsed.hostname or "").lower()
+
+
+def parse_authentication_results(value: str) -> dict:
+    """解析 Authentication-Results 头里的 spf/dkim/dmarc 结论，例如 {"dmarc": "fail"}。"""
+    out: dict[str, str] = {}
+    for method, result in re.findall(r"\b(spf|dkim|dmarc)\s*=\s*([a-z]+)", (value or "").lower()):
+        out.setdefault(method, result)
+    return out
 
 
 def _has_confusable(s: str) -> bool:
@@ -74,8 +139,13 @@ def _has_confusable(s: str) -> bool:
 
 
 def scan(subject: str, body: str, sender_name: str, sender_addr: str,
-         reply_to: str = "", attachments: list[str] | None = None) -> dict:
-    """返回 {"risk": 等级, "reasons": [...]}；纯离线判定，不发起任何网络请求。"""
+         reply_to: str = "", attachments: list[str] | None = None,
+         html: str = "", auth_results: str = "") -> dict:
+    """返回 {"risk": 等级, "reasons": [...]}；纯离线判定，不发起任何网络请求。
+
+    html: 邮件的 HTML 正文，用来检查 href 的真实目标（纯文本转换会丢掉链接）。
+    auth_results: 收件服务器写入的第一条 Authentication-Results 头（SPF/DKIM/DMARC 结论）。
+    """
     reasons: list[str] = []
     risk = RISK_NONE
 
@@ -95,10 +165,14 @@ def scan(subject: str, body: str, sender_name: str, sender_addr: str,
     if m and sender_reg and _registrable(m.group(1)) != sender_reg:
         bump(RISK_HIGH, f"显示名伪装成 {m.group(1)}，实际发件域为 {sender_domain}")
 
-    # 2) 显示名冒用知名品牌但域名对不上
+    # 2) 显示名冒用知名品牌但域名对不上。英文品牌按整词匹配，避免 "Pineapple" 命中 apple
     low_name = (sender_name or "").lower()
     for brand, domains in BRAND_DOMAINS.items():
-        if brand in low_name and sender_reg:
+        if brand.isascii():
+            mentioned = re.search(rf"(?<![a-z0-9]){re.escape(brand)}(?![a-z0-9])", low_name)
+        else:
+            mentioned = brand in low_name
+        if mentioned and sender_reg:
             if domains and not any(sender_reg == d or sender_reg.endswith("." + d) for d in domains):
                 bump(RISK_HIGH, f"自称「{brand}」但发件域 {sender_domain} 不属于其官方域名")
             break
@@ -121,8 +195,30 @@ def scan(subject: str, body: str, sender_name: str, sender_addr: str,
         elif ext in ARCHIVE_EXT:
             bump(RISK_MEDIUM, f"含压缩包附件 {fn}，内容无法预先检查")
 
-    # 6) 链接指向裸 IP 或与发件域完全无关的短域名
+    # 6) 链接指向裸 IP、同形异义域名，或链接文字显示的域名与实际目标不符
     hosts = {h.lower().split(":")[0] for h in _URL_RE.findall(body)}
+    brand_spoof = plain_mismatch = None
+    for href, text in extract_html_links(html):
+        host = _link_host(href)
+        if not host:
+            continue
+        hosts.add(host)
+        shown = _DOMAIN_TEXT_RE.search(text or "")
+        if not shown:
+            continue
+        shown_reg, target_reg = _registrable(shown.group(1)), _registrable(host)
+        if not shown_reg or target_reg in (shown_reg, sender_reg):
+            continue   # 指向显示的域名，或指向发件人自己的域名（常见的点击统计跳转）
+        pair = (shown.group(1).lower(), host)
+        if brand_spoof is None and any(shown_reg == d for ds in BRAND_DOMAINS.values() for d in ds):
+            brand_spoof = pair
+        elif plain_mismatch is None:
+            plain_mismatch = pair
+    if brand_spoof:
+        bump(RISK_HIGH, f"链接文字显示为知名品牌域名 {brand_spoof[0]}，实际指向 {brand_spoof[1]}")
+    elif plain_mismatch:
+        # 营销邮件普遍经第三方点击统计域名跳转，单独出现只作提示，不强制归为可疑
+        bump(RISK_LOW, f"链接文字显示为 {plain_mismatch[0]}，实际指向 {plain_mismatch[1]}")
     for h in list(hosts)[:40]:
         if _IP_HOST_RE.match(h):
             bump(RISK_HIGH, f"正文含指向裸 IP 的链接 {h}")
@@ -136,6 +232,13 @@ def scan(subject: str, body: str, sender_name: str, sender_addr: str,
             bump(RISK_MEDIUM, "含账户风险类紧迫话术且带外部链接，符合钓鱼特征")
         else:
             bump(RISK_LOW, "含账户风险类紧迫话术")
+
+    # 8) 收件服务器的 SPF/DKIM/DMARC 结论
+    auth = parse_authentication_results(auth_results)
+    if auth.get("dmarc") == "fail":
+        bump(RISK_MEDIUM, "发件域 DMARC 验证失败，发件人可能被冒充")
+    elif auth.get("spf") in ("fail", "softfail") and auth.get("dkim") in (None, "none", "fail"):
+        bump(RISK_MEDIUM, "SPF 验证失败且没有有效 DKIM 签名")
 
     return {"risk": risk, "reasons": reasons}
 
