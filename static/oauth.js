@@ -154,12 +154,6 @@
         else startDeviceOAuth();
       });
       actions.append(login);
-      if (provider.oauth?.channel === 'outlook') {
-        actions.append(createNode('div', {
-          className: 'mh-auth-muted',
-          text: '当前使用 Outlook 合作方通道登录网易邮箱；如遇网易校验变化，可改用客户端授权密码。',
-        }));
-      }
     } else {
       const save = createNode('button', {
         className: 'mh-auth-btn primary', type: 'button', text: '验证并添加',
