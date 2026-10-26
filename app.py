@@ -433,10 +433,9 @@ async def sync_status():
 
 # ---------- 邮件 ----------
 
-@app.get("/api/messages")
-async def list_messages(category: str = "", account: int = 0, unread: int = -1,
-                        q: str = "", page: int = 1, page_size: int = 40, bill_tier: str = ""):
-    conn = get_conn()
+def _message_filter(category: str, account: int, unread: int, q: str,
+                    bill_tier: str) -> tuple[str, list]:
+    """收件箱筛选条件；列表和「选择全部」共用，保证两者选中的是同一批邮件。"""
     where, args = ["1=1"], []
     if category:
         where.append("m.category=?"); args.append(category)
@@ -451,7 +450,31 @@ async def list_messages(category: str = "", account: int = 0, unread: int = -1,
         like = f"%{q}%"
         args += [like, like, like, like]
     where.append("m.deleted_ts=0")   # 回收站内容不出现在收件箱
-    cond = " AND ".join(where)
+    return " AND ".join(where), args
+
+
+# 「选择全部」一次最多取这么多封；批量接口每次处理 500 封，前端分批提交
+SELECT_ALL_LIMIT = 5000
+
+
+@app.get("/api/messages/ids")
+async def list_message_ids(category: str = "", account: int = 0, unread: int = -1,
+                           q: str = "", bill_tier: str = ""):
+    """当前筛选条件下全部邮件的 id（跨页全选用）。"""
+    cond, args = _message_filter(category, account, unread, q, bill_tier)
+    conn = get_conn()
+    total = conn.execute(f"SELECT COUNT(*) c FROM messages m WHERE {cond}", args).fetchone()["c"]
+    rows = conn.execute(
+        f"SELECT m.id FROM messages m WHERE {cond} ORDER BY m.date_ts DESC LIMIT ?",
+        args + [SELECT_ALL_LIMIT]).fetchall()
+    return {"total": total, "ids": [r["id"] for r in rows], "limit": SELECT_ALL_LIMIT}
+
+
+@app.get("/api/messages")
+async def list_messages(category: str = "", account: int = 0, unread: int = -1,
+                        q: str = "", page: int = 1, page_size: int = 40, bill_tier: str = ""):
+    conn = get_conn()
+    cond, args = _message_filter(category, account, unread, q, bill_tier)
     total = conn.execute(f"SELECT COUNT(*) c FROM messages m WHERE {cond}", args).fetchone()["c"]
     page_size = min(100, max(10, page_size))
     offset = (max(1, page) - 1) * page_size
