@@ -4,6 +4,7 @@
 """
 import asyncio
 import json
+import logging
 import os
 import re
 import secrets as pysecrets
@@ -18,6 +19,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 import ai
+import billing
 import governance
 import notify
 import oauth_auth
@@ -60,8 +62,21 @@ def _remove_initial_password_file():
         pass
 
 
+def _setup_logging():
+    """mailhub.* 的 INFO 日志（如账单定级理由）输出到标准错误，由 systemd 收进 journal。"""
+    logger = logging.getLogger("mailhub")
+    if logger.handlers:
+        return
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter("%(levelname)s %(name)s: %(message)s"))
+    logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
+    logger.propagate = False
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    _setup_logging()
     init_db()
     oauth_auth.init_oauth_db()
     # 用旧密钥（MAILHUB_SECRET_PREVIOUS）或旧派生方式加密的凭据改为当前密钥加密
@@ -75,6 +90,10 @@ async def lifespan(_app: FastAPI):
         print(f"[MailHub] 已生成初始管理密码，保存在 {path}（仅文件所有者可读）", flush=True)
     # 旧版外部取码 API 已移除：清掉它留下的令牌和别名基座设置
     remove_external_api_settings()
+    # 账单分级升级回填：先修正只有「浏览器查看」占位的正文，再补模板键和等级（不调用 AI）
+    sync.backfill_readable_bodies()
+    governance.backfill_template_keys(get_conn())
+    governance.retier_bills(get_conn(), only_missing=True)
     sync.engine.start()
     yield
     sync.engine.stop()
@@ -416,11 +435,13 @@ async def sync_status():
 
 @app.get("/api/messages")
 async def list_messages(category: str = "", account: int = 0, unread: int = -1,
-                        q: str = "", page: int = 1, page_size: int = 40):
+                        q: str = "", page: int = 1, page_size: int = 40, bill_tier: str = ""):
     conn = get_conn()
     where, args = ["1=1"], []
     if category:
         where.append("m.category=?"); args.append(category)
+    if bill_tier in billing.TIERS:
+        where.append("m.bill_tier=?"); args.append(bill_tier)
     if account:
         where.append("m.account_id=?"); args.append(account)
     if unread in (0, 1):
@@ -437,7 +458,7 @@ async def list_messages(category: str = "", account: int = 0, unread: int = -1,
     rows = conn.execute(
         f"""SELECT m.id, m.account_id, m.uid, m.subject, m.sender_name, m.sender_addr,
                    m.date_ts, m.snippet, m.category, m.otp_code, m.importance, m.summary,
-                   m.unread, m.has_attach, a.name AS account_name, a.color AS account_color
+                   m.unread, m.has_attach, m.bill_tier, a.name AS account_name, a.color AS account_color
             FROM messages m JOIN accounts a ON a.id=m.account_id
             WHERE {cond} ORDER BY m.date_ts DESC LIMIT ? OFFSET ?""",
         args + [page_size, offset],
@@ -464,6 +485,46 @@ async def get_message(msg_id: int):
     return d
 
 
+class BillTierBody(BaseModel):
+    tier: str
+    similar: bool = True        # 同类邮件（同发件域名 + 同标题模板）以后都按这个等级
+
+
+@app.post("/api/messages/{msg_id}/bill-tier")
+async def set_bill_tier(msg_id: int, body: BillTierBody):
+    """用户把一封账单改为重要/一般；勾选 similar 时记住偏好并立即应用到同类账单。"""
+    if body.tier not in billing.TIERS:
+        raise HTTPException(status_code=400, detail="等级只能是「重要」或「一般」")
+    conn = get_conn()
+    row = conn.execute(
+        "SELECT id, category, importance, template_key, bill_facets FROM messages "
+        "WHERE id=? AND deleted_ts=0", (msg_id,)).fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="邮件不存在")
+    if row["category"] != "账单":
+        raise HTTPException(status_code=400, detail="只有账单可以设置重要/一般")
+    try:
+        facets = json.loads(row["bill_facets"] or "{}")
+    except (TypeError, ValueError):
+        facets = {}
+    importance = billing.tier_importance(body.tier, facets, int(row["importance"] or 0))
+    conn.execute("UPDATE messages SET bill_tier=?, bill_tier_locked=1, importance=? WHERE id=?",
+                 (body.tier, importance, msg_id))
+    similar = 0
+    key = row["template_key"] or ""
+    if body.similar and key:
+        conn.execute(
+            "INSERT INTO bill_prefs(template_key, tier, created_ts) VALUES(?,?,?) "
+            "ON CONFLICT(template_key) DO UPDATE SET tier=excluded.tier, created_ts=excluded.created_ts",
+            (key, body.tier, time.time()))
+        conn.commit()
+        similar = governance.retier_bills(conn, template=key)
+    conn.commit()
+    audit("bill_tier", actor="user", tier="A", target_ids=[msg_id],
+          reason=f"设为{body.tier}账单" + ("，同类邮件以后都按此等级" if body.similar else ""))
+    return {"ok": True, "tier": body.tier, "similar_updated": similar}
+
+
 class BatchBody(BaseModel):
     ids: list[int]
     action: str                 # read / unread / delete
@@ -486,7 +547,7 @@ def _load_for_policy(conn, ids: list[int]) -> list[dict]:
         return []
     ph = ",".join("?" * len(ids))
     rows = conn.execute(
-        f"""SELECT id, category, has_attach, importance, sender_addr, unread, deleted_ts
+        f"""SELECT id, category, bill_tier, has_attach, importance, sender_addr, unread, deleted_ts
             FROM messages WHERE deleted_ts=0 AND id IN ({ph})""", ids).fetchall()
     return [dict(r) for r in rows]
 
@@ -761,6 +822,17 @@ async def otp_list(limit: int = 24):
 
 # ---------- 仪表盘 ----------
 
+# 界面展示的分类：账单按等级拆成两项
+DISPLAY_CATEGORIES = [c for cat in rules_mod.CATEGORIES
+                      for c in ([f"{t}账单" for t in billing.TIERS] if cat == "账单" else [cat])]
+
+
+def _display_category(category: str, bill_tier: str) -> str:
+    name = governance.display_category(category, bill_tier or "")
+    # 尚未定级的旧账单按「重要账单」展示，与分级的保守默认一致
+    return "重要账单" if name == "账单" else name
+
+
 @app.get("/api/overview")
 async def overview():
     conn = get_conn()
@@ -780,8 +852,13 @@ async def overview():
     }
     # 分类分布
     cat_rows = conn.execute(
-        "SELECT category, COUNT(*) c FROM messages WHERE deleted_ts=0 GROUP BY category").fetchall()
-    stats["by_category"] = {r["category"]: r["c"] for r in cat_rows}
+        "SELECT category, bill_tier, COUNT(*) c FROM messages WHERE deleted_ts=0 "
+        "GROUP BY category, bill_tier").fetchall()
+    by_category: dict[str, int] = {}
+    for r in cat_rows:
+        name = _display_category(r["category"], r["bill_tier"])
+        by_category[name] = by_category.get(name, 0) + r["c"]
+    stats["by_category"] = by_category
     # 近 14 天每日邮件量（按分类堆叠）
     days = []
     daily = []
@@ -791,13 +868,16 @@ async def overview():
         label = datetime.fromtimestamp(d0, sync.TZ).strftime("%m-%d")
         days.append(label)
         row = {"day": label}
-        for cat in rules_mod.CATEGORIES:
-            row[cat] = q1("SELECT COUNT(*) c FROM messages WHERE date_ts>=? AND date_ts<? AND category=? AND deleted_ts=0",
-                          d0, d1, cat)
+        for r in conn.execute(
+                "SELECT category, bill_tier, COUNT(*) c FROM messages "
+                "WHERE date_ts>=? AND date_ts<? AND deleted_ts=0 GROUP BY category, bill_tier",
+                (d0, d1)).fetchall():
+            name = _display_category(r["category"], r["bill_tier"])
+            row[name] = row.get(name, 0) + r["c"]
         daily.append(row)
     # 重要邮件（未读优先）
     important = conn.execute(
-        """SELECT m.id, m.subject, m.sender_addr, m.date_ts, m.category, m.importance,
+        """SELECT m.id, m.subject, m.sender_addr, m.date_ts, m.category, m.bill_tier, m.importance,
                   m.summary, m.unread, a.name AS account_name, a.color AS account_color
            FROM messages m JOIN accounts a ON a.id=m.account_id
            WHERE m.deleted_ts=0 AND (m.category IN ('重要','安全','可疑') OR m.importance >= 4)
@@ -808,7 +888,7 @@ async def overview():
         "stats": stats,
         "days": days,
         "daily": daily,
-        "categories": rules_mod.CATEGORIES,
+        "categories": DISPLAY_CATEGORIES,
         "important": [dict(r) for r in important],
         "digest": dict(digest) if digest else None,
         "ai_enabled": ai.ai_config()["enabled"],
@@ -887,6 +967,11 @@ class SettingsBody(BaseModel):
     ai_backfill_days: int | None = None     # 0 = 不限
     clean_otp_days: int | None = None
     clean_server: bool | None = None
+    clean_bill_minor_days: int | None = None
+    bill_amount_threshold: float | None = None
+    bill_routine_count: int | None = None
+    bill_auto_renew: str | None = None      # 重要 / 一般
+    bill_refund: str | None = None          # 重要 / 一般
     digest_hour: int | None = None
     old_password: str | None = None
     new_password: str | None = None
@@ -921,6 +1006,13 @@ async def get_settings():
         "ai_backfill_days": cfg["backfill_days"],
         "clean_otp_days": int(get_setting("clean_otp_days", "0") or 0),
         "clean_server": get_setting("clean_server", "0") == "1",
+        "clean_bill_minor_days": int(get_setting("clean_bill_minor_days", "0") or 0),
+        "bill_amount_threshold": float(get_setting("bill_amount_threshold", "")
+                                       or billing.DEFAULTS["amount_threshold"]),
+        "bill_routine_count": int(get_setting("bill_routine_count", "")
+                                  or billing.DEFAULTS["routine_count"]),
+        "bill_auto_renew": get_setting("bill_auto_renew", "") or billing.DEFAULTS["auto_renew"],
+        "bill_refund": get_setting("bill_refund", "") or billing.DEFAULTS["refund"],
         "digest_hour": int(get_setting("digest_hour", "8") or 8),
         "notify_bark_url": get_setting("notify_bark_url", ""),
         "notify_tg_token_set": bool(get_setting("notify_tg_token", "")),
@@ -988,6 +1080,9 @@ async def put_settings(body: SettingsBody):
             raise HTTPException(status_code=400, detail="新密码至少 8 位")
     if body.ai_scope is not None and body.ai_scope not in ai.AI_SCOPES:
         raise HTTPException(status_code=400, detail="AI 判定范围必须是 all / uncertain / other")
+    for value in (body.bill_auto_renew, body.bill_refund):
+        if value is not None and value not in billing.TIERS:
+            raise HTTPException(status_code=400, detail="账单等级只能是「重要」或「一般」")
     onepush_text = (body.notify_onepush_config or "").strip()
     if onepush_text and not body.clear_notify_onepush:
         try:
@@ -1043,6 +1138,23 @@ async def put_settings(body: SettingsBody):
         set_setting("notify_otp", "1" if body.notify_otp else "0")
     if body.body_keep_days is not None:
         set_setting("body_keep_days", str(max(0, body.body_keep_days)))
+    if body.clean_bill_minor_days is not None:
+        set_setting("clean_bill_minor_days", str(max(0, body.clean_bill_minor_days)))
+    bill_changed = False
+    for key, value in (
+        ("bill_amount_threshold", None if body.bill_amount_threshold is None
+         else f"{min(1_000_000.0, max(0.0, body.bill_amount_threshold)):g}"),
+        ("bill_routine_count", None if body.bill_routine_count is None
+         else str(min(1000, max(0, body.bill_routine_count)))),
+        ("bill_auto_renew", body.bill_auto_renew),
+        ("bill_refund", body.bill_refund),
+    ):
+        if value is not None and value != get_setting(key, ""):
+            set_setting(key, value)
+            bill_changed = True
+    if bill_changed:
+        # 策略变了：按已存的交易画像重新定级（不调用 AI，用户手动设定的不动）
+        governance.retier_bills(get_conn())
     if body.new_password is not None:
         # 当前设备换发新会话继续使用；其他设备的会话已在上面全部吊销
         response = JSONResponse({"ok": True})

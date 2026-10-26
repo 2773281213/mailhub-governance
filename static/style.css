@@ -283,6 +283,8 @@ input[type=checkbox] { accent-color: var(--accent); }
 .badge.cat-验证码 { color: #8a4c00; background: #fdefd8; }
 .badge.cat-重要   { color: #b3261e; background: #fce8e6; }
 .badge.cat-账单   { color: #7627bb; background: #f3e8fd; }
+.badge.cat-重要账单 { color: #7627bb; background: #f3e8fd; }
+.badge.cat-一般账单 { color: #6e5a8a; background: #f2eff6; }
 .badge.cat-安全   { color: #b0106e; background: #fde7f3; }
 .badge.cat-订阅   { color: #177032; background: #e6f4ea; }
 .badge.cat-通知   { color: #0b57d0; background: #e8f0fe; }
@@ -556,3 +558,13 @@ input[type=checkbox] { accent-color: var(--accent); }
 .audit-row .who, .audit-row .cnt { color: var(--faint); }
 .audit-row .why { color: var(--muted); }
 .audit-row .undone { color: var(--faint); font-size: 11.5px; }
+
+/* 邮件详情：账单等级切换 */
+.d-bill-tier { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 26px; font-size: 12.5px; color: var(--muted); border-bottom: 1px solid var(--panel-2); }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 999px; overflow: hidden; }
+.seg-btn { border: 0; background: transparent; padding: 4px 14px; font-size: 12.5px; color: var(--muted); cursor: pointer; }
+.seg-btn + .seg-btn { border-left: 1px solid var(--border); }
+.seg-btn.active { background: var(--accent-tint); color: var(--accent-deep); font-weight: 600; }
+.seg-btn:focus-visible { outline: 2px solid var(--accent-deep); outline-offset: -2px; }
+.d-bill-similar { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.d-bill-similar input { width: auto; }

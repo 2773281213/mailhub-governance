@@ -268,9 +268,27 @@ window.addEventListener("resize", () => charts.forEach(c => c.resize()));
 /* ---------- 仪表盘 ---------- */
 
 /* 分类色（经色觉/对比度校验的浅色主题调色板，颜色跟随类目固定不变） */
-const CAT_COLORS = { "验证码": "#C77800", "重要": "#D93025", "账单": "#9334E6", "安全": "#D01884", "可疑": "#8C1D18", "订阅": "#1E8E3E", "通知": "#1A73E8", "其他": "#6C74B8", "未分类": "#9AA0A6" };
+const CAT_COLORS = { "验证码": "#C77800", "重要": "#D93025", "账单": "#9334E6", "重要账单": "#9334E6", "一般账单": "#BB94EE", "安全": "#D01884", "可疑": "#8C1D18", "订阅": "#1E8E3E", "通知": "#1A73E8", "其他": "#6C74B8", "未分类": "#9AA0A6" };
 /* 堆叠顺序刻意隔开琥珀/红/绿等易混色相 */
-const STACK_ORDER = ["验证码", "通知", "重要", "其他", "订阅", "账单", "安全", "可疑"];
+const STACK_ORDER = ["验证码", "通知", "重要", "其他", "订阅", "一般账单", "重要账单", "安全", "可疑"];
+
+/* 账单按等级显示为「重要账单」「一般账单」；定级理由只记在日志里，界面只显示结果 */
+const BILL_TIERS = ["重要", "一般"];
+function catName(m) {
+  return m.category === "账单" && BILL_TIERS.includes(m.bill_tier) ? `${m.bill_tier}账单` : m.category;
+}
+function catBadge(m) {
+  const name = catName(m);
+  return `<span class="badge cat-${esc(name)}">${esc(name)}</span>`;
+}
+/* 收件箱分类筛选：账单拆成两项 */
+function inboxCategories() {
+  return (META.categories || []).flatMap(c => (c === "账单" ? BILL_TIERS.map(t => `${t}账单`) : [c]));
+}
+function categoryQuery(value) {
+  const m = /^(重要|一般)账单$/.exec(value || "");
+  return m ? { category: "账单", bill_tier: m[1] } : { category: value || "", bill_tier: "" };
+}
 
 async function renderDashboard() {
   const el = $("#view-dashboard");
@@ -388,7 +406,7 @@ function mailRowHtml(m) {
     <span class="acc-dot" style="background:${esc(m.account_color || "#1a73e8")}" title="${esc(m.account_name || "")}"></span>
     <span class="m-sender" title="${esc(m.sender_addr)}">${esc(m.sender_name || m.sender_addr)}</span>
     <span class="m-main">
-      <span class="badge cat-${esc(m.category)}">${esc(m.category)}</span>
+      ${catBadge(m)}
       ${m.otp_code ? `<span class="m-otp" data-otp="${esc(m.otp_code)}" title="点击复制">${esc(m.otp_code)}</span>` : ""}
       <span class="m-subject">${esc(m.subject || "(无主题)")}</span>
       <span class="m-snippet">${esc(m.summary || m.snippet || "")}</span>
@@ -427,7 +445,7 @@ async function renderInbox() {
     api("/accounts").catch(() => []),
     api("/governance/status").catch(() => ({ pending: 0, last_run: null })),
   ]);
-  const cats = ["", ...META.categories];
+  const cats = ["", ...inboxCategories()];
   el.innerHTML = `
     <h2>收件箱</h2>
     ${governanceCardHtml(governanceStatus)}
@@ -477,7 +495,7 @@ async function loadMails() {
   const box = $("#mail-container");
   inboxState.selected.clear(); updateBatchBar();
   const p = new URLSearchParams({
-    category: inboxState.category, account: inboxState.account,
+    ...categoryQuery(inboxState.category), account: inboxState.account,
     unread: inboxState.unread, q: inboxState.q, page: inboxState.page, page_size: 40,
   });
   let d;
@@ -552,7 +570,7 @@ async function openMail(id) {
     <div class="d-head">
       <div class="d-sub">${esc(m.subject || "(无主题)")}</div>
       <div class="d-meta">
-        <span class="badge cat-${esc(m.category)}">${esc(m.category)}</span>
+        <span id="d-cat">${catBadge(m)}</span>
         <span>${esc(m.sender_name || "")} &lt;${esc(m.sender_addr)}&gt;</span>
         <span>${new Date(m.date_ts * 1000).toLocaleString("zh-CN")}</span>
         <span style="color:${esc(m.account_color)}">● ${esc(m.account_name)}</span>
@@ -562,6 +580,12 @@ async function openMail(id) {
       ${m.ai_reason ? `<div class="d-meta">判定依据：${esc(m.ai_reason)}</div>` : ""}
       ${m.risk_level && m.risk_level !== "none" ? `<div class="risk-banner risk-${esc(m.risk_level)}">⚠ 风险等级 ${esc(m.risk_level)}：${esc(m.risk_reasons || "")}<br><small>本站不会自动访问其中的链接或打开附件</small></div>` : ""}
     </div>
+    ${m.category === "账单" ? `<div class="d-bill-tier">
+      <span>账单等级</span>
+      <div class="seg" role="group" aria-label="账单等级">${BILL_TIERS.map(t =>
+        `<button class="seg-btn ${m.bill_tier === t ? "active" : ""}" data-bill-tier="${t}">${t}</button>`).join("")}</div>
+      <label class="d-bill-similar"><input type="checkbox" id="d-bill-similar" checked> 同类邮件以后都这样</label>
+    </div>` : ""}
     ${m.otp_code ? `<div class="d-otp-line"><span>验证码</span><span class="code">${esc(m.otp_code)}</span>
       <button class="btn sm" id="d-copy-otp">复制</button></div>` : ""}
     <div class="d-ops">
@@ -602,6 +626,19 @@ async function openMail(id) {
   mask.onclick = close;
   $("#d-close").addEventListener("click", close);
   $("#d-copy-otp")?.addEventListener("click", () => copyText(m.otp_code));
+  $$("[data-bill-tier]", drawer).forEach(b => b.addEventListener("click", async () => {
+    const tier = b.dataset.billTier;
+    if (tier === m.bill_tier) return;
+    try {
+      const r = await api(`/messages/${id}/bill-tier`, { method: "POST",
+        body: { tier, similar: $("#d-bill-similar").checked } });
+      m.bill_tier = tier;
+      $$("[data-bill-tier]", drawer).forEach(x => x.classList.toggle("active", x.dataset.billTier === tier));
+      $("#d-cat").innerHTML = catBadge(m);
+      toast(`已设为${tier}账单` + (r.similar_updated ? `，同类 ${r.similar_updated} 封已一并更新` : ""));
+      if (!$("#view-inbox").classList.contains("hidden")) loadMails();
+    } catch (e) { toast(e.message, true); }
+  }));
   $("#d-unread").addEventListener("click", async () => {
     await api("/messages/batch", { method: "POST", body: { ids: [id], action: "unread", server: true } }).catch(() => {});
     toast("已标为未读"); close();
@@ -1057,7 +1094,7 @@ async function paintTrash(box) {
       <div class="mail-row">
         <span class="acc-dot" style="background:${esc(m.account_color || "#1a73e8")}"></span>
         <span class="m-sender">${esc(m.sender_addr)}</span>
-        <span class="m-main"><span class="badge cat-${esc(m.category)}">${esc(m.category)}</span>
+        <span class="m-main">${catBadge(m)}
           <span class="m-subject">${esc(m.subject || "(无主题)")}</span></span>
         <span class="m-time">${ago(m.deleted_ts)}删除</span>
         <button class="btn sm" data-restore="${m.id}">恢复</button>
@@ -1127,6 +1164,7 @@ async function renderSettings() {
     .filter(Boolean).length;
   const secStatus = {
     ai: s.ai_enabled ? `已启用 · ${s.ai_model || "未选模型"}` : "未启用",
+    bill: `金额阈值 ¥${s.bill_amount_threshold}`,
     google: s.google_oauth_configured ? "已启用" : "未配置",
     microsoft: s.microsoft_oauth_configured ? "已启用"
       : (s.microsoft_oauth_device_configured ? "仅设备码" : "未配置"),
@@ -1169,6 +1207,23 @@ async function renderSettings() {
           <button class="btn sm" id="s-classify-now">一键三省六部分拣</button>
         </div>
       </div></details>
+        <details class="card set-sec" data-sec="bill" ${secOpen("bill")}>
+          <summary><h3>${ico("ruler")} 账单分级</h3><span class="sec-status">${esc(secStatus.bill || "")}</span></summary>
+          <div class="sec-body">
+          <div class="provider-help">账单分为「重要账单」和「一般账单」：先识别交易本身（资金方向、谁发起、获得了什么、是否需要处理、金额），再按下面的规则定级。在邮件详情里改过的等级会被记住并用于同类邮件。</div>
+          <div class="set-row"><div class="l">金额阈值（元）<small>折合人民币不低于此值的账单一律重要；0 = 不按金额判断</small></div>
+            <input id="s-bill-amount" type="number" min="0" step="10" value="${s.bill_amount_threshold}" style="max-width:110px"></div>
+          <div class="set-row"><div class="l">例行流水阈值<small>同类账单近 30 天达到这么多封、且不是本人主动付款时视为一般；0 = 不启用</small></div>
+            <input id="s-bill-routine" type="number" min="0" value="${s.bill_routine_count}" style="max-width:90px"></div>
+          <div class="set-row"><div class="l">自动续费扣款</div>
+            <select id="s-bill-auto" style="width:auto">${BILL_TIERS.map(t =>
+              `<option ${s.bill_auto_renew === t ? "selected" : ""}>${t}</option>`).join("")}</select></div>
+          <div class="set-row"><div class="l">退款</div>
+            <select id="s-bill-refund" style="width:auto">${BILL_TIERS.map(t =>
+              `<option ${s.bill_refund === t ? "selected" : ""}>${t}</option>`).join("")}</select></div>
+          <div class="set-row"><div class="l">一般账单保留天数<small>0 = 不自动清理；到期每天移入回收站（带附件的不动）</small></div>
+            <input id="s-bill-clean" type="number" min="0" value="${s.clean_bill_minor_days}" style="max-width:90px"></div>
+        </div></details>
         <details class="card set-sec" data-sec="google" ${secOpen("google")}>
           <summary><h3>${ico("key")} Google 登录导入</h3><span class="sec-status">${esc(secStatus.google || "")}</span></summary>
           <div class="sec-body">
@@ -1309,6 +1364,11 @@ async function renderSettings() {
       notify_important: $("#s-ntf-imp").checked,
       notify_otp: $("#s-ntf-otp").checked,
       body_keep_days: +$("#s-body-days").value || 0,
+      bill_amount_threshold: Math.max(0, +$("#s-bill-amount").value || 0),
+      bill_routine_count: Math.max(0, +$("#s-bill-routine").value || 0),
+      bill_auto_renew: $("#s-bill-auto").value,
+      bill_refund: $("#s-bill-refund").value,
+      clean_bill_minor_days: Math.max(0, +$("#s-bill-clean").value || 0),
     };
     const googleId = $("#s-google-id");
     if (googleId && !googleId.disabled) {

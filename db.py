@@ -192,6 +192,18 @@ MIGRATIONS = [
     "ALTER TABLE messages ADD COLUMN header_signals TEXT DEFAULT '{}'",
     # 重要/安全推送在治理裁决后发出；非 0 表示已排队推送，避免重复
     "ALTER TABLE messages ADD COLUMN alert_ts REAL DEFAULT 0",
+    # 账单分级：同类模板键、等级（重要/一般）、交易画像（只含枚举与金额）、用户手动锁定
+    "ALTER TABLE messages ADD COLUMN template_key TEXT DEFAULT ''",
+    "ALTER TABLE messages ADD COLUMN bill_tier TEXT DEFAULT ''",
+    "ALTER TABLE messages ADD COLUMN bill_facets TEXT DEFAULT '{}'",
+    "ALTER TABLE messages ADD COLUMN bill_tier_locked INTEGER DEFAULT 0",
+    "CREATE INDEX IF NOT EXISTS idx_msg_template ON messages(template_key, date_ts)",
+    # 用户对「同类账单」的分级偏好，按模板键保存
+    """CREATE TABLE IF NOT EXISTS bill_prefs(
+         template_key TEXT PRIMARY KEY,
+         tier TEXT NOT NULL,
+         created_ts REAL NOT NULL
+       )""",
 ]
 
 

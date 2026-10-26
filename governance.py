@@ -12,15 +12,19 @@ ai_scope 决定。六部是证据视角，不替代现有邮件分类。持久�
 from __future__ import annotations
 
 import json
+import logging
 import re
 import threading
 import time
 from collections import Counter
 
 import ai
+import billing
 import policy
 import rules
-from db import audit, get_conn
+from db import audit, get_conn, get_setting
+
+log = logging.getLogger("mailhub.governance")
 
 
 VERSION = "mailhub-three-six-v2"
@@ -281,6 +285,130 @@ def menxia_arbitrate(proposal: dict) -> dict:
     }
 
 
+# ---------- 账单分级（户部细分：重要账单 / 一般账单） ----------
+
+def bill_config() -> dict:
+    return {
+        "amount_threshold": get_setting("bill_amount_threshold", ""),
+        "routine_count": get_setting("bill_routine_count", ""),
+        "auto_renew": get_setting("bill_auto_renew", ""),
+        "refund": get_setting("bill_refund", ""),
+    }
+
+
+def display_category(category: str, bill_tier: str = "") -> str:
+    """界面和晨报展示用的分类名：账单按等级显示为「重要账单」「一般账单」。"""
+    if category == "账单" and bill_tier in billing.TIERS:
+        return f"{bill_tier}账单"
+    return category
+
+
+def _routine_count(conn, key: str, now: float) -> int:
+    if not key:
+        return 0
+    return int(conn.execute(
+        "SELECT COUNT(*) AS c FROM messages WHERE template_key=? AND date_ts >= ?",
+        (key, now - billing.ROUTINE_WINDOW_SECONDS),
+    ).fetchone()["c"])
+
+
+def _preference(conn, key: str) -> str:
+    if not key:
+        return ""
+    row = conn.execute("SELECT tier FROM bill_prefs WHERE template_key=?", (key,)).fetchone()
+    return row["tier"] if row and row["tier"] in billing.TIERS else ""
+
+
+def _stored_facets(row: dict) -> dict:
+    try:
+        value = json.loads(row.get("bill_facets") or "{}")
+    except (TypeError, ValueError):
+        return {}
+    return value if isinstance(value, dict) else {}
+
+
+def decide_bill(conn, row: dict, *, ai_facets: dict | None = None, cfg: dict | None = None,
+                now: float | None = None, reuse_facets: bool = False) -> dict:
+    """为一封账单计算 {tier, facets, reason}。用户手动锁定的等级保持不变。"""
+    now = time.time() if now is None else now
+    if row.get("bill_tier_locked") and row.get("bill_tier") in billing.TIERS:
+        return {"tier": row["bill_tier"], "facets": _stored_facets(row), "reason": "用户手动设定"}
+    key = row.get("template_key") or billing.template_key(
+        str(row.get("sender_addr") or ""), str(row.get("subject") or ""))
+    facets = _stored_facets(row) if reuse_facets else {}
+    if not facets.get("direction"):
+        facets = billing.extract_facets(str(row.get("subject") or ""), str(row.get("body_text") or ""))
+        facets = billing.merge_ai_facets(facets, ai_facets)
+    tier, reason = billing.decide_tier(
+        facets, routine_count=_routine_count(conn, key, now),
+        preference=_preference(conn, key), cfg=cfg)
+    return {"tier": tier, "facets": billing.stored_facets(facets), "reason": reason}
+
+
+def apply_bill_tier(conn, row: dict, verdict: dict, ai_result: dict | None,
+                    cfg: dict | None, *, now: float) -> None:
+    """裁决为「账单」时定级，并按等级调整重要度；理由写进审计证据和服务日志，不进界面。"""
+    if verdict["category"] != "账单":
+        verdict["bill"] = None
+        return
+    ai_facets = (ai_result or {}).get("bill") if not (ai_result or {}).get("needs_review") else None
+    bill = decide_bill(conn, row, ai_facets=ai_facets, cfg=cfg, now=now)
+    verdict["bill"] = bill
+    verdict["importance"] = billing.tier_importance(bill["tier"], bill["facets"], verdict["importance"])
+    verdict["evidence"] = dict(verdict["evidence"], bill_tier=bill["tier"],
+                               bill=bill["facets"], bill_reason=bill["reason"])
+    log.info("账单定级 #%s → %s账单：%s", row.get("id"), bill["tier"], bill["reason"])
+
+
+def retier_bills(conn, *, template: str = "", only_missing: bool = False) -> int:
+    """不调用 AI，按已存画像（没有时本地抽取）重新定级。用于升级回填、改设置和用户标记同类后。"""
+    where = "category='账单' AND deleted_ts=0 AND bill_tier_locked=0"
+    args: list = []
+    if template:
+        where += " AND template_key=?"
+        args.append(template)
+    if only_missing:
+        where += " AND bill_tier=''"
+    rows = conn.execute(
+        f"""SELECT id, subject, sender_addr, substr(body_text, 1, {BODY_SCAN_CHARS}) AS body_text,
+                   importance, template_key, bill_tier, bill_facets, bill_tier_locked
+            FROM messages WHERE {where}""", args).fetchall()
+    cfg = bill_config()
+    now = time.time()
+    changed = 0
+    for r in rows:
+        row = dict(r)
+        bill = decide_bill(conn, row, cfg=cfg, now=now, reuse_facets=True)
+        importance = billing.tier_importance(bill["tier"], bill["facets"], int(row["importance"] or 0))
+        facets_json = json.dumps(bill["facets"], ensure_ascii=False, sort_keys=True)
+        if bill["tier"] != row["bill_tier"] or facets_json != (row["bill_facets"] or "{}") \
+                or importance != row["importance"]:
+            conn.execute("UPDATE messages SET bill_tier=?, bill_facets=?, importance=? WHERE id=?",
+                         (bill["tier"], facets_json, importance, row["id"]))
+            changed += 1
+            log.info("账单重新定级 #%s → %s账单：%s", row["id"], bill["tier"], bill["reason"])
+    conn.commit()
+    return changed
+
+
+def backfill_template_keys(conn, batch: int = 500) -> int:
+    """旧邮件补算模板键（发件域名 + 规整后的标题），供「同类邮件」统计和偏好使用。"""
+    total = 0
+    while True:
+        rows = conn.execute(
+            "SELECT id, sender_addr, subject FROM messages WHERE template_key='' LIMIT ?",
+            (batch,)).fetchall()
+        if not rows:
+            break
+        conn.executemany(
+            "UPDATE messages SET template_key=? WHERE id=?",
+            [(billing.template_key(r["sender_addr"] or "", r["subject"] or "") or "|", r["id"])
+             for r in rows])
+        conn.commit()
+        total += len(rows)
+    return total
+
+
 def _next_retry(message: dict, verdict: dict, ts: float) -> tuple[int, float]:
     """返回 (ai_retry_count, ai_retry_ts)。ai_retry_ts=0 表示不再重试。"""
     if not verdict.get("retry"):
@@ -296,18 +424,22 @@ def shangshu_apply(conn, run_id: int, message: dict, verdict: dict, *, ts: float
     """尚书省：仅写入分类元数据和审计轨迹，绝不调用邮箱或外部动作。"""
     mid = int(message["id"])
     retry_count, retry_ts = _next_retry(message, verdict, ts)
+    bill = verdict.get("bill")
     cur = conn.execute(
         """UPDATE messages
            SET category=?, importance=?, summary=?, confidence=?, ai_reason=?,
                needs_review=0, ai_done=1, governance_version=?, governance_ministry=?,
                governance_action=?, governance_source=?, governance_reason=?, governance_ts=?,
-               ai_retry_count=?, ai_retry_ts=?
+               ai_retry_count=?, ai_retry_ts=?, bill_tier=?, bill_facets=?
            WHERE id=? AND deleted_ts=0""",
         (
             verdict["category"], verdict["importance"], verdict["summary"],
             verdict["confidence"], verdict["reason"][:200], VERSION,
             verdict["ministry"], verdict["action"], verdict["source"],
-            verdict["reason"], ts, retry_count, retry_ts, mid,
+            verdict["reason"], ts, retry_count, retry_ts,
+            (bill or {}).get("tier", ""),
+            json.dumps((bill or {}).get("facets") or {}, ensure_ascii=False, sort_keys=True),
+            mid,
         ),
     )
     # 邮件可能在中书省选取后被并发移入回收站；此时不伪造“已治理”决策。
@@ -351,7 +483,7 @@ def _queue_alert(conn, message: dict, verdict: dict, ts: float) -> dict | None:
         "account_name": message.get("account_name") or "",
         "subject": message.get("subject") or "",
         "sender_addr": message.get("sender_addr") or "",
-        "category": verdict["category"],
+        "category": display_category(verdict["category"], (verdict.get("bill") or {}).get("tier", "")),
         "otp_code": "",
         "importance": verdict["importance"],
     }
@@ -390,6 +522,7 @@ def _load_messages(conn, ids: list[int]) -> list[dict]:
                    m.otp_code, m.importance, m.summary, m.confidence,
                    m.has_attach, m.unsubscribe, m.risk_level, m.needs_review, m.ai_retry_count,
                    m.date_ts, m.created_ts, m.header_signals, m.governance_version, m.alert_ts,
+                   m.template_key, m.bill_tier, m.bill_facets, m.bill_tier_locked,
                    a.name AS account_name
             FROM messages m LEFT JOIN accounts a ON a.id=m.account_id
             WHERE m.id IN ({ph}) AND m.deleted_ts=0""",
@@ -553,6 +686,7 @@ def run_governance(*, limit: int = 0, force: bool = False, trigger: str = "syste
         except Exception:
             cfg = {}
         enabled = bool(cfg.get("enabled"))
+        bill_cfg = bill_config()
 
         ministry_counts: Counter = Counter()
         category_counts: Counter = Counter()
@@ -573,6 +707,8 @@ def run_governance(*, limit: int = 0, force: bool = False, trigger: str = "syste
                     row, ai_by_id.get(int(row["id"])), ai_enabled=enabled
                 )
                 verdict = menxia_arbitrate(proposal)
+                apply_bill_tier(conn, row, verdict, ai_by_id.get(int(row["id"])),
+                                bill_cfg, now=started)
                 if not shangshu_apply(conn, run_id, row, verdict, ts=decision_ts):
                     continue
                 alert = _queue_alert(conn, row, verdict, decision_ts)
