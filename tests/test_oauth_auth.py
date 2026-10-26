@@ -89,6 +89,31 @@ def test_public_provider_metadata_never_exposes_oauth_credentials(isolated_db, m
     assert result["yeah"]["domains"] == ["yeah.net"]
 
 
+def test_gmail_without_oauth_explains_app_password_prerequisites(isolated_db, monkeypatch):
+    """普通 Google 账号没开两步验证时无法创建应用专用密码，界面必须先引导开启并提示 OAuth 选项"""
+    monkeypatch.delenv("GOOGLE_CLIENT_ID", raising=False)
+    monkeypatch.delenv("GOOGLE_CLIENT_SECRET", raising=False)
+    gmail = oauth_auth.public_providers()["gmail"]
+    assert [m["type"] for m in gmail["methods"]] == ["app_password"]
+    method = gmail["methods"][0]
+    urls = [link["url"] for link in method["links"]]
+    assert urls == ["https://myaccount.google.com/signinoptions/twosv",
+                    "https://myaccount.google.com/apppasswords"]
+    assert "两步验证" in method["steps"][0]
+    assert "高级保护" in method["troubleshoot"]
+    assert "Google 登录导入" in gmail["oauth_hint"]
+    # 不支持 OAuth 的服务商没有这条提示
+    assert oauth_auth.public_providers()["qq"]["oauth_hint"] == ""
+
+
+def test_gmail_hint_disappears_once_oauth_is_configured(isolated_db, monkeypatch):
+    monkeypatch.setenv("GOOGLE_CLIENT_ID", "123-abc.apps.googleusercontent.com")
+    monkeypatch.setenv("GOOGLE_CLIENT_SECRET", "secret")
+    gmail = oauth_auth.public_providers()["gmail"]
+    assert gmail["methods"][0]["type"] == "oauth_browser"
+    assert gmail["oauth_hint"] == ""
+
+
 def test_account_body_auto_detects_provider_and_rejects_mismatch():
     auto = mailhub_app.AccountBody(email="User@Yeah.Net", secret="authorization-code")
     mailhub_app._normalize_account_body(auto)

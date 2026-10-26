@@ -29,6 +29,9 @@ class SecretAuth:
     setup_url: str = ""       # 去哪里开启 IMAP / 生成授权码
     setup_label: str = ""
     steps: tuple[str, ...] = ()
+    # 在 setup_url 之前要先打开的页面，例如 Gmail 需要先开启两步验证：((标题, 地址), ...)
+    prereq_links: tuple[tuple[str, str], ...] = ()
+    troubleshoot: str = ""    # 常见报错的解释
 
 
 @dataclass(frozen=True)
@@ -45,6 +48,8 @@ class Provider:
     device_flow: bool = False
     # 网易 OAuth 账户连接 imapmail.* 主机，授权码账户连接 imap.* 主机
     oauth_imap_host: str = ""
+    # 部署者没有配置 OAuth 客户端时给用户的提示（说明配置后能换成更简单的登录方式）
+    oauth_missing_hint: str = ""
     netease_web: str = ""     # 网易授权入口所在的网页域名
     send_imap_id: bool = False  # 认证后发送 RFC 2971 ID（网易不发会返回 Unsafe Login）
     note: str = ""
@@ -129,12 +134,18 @@ _ALL = (
         key="gmail", label="Gmail", domains=("gmail.com", "googlemail.com"),
         imap_host="imap.gmail.com",
         secret=SecretAuth(
-            APP_PASSWORD, "Google 应用专用密码", "https://myaccount.google.com/apppasswords",
+            APP_PASSWORD, "Google 应用专用密码（16 位）", "https://myaccount.google.com/apppasswords",
             "创建应用专用密码",
-            ("为 Google 账号开启两步验证",
-             "在 myaccount.google.com/apppasswords 创建应用专用密码"),
+            ("先为 Google 账号开启两步验证（没开时创建页面会提示「您的账号不支持您正在尝试的设置」）",
+             "在应用专用密码页面随便填一个名称（如 MailHub）并创建",
+             "把显示的 16 位密码粘贴到下方，空格可以不删"),
+            prereq_links=(("开启两步验证", "https://myaccount.google.com/signinoptions/twosv"),),
+            troubleshoot=("开启两步验证后仍提示不支持：工作或学校账号可能被管理员禁用了应用专用密码；"
+                          "两步验证只用安全密钥、或开启了高级保护的账号也无法创建。这些账号请改用 Google 登录。"),
         ),
         oauth="standard", oauth_label="使用 Google 登录",
+        oauth_missing_hint=("不想开两步验证？管理员在「设置 → Google 登录导入」填写本站的 Google OAuth 客户端后，"
+                            "这里会出现「使用 Google 登录」，直接用 Google 账号授权即可添加。"),
     ),
     Provider(
         key="outlook", label="Outlook / Hotmail",
