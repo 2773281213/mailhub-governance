@@ -116,7 +116,7 @@ medium/high 风险邮件强制归入「可疑」分类并进入只读风险观�
 ## 八、其他已实现的安全措施
 
 - 授权码/OAuth Token 用 Fernet 加密落库，密钥由 `MAILHUB_SECRET` 经 HKDF-SHA256 派生，主密钥在 `/opt/mailhub/.env`（0600）。更换密钥时把旧值设为 `MAILHUB_SECRET_PREVIOUS` 重启一次，启动时会把所有凭据改用新密钥重新加密；解密失败会写警告日志（不含密文）
-- 会话保存在服务端（只存令牌的 SHA-256），cookie 为 `httponly` + `secure` + `samesite=lax`。登出只吊销当前设备；修改密码或设置页"退出所有其他设备"会吊销全部会话
+- 会话保存在服务端（只存令牌的 SHA-256）：网页端 cookie 为 `httponly` + `secure` + `samesite=lax`，原生客户端使用 `Authorization: Bearer <token>` 认证。支持列出已登录设备与单独吊销；登出只吊销当前设备；修改密码或"退出所有设备"会吊销全部会话
 - 登录失败按来源 IP 指数退避：前 5 次不限，之后等待 60 秒并逐次翻倍，最长 1 小时；所有来源合计 10 分钟内失败 100 次时暂停登录
 - 首次启动生成的管理密码写入数据目录下的 `initial-admin-password.txt`（0600），日志里只有文件路径；改密码后该文件被删除
 - CSRF：会改变状态的 `/api` 请求必须来自本站（`Origin` 与 Host 或 `MAILHUB_PUBLIC_URL` 一致，或 `Sec-Fetch-Site: same-origin`）；跨站请求返回 403

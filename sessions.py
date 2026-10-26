@@ -17,14 +17,18 @@ def _hash(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
-def create_session(ttl: int = SESSION_TTL) -> str:
+def session_id(token: str) -> str:
+    return _hash(token)[:16]
+
+
+def create_session(ttl: int = SESSION_TTL, *, label: str = "", client: str = "web") -> str:
     token = secrets.token_urlsafe(32)
     now = time.time()
     conn = get_conn()
     conn.execute("DELETE FROM sessions WHERE expires_ts < ?", (now,))
     conn.execute(
-        "INSERT INTO sessions(id_hash, created_ts, expires_ts) VALUES(?,?,?)",
-        (_hash(token), now, now + ttl),
+        "INSERT INTO sessions(id_hash, created_ts, expires_ts, label, client, last_seen_ts) VALUES(?,?,?,?,?,?)",
+        (_hash(token), now, now + ttl, label, client, now),
     )
     conn.commit()
     return token
@@ -34,10 +38,59 @@ def verify_session(token: str | None) -> bool:
     # 新令牌是 43 字符的 urlsafe 串；旧版 "exp.hmac" 格式的 cookie 一律视为无效
     if not token or len(token) > 128:
         return False
-    row = get_conn().execute(
-        "SELECT expires_ts FROM sessions WHERE id_hash=?", (_hash(token),)
+    now = time.time()
+    conn = get_conn()
+    row = conn.execute(
+        "SELECT expires_ts, last_seen_ts FROM sessions WHERE id_hash=?", (_hash(token),)
     ).fetchone()
-    return bool(row) and row["expires_ts"] > time.time()
+    if not row or row["expires_ts"] <= now:
+        return False
+    last_seen = row["last_seen_ts"] or 0
+    if now - last_seen > 300:
+        conn.execute(
+            "UPDATE sessions SET last_seen_ts=? WHERE id_hash=?",
+            (now, _hash(token)),
+        )
+        conn.commit()
+    return True
+
+
+def list_sessions(current_token: str | None) -> list[dict]:
+    now = time.time()
+    conn = get_conn()
+    rows = conn.execute(
+        """SELECT id_hash, label, client, created_ts, last_seen_ts, expires_ts
+           FROM sessions
+           WHERE expires_ts > ?
+           ORDER BY created_ts DESC""",
+        (now,),
+    ).fetchall()
+    cur_hash = _hash(current_token) if current_token else None
+    items = []
+    for r in rows:
+        items.append({
+            "id": r["id_hash"][:16],
+            "label": r["label"] or "",
+            "client": r["client"] or "web",
+            "created_ts": r["created_ts"],
+            "last_seen_ts": r["last_seen_ts"] or 0.0,
+            "expires_ts": r["expires_ts"],
+            "current": bool(cur_hash and r["id_hash"] == cur_hash),
+        })
+    return items
+
+
+def revoke_session_id(sid: str) -> int:
+    if not isinstance(sid, str) or len(sid) != 16:
+        return 0
+    try:
+        int(sid, 16)
+    except ValueError:
+        return 0
+    conn = get_conn()
+    cur = conn.execute("DELETE FROM sessions WHERE substr(id_hash, 1, 16) = ?", (sid.lower(),))
+    conn.commit()
+    return cur.rowcount
 
 
 def revoke_session(token: str | None):

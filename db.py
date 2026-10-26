@@ -204,6 +204,9 @@ MIGRATIONS = [
          tier TEXT NOT NULL,
          created_ts REAL NOT NULL
        )""",
+    "ALTER TABLE sessions ADD COLUMN label TEXT DEFAULT ''",
+    "ALTER TABLE sessions ADD COLUMN client TEXT DEFAULT 'web'",
+    "ALTER TABLE sessions ADD COLUMN last_seen_ts REAL DEFAULT 0",
 ]
 
 

@@ -141,14 +141,29 @@ def _is_same_origin(request: Request) -> bool:
     return bool(netloc) and netloc in allowed
 
 
+def _request_token(request: Request | None) -> tuple[str | None, str]:
+    if not request:
+        return None, ""
+    auth = request.headers.get("authorization", "").strip()
+    if auth.lower().startswith("bearer "):
+        token = auth[7:].strip()
+        if token:
+            return token, "bearer"
+    cookie_token = request.cookies.get(COOKIE_NAME)
+    if cookie_token:
+        return cookie_token, "cookie"
+    return None, ""
+
+
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
     path = request.url.path
-    if (path.startswith("/api/") and request.method in _UNSAFE_METHODS
-            and not _is_same_origin(request)):
-        return JSONResponse({"detail": "跨站请求已拒绝"}, status_code=403)
+    token, source = _request_token(request)
+    if path.startswith("/api/") and request.method in _UNSAFE_METHODS:
+        skip_csrf = (path != "/api/login" and source == "bearer" and COOKIE_NAME not in request.cookies)
+        if not skip_csrf and not _is_same_origin(request):
+            return JSONResponse({"detail": "跨站请求已拒绝"}, status_code=403)
     if path.startswith("/api/") and path not in ("/api/login", "/api/health"):
-        token = request.cookies.get(COOKIE_NAME)
         if not sessions.verify_session(token):
             return JSONResponse({"detail": "未登录"}, status_code=401)
     return await call_next(request)
@@ -178,6 +193,8 @@ def _set_session_cookie(response: Response, token: str):
 
 class LoginBody(BaseModel):
     password: str
+    client: str = "web"
+    device_name: str = ""
 
 
 @app.post("/api/login")
@@ -187,29 +204,84 @@ async def login(body: LoginBody, request: Request, response: Response):
     if wait:
         raise HTTPException(status_code=429, detail=f"尝试过多，请 {-(-wait // 60)} 分钟后再试",
                             headers={"Retry-After": str(wait)})
+    client_type = (body.client or "web").strip().lower()
+    if client_type not in ("web", "android"):
+        raise HTTPException(status_code=400, detail="不支持的客户端类型")
     if not verify_password(body.password, get_setting("admin_hash")):
         login_throttle.record_failure(ip)
         raise HTTPException(status_code=401, detail="密码错误")
     login_throttle.record_success(ip)
-    _set_session_cookie(response, sessions.create_session())
-    return {"ok": True}
+
+    label = (body.device_name or "").strip()[:60]
+    if client_type == "web":
+        token = sessions.create_session(client="web", label=label)
+        _set_session_cookie(response, token)
+        return {"ok": True}
+    else:
+        token = sessions.create_session(client="android", label=label)
+        sid = sessions.session_id(token)
+        row = get_conn().execute(
+            "SELECT expires_ts FROM sessions WHERE id_hash=?",
+            (sessions._hash(token),)
+        ).fetchone()
+        expires_ts = row["expires_ts"] if row else time.time() + sessions.SESSION_TTL
+        return {
+            "ok": True,
+            "token": token,
+            "session_id": sid,
+            "expires_ts": expires_ts,
+        }
 
 
 @app.post("/api/logout")
 async def logout(request: Request, response: Response):
     """只吊销当前设备的会话。"""
-    sessions.revoke_session(request.cookies.get(COOKIE_NAME))
-    response.delete_cookie(COOKIE_NAME)
+    token, source = _request_token(request)
+    if token:
+        sessions.revoke_session(token)
+    if source == "cookie":
+        response.delete_cookie(COOKIE_NAME)
     return {"ok": True}
 
 
 @app.post("/api/sessions/revoke-all")
-async def revoke_all_sessions(response: Response):
+async def revoke_all_sessions(response: Response, request: Request = None):
     """退出所有设备：吊销全部会话，再给当前设备签发一个新会话。"""
+    token, source = _request_token(request)
+    orig_client, orig_label = "web", ""
+    if token:
+        row = get_conn().execute(
+            "SELECT client, label FROM sessions WHERE id_hash=?",
+            (sessions._hash(token),)
+        ).fetchone()
+        if row:
+            orig_client = row["client"] or "web"
+            orig_label = row["label"] or ""
     count = sessions.revoke_all_sessions()
-    _set_session_cookie(response, sessions.create_session())
-    audit("revoke_sessions", actor="user", tier="A", reason=f"退出所有设备，吊销 {count} 个会话")
-    return {"ok": True, "revoked": count}
+    if source == "bearer":
+        new_token = sessions.create_session(client=orig_client, label=orig_label)
+        audit("revoke_sessions", actor="user", tier="A", reason=f"退出所有设备，吊销 {count} 个会话")
+        return {"ok": True, "revoked": count, "token": new_token}
+    else:
+        new_token = sessions.create_session()
+        _set_session_cookie(response, new_token)
+        audit("revoke_sessions", actor="user", tier="A", reason=f"退出所有设备，吊销 {count} 个会话")
+        return {"ok": True, "revoked": count}
+
+
+@app.get("/api/sessions")
+async def get_sessions(request: Request):
+    token, _ = _request_token(request)
+    return {"items": sessions.list_sessions(token)}
+
+
+@app.delete("/api/sessions/{sid}")
+async def delete_session(sid: str):
+    n = sessions.revoke_session_id(sid)
+    if n == 0:
+        raise HTTPException(status_code=404, detail="会话不存在")
+    audit("revoke_session", actor="user", tier="A", reason=f"吊销设备会话 {sid}")
+    return {"ok": True, "revoked": n}
 
 
 @app.get("/api/health")
@@ -1101,7 +1173,7 @@ def _save_oauth_settings(body: SettingsBody, *, prefix: str, provider: str, labe
 
 
 @app.put("/api/settings")
-async def put_settings(body: SettingsBody):
+async def put_settings(body: SettingsBody, request: Request = None):
     # 先校验密码，避免密码错误时其他设置已被部分保存
     if body.new_password is not None:
         if not verify_password(body.old_password or "", get_setting("admin_hash")):
@@ -1128,8 +1200,18 @@ async def put_settings(body: SettingsBody):
         set_setting("admin_hash", hash_password(body.new_password))
         _remove_initial_password_file()
         # 改密码让所有旧会话失效，当前设备换发新会话继续使用
+        token, source = _request_token(request)
+        orig_client, orig_label = "web", ""
+        if token:
+            row = get_conn().execute(
+                "SELECT client, label FROM sessions WHERE id_hash=?",
+                (sessions._hash(token),)
+            ).fetchone()
+            if row:
+                orig_client = row["client"] or "web"
+                orig_label = row["label"] or ""
         count = sessions.revoke_all_sessions()
-        new_session = sessions.create_session()
+        new_session = sessions.create_session(client=orig_client, label=orig_label)
         audit("change_password", actor="user", tier="A",
               reason=f"修改管理密码，吊销 {count} 个会话")
     if body.ai_enabled is not None:
@@ -1186,6 +1268,8 @@ async def put_settings(body: SettingsBody):
         # 策略变了：按已存的交易画像重新定级（不调用 AI，用户手动设定的不动）
         governance.retier_bills(get_conn())
     if body.new_password is not None:
+        if source == "bearer":
+            return {"ok": True, "token": new_session}
         # 当前设备换发新会话继续使用；其他设备的会话已在上面全部吊销
         response = JSONResponse({"ok": True})
         _set_session_cookie(response, new_session)
