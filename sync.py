@@ -7,6 +7,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 import ai
+import billing
 import governance
 import mail_client
 import notify
@@ -14,7 +15,7 @@ import oauth_auth
 import policy
 import rules
 import security_scan
-from db import audit, get_conn, get_setting
+from db import audit, get_conn, get_setting, set_setting
 from security import decrypt
 
 TZ = ZoneInfo("Asia/Shanghai")
@@ -211,14 +212,15 @@ def sync_account(acc_id: int) -> int:
                                (account_id, uid, msg_id, subject, sender_name, sender_addr, to_addr,
                                 date_ts, snippet, body_text, body_html, category, otp_code, unread,
                                 has_attach, unsubscribe, created_ts, risk_level, risk_reasons,
-                                needs_review, confidence, header_signals)
-                               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                                needs_review, confidence, header_signals, template_key)
+                               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                             (acc_id, m["uid"], m["msg_id"], m["subject"], m["sender_name"],
                              m["sender_addr"], m.get("to_addr", ""), m["date_ts"], m["snippet"],
                              m["body_text"], m["body_html"], cat, otp, m["unread"], m["has_attach"],
                              m["unsubscribe"], time.time(), scan["risk"],
                              " · ".join(scan["reasons"])[:500], 0, confidence,
-                             json.dumps(signals, sort_keys=True)),
+                             json.dumps(signals, sort_keys=True),
+                             billing.template_key(m["sender_addr"], m["subject"])),
                         )
                         if cur.rowcount:
                             new_count += 1
@@ -288,6 +290,33 @@ def trim_old_bodies():
         conn.execute("VACUUM")
 
 
+def backfill_readable_bodies(batch: int = 200) -> int:
+    """一次性：旧邮件的纯文本若只是「在浏览器中查看」占位，改存 HTML 转出的文字，
+    让规则、AI 和账单分级都能读到真正的内容。返回修正的邮件数。"""
+    if get_setting("body_readable_v1") == "1":
+        return 0
+    conn = get_conn()
+    last_id, fixed = 0, 0
+    while True:
+        rows = conn.execute(
+            "SELECT id, body_text, body_html FROM messages WHERE id > ? AND body_html != '' "
+            "ORDER BY id LIMIT ?", (last_id, batch)).fetchall()
+        if not rows:
+            break
+        for r in rows:
+            last_id = r["id"]
+            text = mail_client.readable_body(r["body_text"], r["body_html"])
+            if text == r["body_text"]:
+                continue
+            text = mail_client.tidy_body(text)
+            conn.execute("UPDATE messages SET body_text=?, snippet=? WHERE id=?",
+                         (text, mail_client.make_snippet(text), r["id"]))
+            fixed += 1
+        conn.commit()
+    set_setting("body_readable_v1", "1")
+    return fixed
+
+
 def push_alerts(alerts) -> None:
     """推送治理裁决后的重要/安全新邮件；按账户分组，失败不影响治理结果。"""
     by_account: dict[str, list[dict]] = {}
@@ -317,11 +346,12 @@ def generate_digest(force: bool = False) -> str:
             return row["content"]
     since = time.time() - 86400
     rows = conn.execute(
-        """SELECT subject, sender_addr, category FROM messages
+        """SELECT subject, sender_addr, category, bill_tier FROM messages
            WHERE date_ts > ? AND deleted_ts=0 ORDER BY date_ts DESC LIMIT 120""",
         (since,),
     ).fetchall()
-    mails = [{"subject": r["subject"], "sender": r["sender_addr"], "category": r["category"]}
+    mails = [{"subject": r["subject"], "sender": r["sender_addr"],
+              "category": governance.display_category(r["category"], r["bill_tier"])}
              for r in rows]
     content = ai.make_digest(mails)
     conn.execute(
@@ -334,25 +364,33 @@ def generate_digest(force: bool = False) -> str:
 
 
 def auto_clean():
-    """定时清理过期验证码邮件（默认关闭）。
+    """定时清理过期验证码邮件和一般账单（各自独立开关，默认关闭）。
 
     这是唯一的无人值守破坏性动作，因此约束最严：
-      - 只处理「验证码」分类，且逐封过 policy.evaluate
+      - 只处理「验证码」和「一般账单」，且逐封过 policy.evaluate
       - 默认软删除进回收站，可撤销
       - 只有用户显式开启 clean_server 才连服务器一起删（视为用户已建立规则）
       - 全程写审计日志
     """
-    days = int(get_setting("clean_otp_days", "0") or 0)
-    if days <= 0:
-        return
+    otp_days = int(get_setting("clean_otp_days", "0") or 0)
+    bill_days = int(get_setting("clean_bill_minor_days", "0") or 0)
     server_too = get_setting("clean_server", "0") == "1"
-    cutoff = time.time() - days * 86400
     conn = get_conn()
-    rows = conn.execute(
-        """SELECT id, account_id, uid, category, has_attach, importance, sender_addr
-           FROM messages WHERE category='验证码' AND date_ts < ? AND deleted_ts=0""",
-        (cutoff,),
-    ).fetchall()
+    now_ts = time.time()
+    rows = []
+    if otp_days > 0:
+        rows += conn.execute(
+            """SELECT id, account_id, uid, category, bill_tier, has_attach, importance, sender_addr
+               FROM messages WHERE category='验证码' AND date_ts < ? AND deleted_ts=0""",
+            (now_ts - otp_days * 86400,),
+        ).fetchall()
+    if bill_days > 0:
+        # 一般账单（收入到账、零金额、例行流水等）；带附件或重要度高的仍由策略保护
+        rows += conn.execute(
+            """SELECT id, account_id, uid, category, bill_tier, has_attach, importance, sender_addr
+               FROM messages WHERE category='账单' AND bill_tier=? AND date_ts < ? AND deleted_ts=0""",
+            (billing.TIER_MINOR, now_ts - bill_days * 86400),
+        ).fetchall()
     if not rows:
         return
 
@@ -384,7 +422,12 @@ def auto_clean():
         conn.executemany("UPDATE messages SET deleted_ts=? WHERE id=?", [(ts, i) for i in ids])
         undo = {"ids": ids}
     conn.commit()
-    reason = f"自动清理 {days} 天前的验证码邮件，{len(blocked)} 封被策略保护"
+    scopes = []
+    if otp_days > 0:
+        scopes.append(f"{otp_days} 天前的验证码邮件")
+    if bill_days > 0:
+        scopes.append(f"{bill_days} 天前的一般账单")
+    reason = f"自动清理{'和'.join(scopes)}，{len(blocked)} 封被策略保护"
     if errors:
         reason += f"；服务器删除失败 {len(errors)} 项：{errors[0]}"
     audit(action, actor="system", tier=policy.ACTION_TIER.get(action, "C"), target_ids=ids,

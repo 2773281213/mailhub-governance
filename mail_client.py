@@ -36,6 +36,46 @@ def html_to_text(h: str) -> str:
     return html_mod.unescape(_HTML_RE.sub(" ", h))
 
 
+# 纯文本部分只是「请在浏览器中查看」之类的占位时，真正的内容在 HTML 里
+_STUB_HINT = re.compile(
+    r"在(网页|浏览器)(上|中)?查看|要查看详情|请访问|查看完整|无法(正常)?显示"
+    r"|view\s+(this|it|the)?\s*(e-?mail|message)?\s*(in|on)\s+(your|a|the)?\s*(web\s*)?browser"
+    r"|view\s+(it\s+)?online|not\s+support\s+html|open\s+(this|the)\s+(e-?mail|message)\s+in"
+    r"|to\s+view\s+(this|the)\s+(e-?mail|message)",
+    re.I,
+)
+_URL_RE = re.compile(r"https?://\S+|<https?://[^>]*>", re.I)
+
+
+def is_stub_text(text: str, html_text: str) -> bool:
+    """纯文本部分是否只是占位：去掉链接后很短且带「浏览器查看」提示，或几乎只有链接，
+    同时 HTML 转出的文字明显更长。"""
+    plain = re.sub(r"\s+", " ", _URL_RE.sub(" ", text or "")).strip()
+    rich = re.sub(r"\s+", " ", html_text or "").strip()
+    if len(rich) < max(200, 2 * len(plain)):
+        return False
+    return len(plain) < 80 or (len(plain) < 600 and bool(_STUB_HINT.search(plain)))
+
+
+def tidy_body(text: str) -> str:
+    text = re.sub(r"[ \t\r]+", " ", text or "")
+    return re.sub(r"\n{3,}", "\n\n", text).strip()[:50000]
+
+
+def make_snippet(text: str) -> str:
+    return re.sub(r"\s+", " ", text or "")[:200]
+
+
+def readable_body(body_text: str, body_html: str) -> str:
+    """供分类使用的正文：纯文本是占位或为空时改用 HTML 转出的文字。"""
+    if not body_html:
+        return body_text or ""
+    html_text = html_to_text(body_html)
+    if not (body_text or "").strip() or is_stub_text(body_text, html_text):
+        return html_text
+    return body_text
+
+
 def _decode_header(raw) -> str:
     if raw is None:
         return ""
@@ -132,11 +172,8 @@ def parse_message(raw_bytes: bytes) -> dict:
         elif ctype == "text/html" and len(body_html) < 300000:
             body_html += text
 
-    if not body_text and body_html:
-        body_text = html_to_text(body_html)
-    body_text = re.sub(r"[ \t\r]+", " ", body_text)
-    body_text = re.sub(r"\n{3,}", "\n\n", body_text).strip()[:50000]
-    snippet = re.sub(r"\s+", " ", body_text)[:200]
+    body_text = tidy_body(readable_body(body_text, body_html))
+    snippet = make_snippet(body_text)
 
     return {
         "msg_id": (msg.get("Message-ID") or "").strip(),

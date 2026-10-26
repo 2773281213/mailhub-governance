@@ -54,7 +54,9 @@ def is_protected(msg: dict) -> tuple[bool, str]:
     """判断邮件是否受保护，返回 (是否受保护, 原因)。
     msg 需含 category / has_attach / importance / sender_addr / replied 等字段（缺失按安全侧处理）。"""
     cat = msg.get("category") or ""
-    if cat in PROTECTED_CATEGORIES:
+    # 一般账单（到账、零金额、例行流水）不按分类保护；带附件、重要度高的仍受保护
+    minor_bill = cat == "账单" and msg.get("bill_tier") == "一般"
+    if cat in PROTECTED_CATEGORIES and not minor_bill:
         return True, f"分类「{cat}」属于受保护类别（交易/安全/重要），禁止自动删除"
     if msg.get("has_attach"):
         return True, "邮件含附件，可能是发票或合同，禁止自动删除"
