@@ -1,10 +1,11 @@
 """后台同步引擎：定时拉取各账户新邮件 → 规则分类 → AI 补充分类 → 每日摘要 / 自动清理"""
 import json
+import os
 import threading
 import time
 import traceback
 from datetime import datetime
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import ai
 import billing
@@ -18,7 +19,20 @@ import security_scan
 from db import audit, get_conn, get_setting, set_setting
 from security import decrypt
 
-TZ = ZoneInfo("Asia/Shanghai")
+
+def _resolve_tz(name: str) -> tuple[str, ZoneInfo]:
+    """解析 MAILHUB_TZ：留空用上海，无效名称警告一次并回退上海。"""
+    candidate = (name or "").strip()
+    if not candidate:
+        candidate = "Asia/Shanghai"
+    try:
+        return candidate, ZoneInfo(candidate)
+    except (ZoneInfoNotFoundError, ValueError):
+        print(f"[MailHub] 无效的时区 MAILHUB_TZ={name!r}，已回退到 Asia/Shanghai", flush=True)
+        return "Asia/Shanghai", ZoneInfo("Asia/Shanghai")
+
+
+TZ_NAME, TZ = _resolve_tz(os.environ.get("MAILHUB_TZ", "").strip())
 
 # account_id -> {"state": idle|syncing|error, "msg": str, "ts": float, "new": int}
 STATUS: dict = {}
@@ -36,6 +50,16 @@ def _set_status(acc_id: int, state: str, msg: str = "", new: int = 0):
 def get_status() -> dict:
     with _status_lock:
         return {str(k): dict(v) for k, v in STATUS.items()}
+
+
+def forget_account(acc_id: int):
+    """账户删除后清掉它的同步状态、并发锁和待处理的手动同步请求。"""
+    acc_id = int(acc_id)
+    with _status_lock:
+        STATUS.pop(acc_id, None)
+    _sync_locks.pop(acc_id, None)
+    with _force_lock:
+        _force_queue.discard(acc_id)
 
 
 def _is_duplicate(conn, acc_id: int, msg_id: str) -> bool:

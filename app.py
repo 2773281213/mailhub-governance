@@ -37,6 +37,7 @@ from security import (decrypt, encrypt, hash_password, rotate_encrypted_values,
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 COOKIE_NAME = "mailhub_session"
+API_VERSION = 1          # 移动端据此判断接口能力，见 /api/meta
 
 # 登录失败限流：按来源 IP 指数退避，另有全局上限（见 sessions.LoginThrottle）
 login_throttle = sessions.LoginThrottle()
@@ -287,7 +288,24 @@ async def delete_session(sid: str):
 
 @app.get("/api/health")
 async def health():
-    return {"ok": True, "ts": time.time()}
+    return {"ok": True, "ts": time.time(), "api_version": API_VERSION}
+
+
+@app.get("/api/meta")
+async def meta():
+    """App 启动时读一次：版本、能力开关、时区和各类枚举。"""
+    return {
+        "ok": True,
+        "api_version": API_VERSION,
+        "server_time": time.time(),
+        "tz": sync.TZ_NAME,
+        "categories": list(rules_mod.CATEGORIES),
+        "display_categories": list(DISPLAY_CATEGORIES),
+        "bill_tiers": list(billing.TIERS),
+        "ministries": list(governance.MINISTRIES),
+        "governance_version": governance.VERSION,
+        "features": {"token_auth": True, "cursor": True, "changes": True, "sessions": True},
+    }
 
 
 @app.get("/api/me")
@@ -325,13 +343,17 @@ def _acc_public(row) -> dict:
 def _list_accounts_sync():
     conn = get_conn()
     rows = conn.execute("SELECT * FROM accounts ORDER BY id").fetchall()
+    # 一条聚合查询代替每个账户两条 COUNT；回收站里的邮件不计入
+    counts = {
+        r["account_id"]: (r["total"] or 0, r["unread"] or 0)
+        for r in conn.execute(
+            """SELECT account_id, COUNT(*) AS total, SUM(unread) AS unread
+               FROM messages WHERE deleted_ts=0 GROUP BY account_id""").fetchall()
+    }
     out = []
     for r in rows:
         d = _acc_public(r)
-        d["total"] = conn.execute(
-            "SELECT COUNT(*) c FROM messages WHERE account_id=?", (r["id"],)).fetchone()["c"]
-        d["unread"] = conn.execute(
-            "SELECT COUNT(*) c FROM messages WHERE account_id=? AND unread=1", (r["id"],)).fetchone()["c"]
+        d["total"], d["unread"] = counts.get(r["id"], (0, 0))
         out.append(d)
     return out
 
@@ -478,8 +500,16 @@ async def update_account(acc_id: int, body: AccountBody):
 @app.delete("/api/accounts/{acc_id}")
 async def delete_account(acc_id: int):
     conn = get_conn()
+    row = conn.execute("SELECT email FROM accounts WHERE id=?", (acc_id,)).fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="账户不存在")
+    email = row["email"]
     conn.execute("DELETE FROM accounts WHERE id=?", (acc_id,))
     conn.commit()
+    # 同步引擎还挂着这个账户的状态、并发锁和排队中的手动同步，一起清掉
+    sync.forget_account(acc_id)
+    audit("delete_account", actor="user", tier="C", target_ids=[acc_id],
+          reason=f"删除账户 {email}，本地邮件一并删除")
     return {"ok": True}
 
 
@@ -517,6 +547,11 @@ async def sync_status():
 
 # ---------- 邮件 ----------
 
+def _escape_like(text: str) -> str:
+    """把 LIKE 的通配符转义成普通字符，搜索 % 时不会匹配到所有邮件。"""
+    return text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 def _message_filter(category: str, account: int, unread: int, q: str,
                     bill_tier: str) -> tuple[str, list]:
     """收件箱筛选条件；列表和「选择全部」共用，保证两者选中的是同一批邮件。"""
@@ -530,8 +565,9 @@ def _message_filter(category: str, account: int, unread: int, q: str,
     if unread in (0, 1):
         where.append("m.unread=?"); args.append(unread)
     if q:
-        where.append("(m.subject LIKE ? OR m.sender_addr LIKE ? OR m.sender_name LIKE ? OR m.snippet LIKE ?)")
-        like = f"%{q}%"
+        where.append("(m.subject LIKE ? ESCAPE '\\' OR m.sender_addr LIKE ? ESCAPE '\\'"
+                     " OR m.sender_name LIKE ? ESCAPE '\\' OR m.snippet LIKE ? ESCAPE '\\')")
+        like = f"%{_escape_like(q)}%"
         args += [like, like, like, like]
     where.append("m.deleted_ts=0")   # 回收站内容不出现在收件箱
     return " AND ".join(where), args
@@ -549,37 +585,55 @@ async def list_message_ids(category: str = "", account: int = 0, unread: int = -
     conn = get_conn()
     total = conn.execute(f"SELECT COUNT(*) c FROM messages m WHERE {cond}", args).fetchone()["c"]
     rows = conn.execute(
-        f"SELECT m.id FROM messages m WHERE {cond} ORDER BY m.date_ts DESC LIMIT ?",
+        f"SELECT m.id FROM messages m WHERE {cond} ORDER BY m.date_ts DESC, m.id DESC LIMIT ?",
         args + [SELECT_ALL_LIMIT]).fetchall()
     return {"total": total, "ids": [r["id"] for r in rows], "limit": SELECT_ALL_LIMIT}
 
 
 def _list_messages_sync(category: str = "", account: int = 0, unread: int = -1,
-                        q: str = "", page: int = 1, page_size: int = 40, bill_tier: str = ""):
+                        q: str = "", page: int = 1, page_size: int = 40, bill_tier: str = "",
+                        before_ts: float = 0, before_id: int = 0):
     conn = get_conn()
     cond, args = _message_filter(category, account, unread, q, bill_tier)
-    total = conn.execute(f"SELECT COUNT(*) c FROM messages m WHERE {cond}", args).fetchone()["c"]
     page_size = min(100, max(10, page_size))
-    offset = (max(1, page) - 1) * page_size
+    # 游标分页：按 (date_ts, id) 取下一页，不用 OFFSET，也不统计总数
+    cursor_mode = before_id > 0
+    if cursor_mode:
+        cond += " AND (m.date_ts < ? OR (m.date_ts = ? AND m.id < ?))"
+        args = args + [before_ts, before_ts, before_id]
+        total = None
+        tail = "LIMIT ?"
+        tail_args = [page_size]
+    else:
+        total = conn.execute(f"SELECT COUNT(*) c FROM messages m WHERE {cond}", args).fetchone()["c"]
+        tail = "LIMIT ? OFFSET ?"
+        tail_args = [page_size, (max(1, page) - 1) * page_size]
     rows = conn.execute(
         f"""SELECT m.id, m.account_id, m.uid, m.subject, m.sender_name, m.sender_addr,
                    m.date_ts, m.snippet, m.category, m.otp_code, m.importance, m.summary,
                    m.unread, m.has_attach, m.bill_tier, a.name AS account_name, a.color AS account_color
             FROM messages m JOIN accounts a ON a.id=m.account_id
-            WHERE {cond} ORDER BY m.date_ts DESC LIMIT ? OFFSET ?""",
-        args + [page_size, offset],
+            WHERE {cond} ORDER BY m.date_ts DESC, m.id DESC {tail}""",
+        args + tail_args,
     ).fetchall()
-    return {"total": total, "page": page, "items": [dict(r) for r in rows]}
+    items = [dict(r) for r in rows]
+    next_cursor = None
+    if len(items) == page_size:
+        last = items[-1]
+        next_cursor = {"before_ts": last["date_ts"], "before_id": last["id"]}
+    return {"total": total, "page": page, "items": items, "next_cursor": next_cursor}
 
 
 @app.get("/api/messages")
 async def list_messages(category: str = "", account: int = 0, unread: int = -1,
-                        q: str = "", page: int = 1, page_size: int = 40, bill_tier: str = ""):
-    return await asyncio.to_thread(_list_messages_sync, category, account, unread, q, page, page_size, bill_tier)
+                        q: str = "", page: int = 1, page_size: int = 40, bill_tier: str = "",
+                        before_ts: float = 0, before_id: int = 0):
+    return await asyncio.to_thread(_list_messages_sync, category, account, unread, q, page,
+                                   page_size, bill_tier, before_ts, before_id)
 
 
 @app.get("/api/messages/{msg_id}")
-async def get_message(msg_id: int):
+async def get_message(msg_id: int, mark_read: bool = True):
     conn = get_conn()
     row = conn.execute(
         """SELECT m.*, a.name AS account_name, a.color AS account_color
@@ -590,11 +644,66 @@ async def get_message(msg_id: int):
     if not row:
         raise HTTPException(status_code=404, detail="邮件不存在")
     d = dict(row)
-    # 打开即本地标记已读（服务器端标记由前端显式调用）
-    if d["unread"]:
+    # 打开即本地标记已读（服务器端标记由前端显式调用）；
+    # App 预览用 mark_read=false 只看内容，不改未读状态
+    if mark_read and d["unread"]:
         conn.execute("UPDATE messages SET unread=0 WHERE id=?", (msg_id,))
         conn.commit()
     return d
+
+
+# ---------- 增量变更（App 后台通知） ----------
+
+CHANGES_MAX_LIMIT = 200
+
+
+def _changes_sync(after_id: int = 0, limit: int = 50):
+    conn = get_conn()
+    limit = min(CHANGES_MAX_LIMIT, max(1, limit))
+    now = time.time()
+    max_id = int(conn.execute(
+        "SELECT COALESCE(MAX(id), 0) AS m FROM messages").fetchone()["m"])
+    if after_id <= 0:
+        # 初始化调用：只告诉客户端当前水位，不补发历史邮件
+        return {"items": [], "cursor": max_id}
+    # 屏障：还没治理完的新邮件先挡住它和它之后的邮件，避免客户端看到待定级的旧标签。
+    # 超过 1 小时仍未治理的邮件不再挡路，治理任务挂掉也不会让通知永久卡住。
+    barrier_row = conn.execute(
+        f"""SELECT MIN(m.id) AS b FROM messages m
+            WHERE m.id > ? AND m.deleted_ts=0 AND m.created_ts >= ?
+              AND {governance._PENDING_SQL}""",
+        (after_id, now - 3600, governance.VERSION, now),
+    ).fetchone()
+    barrier = barrier_row["b"] if barrier_row and barrier_row["b"] is not None else 0
+    cond, args = "m.id > ? AND m.deleted_ts=0", [after_id]
+    if barrier:
+        cond += " AND m.id < ?"
+        args.append(barrier)
+    rows = conn.execute(
+        f"""SELECT m.id, m.account_id, a.name AS account_name, m.subject, m.sender_name,
+                   m.sender_addr, m.date_ts, m.category, m.bill_tier, m.importance,
+                   m.otp_code, m.risk_level, m.unread
+            FROM messages m LEFT JOIN accounts a ON a.id=m.account_id
+            WHERE {cond} ORDER BY m.id LIMIT ?""",
+        args + [limit],
+    ).fetchall()
+    items = []
+    for r in rows:
+        d = dict(r)
+        d["display_category"] = _display_category(d["category"], d["bill_tier"])
+        items.append(d)
+    if items:
+        cursor = int(items[-1]["id"])
+    elif barrier:
+        cursor = barrier - 1
+    else:
+        cursor = max_id
+    return {"items": items, "cursor": max(cursor, after_id)}
+
+
+@app.get("/api/changes")
+async def list_changes(after_id: int = 0, limit: int = 50):
+    return await asyncio.to_thread(_changes_sync, after_id, limit)
 
 
 class BillTierBody(BaseModel):
@@ -945,22 +1054,25 @@ def _display_category(category: str, bill_tier: str) -> str:
     return "重要账单" if name == "账单" else name
 
 
-def _overview_sync():
+def _overview_sync(now: float | None = None):
     conn = get_conn()
-    day_start = datetime.now(sync.TZ).replace(hour=0, minute=0, second=0, microsecond=0).timestamp()
+    local_now = datetime.now(sync.TZ) if now is None else datetime.fromtimestamp(now, sync.TZ)
+    day_start = local_now.replace(hour=0, minute=0, second=0, microsecond=0).timestamp()
 
-    def q1(sql, *args):
-        return conn.execute(sql, args).fetchone()["c"]
-
-    stats = {
-        "total": q1("SELECT COUNT(*) c FROM messages WHERE deleted_ts=0"),
-        "unread": q1("SELECT COUNT(*) c FROM messages WHERE unread=1 AND deleted_ts=0"),
-        "today": q1("SELECT COUNT(*) c FROM messages WHERE date_ts >= ? AND deleted_ts=0", day_start),
-        "today_otp": q1("SELECT COUNT(*) c FROM messages WHERE date_ts >= ? AND category='验证码' AND deleted_ts=0", day_start),
-        "important_unread": q1(
-            "SELECT COUNT(*) c FROM messages WHERE unread=1 AND deleted_ts=0 "
-            "AND (category IN ('重要','安全','可疑') OR importance >= 4)"),
-    }
+    # 5 个统计数合成一条查询；空表时 SUM 返回 NULL，统一按 0 处理
+    row = conn.execute(
+        """SELECT SUM(CASE WHEN deleted_ts=0 THEN 1 ELSE 0 END) AS total,
+                  SUM(CASE WHEN unread=1 AND deleted_ts=0 THEN 1 ELSE 0 END) AS unread,
+                  SUM(CASE WHEN date_ts >= ? AND deleted_ts=0 THEN 1 ELSE 0 END) AS today,
+                  SUM(CASE WHEN date_ts >= ? AND category='验证码' AND deleted_ts=0 THEN 1 ELSE 0 END) AS today_otp,
+                  SUM(CASE WHEN unread=1 AND deleted_ts=0
+                            AND (category IN ('重要','安全','可疑') OR importance >= 4)
+                           THEN 1 ELSE 0 END) AS important_unread
+           FROM messages""",
+        (day_start, day_start),
+    ).fetchone()
+    stats = {k: int(row[k] or 0) for k in ("total", "unread", "today", "today_otp",
+                                           "important_unread")}
     # 分类分布
     cat_rows = conn.execute(
         "SELECT category, bill_tier, COUNT(*) c FROM messages WHERE deleted_ts=0 "
@@ -970,22 +1082,30 @@ def _overview_sync():
         name = _display_category(r["category"], r["bill_tier"])
         by_category[name] = by_category.get(name, 0) + r["c"]
     stats["by_category"] = by_category
-    # 近 14 天每日邮件量（按分类堆叠）
+    # 近 14 天每日邮件量（按分类堆叠）：一条查询取出全部日期，再在 Python 里分桶
+    start = day_start - 13 * 86400
+    end = day_start + 86400
+    buckets: list[dict[str, int]] = [{} for _ in range(14)]
+    for r in conn.execute(
+            """SELECT CAST((date_ts - ?) / 86400 AS INTEGER) AS d, category, bill_tier, COUNT(*) AS c
+               FROM messages
+               WHERE date_ts >= ? AND date_ts < ? AND deleted_ts = 0
+               GROUP BY d, category, bill_tier""",
+            (start, start, end)).fetchall():
+        d = int(r["d"])
+        if not 0 <= d < 14:
+            continue
+        name = _display_category(r["category"], r["bill_tier"])
+        buckets[d][name] = buckets[d].get(name, 0) + r["c"]
     days = []
     daily = []
     for i in range(13, -1, -1):
         d0 = day_start - i * 86400
-        d1 = d0 + 86400
         label = datetime.fromtimestamp(d0, sync.TZ).strftime("%m-%d")
         days.append(label)
-        row = {"day": label}
-        for r in conn.execute(
-                "SELECT category, bill_tier, COUNT(*) c FROM messages "
-                "WHERE date_ts>=? AND date_ts<? AND deleted_ts=0 GROUP BY category, bill_tier",
-                (d0, d1)).fetchall():
-            name = _display_category(r["category"], r["bill_tier"])
-            row[name] = row.get(name, 0) + r["c"]
-        daily.append(row)
+        row_d = {"day": label}
+        row_d.update(buckets[13 - i])   # 只出现当天有邮件的分类，不补 0
+        daily.append(row_d)
     # 重要邮件（未读优先）
     important = conn.execute(
         """SELECT m.id, m.subject, m.sender_addr, m.date_ts, m.category, m.bill_tier, m.importance,
@@ -1017,7 +1137,7 @@ async def overview():
 async def list_digests(limit: int = 7):
     conn = get_conn()
     rows = conn.execute("SELECT day, content, created_ts FROM digests ORDER BY day DESC LIMIT ?",
-                        (limit,)).fetchall()
+                        (min(30, max(1, limit)),)).fetchall()
     return [dict(r) for r in rows]
 
 

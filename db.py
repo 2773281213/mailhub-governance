@@ -207,6 +207,8 @@ MIGRATIONS = [
     "ALTER TABLE sessions ADD COLUMN label TEXT DEFAULT ''",
     "ALTER TABLE sessions ADD COLUMN client TEXT DEFAULT 'web'",
     "ALTER TABLE sessions ADD COLUMN last_seen_ts REAL DEFAULT 0",
+    # 移动端游标分页与增量变更：收件箱列表按 (date_ts DESC, id DESC) 翻页
+    "CREATE INDEX IF NOT EXISTS idx_msg_deleted_date ON messages(deleted_ts, date_ts DESC, id DESC)",
 ]
 
 

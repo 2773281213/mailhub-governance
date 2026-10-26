@@ -96,6 +96,8 @@ cp .env.example .env
 
 `MAILHUB_PUBLIC_URL` 默认是 `http://127.0.0.1:8018`，只适合本机使用；对外部署时必须改成你自己的 HTTPS 域名，否则 OAuth 回调无法完成。AI 接口没有默认地址，启用 AI 前请在设置页填写 OpenAI 兼容接口地址（例如本地 Ollama）。
 
+`MAILHUB_TZ` 决定「今天」、近 14 天统计和晨报使用的时区，默认 `Asia/Shanghai`；填了无效的时区名会在启动时打印一行警告并回退到 `Asia/Shanghai`。
+
 ## 本地运行
 
 ```bash
