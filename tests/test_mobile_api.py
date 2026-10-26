@@ -436,3 +436,104 @@ def test_digest_limit_is_clamped(clean_db, client):
     assert len(client.get("/api/digests", params={"limit": 999}).json()) == 30
     assert len(client.get("/api/digests", params={"limit": 0}).json()) == 1
     assert len(client.get("/api/digests", params={"limit": 5}).json()) == 5
+
+
+# ---------------- 11. 不透明游标 token（T03-fix-1） ----------------
+
+# 这个时间戳在 15 位有效数字下会变成 1792951496.51235（比原值大），
+# 正是 T05 冒烟里第二页重复第一页最后一封的原因
+CURSOR_BASE = 1792951496.5123494
+
+
+def _b64(text: str) -> str:
+    import base64
+
+    return base64.urlsafe_b64encode(text.encode()).decode().rstrip("=")
+
+
+def test_opaque_cursor_token_pages_without_duplicates(clean_db, client):
+    acc = _mk_account(clean_db)
+    inserted = {}
+    for i in range(50):
+        # 每两封共享一个时间戳；小数位很多，任何十进制转一手都会丢精度
+        ts = CURSOR_BASE + (i // 2) * 0.0000001
+        inserted[_insert(clean_db, acc, i + 1, date_ts=ts)] = ts
+    expected = [mid for mid, ts in
+                sorted(inserted.items(), key=lambda kv: (kv[1], kv[0]), reverse=True)]
+
+    page = client.get("/api/messages", params={"page_size": 10}).json()
+    seen = [m["id"] for m in page["items"]]
+    cursor = page["next_cursor"]
+    assert cursor and cursor["token"]
+
+    while cursor:
+        page = client.get("/api/messages",
+                          params={"page_size": 10, "cursor": cursor["token"]}).json()
+        seen.extend(m["id"] for m in page["items"])
+        cursor = page["next_cursor"]
+
+    assert len(seen) == 50
+    assert len(set(seen)) == 50
+    assert seen == expected
+
+
+def test_legacy_float_cursor_loses_precision_and_repeats(clean_db, client):
+    acc = _mk_account(clean_db)
+    # 9 封比 CURSOR_BASE 新，第一页最后一封正好落在 CURSOR_BASE 上
+    stamps = [CURSOR_BASE + (i + 1) * 0.001 for i in range(9)]
+    stamps.append(CURSOR_BASE)
+    stamps += [CURSOR_BASE - (i + 1) * 0.001 for i in range(20)]
+    for i, ts in enumerate(stamps):
+        _insert(clean_db, acc, i + 1, date_ts=ts)
+
+    first = client.get("/api/messages", params={"page_size": 10}).json()
+    last = first["items"][-1]
+    assert last["date_ts"] == CURSOR_BASE
+
+    lossy = str(round(CURSOR_BASE, 5))          # 模拟 PowerShell / 日志的十进制格式化
+    assert float(lossy) > CURSOR_BASE
+    body = client.get("/api/messages", params={"page_size": 10, "before_ts": lossy,
+                                               "before_id": last["id"]}).json()
+    assert body["items"][0]["id"] == last["id"]      # 旧参数确实重复了同一封
+
+
+def test_cursor_token_wins_over_legacy_params(clean_db, client):
+    acc = _mk_account(clean_db)
+    for i in range(30):
+        _insert(clean_db, acc, i + 1, date_ts=1_700_000_000.0 + i)
+
+    token = client.get("/api/messages", params={"page_size": 10}).json()["next_cursor"]["token"]
+    expected = client.get("/api/messages", params={"page_size": 10, "cursor": token}).json()
+    body = client.get("/api/messages", params={
+        "page_size": 10, "cursor": token,
+        "before_id": 10 ** 6, "before_ts": 1_700_000_000.0 + 999}).json()
+    assert body["total"] is None
+    assert [m["id"] for m in body["items"]] == [m["id"] for m in expected["items"]]
+
+
+def test_next_cursor_keeps_legacy_fields_and_adds_token(clean_db, client):
+    acc = _mk_account(clean_db)
+    for i in range(25):
+        _insert(clean_db, acc, i + 1, date_ts=1_700_000_000.0 + i)
+
+    cursor = client.get("/api/messages", params={"page_size": 10}).json()["next_cursor"]
+    assert set(cursor) == {"before_ts", "before_id", "token"}
+    assert isinstance(cursor["token"], str) and cursor["token"]
+    assert "=" not in cursor["token"]
+    # token 解出来的位置与旧字段一致
+    assert mailhub_app._decode_cursor(cursor["token"]) == (cursor["before_ts"], cursor["before_id"])
+
+
+@pytest.mark.parametrize("token", [
+    "abc",                       # 不是合法 base64
+    "====",                      # 只有填充
+    _b64(" "),                   # 解出来是空白，没有字段
+    _b64("|"),                   # 两个字段都是空
+    _b64("1792951496.5|0"),      # id 必须是正数
+    _b64("abc|5"),               # 时间戳不是数字
+])
+def test_invalid_cursor_tokens_return_400(clean_db, client, token):
+    response = client.get("/api/messages", params={"cursor": token})
+    assert response.status_code == 400
+    assert "游标" in response.json()["detail"]
+

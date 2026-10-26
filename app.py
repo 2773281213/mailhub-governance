@@ -592,10 +592,40 @@ async def list_message_ids(category: str = "", account: int = 0, unread: int = -
     return {"total": total, "ids": [r["id"] for r in rows], "limit": SELECT_ALL_LIMIT}
 
 
+def _encode_cursor(date_ts: float, msg_id: int) -> str:
+    """把 (date_ts, id) 编成不透明游标，客户端原样回传即可。
+
+    用 repr 写 float，能精确往返；客户端把游标当十进制字符串转一手会丢精度，
+    所以这里不让它们碰数字。
+    """
+    import base64
+
+    raw = f"{date_ts!r}|{msg_id}".encode()
+    return base64.urlsafe_b64encode(raw).decode().rstrip("=")
+
+
+def _decode_cursor(token: str) -> tuple[float, int]:
+    import base64
+
+    try:
+        raw = base64.urlsafe_b64decode(token + "=" * (-len(token) % 4)).decode()
+        ts_text, _, id_text = raw.partition("|")
+        date_ts, msg_id = float(ts_text), int(id_text)
+    except (ValueError, UnicodeDecodeError):
+        raise HTTPException(status_code=400, detail="无效的分页游标") from None
+    # id 必须为正；NaN 会让比较全部失效，一并拒绝
+    if msg_id <= 0 or date_ts != date_ts:
+        raise HTTPException(status_code=400, detail="无效的分页游标")
+    return date_ts, msg_id
+
+
 def _list_messages_sync(category: str = "", account: int = 0, unread: int = -1,
                         q: str = "", page: int = 1, page_size: int = 40, bill_tier: str = "",
-                        before_ts: float = 0, before_id: int = 0):
+                        before_ts: float = 0, before_id: int = 0, cursor: str = ""):
     conn = get_conn()
+    if cursor:
+        # 不透明游标优先于旧的 before_ts / before_id
+        before_ts, before_id = _decode_cursor(cursor)
     cond, args = _message_filter(category, account, unread, q, bill_tier)
     page_size = min(100, max(10, page_size))
     # 游标分页：按 (date_ts, id) 取下一页，不用 OFFSET，也不统计总数
@@ -622,16 +652,17 @@ def _list_messages_sync(category: str = "", account: int = 0, unread: int = -1,
     next_cursor = None
     if len(items) == page_size:
         last = items[-1]
-        next_cursor = {"before_ts": last["date_ts"], "before_id": last["id"]}
+        next_cursor = {"before_ts": last["date_ts"], "before_id": last["id"],
+                       "token": _encode_cursor(last["date_ts"], last["id"])}
     return {"total": total, "page": page, "items": items, "next_cursor": next_cursor}
 
 
 @app.get("/api/messages")
 async def list_messages(category: str = "", account: int = 0, unread: int = -1,
                         q: str = "", page: int = 1, page_size: int = 40, bill_tier: str = "",
-                        before_ts: float = 0, before_id: int = 0):
+                        before_ts: float = 0, before_id: int = 0, cursor: str = ""):
     return await asyncio.to_thread(_list_messages_sync, category, account, unread, q, page,
-                                   page_size, bill_tier, before_ts, before_id)
+                                   page_size, bill_tier, before_ts, before_id, cursor)
 
 
 @app.get("/api/messages/{msg_id}")
