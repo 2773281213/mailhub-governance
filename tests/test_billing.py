@@ -66,6 +66,9 @@ BILL_CORPUS = [
     ("receipt-generic-items", "Your receipt",
      "Order items: Game Deluxe Edition. Order total: $20.00 Payment method: PayPal", "重要",
      {"direction": "out", "channel": "real"}),
+    ("free-claim-zero-total", "您的商店收据",
+     "谢谢您的购买。以下是您订购的物品：价格: $88.00 HKD 折扣: 特卖折扣 - $88.00 HKD 总计: $0.00 HKD",
+     "一般", {"direction": "none", "currency": "HKD"}),
     ("refund-policy-footer", "您已更新订阅", "若欲了解退款流程详情，请前往帮助中心。您的会员将于下月续订",
      "重要", {"direction": "unknown"}),
 ]
@@ -101,6 +104,8 @@ def test_policy_code_is_not_tied_to_any_brand_or_sender():
     ("RMB 300", (300.0, "CNY")),
     ("价格 2026 年", (None, None)),
     ("小计 10 元，总计 12 元，赠送 500 元代金券", (12.0, "CNY")),
+    ("价格: $88.00 HKD 折扣: - $88.00 HKD 总计: $0.00 HKD", (0.0, "HKD")),
+    ("Total: $25.00 USD", (25.0, "USD")),
 ])
 def test_extract_amount(text, expected):
     assert billing.extract_amount(text) == expected

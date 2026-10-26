@@ -138,6 +138,7 @@ _AMOUNT = re.compile(
     rf"(?P<pre>{_SYM}|\b(?:{_CODES})\b)\s?(?P<n1>{_NUM})"
     rf"|(?P<n2>{_NUM})\s?(?P<post>{_SYM}|\b(?:{_CODES})\b)",
 )
+_CODE_AFTER = re.compile(rf"\s?\b({_CODES})\b")
 _TOTAL_HINT = re.compile(
     r"总计|合计|共计|实付|花费|总额|金额|应付|退款总计|total|amount|charged|paid|grand", re.I)
 
@@ -174,6 +175,10 @@ def extract_amount(text: str) -> tuple[float | None, str | None]:
         prev_end = m.end()
         raw = m.group("n1") or m.group("n2")
         cur = _currency(m.group("pre") or m.group("post") or "")
+        # 「$88.00 HKD」：通用的 $ 符号后面跟着明确的币种代码时，以代码为准
+        suffix = _CODE_AFTER.match(text, m.end())
+        if m.group("pre") in ("$", "¥", "￥") and suffix:
+            cur = _currency(suffix.group(1))
         value = _to_float(raw or "")
         if value is None or value > 10_000_000 or cur not in _CNY_RATE:
             continue
