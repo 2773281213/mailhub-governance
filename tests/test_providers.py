@@ -62,6 +62,8 @@ def test_domains_are_unique():
     ("a@QQ.com", "qq"), ("a@foxmail.com", "qq"), ("a@163.com", "163"),
     ("a@vip.126.com", "vip126"), ("a@googlemail.com", "gmail"), ("a@hotmail.com", "outlook"),
     ("a@company.example", "custom"), ("not-an-email", "custom"),
+    ("a@Yahoo.com", "yahoo"), ("a@ymail.com", "yahoo"), ("a@yahoo.com.tw", "yahoo"),
+    ("a@yahoo.co.jp", "custom"),
 ])
 def test_detect(email, expected):
     assert providers.detect(email) == expected
@@ -141,3 +143,34 @@ def test_duplicate_account_is_rejected(clean_accounts):
     assert exc_info.value.status_code == 409
     count = db.get_conn().execute("SELECT COUNT(*) c FROM accounts").fetchone()["c"]
     assert count == 1
+
+
+def test_yahoo_uses_app_password_only(clean_accounts):
+    yahoo = oauth_auth.public_providers()["yahoo"]
+    assert yahoo["host"] == "imap.mail.yahoo.com" and yahoo["port"] == 993
+    assert [m["type"] for m in yahoo["methods"]] == ["app_password"]
+    method = yahoo["methods"][0]
+    assert method["setup_url"].startswith("https://login.yahoo.com/")
+    assert method["steps"] and method["troubleshoot"]
+    # 没有 OAuth 通道，也就不提示去配置 OAuth
+    assert yahoo["oauth"] == {"browser": False, "device": False} and yahoo["oauth_hint"] == ""
+    assert not providers.needs_imap_id("yahoo")
+
+
+def test_wrong_password_hint_names_the_app_password(clean_accounts, monkeypatch):
+    def reject(_account, _secret):
+        raise RuntimeError("b'[AUTHENTICATIONFAILED] LOGIN Invalid credentials'")
+
+    monkeypatch.setattr(oauth_auth, "probe_connection", reject)
+    body = mailhub_app.AccountBody(email="someone@yahoo.com", secret="web-password")
+    with pytest.raises(mailhub_app.HTTPException) as err:
+        asyncio.run(mailhub_app.create_account(body))
+    assert "Yahoo 应用专用密码" in err.value.detail and "不是网页登录密码" in err.value.detail
+
+    # 网络类错误不加这条提示
+    monkeypatch.setattr(oauth_auth, "probe_connection",
+                        lambda *_: (_ for _ in ()).throw(TimeoutError("timed out")))
+    with pytest.raises(mailhub_app.HTTPException) as err:
+        asyncio.run(mailhub_app.create_account(
+            mailhub_app.AccountBody(email="someone@yahoo.com", secret="x")))
+    assert "应用专用密码" not in err.value.detail

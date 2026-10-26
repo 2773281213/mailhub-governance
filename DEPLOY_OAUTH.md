@@ -250,6 +250,7 @@ sqlite3 /var/lib/mailhub/mailhub.db ".backup '/backup/mailhub-$(date +%F).db'"
 | QQ / 163 / 126 / yeah / 188 / VIP | 客户端授权密码（向导内两步清单） |
 | 腾讯企业邮 / 网易企业邮 | 客户端专用密码，主机已内置 |
 | Gmail | 应用专用密码（或配 Google 客户端走 OAuth） |
+| Yahoo | 应用专用密码 |
 | Outlook | 必须配 Entra Client ID（设备码即可） |
 
 之后拿到网易 appid，再补 `NETEASE_*` 环境变量并重启，网易账户就能原地切换到 OAuth——同一套 UI、同一套回调、同一份审计。

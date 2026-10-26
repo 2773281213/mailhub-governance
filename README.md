@@ -6,7 +6,7 @@ MailHub Governance 是一个本地优先的多邮箱聚合与自动治理服务�
 
 ## 功能概览
 
-- 聚合 QQ、网易 163/126/yeah.net、Gmail、Outlook 和自定义 IMAP 邮箱。
+- 聚合 QQ、网易 163/126/yeah.net、Gmail、Outlook、Yahoo 和自定义 IMAP 邮箱。
 - 输入邮箱地址后自动识别服务商；未知域名才显示高级 IMAP 设置。
 - 网易邮箱使用各自的 IMAP SSL 主机，并在认证后发送 RFC 2971 `ID`。
 - Outlook 支持项目自有 Microsoft 应用的浏览器 OAuth 和设备码登录，设备凭据保留在服务器端。
@@ -59,6 +59,7 @@ MailHub Governance 是一个本地优先的多邮箱聚合与自动治理服务�
 | 腾讯企业邮 | 企业自有域名，需手动选择 | 授权码（客户端专用密码） | `imap.exmail.qq.com:993` |
 | 网易企业邮 | 企业自有域名，需手动选择 | 授权码（客户端授权密码） | `imap.qiye.163.com:993` |
 | Gmail | `gmail.com`, `googlemail.com` | 浏览器 OAuth（需 Google 客户端）、应用专用密码 | `imap.gmail.com:993` |
+| Yahoo | `yahoo.com`、`ymail.com`、`rocketmail.com` 及各地区 `yahoo.*` | 应用专用密码 | `imap.mail.yahoo.com:993` |
 | Outlook / Hotmail | `outlook.com`, `hotmail.com`, `live.com`, `msn.com` | 浏览器 OAuth、设备码（需 Microsoft 客户端） | `outlook.office365.com:993` |
 | 自定义 | 其他域名 | 密码 | 手工填写 |
 
