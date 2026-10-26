@@ -375,6 +375,27 @@ input[type=checkbox] { accent-color: var(--accent); }
 
 /* ---------- 设置 ---------- */
 .settings-grid { grid-template-columns: 1fr 1fr; align-items: start; }
+/* 设置页：每个分区折叠显示，标题行右侧给出当前状态 */
+.set-list { display: flex; flex-direction: column; gap: 12px; max-width: 920px; }
+.set-sec { padding: 0; }
+.set-sec > summary {
+  list-style: none; cursor: pointer; display: flex; align-items: center; gap: 12px;
+  padding: 16px 22px; border-radius: var(--r-lg);
+}
+.set-sec > summary::-webkit-details-marker { display: none; }
+.set-sec > summary::after {
+  content: ""; width: 8px; height: 8px; flex-shrink: 0; margin-left: 4px;
+  border-right: 2px solid var(--faint); border-bottom: 2px solid var(--faint);
+  transform: rotate(-45deg); transition: transform .15s;
+}
+.set-sec[open] > summary::after { transform: rotate(45deg); }
+.set-sec > summary:hover { background: var(--panel-2); }
+.set-sec[open] > summary { border-radius: var(--r-lg) var(--r-lg) 0 0; }
+.set-sec > summary:focus-visible { outline: 2px solid var(--accent-deep); outline-offset: -2px; }
+.set-sec > summary h3 { margin: 0; flex: 1; min-width: 0; color: var(--text); }
+.set-sec .sec-status { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 45%; }
+.set-sec .sec-body { padding: 14px 24px 20px; border-top: 1px solid var(--panel-2); }
+@media (max-width: 560px) { .set-sec > summary h3 small { display: none; } .set-sec > summary { padding: 14px 16px; } .set-sec .sec-body { padding: 12px 16px 16px; } }
 .set-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--border); }
 .set-row:last-child { border-bottom: none; }
 .set-row .l { font-size: 13.5px; font-weight: 500; min-width: 0; }

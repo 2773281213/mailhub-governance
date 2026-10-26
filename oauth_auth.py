@@ -398,7 +398,7 @@ def public_providers() -> dict:
         methods = auth_methods(key)
         unavailable = ""
         if not methods:
-            unavailable = ("管理员尚未配置 Microsoft OAuth 客户端（MICROSOFT_CLIENT_ID），暂时不能添加该邮箱"
+            unavailable = ("Outlook 只能通过 Microsoft 登录添加，但本站还没有配置 Microsoft OAuth 客户端"
                            if key == "outlook" else "当前部署没有可用的登录方式")
         result[key] = {
             "label": meta.label,
@@ -408,7 +408,8 @@ def public_providers() -> dict:
             "note": meta.note,
             "methods": methods,
             "oauth": oauth_available(key),
-            "oauth_hint": meta.oauth_missing_hint if meta.oauth and not oauth_available(key)["browser"] else "",
+            # 一种 OAuth 方式都没配置时，提示管理员去设置页配置
+            "oauth_hint": meta.oauth_missing_hint if meta.oauth and not any(oauth_available(key).values()) else "",
             "unavailable": unavailable,
         }
     return result

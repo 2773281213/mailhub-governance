@@ -79,7 +79,8 @@ def test_methods_follow_deployment_configuration(clean_accounts, monkeypatch):
     public = oauth_auth.public_providers()
     assert [m["type"] for m in public["gmail"]["methods"]] == ["app_password"]
     assert public["outlook"]["methods"] == []
-    assert "MICROSOFT_CLIENT_ID" in public["outlook"]["unavailable"]
+    assert "Microsoft OAuth" in public["outlook"]["unavailable"]
+    assert "Microsoft 登录导入" in public["outlook"]["oauth_hint"]
 
     monkeypatch.setenv("GOOGLE_CLIENT_ID", "g-id")
     monkeypatch.setenv("GOOGLE_CLIENT_SECRET", "g-secret")
@@ -90,6 +91,8 @@ def test_methods_follow_deployment_configuration(clean_accounts, monkeypatch):
     assert [m["type"] for m in public["outlook"]["methods"]] == ["oauth_device"]
     assert [m["type"] for m in public["163"]["methods"]] == ["oauth_browser", "app_password"]
     assert public["outlook"]["unavailable"] == ""
+    # 只配置了设备码也算可用，不再提示去配置
+    assert public["outlook"]["oauth_hint"] == ""
     assert "g-secret" not in repr(public) and "g-id" not in repr(public)
 
 
