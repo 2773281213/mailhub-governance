@@ -5,7 +5,8 @@ const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
 let META = null;              // /api/me 返回的 providers / categories
-let inboxState = { category: "", account: 0, unread: -1, q: "", page: 1, selected: new Set() };
+let inboxState = { category: "", account: 0, unread: -1, q: "", page: 1, selected: new Set(),
+  allMatching: false, total: 0, pageIds: [] };
 let otpTimer = null, statusTimer = null;
 let charts = [];
 
@@ -320,7 +321,7 @@ async function renderDashboard() {
       <div class="card">
         <h3>${ico("star")} 重要邮件</h3>
         <div class="mail-list" id="dash-important">
-          ${d.important.length ? d.important.map(mailRowHtml).join("") : `<div class="empty">暂无重要邮件 ✨</div>`}
+          ${d.important.length ? d.important.map(m => mailRowHtml(m, { selectable: false })).join("") : `<div class="empty">暂无重要邮件 ✨</div>`}
         </div>
       </div>
       <div class="card">
@@ -399,10 +400,51 @@ async function renderDashboard() {
 
 /* ---------- 收件箱 ---------- */
 
-function mailRowHtml(m) {
+/* 列表多选：表头「全选」（部分选中时显示半选）+ 每行复选框。
+   root 里需要一个 .sel-all-box 和若干 .sel-row[data-id]；返回选中 id 的 Set。 */
+function bindSelection(root, onChange = () => {}) {
+  const all = $(".sel-all-box", root);
+  const boxes = $$(".sel-row", root);
+  const selected = new Set();
+  const sync = () => {
+    if (all) {
+      all.checked = boxes.length > 0 && selected.size === boxes.length;
+      all.indeterminate = selected.size > 0 && selected.size < boxes.length;
+      all.disabled = !boxes.length;
+    }
+    onChange(selected, boxes.length);
+  };
+  boxes.forEach(cb => {
+    // 勾选框不触发整行/整卡的点击（打开邮件）
+    cb.addEventListener("click", ev => ev.stopPropagation());
+    cb.addEventListener("change", () => {
+      cb.checked ? selected.add(+cb.dataset.id) : selected.delete(+cb.dataset.id);
+      cb.closest(".mail-row, .review-card")?.classList.toggle("selected", cb.checked);
+      sync();
+    });
+  });
+  all?.addEventListener("change", () => {
+    const on = all.checked;
+    boxes.forEach(cb => {
+      cb.checked = on;
+      on ? selected.add(+cb.dataset.id) : selected.delete(+cb.dataset.id);
+      cb.closest(".mail-row, .review-card")?.classList.toggle("selected", on);
+    });
+    sync();
+  });
+  sync();
+  return selected;
+}
+
+function selAllHtml(label = "全选") {
+  return `<label class="sel-all"><input type="checkbox" class="sel-all-box"> ${label}</label>`;
+}
+
+function mailRowHtml(m, opts = {}) {
+  const selectable = opts.selectable !== false;
   return `
   <div class="mail-row ${m.unread ? "unread" : ""}" data-id="${m.id}">
-    <input type="checkbox" class="m-check" data-id="${m.id}">
+    ${selectable ? `<input type="checkbox" class="m-check sel-row" data-id="${m.id}" aria-label="选择这封邮件">` : ""}
     <span class="acc-dot" style="background:${esc(m.account_color || "#1a73e8")}" title="${esc(m.account_name || "")}"></span>
     <span class="m-sender" title="${esc(m.sender_addr)}">${esc(m.sender_name || m.sender_addr)}</span>
     <span class="m-main">
@@ -422,21 +464,29 @@ function bindMailRows(root) {
   $$(".m-otp", root).forEach(o => o.addEventListener("click", ev => {
     ev.stopPropagation(); copyText(o.dataset.otp);
   }));
-  // 勾选框不触发整行的"打开邮件"（不用内联 onclick，便于启用严格 CSP）
-  $$(".m-check", root).forEach(cb => cb.addEventListener("click", ev => ev.stopPropagation()));
-  $$(".m-check", root).forEach(cb => cb.addEventListener("change", () => {
-    const id = +cb.dataset.id;
-    cb.checked ? inboxState.selected.add(id) : inboxState.selected.delete(id);
-    updateBatchBar();
-  }));
 }
 
+/* 收件箱批量栏：本页全选；本页全部选中且还有其他页时，可以「选择全部 N 封」 */
 function updateBatchBar() {
   const bar = $("#batch-bar");
   if (!bar) return;
-  const n = inboxState.selected.size;
-  bar.style.visibility = n ? "visible" : "hidden";
-  $("#batch-count").textContent = n;
+  const n = inboxState.allMatching ? inboxState.total : inboxState.selected.size;
+  $$("[data-batch]", bar).forEach(b => { b.disabled = !n; });
+  const info = $("#batch-info");
+  const pageAll = inboxState.pageIds.length > 0 && inboxState.selected.size === inboxState.pageIds.length;
+  if (inboxState.allMatching) {
+    info.innerHTML = `已选择全部 <b>${inboxState.total}</b> 封 <button class="link-btn" id="sel-clear">取消选择</button>`;
+  } else if (pageAll && inboxState.total > inboxState.pageIds.length) {
+    info.innerHTML = `已选本页 <b>${n}</b> 封 <button class="link-btn" id="sel-matching">选择全部 ${inboxState.total} 封</button>`;
+  } else {
+    info.innerHTML = n ? `已选 <b>${n}</b> 封` : `<span class="faint">勾选邮件后可批量处理</span>`;
+  }
+  $("#sel-matching")?.addEventListener("click", () => { inboxState.allMatching = true; updateBatchBar(); });
+  $("#sel-clear")?.addEventListener("click", () => {
+    inboxState.allMatching = false;
+    const all = $(".sel-all-box", bar);
+    if (all) { all.checked = false; all.dispatchEvent(new Event("change")); }
+  });
 }
 
 async function renderInbox() {
@@ -464,8 +514,9 @@ async function renderInbox() {
       </select>
       <input type="search" id="f-q" placeholder="搜索主题 / 发件人…" value="${esc(inboxState.q)}">
     </div>
-    <div class="toolbar" id="batch-bar" style="visibility:hidden">
-      <span style="color:var(--muted);font-size:12px">已选 <b id="batch-count">0</b> 封</span>
+    <div class="toolbar sel-bar" id="batch-bar">
+      ${selAllHtml("全选本页")}
+      <span class="sel-info" id="batch-info"></span>
       <button class="btn sm" data-batch="read">标为已读</button>
       <button class="btn sm" data-batch="unread">标为未读</button>
       <button class="btn sm danger" data-batch="delete">删除(仅本地)</button>
@@ -493,7 +544,16 @@ async function renderInbox() {
 
 async function loadMails() {
   const box = $("#mail-container");
-  inboxState.selected.clear(); updateBatchBar();
+  inboxState.selected = new Set(); inboxState.allMatching = false; inboxState.pageIds = []; inboxState.total = 0;
+  // 「全选本页」在批量栏里，翻页时不重建：换成新节点，丢掉上一页绑定的监听
+  let allBox = $("#batch-bar .sel-all-box");
+  if (allBox) {
+    const fresh = allBox.cloneNode(true);
+    allBox.replaceWith(fresh);
+    allBox = fresh;
+    allBox.checked = false; allBox.indeterminate = false; allBox.disabled = false;
+  }
+  updateBatchBar();
   const p = new URLSearchParams({
     ...categoryQuery(inboxState.category), account: inboxState.account,
     unread: inboxState.unread, q: inboxState.q, page: inboxState.page, page_size: 40,
@@ -502,8 +562,11 @@ async function loadMails() {
   try { d = await api("/messages?" + p); } catch (e) { box.innerHTML = `<div class="empty">${esc(e.message)}</div>`; return; }
   if (!d.items.length) {
     box.innerHTML = `<div class="empty"><div class="big">🍃</div>没有邮件${META.accounts === 0 ? "，先去「账户」页添加邮箱吧" : ""}</div>`;
+    if (allBox) allBox.disabled = true;
     return;
   }
+  inboxState.total = d.total;
+  inboxState.pageIds = d.items.map(m => m.id);
   const pages = Math.ceil(d.total / 40);
   box.innerHTML = `<div class="mail-list">${d.items.map(mailRowHtml).join("")}</div>
     <div class="pager">
@@ -512,21 +575,48 @@ async function loadMails() {
       <button class="btn sm" id="pg-next" ${inboxState.page >= pages ? "disabled" : ""}>下一页 ›</button>
     </div>`;
   bindMailRows(box);
+  // 表头的「全选本页」在批量栏里，行复选框在列表里：用共同的父节点绑定
+  inboxState.selected = bindSelection($("#view-inbox"), selected => {
+    // 手动改动勾选后，「选择全部 N 封」随之取消
+    if (inboxState.allMatching && selected.size < inboxState.pageIds.length) inboxState.allMatching = false;
+    updateBatchBar();
+  });
   $("#pg-prev").addEventListener("click", () => { inboxState.page--; loadMails(); });
   $("#pg-next").addEventListener("click", () => { inboxState.page++; loadMails(); });
 }
 
+/* 批量接口每次最多 500 封：选中更多时分批提交并汇总结果 */
+async function batchInChunks(ids, body) {
+  const total = { count: 0, blocked: [], errors: [] };
+  for (let i = 0; i < ids.length; i += 500) {
+    const r = await api("/messages/batch", { method: "POST", body: { ...body, ids: ids.slice(i, i + 500) } });
+    total.count += r.count || 0;
+    total.blocked.push(...(r.blocked || []));
+    total.errors.push(...(r.errors || []));
+  }
+  return total;
+}
+
 async function doBatch(action) {
-  const ids = [...inboxState.selected];
+  let ids = [...inboxState.selected];
+  if (inboxState.allMatching) {
+    const p = new URLSearchParams({ ...categoryQuery(inboxState.category), account: inboxState.account,
+      unread: inboxState.unread, q: inboxState.q });
+    try {
+      const r = await api("/messages/ids?" + p);
+      ids = r.ids;
+      if (r.total > r.ids.length) toast(`一次最多处理 ${r.limit} 封，本次处理最新的 ${r.ids.length} 封`);
+    } catch (e) { toast(e.message, true); return; }
+  }
   if (!ids.length) return;
   const server = action === "delete-server";
   const act = server ? "delete" : action;
   if (act === "delete" && !confirm(`确认删除选中的 ${ids.length} 封邮件？${server ? "\n（将同时从邮箱服务器永久删除，不可撤销）" : "（移入回收站，可恢复）"}`)) return;
   try {
-    const r = await api("/messages/batch", { method: "POST", body: { ids, action: act, server, confirmed: true } });
+    const r = await batchInChunks(ids, { action: act, server, confirmed: true });
     let msg = `已处理 ${r.count} 封`;
-    if (r.blocked?.length) msg += `，${r.blocked.length} 封被安全策略保护未删除`;
-    if (r.errors?.length) msg += `，部分失败: ${r.errors[0]}`;
+    if (r.blocked.length) msg += `，${r.blocked.length} 封被安全策略保护未删除`;
+    if (r.errors.length) msg += `，部分失败: ${r.errors[0]}`;
     toast(msg);
     loadMails(); refreshBadge();
   } catch (e) { toast(e.message, true); }
@@ -1059,9 +1149,16 @@ async function paintRisk(box) {
     return;
   }
   box.innerHTML = `<div class="risk-observe-note">这些邮件已由门下省自动裁决为“可疑”。这里只提供观察，不需要逐封确认，也不会自动打开链接或附件。</div>
+    <div class="toolbar sel-bar">
+      ${selAllHtml()}
+      <span class="sel-info" id="risk-info"></span>
+      <button class="btn sm" data-risk="read">标为已读</button>
+      <button class="btn sm danger" data-risk="delete">移入回收站</button>
+    </div>
     <div class="mail-list">${list.map(m => `
     <div class="card review-card">
       <div class="head">
+        <input type="checkbox" class="m-check sel-row" data-id="${m.id}" aria-label="选择这封邮件">
         <span class="badge cat-${esc(m.category)}">${esc(m.category)}</span>
         ${m.risk_level && m.risk_level !== "none"
           ? `<span class="badge risk-${esc(m.risk_level)}">风险 ${esc(m.risk_level)}</span>` : ""}
@@ -1079,6 +1176,20 @@ async function paintRisk(box) {
       </div>
     </div>`).join("")}</div>`;
   $$("[data-open]", box).forEach(b => b.addEventListener("click", () => openMail(+b.dataset.open)));
+  const selected = bindSelection(box, (sel, count) => {
+    $("#risk-info").innerHTML = sel.size ? `已选 <b>${sel.size}</b> / ${count} 封` : `<span class="faint">共 ${count} 封</span>`;
+    $$("[data-risk]", box).forEach(b => { b.disabled = !sel.size; });
+  });
+  $$("[data-risk]", box).forEach(b => b.addEventListener("click", async () => {
+    const ids = [...selected];
+    const action = b.dataset.risk;
+    if (action === "delete" && !confirm(`把选中的 ${ids.length} 封可疑邮件移入回收站？（可恢复）`)) return;
+    try {
+      const r = await batchInChunks(ids, { action, server: false, confirmed: true });
+      toast(`已处理 ${r.count} 封` + (r.blocked.length ? `，${r.blocked.length} 封被安全策略保护` : ""));
+      renderSafety(); refreshBadge();
+    } catch (e) { toast(e.message, true); }
+  }));
 }
 
 async function paintTrash(box) {
@@ -1088,10 +1199,16 @@ async function paintTrash(box) {
     return;
   }
   box.innerHTML = `
-    <div class="toolbar"><button class="btn sm" id="restore-all">全部恢复</button>
-      <span style="color:var(--faint);font-size:12px">回收站中的邮件仍保留在邮箱服务器上，恢复不会丢失任何内容</span></div>
+    <div class="toolbar sel-bar">
+      ${selAllHtml()}
+      <span class="sel-info" id="trash-info"></span>
+      <button class="btn sm" id="restore-selected">恢复所选</button>
+      <button class="btn sm" id="restore-all">全部恢复</button>
+    </div>
+    <div class="sel-note">回收站中的邮件仍保留在邮箱服务器上，恢复不会丢失任何内容</div>
     <div class="mail-list">${list.map(m => `
-      <div class="mail-row">
+      <div class="mail-row static">
+        <input type="checkbox" class="m-check sel-row" data-id="${m.id}" aria-label="选择这封邮件">
         <span class="acc-dot" style="background:${esc(m.account_color || "#1a73e8")}"></span>
         <span class="m-sender">${esc(m.sender_addr)}</span>
         <span class="m-main">${catBadge(m)}
@@ -1103,6 +1220,11 @@ async function paintTrash(box) {
     await api("/trash/restore", { method: "POST", body: { ids } });
     toast(`已恢复 ${ids.length} 封`); renderSafety(); refreshBadge();
   };
+  const selected = bindSelection(box, (sel, count) => {
+    $("#trash-info").innerHTML = sel.size ? `已选 <b>${sel.size}</b> / ${count} 封` : `<span class="faint">共 ${count} 封</span>`;
+    $("#restore-selected").disabled = !sel.size;
+  });
+  $("#restore-selected").addEventListener("click", () => restore([...selected]));
   $("#restore-all").addEventListener("click", () => restore(list.map(m => m.id)));
   $$("[data-restore]", box).forEach(b =>
     b.addEventListener("click", () => restore([+b.dataset.restore])));

@@ -568,3 +568,17 @@ input[type=checkbox] { accent-color: var(--accent); }
 .seg-btn:focus-visible { outline: 2px solid var(--accent-deep); outline-offset: -2px; }
 .d-bill-similar { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
 .d-bill-similar input { width: auto; }
+
+/* 多选：全选复选框、已选计数、选中行高亮 */
+.sel-bar { align-items: center; }
+.sel-all { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); cursor: pointer; white-space: nowrap; }
+.sel-all input { width: 16px; height: 16px; margin: 0; cursor: pointer; }
+.sel-info { font-size: 12px; color: var(--muted); }
+.sel-info .faint { color: var(--faint); }
+.sel-note { color: var(--faint); font-size: 12px; margin: -4px 0 10px; }
+.link-btn { border: 0; background: none; padding: 0 2px; color: var(--accent-deep); font-weight: 600; font-size: 12px; cursor: pointer; }
+.link-btn:hover { text-decoration: underline; }
+.link-btn:focus-visible { outline: 2px solid var(--accent-deep); outline-offset: 2px; border-radius: 4px; }
+.mail-row.selected, .review-card.selected { border-color: var(--accent); background: var(--accent-tint); }
+.mail-row.static { cursor: default; }
+.review-card .head .m-check { width: 16px; height: 16px; flex-shrink: 0; margin: 0; }

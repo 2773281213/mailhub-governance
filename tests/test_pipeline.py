@@ -1241,3 +1241,18 @@ def test_ai_scope_setting_is_validated(fresh_db):
     finally:
         fresh_db.execute("DELETE FROM settings WHERE k IN ('ai_scope', 'ai_backfill_days')")
         fresh_db.commit()
+
+
+def test_select_all_ids_match_list_filters(fresh_db):
+    acc = _mk_account(fresh_db)
+    for uid in range(1, 46):
+        _insert_msg(fresh_db, acc, uid, category="通知" if uid % 3 else "订阅", date_ts=1000.0 + uid)
+    _insert_msg(fresh_db, acc, 99, category="通知", deleted_ts=5.0)
+    listed = asyncio.run(mailhub_app.list_messages(category="通知", page_size=10))
+    ids = asyncio.run(mailhub_app.list_message_ids(category="通知"))
+    assert ids["total"] == listed["total"] == 30
+    assert len(ids["ids"]) == 30 and len(set(ids["ids"])) == 30
+    # 与列表同序、同筛选：第一页正好是 ids 的前 10 个；回收站里的不算
+    assert [m["id"] for m in listed["items"]] == ids["ids"][:10]
+    deleted = fresh_db.execute("SELECT id FROM messages WHERE deleted_ts > 0").fetchone()["id"]
+    assert deleted not in ids["ids"]
