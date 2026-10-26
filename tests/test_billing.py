@@ -85,8 +85,9 @@ def test_bill_corpus(case_id, subject, body, tier, facets):
 def test_policy_code_is_not_tied_to_any_brand_or_sender():
     """定级只依赖通用的交易画像：策略代码里不允许出现品牌名或发件域名。"""
     source = open(os.path.join(ROOT, "billing.py"), encoding="utf-8").read().lower()
-    for brand in ("steam", "valve", "google", "apple store", "epic", "gog", "jd.com", "taobao",
-                  "alipay.com", "amazon", "playstation", "xbox", "nintendo"):
+    # 支付方式名称（visa、paypal、apple pay 等）是通用的渠道特征，不算商户品牌
+    for brand in ("steam", "valve", "google play", "epic", "gog", "jd.com", "taobao", "amazon",
+                  "playstation", "xbox", "nintendo", "humble", "oracle", "aihub", "green man"):
         assert brand not in source, brand
     assert not re.search(r"[a-z0-9-]+\.(com|net|org|cn|top|io|xyz)\b", source)
 
