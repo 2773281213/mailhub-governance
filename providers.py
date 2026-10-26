@@ -153,6 +153,8 @@ _ALL = (
         imap_host="outlook.office365.com",
         oauth="standard", oauth_label="使用 Microsoft 登录", device_flow=True,
         note="Microsoft 已停用个人邮箱的 IMAP 密码登录，只能通过 OAuth 添加。",
+        oauth_missing_hint=("管理员在「设置 → Microsoft 登录导入」填写自己在 Microsoft Entra 注册的应用后即可添加；"
+                            "只填 Client ID 就能用设备码登录，不需要 Client Secret。"),
     ),
     Provider(
         key="custom", label="自定义 IMAP", imap_host="",

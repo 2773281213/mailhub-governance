@@ -719,6 +719,12 @@ window.addEventListener("message", ev => {
  * 认证方式完全来自后端 /api/oauth/providers 的 methods 列表：
  * oauth_browser（弹窗登录）、oauth_device（设备码）、app_password / password（授权码或密码）。
  */
+/* 账户弹窗里「去设置」直接展开对应的设置分区 */
+function settingsLink(provider) {
+  const section = { gmail: "google", outlook: "microsoft" }[provider];
+  return section ? `#/settings?open=${section}` : "#/settings";
+}
+
 async function accountModal(acc = null) {
   const editing = !!acc;
   let providers;
@@ -775,7 +781,10 @@ async function accountModal(acc = null) {
     const body = $("#ac-method-body");
     setStatus("");
     if (!method) {
-      body.innerHTML = `<div class="err">${esc(p.unavailable || "当前没有可用的登录方式")}</div>`;
+      body.innerHTML = `<div class="err">${esc(p.unavailable || "当前没有可用的登录方式")}</div>
+        ${p.oauth_hint ? `<div class="provider-help oauth-hint" style="margin-top:10px">${esc(p.oauth_hint)}
+          <a href="${settingsLink(providerKey())}" id="ac-goto-settings">去设置</a></div>` : ""}`;
+      $("#ac-goto-settings")?.addEventListener("click", closeModal);
       return;
     }
     if (method.type === "oauth_browser") {
@@ -801,7 +810,7 @@ async function accountModal(acc = null) {
       `<a href="${esc(l.url)}" target="_blank" rel="noopener">${links.length > 1 ? `${i + 1}. ` : ""}${esc(l.label)} ↗</a>`).join("");
     body.innerHTML = `
       ${p.oauth_hint ? `<div class="provider-help oauth-hint">${esc(p.oauth_hint)}
-        <a href="#/settings" id="ac-goto-settings">去设置</a></div>` : ""}
+        <a href="${settingsLink(providerKey())}" id="ac-goto-settings">去设置</a></div>` : ""}
       ${steps || linkHtml ? `<div class="provider-help">
         ${steps ? `<ol class="auth-steps">${steps}</ol>` : ""}
         ${linkHtml ? `<div class="auth-links">${linkHtml}</div>` : ""}
@@ -1069,16 +1078,48 @@ async function paintAudit(box) {
 
 /* ---------- 设置 ---------- */
 
+/* 设置页分区的展开状态：只是本浏览器的偏好，读写失败时退回内存 */
+const SETTINGS_OPEN_KEY = "mailhub.settings.open";
+let settingsOpen = null;
+function loadSettingsOpen() {
+  if (settingsOpen) return settingsOpen;
+  try { settingsOpen = new Set(JSON.parse(localStorage.getItem(SETTINGS_OPEN_KEY) || "[]")); }
+  catch (e) { settingsOpen = new Set(); }
+  return settingsOpen;
+}
+function saveSettingsOpen() {
+  try { localStorage.setItem(SETTINGS_OPEN_KEY, JSON.stringify([...settingsOpen])); } catch (e) { /* 忽略 */ }
+}
+
 async function renderSettings() {
   const el = $("#view-settings");
   let s, rules;
   try { [s, rules] = await Promise.all([api("/settings"), api("/rules")]); }
   catch (e) { el.innerHTML = `<div class="empty">${esc(e.message)}</div>`; return; }
+  const opened = loadSettingsOpen();
+  // 从账户弹窗的「去设置」进入时（#/settings?open=microsoft）直接展开对应分区
+  const focus = new URLSearchParams(location.hash.split("?")[1] || "").get("open") || "";
+  if (focus) { opened.add(focus); saveSettingsOpen(); }
+  const secOpen = key => (opened.has(key) ? "open" : "");
+  const channelCount = [s.notify_bark_url, s.notify_tg_token_set && s.notify_tg_chat, s.notify_onepush_set]
+    .filter(Boolean).length;
+  const secStatus = {
+    ai: s.ai_enabled ? `已启用 · ${s.ai_model || "未选模型"}` : "未启用",
+    google: s.google_oauth_configured ? "已启用" : "未配置",
+    microsoft: s.microsoft_oauth_configured ? "已启用"
+      : (s.microsoft_oauth_device_configured ? "仅设备码" : "未配置"),
+    deploy: "",
+    notify: channelCount ? `${channelCount} 个通道` : "未配置",
+    clean: s.clean_otp_days ? `验证码保留 ${s.clean_otp_days} 天` : "不自动清理",
+    password: "",
+    rules: rules.length ? `${rules.length} 条` : "暂无",
+  };
   el.innerHTML = `
     <h2>设置</h2>
-    <div class="grid settings-grid">
-      <div class="card">
-        <h3>${ico("sparkle")} AI 智能分类与摘要</h3>
+    <div class="set-list">
+      <details class="card set-sec" data-sec="ai" ${secOpen("ai")}>
+        <summary><h3>${ico("sparkle")} AI 智能分类与摘要</h3><span class="sec-status">${esc(secStatus.ai || "")}</span></summary>
+        <div class="sec-body">
         <div class="set-row"><div class="l">启用 AI<small>由 AI 阅读邮件内容判定分类（规则作参考和兜底），并生成每日晨报</small></div>
           <label class="switch"><input type="checkbox" id="s-ai" ${s.ai_enabled ? "checked" : ""}></label></div>
         <div class="set-row"><div class="l">接口地址<small>OpenAI 兼容 /v1</small></div>
@@ -1105,10 +1146,10 @@ async function renderSettings() {
           <button class="btn sm" id="s-ai-test">测试连通</button>
           <button class="btn sm" id="s-classify-now">一键三省六部分拣</button>
         </div>
-      </div>
-      <div>
-        <div class="card" style="margin-bottom:14px">
-          <h3>${ico("key")} Google 登录导入</h3>
+      </div></details>
+        <details class="card set-sec" data-sec="google" ${secOpen("google")}>
+          <summary><h3>${ico("key")} Google 登录导入</h3><span class="sec-status">${esc(secStatus.google || "")}</span></summary>
+          <div class="sec-body">
           <div class="provider-help">
             这是与 Outlook App 相同的 OAuth + PKCE + XOAUTH2 方式。配置完成后直接使用 Google 网页授权，无需 Gmail 应用专用密码。必须创建本项目自己的 Web 客户端，Outlook 的 Client ID 和微软回调不能移植。
             <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">打开 Google Cloud 凭据页面</a>
@@ -1130,12 +1171,20 @@ async function renderSettings() {
             <input id="s-google-secret" type="password" placeholder="留空不修改" ${s.google_oauth_source === "environment" ? "disabled" : ""}></div>
           <div class="set-row"><div class="l">清除 Client Secret<small>清除后 Google 登录立即停用，已有账户需要重新配置</small></div>
             <label class="switch"><input type="checkbox" id="s-google-clear" ${s.google_oauth_source === "environment" ? "disabled" : ""}></label></div>
-        </div>
-        <div class="card" style="margin-bottom:14px">
-          <h3>${ico("key")} Microsoft 登录导入</h3>
+        </div></details>
+        <details class="card set-sec" data-sec="microsoft" ${secOpen("microsoft")}>
+          <summary><h3>${ico("key")} Microsoft 登录导入</h3><span class="sec-status">${esc(secStatus.microsoft || "")}</span></summary>
+          <div class="sec-body">
           <div class="provider-help">
             在 Microsoft Entra 注册本项目自己的应用。Client ID 可启用设备码登录；再配置 Web 回调和 Client Secret 后，添加 Outlook 时也可直接使用浏览器登录。
             <a href="https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade" target="_blank" rel="noopener">打开 Microsoft Entra 应用注册</a>
+            <ol class="auth-steps" style="margin-top:6px">
+              <li>个人 Microsoft 账号不能再在目录外注册应用，需要先有 Entra 租户：注册 <a href="https://azure.microsoft.com/free/" target="_blank" rel="noopener">Azure 免费账户</a>（需信用卡和手机验证，不会扣费）即自带默认目录</li>
+              <li>「应用注册 → 新注册」，支持的账户类型选「任何组织目录中的账户和个人 Microsoft 帐户」</li>
+              <li>最简单的做法：在「身份验证」里把「允许公共客户端流」设为「是」，把「应用程序(客户端) ID」填到下方 Client ID 并保存，就能用设备码登录，不需要 Secret</li>
+              <li>需要浏览器登录时：再添加「Web」平台，重定向 URI 填下方回调地址；在「证书和密码」新建客户端密码，把「值」填到 Client Secret</li>
+              <li>API 权限不用手动添加，登录时会请求 IMAP 访问和 offline_access</li>
+            </ol>
           </div>
           <div class="set-row"><div class="l">网页登录<small>${s.microsoft_oauth_configured ? "已启用授权码 + PKCE" : "需要 Client ID 和 Client Secret"}</small></div>
             <span class="badge ${s.microsoft_oauth_configured ? "cat-通知" : "cat-未分类"}">${s.microsoft_oauth_configured ? "已启用" : "未启用"}</span></div>
@@ -1151,13 +1200,15 @@ async function renderSettings() {
             <input id="s-microsoft-secret" type="password" placeholder="留空不修改" ${s.microsoft_oauth_source === "environment" ? "disabled" : ""}></div>
           <div class="set-row"><div class="l">清除 Client Secret<small>清除后仍可保留设备码登录</small></div>
             <label class="switch"><input type="checkbox" id="s-microsoft-clear" ${s.microsoft_oauth_source === "environment" ? "disabled" : ""}></label></div>
-        </div>
-        <div class="card" style="margin-bottom:14px">
-          <h3>${ico("shield")} 登录通道自检</h3>
+        </div></details>
+        <details class="card set-sec" data-sec="deploy" ${secOpen("deploy")}>
+          <summary><h3>${ico("shield")} 登录通道自检</h3><span class="sec-status">${esc(secStatus.deploy || "")}</span></summary>
+          <div class="sec-body">
           <div id="s-deploy"><div class="provider-help">读取中…</div></div>
-        </div>
-        <div class="card" style="margin-bottom:14px">
-          <h3>${ico("bell")} 通知推送</h3>
+        </div></details>
+        <details class="card set-sec" data-sec="notify" ${secOpen("notify")}>
+          <summary><h3>${ico("bell")} 通知推送</h3><span class="sec-status">${esc(secStatus.notify || "")}</span></summary>
+          <div class="sec-body">
           <div class="set-row"><div class="l">Bark 推送地址<small>如 https://api.day.app/你的Key</small></div>
             <input id="s-bark" value="${esc(s.notify_bark_url)}" placeholder="留空不启用"></div>
           <div class="set-row"><div class="l">Telegram Bot Token<small>${s.notify_tg_token_set ? "已设置（留空不修改）" : "未设置"}</small></div>
@@ -1178,25 +1229,28 @@ async function renderSettings() {
             <label class="switch"><input type="checkbox" id="s-ntf-otp" ${s.notify_otp ? "checked" : ""}></label></div>
           <div style="text-align:right;margin-top:8px"><button class="btn sm" id="s-ntf-test">发送测试推送</button></div>
           <div id="s-ntf-result" style="font-size:12px;margin-top:6px;text-align:right"></div>
-        </div>
-        <div class="card" style="margin-bottom:14px">
-          <h3>${ico("broom")} 自动清理</h3>
+        </div></details>
+        <details class="card set-sec" data-sec="clean" ${secOpen("clean")}>
+          <summary><h3>${ico("broom")} 自动清理</h3><span class="sec-status">${esc(secStatus.clean || "")}</span></summary>
+          <div class="sec-body">
           <div class="set-row"><div class="l">验证码邮件保留天数<small>0 = 不自动清理；到期每天自动删除</small></div>
             <input id="s-clean-days" type="number" min="0" value="${s.clean_otp_days}" style="max-width:90px"></div>
           <div class="set-row"><div class="l">同步删除服务器邮件<small>开启后自动清理会连同邮箱服务器一起删</small></div>
             <label class="switch"><input type="checkbox" id="s-clean-server" ${s.clean_server ? "checked" : ""}></label></div>
           <div class="set-row"><div class="l">正文保留天数<small>超期只清正文、保留标题/摘要/验证码，给小硬盘瘦身</small></div>
             <input id="s-body-days" type="number" min="0" value="${s.body_keep_days}" style="max-width:90px"></div>
-        </div>
-        <div class="card" style="margin-bottom:14px">
-          <h3>${ico("key")} 修改管理密码</h3>
+        </div></details>
+        <details class="card set-sec" data-sec="password" ${secOpen("password")}>
+          <summary><h3>${ico("key")} 修改管理密码</h3><span class="sec-status">${esc(secStatus.password || "")}</span></summary>
+          <div class="sec-body">
           <div class="set-row"><div class="l">原密码</div><input id="s-old-pwd" type="password"></div>
           <div class="set-row"><div class="l">新密码<small>至少 8 位；修改后其他设备需要重新登录</small></div><input id="s-new-pwd" type="password"></div>
           <div class="set-row"><div class="l">登录会话<small>怀疑密码或 Cookie 泄露时使用</small></div>
             <button class="btn sm danger" id="s-revoke-sessions">退出所有其他设备</button></div>
-        </div>
-        <div class="card">
-          <h3>${ico("ruler")} 自定义分类规则 <small style="font-weight:400">优先于内置规则</small></h3>
+        </div></details>
+        <details class="card set-sec" data-sec="rules" ${secOpen("rules")}>
+          <summary><h3>${ico("ruler")} 自定义分类规则 <small style="font-weight:400">优先于内置规则</small></h3><span class="sec-status">${esc(secStatus.rules || "")}</span></summary>
+          <div class="sec-body">
           <div id="rule-list">${rules.length ? rules.map(r => `
             <div class="rule-row">
               <span class="badge cat-${esc(r.category)}">${esc(r.category)}</span>
@@ -1211,10 +1265,9 @@ async function renderSettings() {
             <select id="r-cat" style="width:auto">${META.categories.map(c => `<option>${c}</option>`).join("")}</select>
             <button class="btn sm primary" id="r-add">添加</button>
           </div>
-        </div>
-      </div>
+        </div></details>
     </div>
-    <div style="margin-top:16px;text-align:right">
+    <div style="margin-top:16px;text-align:right;max-width:920px">
       <button class="btn primary" id="s-save">保存全部设置</button>
     </div>`;
 
@@ -1316,6 +1369,14 @@ async function renderSettings() {
   $$("[data-rule-del]", el).forEach(b => b.addEventListener("click", async () => {
     await api(`/rules/${b.dataset.ruleDel}`, { method: "DELETE" }); renderSettings();
   }));
+  $$("details.set-sec", el).forEach(d => d.addEventListener("toggle", () => {
+    if (d.open) opened.add(d.dataset.sec); else opened.delete(d.dataset.sec);
+    saveSettingsOpen();
+  }));
+  if (focus) {
+    $(`details.set-sec[data-sec="${CSS.escape(focus)}"]`, el)?.scrollIntoView({ block: "start", behavior: "smooth" });
+    history.replaceState(null, "", "#/settings");
+  }
   loadDeployStatus();
 }
 
@@ -1339,6 +1400,8 @@ async function loadDeployStatus() {
       + `<span class="badge ${oauth ? "cat-通知" : "cat-未分类"}">${oauth ? "OAuth" : (methods.length ? "授权码" : "不可用")}</span></div>`;
   }).join("");
   const reauth = st.accounts?.reauth_required || [];
+  const status = box.closest("details")?.querySelector(".sec-status");
+  if (status) status.textContent = !st.ok ? "有失败项" : (reauth.length ? `${reauth.length} 个账户待重新授权` : "全部通过");
   box.innerHTML = `
     <div class="provider-help">部署完成后打开本页即可确认回调域名、各服务商登录方式和待重新授权账户。</div>
     ${reauth.length ? `<div class="err">⚠ ${reauth.length} 个账户需要重新授权：${esc(reauth.map(r => `${r.provider}/${r.email}`).join("、"))}</div>` : ""}
