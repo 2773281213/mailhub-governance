@@ -45,7 +45,8 @@ def fake_notifier(monkeypatch):
 @pytest.fixture
 def clean_settings():
     db.init_db()
-    keys = ("notify_bark_url", "notify_tg_token", "notify_tg_chat", notify.ONEPUSH_SETTING)
+    keys = ("notify_bark_url", "notify_tg_token", "notify_tg_chat", notify.ONEPUSH_SETTING,
+            "notify_bark_url_enc", "notify_tg_token_enc")
     conn = db.get_conn()
     conn.execute(f"DELETE FROM settings WHERE k IN ({','.join('?' * len(keys))})", keys)
     conn.commit()

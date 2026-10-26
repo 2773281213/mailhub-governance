@@ -121,7 +121,7 @@ medium/high 风险邮件强制归入「可疑」分类并进入只读风险观�
 - 首次启动生成的管理密码写入数据目录下的 `initial-admin-password.txt`（0600），日志里只有文件路径；改密码后该文件被删除
 - CSRF：会改变状态的 `/api` 请求必须来自本站（`Origin` 与 Host 或 `MAILHUB_PUBLIC_URL` 一致，或 `Sec-Fetch-Site: same-origin`）；跨站请求返回 403
 - 所有响应带 `X-Content-Type-Options`、`X-Frame-Options: DENY`、`Referrer-Policy` 和基础 CSP；完整 CSP 暂以 Report-Only 运行。前端已不再使用内联事件处理器，确认浏览器控制台没有违规后即可改为强制
-- Onepush 推送配置（含各服务商令牌/密码）用同一套 Fernet 密钥加密保存，设置接口只返回服务商名；推送内容只有分类、发件地址、主题前 80 字和验证码（开启验证码推送时）
+- Onepush 推送配置（含各服务商令牌/密码）、Bark 推送地址（含设备 key）和 Telegram Bot Token 都用同一套 Fernet 密钥加密保存；设置接口只返回 Onepush 服务商名、Bark 是否已设置及其主机名、Telegram Token 是否已设置，从不返回凭据本身。旧版本留在 settings 里的明文值会在启动时自动迁移成密文并删除。推送内容只有分类、发件地址、主题前 80 字和验证码（开启验证码推送时）
 - nginx：80 端口只做 301 跳转到 HTTPS，启用 HSTS；所有服务商的 OAuth 回调不写访问日志
 - 邮件 HTML 在**全沙箱 iframe**（`sandbox=""`，禁脚本/表单/弹窗/同源）中渲染
 - **外部图片默认拦截**：CSP `img-src data:`，阻断追踪像素泄露阅读时间与 IP；用户可单封放行

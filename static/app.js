@@ -1282,7 +1282,7 @@ async function renderSettings() {
   const focus = new URLSearchParams(location.hash.split("?")[1] || "").get("open") || "";
   if (focus) { opened.add(focus); saveSettingsOpen(); }
   const secOpen = key => (opened.has(key) ? "open" : "");
-  const channelCount = [s.notify_bark_url, s.notify_tg_token_set && s.notify_tg_chat, s.notify_onepush_set]
+  const channelCount = [s.notify_bark_set, s.notify_tg_token_set && s.notify_tg_chat, s.notify_onepush_set]
     .filter(Boolean).length;
   const secStatus = {
     ai: s.ai_enabled ? `已启用 · ${s.ai_model || "未选模型"}` : "未启用",
@@ -1408,10 +1408,18 @@ async function renderSettings() {
         <details class="card set-sec" data-sec="notify" ${secOpen("notify")}>
           <summary><h3>${ico("bell")} 通知推送</h3><span class="sec-status">${esc(secStatus.notify || "")}</span></summary>
           <div class="sec-body">
-          <div class="set-row"><div class="l">Bark 推送地址<small>如 https://api.day.app/你的Key</small></div>
-            <input id="s-bark" value="${esc(s.notify_bark_url)}" placeholder="留空不启用"></div>
+          <div class="set-row"><div class="l">Bark 推送地址<small>${s.notify_bark_set
+              ? `已设置：${esc(s.notify_bark_host)}（留空不修改）`
+              : "如 https://api.day.app/你的Key"}</small></div>
+            <input id="s-bark" value="" placeholder="留空不启用"></div>
+          ${s.notify_bark_set ? `<div class="set-row" style="display:block">
+            <label style="display:flex;gap:6px;align-items:center;font-size:12px;color:var(--muted)">
+              <input type="checkbox" id="s-bark-clear" style="width:auto"> 清除 Bark 地址</label></div>` : ""}
           <div class="set-row"><div class="l">Telegram Bot Token<small>${s.notify_tg_token_set ? "已设置（留空不修改）" : "未设置"}</small></div>
             <input id="s-tg-token" type="password" placeholder="123456:ABC…"></div>
+          ${s.notify_tg_token_set ? `<div class="set-row" style="display:block">
+            <label style="display:flex;gap:6px;align-items:center;font-size:12px;color:var(--muted)">
+              <input type="checkbox" id="s-tg-clear" style="width:auto"> 清除 Telegram Token</label></div>` : ""}
           <div class="set-row"><div class="l">Telegram Chat ID</div>
             <input id="s-tg-chat" value="${esc(s.notify_tg_chat)}" placeholder="留空不启用"></div>
           <div class="set-row" style="display:block"><div class="l">Onepush 推送<small>${s.notify_onepush_set
@@ -1481,7 +1489,6 @@ async function renderSettings() {
       clean_otp_days: +$("#s-clean-days").value || 0,
       clean_server: $("#s-clean-server").checked,
       digest_hour: +$("#s-hour").value,
-      notify_bark_url: $("#s-bark").value.trim(),
       notify_tg_chat: $("#s-tg-chat").value.trim(),
       notify_important: $("#s-ntf-imp").checked,
       notify_otp: $("#s-ntf-otp").checked,
@@ -1508,8 +1515,13 @@ async function renderSettings() {
     }
     const key = $("#s-key").value.trim();
     if (key) body.ai_key = key;
+    // Bark 地址不回显：只在输入了新地址时才提交，清除走单独的复选框
+    const barkUrl = $("#s-bark").value.trim();
+    if (barkUrl) body.notify_bark_url = barkUrl;
+    if ($("#s-bark-clear")?.checked) body.clear_notify_bark = true;
     const tgToken = $("#s-tg-token").value.trim();
     if (tgToken) body.notify_tg_token = tgToken;
+    if ($("#s-tg-clear")?.checked) body.clear_notify_tg_token = true;
     const onepush = $("#s-onepush").value.trim();
     if (onepush) body.notify_onepush_config = onepush;
     if ($("#s-onepush-clear")?.checked) body.clear_notify_onepush = true;

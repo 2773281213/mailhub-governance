@@ -81,6 +81,8 @@ async def lifespan(_app: FastAPI):
     _setup_logging()
     init_db()
     oauth_auth.init_oauth_db()
+    # 旧版本把 Bark 地址和 Telegram Token 明文存在 settings 里，先迁到加密键
+    notify.migrate_plaintext_settings()
     # 用旧密钥（MAILHUB_SECRET_PREVIOUS）或旧派生方式加密的凭据改为当前密钥加密
     rotate_encrypted_values(get_conn())
     # 首次启动生成随机管理密码。密码只写进数据目录下的 0600 文件，不进日志；
@@ -1212,7 +1214,9 @@ class SettingsBody(BaseModel):
     old_password: str | None = None
     new_password: str | None = None
     notify_bark_url: str | None = None
+    clear_notify_bark: bool | None = None
     notify_tg_token: str | None = None
+    clear_notify_tg_token: bool | None = None
     notify_tg_chat: str | None = None
     notify_onepush_config: str | None = None    # Onepush YAML；留空不修改
     clear_notify_onepush: bool | None = None
@@ -1232,6 +1236,13 @@ async def get_settings():
     cfg = ai.ai_config()
     google_oauth = oauth_auth.browser_config_info("gmail")
     microsoft_oauth = oauth_auth.browser_config_info("outlook")
+    # Bark 地址里带设备 key，只回显是否已设置和主机名
+    notify_cfg = notify._cfg()
+    bark_url = notify_cfg["bark_url"]
+    try:
+        bark_host = urlparse(bark_url).hostname or ""
+    except ValueError:
+        bark_host = ""
     return {
         "ai_enabled": cfg["enabled"],
         "ai_base_url": cfg["base_url"],
@@ -1250,8 +1261,9 @@ async def get_settings():
         "bill_auto_renew": get_setting("bill_auto_renew", "") or billing.DEFAULTS["auto_renew"],
         "bill_refund": get_setting("bill_refund", "") or billing.DEFAULTS["refund"],
         "digest_hour": int(get_setting("digest_hour", "8") or 8),
-        "notify_bark_url": get_setting("notify_bark_url", ""),
-        "notify_tg_token_set": bool(get_setting("notify_tg_token", "")),
+        "notify_bark_set": bool(bark_url),
+        "notify_bark_host": bark_host,
+        "notify_tg_token_set": bool(notify_cfg["tg_token"]),
         "notify_tg_chat": get_setting("notify_tg_chat", ""),
         # Onepush 配置含令牌，只返回是否已设置和服务商名
         "notify_onepush_set": bool(get_setting(notify.ONEPUSH_SETTING, "")),
@@ -1328,6 +1340,15 @@ async def put_settings(body: SettingsBody, request: Request = None):
         except ImportError as exc:
             raise HTTPException(status_code=400,
                                 detail="服务器未安装 onepush/PyYAML，请先 pip install -r requirements.txt") from exc
+    # 推送凭据也是设置：先校验，校验不过时一条设置都不会写入
+    bark_url = (body.notify_bark_url or "").strip()
+    if bark_url and not body.clear_notify_bark:
+        if not bark_url.lower().startswith(("http://", "https://")):
+            raise HTTPException(status_code=400,
+                                detail="Bark 推送地址必须以 http:// 或 https:// 开头")
+        if len(bark_url) > 500:
+            raise HTTPException(status_code=400, detail="Bark 推送地址过长（上限 500 字符）")
+    tg_token = (body.notify_tg_token or "").strip()
     _save_oauth_settings(body, prefix="google", provider="gmail", label="Google")
     _save_oauth_settings(body, prefix="microsoft", provider="outlook", label="Microsoft")
     if body.new_password is not None:
@@ -1369,10 +1390,18 @@ async def put_settings(body: SettingsBody, request: Request = None):
         set_setting("clean_server", "1" if body.clean_server else "0")
     if body.digest_hour is not None:
         set_setting("digest_hour", str(min(23, max(0, body.digest_hour))))
-    if body.notify_bark_url is not None:
-        set_setting("notify_bark_url", body.notify_bark_url.strip())
-    if body.notify_tg_token:
-        set_setting("notify_tg_token", body.notify_tg_token.strip())
+    # 推送凭据只存加密键，旧明文键顺手清掉；clear 优先于同一请求里的新值
+    if body.clear_notify_bark or bark_url:
+        conn = get_conn()
+        set_setting(notify.BARK_SETTING, encrypt("" if body.clear_notify_bark else bark_url))
+        conn.execute("DELETE FROM settings WHERE k=?", (notify.BARK_LEGACY_SETTING,))
+        conn.commit()
+    if body.clear_notify_tg_token or tg_token:
+        conn = get_conn()
+        set_setting(notify.TG_TOKEN_SETTING,
+                    encrypt("" if body.clear_notify_tg_token else tg_token))
+        conn.execute("DELETE FROM settings WHERE k=?", (notify.TG_TOKEN_LEGACY_SETTING,))
+        conn.commit()
     if body.notify_tg_chat is not None:
         set_setting("notify_tg_chat", body.notify_tg_chat.strip())
     if body.clear_notify_onepush:

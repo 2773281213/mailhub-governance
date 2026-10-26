@@ -14,28 +14,72 @@ from urllib.parse import urlparse
 
 import httpx
 
-from db import get_setting
-from security import decrypt
+from db import get_conn, get_setting
+from security import decrypt, encrypt
 
 log = logging.getLogger("mailhub.notify")
 
 ONEPUSH_SETTING = "notify_onepush_enc"
 ONEPUSH_MAX_CHARS = 4000
 
+# Bark 地址（含设备 key）和 Telegram Bot Token 都是凭据，加密保存在 settings 里。
+# 键名以 _enc 结尾，security.rotate_encrypted_values 会在密钥轮换时一并重新加密。
+BARK_SETTING = "notify_bark_url_enc"
+TG_TOKEN_SETTING = "notify_tg_token_enc"
+# 迁移前的明文键，只读兼容与清理，不再写入
+BARK_LEGACY_SETTING = "notify_bark_url"
+TG_TOKEN_LEGACY_SETTING = "notify_tg_token"
+
 
 class OnepushConfigError(ValueError):
     """Onepush 配置无法解析或缺少必填参数。"""
 
 
+def _secret(enc_key: str, legacy_key: str) -> str:
+    """先读加密键；迁移完成前回退到旧的明文键，保证推送不中断。"""
+    value = decrypt(get_setting(enc_key, ""))
+    return value or get_setting(legacy_key, "")
+
+
 def _cfg() -> dict:
     return {
-        "bark_url": get_setting("notify_bark_url", "").rstrip("/"),
-        "tg_token": get_setting("notify_tg_token", ""),
+        "bark_url": _secret(BARK_SETTING, BARK_LEGACY_SETTING).rstrip("/"),
+        "tg_token": _secret(TG_TOKEN_SETTING, TG_TOKEN_LEGACY_SETTING),
         "tg_chat": get_setting("notify_tg_chat", ""),
         "onepush": decrypt(get_setting(ONEPUSH_SETTING, "")),
         "important": get_setting("notify_important", "1") == "1",
         "otp": get_setting("notify_otp", "0") == "1",
     }
+
+
+def migrate_plaintext_settings() -> int:
+    """把旧的明文 Bark 地址 / Telegram Token 迁到加密键，返回迁移条数。
+
+    幂等：加密键已有值时以它为准，只清掉旧明文键。整体在一个事务里完成。
+    """
+    conn = get_conn()
+
+    def raw(key: str) -> str | None:
+        row = conn.execute("SELECT v FROM settings WHERE k=?", (key,)).fetchone()
+        return None if row is None else row["v"]
+
+    migrated = 0
+    for enc_key, legacy_key in ((BARK_SETTING, BARK_LEGACY_SETTING),
+                                (TG_TOKEN_SETTING, TG_TOKEN_LEGACY_SETTING)):
+        legacy = raw(legacy_key)
+        if not legacy:
+            if legacy is not None:
+                conn.execute("DELETE FROM settings WHERE k=?", (legacy_key,))
+            continue
+        if not raw(enc_key):
+            conn.execute(
+                "INSERT INTO settings(k,v) VALUES(?,?) ON CONFLICT(k) DO UPDATE SET v=excluded.v",
+                (enc_key, encrypt(legacy)),
+            )
+        conn.execute("DELETE FROM settings WHERE k=?", (legacy_key,))
+        migrated += 1
+    conn.commit()
+    return migrated
 
 
 def _any_channel(cfg: dict) -> bool:
