@@ -46,6 +46,9 @@ data class GridSpec(
             "元素越界：start=$start, span=$span, columns=$columns"
         }
     }
+
+    /** 一栏加一个栏间距，也就是相邻两条栏线之间的距离。 */
+    fun step(total: Dp): Dp = columnWidth(total) + gutter
 }
 
 /** 宽度 < 600dp 用 16/8，< 840dp 用 24/16，否则 32/24。 */
@@ -57,7 +60,10 @@ fun gridSpecFor(width: Dp): GridSpec = when {
 
 val LocalGridSpec = staticCompositionLocalOf { GridSpec(margin = 16.dp, gutter = 8.dp) }
 
-/** 用 BoxWithConstraints 量出可用宽度，再下发对应的 GridSpec。 */
+/** 当前网格的可用宽度。文字内边距要用它来算 step，所以单独下发。 */
+val LocalGridWidth = staticCompositionLocalOf { 360.dp }
+
+/** 用 BoxWithConstraints 量出可用宽度，再下发对应的 GridSpec 和宽度。 */
 @Composable
 fun ProvideSwissGrid(
     modifier: Modifier = Modifier,
@@ -65,7 +71,12 @@ fun ProvideSwissGrid(
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         val spec = gridSpecFor(maxWidth)
-        CompositionLocalProvider(LocalGridSpec provides spec) { content() }
+        CompositionLocalProvider(
+            LocalGridSpec provides spec,
+            LocalGridWidth provides maxWidth,
+        ) {
+            content()
+        }
     }
 }
 

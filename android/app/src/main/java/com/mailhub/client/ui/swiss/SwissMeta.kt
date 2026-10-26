@@ -2,6 +2,7 @@ package com.mailhub.client.ui.swiss
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 
 /** 小号编号，例如 01、02。 */
 @Composable
@@ -16,7 +17,10 @@ fun IndexLabel(
     )
 }
 
-/** 年份、地点、时间一类的小号信息，输出形如 2026 — 上海 — 16:54。 */
+/**
+ * 年份、地点、时间一类的小号信息，输出形如 2026 — 上海 — 16:54。
+ * 永远单行：不换行、超出裁切，避免页头折成两行。
+ */
 @Composable
 fun MetaLine(
     year: Int,
@@ -37,5 +41,8 @@ fun MetaLine(
         text = text,
         style = SwissType.label(),
         modifier = modifier,
+        maxLines = 1,
+        overflow = TextOverflow.Clip,
+        softWrap = false,
     )
 }

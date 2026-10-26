@@ -20,6 +20,7 @@ fun SText(
     color: Color = LocalSwissColors.current.foreground,
     maxLines: Int = Int.MAX_VALUE,
     overflow: TextOverflow = TextOverflow.Clip,
+    softWrap: Boolean = true,
 ) {
     BasicText(
         text = text,
@@ -27,5 +28,6 @@ fun SText(
         style = style.copy(color = color, textAlign = TextAlign.Start),
         maxLines = maxLines,
         overflow = overflow,
+        softWrap = softWrap,
     )
 }

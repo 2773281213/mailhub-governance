@@ -38,7 +38,7 @@ fun SwissSpecimen(
     ) {
         GridRow {
             IndexLabel(index = "00", modifier = Modifier.cols(1, 2))
-            MetaLine(year = 2026, place = "上海", time = "16:54", modifier = Modifier.cols(10, 3))
+            MetaLine(year = 2026, place = "上海", modifier = Modifier.cols(9, 4))
         }
         Spacer(modifier = Modifier.height(8.dp))
         HeavyRule(color = colors.foreground)

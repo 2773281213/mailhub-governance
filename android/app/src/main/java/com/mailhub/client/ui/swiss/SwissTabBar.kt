@@ -5,16 +5,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -26,6 +22,8 @@ import androidx.compose.ui.unit.sp
  * 底部文字标签栏：参数是「编号 to 名称」的列表。每项显示 01 总览，
  * 当前项粗体且上方有 4dp 红线；顶部有 1dp 细线；整体高度 56dp；
  * 按 12 栏平均分配，4 项各占 3 栏。
+ * 文字容器没有水平内边距，所以每项文字左边缘正好落在该项起始栏线上；
+ * 红色指示线宽度等于这 3 栏。
  */
 @Composable
 fun SwissTabBar(
@@ -40,7 +38,6 @@ fun SwissTabBar(
         HairlineRule()
         GridRow(modifier = Modifier.height(56.dp)) {
             items.forEachIndexed { index, item ->
-                val interactionSource = interactionSources[index]
                 val isSelected = index == selected
                 val labelStyle = TextStyle(
                     fontFamily = InterFamily,
@@ -54,7 +51,7 @@ fun SwissTabBar(
                         .cols(start = index * 3 + 1, span = 3)
                         .fillMaxHeight()
                         .clickable(
-                            interactionSource = interactionSource,
+                            interactionSource = interactionSources[index],
                             indication = null,
                             onClick = { onSelect(index) },
                         ),
@@ -66,22 +63,11 @@ fun SwissTabBar(
                             .background(if (isSelected) colors.accent else colors.background),
                     )
                     Spacer(modifier = Modifier.height(10.dp))
-                    Row(
-                        modifier = Modifier.padding(horizontal = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        SText(
-                            text = item.first,
-                            style = labelStyle,
-                            color = colors.foreground,
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        SText(
-                            text = item.second,
-                            style = labelStyle,
-                            color = colors.foreground,
-                        )
-                    }
+                    SText(
+                        text = "${item.first} ${item.second}",
+                        style = labelStyle,
+                        color = colors.foreground,
+                    )
                 }
             }
         }

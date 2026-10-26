@@ -2,10 +2,12 @@ package com.mailhub.client.ui.swiss
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.em
@@ -103,5 +105,12 @@ object SwissType {
         letterSpacing = 0.08f.em,
         fontFeatureSettings = "tnum",
         textAlign = TextAlign.Start,
+        // Label 要严格按 12sp 行高排版，去掉系统字体的上下留白和行高裁剪，
+        // 否则 MetaLine 这类单行小字的节点高度会超过一行行高。
+        platformStyle = PlatformTextStyle(includeFontPadding = false),
+        lineHeightStyle = LineHeightStyle(
+            alignment = LineHeightStyle.Alignment.Top,
+            trim = LineHeightStyle.Trim.Both,
+        ),
     )
 }
