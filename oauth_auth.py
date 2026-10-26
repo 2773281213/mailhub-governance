@@ -383,6 +383,10 @@ def auth_methods(provider: str) -> list[dict]:
             "setup_url": meta.secret.setup_url,
             "setup_label": meta.secret.setup_label,
             "steps": list(meta.secret.steps),
+            "links": [{"label": label, "url": url} for label, url in meta.secret.prereq_links]
+                     + ([{"label": meta.secret.setup_label or "打开服务商设置", "url": meta.secret.setup_url}]
+                        if meta.secret.setup_url else []),
+            "troubleshoot": meta.secret.troubleshoot,
         })
     return methods
 
@@ -404,6 +408,7 @@ def public_providers() -> dict:
             "note": meta.note,
             "methods": methods,
             "oauth": oauth_available(key),
+            "oauth_hint": meta.oauth_missing_hint if meta.oauth and not oauth_available(key)["browser"] else "",
             "unavailable": unavailable,
         }
     return result

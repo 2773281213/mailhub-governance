@@ -796,11 +796,16 @@ async function accountModal(acc = null) {
     // app_password / password
     const isOAuthAccount = editing && acc.auth_type === "oauth";
     const steps = (method.steps || []).map(s => `<li>${esc(s)}</li>`).join("");
-    const setupUrl = /^https:\/\//i.test(method.setup_url || "") ? method.setup_url : "";
+    const links = (method.links || []).filter(l => /^https:\/\//i.test(l.url || ""));
+    const linkHtml = links.map((l, i) =>
+      `<a href="${esc(l.url)}" target="_blank" rel="noopener">${links.length > 1 ? `${i + 1}. ` : ""}${esc(l.label)} ↗</a>`).join("");
     body.innerHTML = `
-      ${steps || setupUrl ? `<div class="provider-help">
+      ${p.oauth_hint ? `<div class="provider-help oauth-hint">${esc(p.oauth_hint)}
+        <a href="#/settings" id="ac-goto-settings">去设置</a></div>` : ""}
+      ${steps || linkHtml ? `<div class="provider-help">
         ${steps ? `<ol class="auth-steps">${steps}</ol>` : ""}
-        ${setupUrl ? `<a href="${esc(setupUrl)}" target="_blank" rel="noopener">${esc(method.setup_label || "打开服务商设置")} ↗</a>` : ""}
+        ${linkHtml ? `<div class="auth-links">${linkHtml}</div>` : ""}
+        ${method.troubleshoot ? `<div class="auth-trouble">${esc(method.troubleshoot)}</div>` : ""}
       </div>` : ""}
       ${providerKey() === "custom" ? `
         <label class="field"><span>IMAP 服务器（SSL）</span><input id="ac-host" value="${esc(acc?.imap_host || "")}" placeholder="imap.example.com"></label>
@@ -810,6 +815,7 @@ async function accountModal(acc = null) {
       ${isOAuthAccount ? `<div class="provider-help">保存后该账户将从 OAuth 改为用${esc(method.input_label)}登录。</div>` : ""}
       ${editing ? "" : `<div class="ops" style="justify-content:flex-start;margin:0 0 12px"><button class="btn primary" id="ac-add">测试连接并添加</button></div>`}`;
     $("#ac-add")?.addEventListener("click", addSecretAccount);
+    $("#ac-goto-settings")?.addEventListener("click", closeModal);
   };
 
   const paint = (force = false) => {
@@ -1106,6 +1112,12 @@ async function renderSettings() {
           <div class="provider-help">
             这是与 Outlook App 相同的 OAuth + PKCE + XOAUTH2 方式。配置完成后直接使用 Google 网页授权，无需 Gmail 应用专用密码。必须创建本项目自己的 Web 客户端，Outlook 的 Client ID 和微软回调不能移植。
             <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">打开 Google Cloud 凭据页面</a>
+            <ol class="auth-steps" style="margin-top:6px">
+              <li>启用 Gmail API，OAuth 同意屏幕选「外部」，范围添加 <code>https://mail.google.com/</code></li>
+              <li>创建「Web 应用」类型的 OAuth 客户端，已获授权的重定向 URI 填下方回调地址</li>
+              <li>把同意屏幕的发布状态改为「正式版 / In production」：保持「测试」时授权 7 天后失效，需要每周重新登录</li>
+              <li>未经 Google 验证的应用登录时会提示「Google 未验证此应用」，点「高级 → 继续」即可；未验证应用总共最多 100 个用户</li>
+            </ol>
           </div>
           ${s.google_oauth_configuration_error ? `<div class="provider-help" style="color:var(--danger)">${esc(s.google_oauth_configuration_error)}</div>` : ""}
           <div class="set-row"><div class="l">状态<small>${s.google_oauth_configured ? "已启用登录式导入" : "尚未配置完整客户端"}</small></div>
