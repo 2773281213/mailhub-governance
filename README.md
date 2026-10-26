@@ -79,6 +79,7 @@ policy.py          外部动作安全策略
 security_scan.py   提示注入和邮件风险扫描
 db.py              SQLite schema、迁移和审计
 static/            前端界面
+android/           安卓客户端（Kotlin + Compose）
 tests/             隔离数据库测试
 SECURITY.md        威胁模型和安全边界
 OAUTH_SETUP.md     OAuth/IMAP 配置说明

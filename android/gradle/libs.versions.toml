@@ -1,0 +1,33 @@
+[versions]
+# 版本依据（2026-10 查证）：
+# - AGP：developer.android.com/build/releases/past-releases/agp-9-0-0-release-notes 的兼容表
+#   写明 AGP 9.0 最低 Gradle 9.1.0；AGP 9.1 要求 Gradle 9.3.1、9.2 要求 9.4.1、
+#   9.3 要求 9.5.0、9.4 要求 9.6.0。本项目固定 Gradle 9.1.0，所以取兼容的最新稳定版 9.0.1。
+# - Kotlin：Maven Central 的 kotlin-gradle-plugin maven-metadata 里最新的稳定 2.x（无 -RC/-Beta）。
+# - Compose BOM / core-ktx / activity-compose：最新稳定版（BOM 2026.09.00、core-ktx 1.19.1、
+#   activity-compose 1.13.0）的 AAR 元数据要求 compileSdk 37 和 AGP 9.1.0，与本卡固定的
+#   compileSdk 36 + Gradle 9.1.0 冲突，所以取仍支持 compileSdk 36 的最新稳定版：
+#   BOM 2026.06.01（compose.ui 1.11.4，minCompileSdk=35）、core-ktx 1.18.0（minCompileSdk=36）、
+#   activity-compose 1.12.4（minCompileSdk=36）。
+agp = "9.0.1"
+kotlin = "2.4.21"
+composeBom = "2026.06.01"
+activityCompose = "1.12.4"
+coreKtx = "1.18.0"
+junit = "4.13.2"
+
+
+[libraries]
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
+androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
+androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
+androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
+androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+# 只用于把 KGP 版本拉到与 compose 插件一致；AGP 9.0 的内置 Kotlin 不要求在模块里 apply 它
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

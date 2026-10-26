@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 平台自带的 Material 主题（android: 前缀），不是 com.google.android.material 库 -->
+    <style name="Theme.MailHub" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/paper</item>
+        <item name="android:statusBarColor">@color/paper</item>
+        <item name="android:navigationBarColor">@color/paper</item>
+    </style>
+</resources>
