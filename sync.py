@@ -25,6 +25,7 @@ STATUS: dict = {}
 _status_lock = threading.Lock()
 _sync_locks: dict = {}          # 防止同一账户并发同步
 _force_queue: set = set()       # 手动触发的账户 id
+_force_lock = threading.Lock()
 
 
 def _set_status(acc_id: int, state: str, msg: str = "", new: int = 0):
@@ -449,12 +450,29 @@ class SyncEngine:
         self._stop.set()
 
     def trigger(self, acc_id: int):
-        _force_queue.add(acc_id)
+        with _force_lock:
+            _force_queue.add(acc_id)
 
     def trigger_all(self):
         conn = get_conn()
-        for r in conn.execute("SELECT id FROM accounts WHERE enabled=1").fetchall():
-            _force_queue.add(r["id"])
+        rows = conn.execute("SELECT id FROM accounts WHERE enabled=1").fetchall()
+        with _force_lock:
+            for r in rows:
+                _force_queue.add(r["id"])
+
+    def _drain_force_queue(self) -> list[int]:
+        with _force_lock:
+            pending = sorted(_force_queue)
+            _force_queue.clear()
+
+        requeued = []
+        for i, acc_id in enumerate(pending):
+            if not self._spawn(acc_id):
+                requeued = pending[i:]
+                with _force_lock:
+                    _force_queue.update(requeued)
+                break
+        return requeued
 
     def _spawn(self, acc_id: int):
         with self._workers_lock:
@@ -485,9 +503,7 @@ class SyncEngine:
                 conn = get_conn()
                 now = time.time()
                 # 手动触发优先
-                while _force_queue:
-                    acc_id = _force_queue.pop()
-                    self._spawn(acc_id)
+                self._drain_force_queue()
                 for r in conn.execute(
                     "SELECT id, poll_interval, last_sync FROM accounts WHERE enabled=1"
                 ).fetchall():

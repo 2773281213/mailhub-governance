@@ -935,10 +935,15 @@ async def outlook_device_start(body: OAuthStartBody):
         raise HTTPException(status_code=503, detail="Microsoft OAuth 客户端未配置")
     spec = _OAUTH_SPECS["outlook"]
     try:
-        response = httpx.post(spec["device_url"], data={
-            "client_id": client_id,
-            "scope": spec["scope"],
-        }, timeout=20)
+        response = await asyncio.to_thread(
+            httpx.post,
+            spec["device_url"],
+            data={
+                "client_id": client_id,
+                "scope": spec["scope"],
+            },
+            timeout=20,
+        )
         device = response.json()
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"请求 Microsoft 登录失败: {str(exc)[:160]}") from exc

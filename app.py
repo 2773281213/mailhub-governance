@@ -207,7 +207,8 @@ async def login(body: LoginBody, request: Request, response: Response):
     client_type = (body.client or "web").strip().lower()
     if client_type not in ("web", "android"):
         raise HTTPException(status_code=400, detail="不支持的客户端类型")
-    if not verify_password(body.password, get_setting("admin_hash")):
+    if not await asyncio.to_thread(verify_password, body.password, get_setting("admin_hash")):
+
         login_throttle.record_failure(ip)
         raise HTTPException(status_code=401, detail="密码错误")
     login_throttle.record_success(ip)
@@ -321,8 +322,7 @@ def _acc_public(row) -> dict:
     return d
 
 
-@app.get("/api/accounts")
-async def list_accounts():
+def _list_accounts_sync():
     conn = get_conn()
     rows = conn.execute("SELECT * FROM accounts ORDER BY id").fetchall()
     out = []
@@ -334,6 +334,11 @@ async def list_accounts():
             "SELECT COUNT(*) c FROM messages WHERE account_id=? AND unread=1", (r["id"],)).fetchone()["c"]
         out.append(d)
     return out
+
+
+@app.get("/api/accounts")
+async def list_accounts():
+    return await asyncio.to_thread(_list_accounts_sync)
 
 
 def _resolve_host(body: AccountBody) -> tuple[str, int]:
@@ -549,8 +554,7 @@ async def list_message_ids(category: str = "", account: int = 0, unread: int = -
     return {"total": total, "ids": [r["id"] for r in rows], "limit": SELECT_ALL_LIMIT}
 
 
-@app.get("/api/messages")
-async def list_messages(category: str = "", account: int = 0, unread: int = -1,
+def _list_messages_sync(category: str = "", account: int = 0, unread: int = -1,
                         q: str = "", page: int = 1, page_size: int = 40, bill_tier: str = ""):
     conn = get_conn()
     cond, args = _message_filter(category, account, unread, q, bill_tier)
@@ -566,6 +570,12 @@ async def list_messages(category: str = "", account: int = 0, unread: int = -1,
         args + [page_size, offset],
     ).fetchall()
     return {"total": total, "page": page, "items": [dict(r) for r in rows]}
+
+
+@app.get("/api/messages")
+async def list_messages(category: str = "", account: int = 0, unread: int = -1,
+                        q: str = "", page: int = 1, page_size: int = 40, bill_tier: str = ""):
+    return await asyncio.to_thread(_list_messages_sync, category, account, unread, q, page, page_size, bill_tier)
 
 
 @app.get("/api/messages/{msg_id}")
@@ -935,8 +945,7 @@ def _display_category(category: str, bill_tier: str) -> str:
     return "重要账单" if name == "账单" else name
 
 
-@app.get("/api/overview")
-async def overview():
+def _overview_sync():
     conn = get_conn()
     day_start = datetime.now(sync.TZ).replace(hour=0, minute=0, second=0, microsecond=0).timestamp()
 
@@ -995,6 +1004,11 @@ async def overview():
         "digest": dict(digest) if digest else None,
         "ai_enabled": ai.ai_config()["enabled"],
     }
+
+
+@app.get("/api/overview")
+async def overview():
+    return await asyncio.to_thread(_overview_sync)
 
 
 # ---------- 摘要 ----------
@@ -1176,7 +1190,7 @@ def _save_oauth_settings(body: SettingsBody, *, prefix: str, provider: str, labe
 async def put_settings(body: SettingsBody, request: Request = None):
     # 先校验密码，避免密码错误时其他设置已被部分保存
     if body.new_password is not None:
-        if not verify_password(body.old_password or "", get_setting("admin_hash")):
+        if not await asyncio.to_thread(verify_password, body.old_password or "", get_setting("admin_hash")):
             raise HTTPException(status_code=400, detail="原密码错误")
         if len(body.new_password) < 8:
             raise HTTPException(status_code=400, detail="新密码至少 8 位")
@@ -1197,7 +1211,8 @@ async def put_settings(body: SettingsBody, request: Request = None):
     _save_oauth_settings(body, prefix="google", provider="gmail", label="Google")
     _save_oauth_settings(body, prefix="microsoft", provider="outlook", label="Microsoft")
     if body.new_password is not None:
-        set_setting("admin_hash", hash_password(body.new_password))
+        new_hash = await asyncio.to_thread(hash_password, body.new_password)
+        set_setting("admin_hash", new_hash)
         _remove_initial_password_file()
         # 改密码让所有旧会话失效，当前设备换发新会话继续使用
         token, source = _request_token(request)

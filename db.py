@@ -212,6 +212,16 @@ MIGRATIONS = [
 
 def get_conn() -> sqlite3.Connection:
     conn = getattr(_local, "conn", None)
+    cached_path = getattr(_local, "path", None)
+    if conn is not None and cached_path != DB_PATH:
+        try:
+            conn.close()
+        except Exception:
+            pass
+        conn = None
+        _local.conn = None
+        _local.path = None
+
     if conn is None:
         os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
         conn = sqlite3.connect(DB_PATH, timeout=30)
@@ -220,6 +230,7 @@ def get_conn() -> sqlite3.Connection:
         conn.execute("PRAGMA synchronous=NORMAL")
         conn.execute("PRAGMA foreign_keys=ON")
         _local.conn = conn
+        _local.path = DB_PATH
     return conn
 
 
