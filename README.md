@@ -122,6 +122,17 @@ uvicorn app:app --host 127.0.0.1 --port 8018
 
 打开 `http://127.0.0.1:8018`。
 
+### 演示数据
+
+只想看看界面、不接真实邮箱时，可以生成一个完全合成的数据库：
+
+```powershell
+$env:MAILHUB_SECRET = "demo-secret-not-for-production-0123456789"
+.\venv\Scripts\python scripts/seed_demo.py --db data/demo.db --count 300 --admin-password "demo-pass-2026" --reset
+```
+
+脚本只创建 `imap_host=demo.invalid` 的禁用账户，发件域全部是 `*.example`；库里只要有一个真实账户就会拒绝运行（`--reset` 也一样），`data/demo.db` 已被 `.gitignore` 排除。
+
 ## 测试与质量门槛
 
 ```bash
