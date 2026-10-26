@@ -9,12 +9,20 @@
 #   compileSdk 36 + Gradle 9.1.0 冲突，所以取仍支持 compileSdk 36 的最新稳定版：
 #   BOM 2026.06.01（compose.ui 1.11.4，minCompileSdk=35）、core-ktx 1.18.0（minCompileSdk=36）、
 #   activity-compose 1.12.4（minCompileSdk=36）。
+# - Robolectric 4.17：Maven Central maven-metadata 里的最新稳定版；4.17 的 release notes 明确
+#   支持 SDK 36（"Run preinstrumented with SDK 36 on CI"），pom 只依赖 androidx.test:monitor:1.8.0
+#   （该 AAR 没有 aar-metadata.properties，不限制 compileSdk）。
+# - Roborazzi 1.77.0：Maven Central maven-metadata 里的最新稳定版；roborazzi 和 roborazzi-compose
+#   两个 AAR 的 META-INF/com/android/build/gradle/aar-metadata.properties 都是
+#   minCompileSdk=1、minAndroidGradlePluginVersion=1.0.0，对 compileSdk 36 / AGP 9.0.1 没有限制。
 agp = "9.0.1"
 kotlin = "2.4.21"
 composeBom = "2026.06.01"
 activityCompose = "1.12.4"
 coreKtx = "1.18.0"
 junit = "4.13.2"
+robolectric = "4.17"
+roborazzi = "1.77.0"
 
 
 [libraries]
@@ -24,10 +32,17 @@ androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", versi
 androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
 androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
 androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
+androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
+robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+# 别名用 roborazzi-android 是为了避开与 roborazzi-compose 的 accessor 冲突；artifact 名仍是 roborazzi
+roborazzi-android = { group = "io.github.takahirom.roborazzi", name = "roborazzi", version.ref = "roborazzi" }
+roborazzi-compose = { group = "io.github.takahirom.roborazzi", name = "roborazzi-compose", version.ref = "roborazzi" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 # 只用于把 KGP 版本拉到与 compose 插件一致；AGP 9.0 的内置 Kotlin 不要求在模块里 apply 它
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }
