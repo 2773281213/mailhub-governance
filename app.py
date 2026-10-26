@@ -15,7 +15,7 @@ from urllib.parse import urlparse
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 import ai
 import governance
@@ -836,9 +836,9 @@ async def gen_digest():
         raise HTTPException(status_code=502, detail=f"生成失败: {str(e)[:200]}")
 
 
-async def _run_governance_api(trigger: str):
+async def _run_governance_api(trigger: str, since_days: int = 0):
     result = await asyncio.to_thread(
-        governance.run_governance, limit=0, trigger=trigger
+        governance.run_governance, limit=0, trigger=trigger, since_days=since_days
     )
     # 裁决后才推送重要/安全新邮件；推送条目不随接口返回
     sync.push_alerts(result.pop("alerts", None))
@@ -858,11 +858,17 @@ async def governance_status():
     return governance.governance_status()
 
 
+class GovernanceRunBody(BaseModel):
+    # 0 = 只处理待分拣的邮件；1-90 = 重新分拣最近这些天的全部邮件
+    days: int = Field(default=0, ge=0, le=90)
+
+
 @app.post("/api/governance/run")
-async def governance_run():
+async def governance_run(body: GovernanceRunBody | None = None):
     """一键执行完整自动治理，不删除、转发、回复或访问邮件中的外部内容。"""
+    days = body.days if body else 0
     try:
-        return await _run_governance_api("user-one-click")
+        return await _run_governance_api("user-resort" if days else "user-one-click", since_days=days)
     except HTTPException:
         raise
     except Exception as e:

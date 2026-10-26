@@ -23,6 +23,10 @@ health_check() {
 #    所以 venv 在 staging 里创建、随目录一起搬到正式路径也能正常工作。
 sudo install -d -o root -g mailhub -m 0750 "$staging"
 sudo tar -xzf "$archive" -C "$staging"
+# static/vendor（echarts、字体等第三方文件）不在仓库里：压缩包没带时沿用线上的那份
+if [ ! -d "$staging/static/vendor" ] && sudo test -d "$live/static/vendor"; then
+  sudo cp -a "$live/static/vendor" "$staging/static/vendor"
+fi
 sudo python3 -m venv "$staging/venv"
 sudo "$staging/venv/bin/python" -m pip install --disable-pip-version-check \
   -r "$staging/requirements.txt" pytest

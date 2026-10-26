@@ -102,6 +102,30 @@ function governanceCardHtml(status) {
     </div>`;
 }
 
+/* 一键分拣：只处理待分拣邮件；没有待分拣时询问是否重新分拣最近 7 天 */
+const RESORT_DAYS = 7;
+function governanceSummary(run) {
+  const parts = [`处理 ${run.processed_count || 0} 封`];
+  if (run.ai_count) parts.push(`AI 判定 ${run.ai_count} 封`);
+  if (run.fallback_count) parts.push(`规则兜底 ${run.fallback_count} 封`);
+  return parts.join("，");
+}
+async function runGovernanceFlow() {
+  let run = (await api("/governance/run", { method: "POST" })).last_run || {};
+  if ((run.selected_count || 0) > 0) {
+    toast(`自动分拣完成：${governanceSummary(run)}`);
+    return true;
+  }
+  if (!confirm(`没有待分拣的邮件：新邮件在同步时已经自动分拣过了。\n\n要按当前的规则和 AI 重新分拣最近 ${RESORT_DAYS} 天的邮件吗？（会调用 AI 接口，邮件较多时需要一些时间）`)) {
+    toast("没有待分拣的邮件");
+    return false;
+  }
+  toast(`正在重新分拣最近 ${RESORT_DAYS} 天的邮件…`);
+  run = (await api("/governance/run", { method: "POST", body: { days: RESORT_DAYS } })).last_run || {};
+  toast(`重新分拣完成：${governanceSummary(run)}`);
+  return true;
+}
+
 function bindGovernanceRun(root, refresh) {
   const button = $("[data-governance-run]", root);
   if (!button) return;
@@ -109,9 +133,7 @@ function bindGovernanceRun(root, refresh) {
     button.disabled = true;
     button.textContent = "三省会审中…";
     try {
-      const result = await api("/governance/run", { method: "POST" });
-      const run = result.last_run || {};
-      toast(`自动分拣完成：${run.processed_count || 0} 封，回退 ${run.fallback_count || 0} 封`);
+      await runGovernanceFlow();
       await refresh();
       refreshBadge();
     } catch (e) {
@@ -1338,11 +1360,7 @@ async function renderSettings() {
   });
   $("#s-classify-now").addEventListener("click", async ev => {
     ev.target.disabled = true; ev.target.textContent = "三省会审中…";
-    try {
-      const result = await api("/governance/run", { method: "POST" });
-      const run = result.last_run || {};
-      toast(`自动分拣完成：${run.processed_count || 0} 封，回退 ${run.fallback_count || 0} 封`);
-    }
+    try { await runGovernanceFlow(); }
     catch (e) { toast(e.message, true); }
     ev.target.disabled = false; ev.target.textContent = "一键三省六部分拣";
   });

@@ -362,10 +362,14 @@ _PENDING_SQL = ("(COALESCE(m.governance_version,'') != ? OR m.needs_review=1"
                 " OR (m.ai_retry_ts > 0 AND m.ai_retry_ts <= ?))")
 
 
-def _select_ids(conn, *, limit: int, force: bool, now: float) -> list[int]:
+def _select_ids(conn, *, limit: int, force: bool, now: float, since_ts: float = 0) -> list[int]:
     where = "m.deleted_ts=0"
     args: list = []
-    if not force:
+    if since_ts > 0:
+        # 重新分拣最近几天：不论是否已治理过，窗口内的邮件全部重新走一遍
+        where += " AND m.date_ts >= ?"
+        args.append(since_ts)
+    elif not force:
         where += " AND " + _PENDING_SQL
         args += [VERSION, now]
     sql = f"SELECT m.id FROM messages m WHERE {where} ORDER BY m.date_ts DESC, m.id DESC"
@@ -518,8 +522,11 @@ def _claim_run(conn, *, trigger: str, started: float) -> int:
     return int(cur.lastrowid)
 
 
-def run_governance(*, limit: int = 0, force: bool = False, trigger: str = "system") -> dict:
+def run_governance(*, limit: int = 0, force: bool = False, trigger: str = "system",
+                   since_days: int = 0) -> dict:
     """一键运行完整自动治理；重复运行只处理未治理/旧版本邮件。
+
+    since_days > 0 时改为重新分拣最近这些天的全部邮件（用户主动发起）。
 
     返回值里的 alerts 是裁决后需要推送的新邮件，由调用方（sync.push_alerts）发送；
     除 AI 判定请求外，本模块不发起任何对外请求。
@@ -539,7 +546,8 @@ def run_governance(*, limit: int = 0, force: bool = False, trigger: str = "syste
             status.update({"ok": False, "busy": True})
             return status
 
-        ids = _select_ids(conn, limit=limit, force=force, now=started)
+        since_ts = started - max(0, int(since_days or 0)) * 86400 if since_days else 0
+        ids = _select_ids(conn, limit=limit, force=force, now=started, since_ts=since_ts)
         try:
             cfg = dict(ai.ai_config() or {})
         except Exception:
