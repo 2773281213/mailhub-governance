@@ -419,6 +419,11 @@ def _imap_response_text(data) -> str:
     return " ".join(parts).strip()
 
 
+def is_auth_failure(exc: Exception) -> bool:
+    """异常是否像认证失败（密码、授权码错误）。"""
+    return _is_auth_failure(exc)
+
+
 def _is_auth_failure(exc: Exception) -> bool:
     text = str(exc).lower()
     return any(token in text for token in (

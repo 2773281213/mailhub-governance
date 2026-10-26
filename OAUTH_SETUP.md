@@ -6,6 +6,7 @@ MailHub 按服务商能力选择认证方式，不会把普通邮箱密码伪装
 |---|---|---|
 | Microsoft Outlook / Hotmail | Microsoft 登录（授权码 + PKCE）；自有应用设备码登录备用 | 暂不启用登录 |
 | Gmail / Google Workspace | Google 登录（授权码 + PKCE） | Google 应用专用密码 |
+| Yahoo | Yahoo 应用专用密码（IMAP OAuth 需向 Yahoo 商务申请，未开放） | Yahoo 应用专用密码 |
 | QQ 邮箱 | 服务商客户端授权码 | 必须使用授权码 |
 | 腾讯企业邮 | 客户端专用密码 | 必须使用专用密码，主机固定 `imap.exmail.qq.com` |
 | 网易企业邮 | 客户端授权密码 | 主机固定 `imap.qiye.163.com`，企业自有域名需手动选择 |

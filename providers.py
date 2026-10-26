@@ -148,6 +148,28 @@ _ALL = (
                             "这里会出现「使用 Google 登录」，直接用 Google 账号授权即可添加。"),
     ),
     Provider(
+        # IMAP OAuth 需要向 Yahoo 商务申请批准，不对普通开发者开放，因此只支持应用专用密码。
+        # Yahoo! JAPAN（yahoo.co.jp）是独立服务、服务器不同，不在此列。
+        key="yahoo", label="Yahoo 邮箱", imap_host="imap.mail.yahoo.com",
+        domains=(
+            "yahoo.com", "ymail.com", "rocketmail.com", "myyahoo.com",
+            "yahoo.co.uk", "yahoo.ca", "yahoo.com.au", "yahoo.co.nz", "yahoo.ie", "yahoo.co.in",
+            "yahoo.com.sg", "yahoo.com.my", "yahoo.com.ph", "yahoo.co.id", "yahoo.com.vn",
+            "yahoo.com.hk", "yahoo.com.tw", "yahoo.co.th", "yahoo.fr", "yahoo.de", "yahoo.it",
+            "yahoo.es", "yahoo.se", "yahoo.gr", "yahoo.com.br", "yahoo.com.mx", "yahoo.com.ar",
+        ),
+        secret=SecretAuth(
+            APP_PASSWORD, "Yahoo 应用专用密码", "https://login.yahoo.com/account/security",
+            "打开 Yahoo 账户安全",
+            ("登录 Yahoo 账户安全页面，在「外部连接」中选择「生成应用专用密码」",
+             "随便填一个应用名称（如 MailHub）并生成",
+             "把生成的密码粘贴到下方（不是 Yahoo 登录密码）"),
+            troubleshoot=("生成页面打不开或提示异常时，换一个最近常用、已登录 Yahoo 的浏览器再试，"
+                          "不要用无痕模式。"),
+        ),
+        note="Yahoo 的 IMAP 只接受应用专用密码，账户登录密码不能用于 IMAP。",
+    ),
+    Provider(
         key="outlook", label="Outlook / Hotmail",
         domains=("outlook.com", "hotmail.com", "live.com", "msn.com"),
         imap_host="outlook.office365.com",

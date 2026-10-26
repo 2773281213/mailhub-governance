@@ -21,6 +21,7 @@ from pydantic import BaseModel, Field
 import ai
 import billing
 import governance
+import mail_client
 import notify
 import oauth_auth
 import policy
@@ -335,7 +336,13 @@ async def _probe_password_account(body: AccountBody, host: str, port: int):
     try:
         await asyncio.to_thread(oauth_auth.probe_connection, probe, body.secret)
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"连接测试失败: {str(exc)[:150]}") from exc
+        detail = f"连接测试失败: {str(exc)[:150]}"
+        meta = providers.get(body.provider)
+        # 最常见的错误是填了网页登录密码：明确提示这里要的是哪种密码
+        if meta and meta.secret and meta.secret.kind == providers.APP_PASSWORD \
+                and mail_client.is_auth_failure(exc):
+            detail += f"。请确认填写的是「{meta.secret.input_label}」，不是网页登录密码"
+        raise HTTPException(status_code=400, detail=detail) from exc
 
 
 @app.post("/api/accounts")
