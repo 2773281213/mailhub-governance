@@ -518,6 +518,37 @@ def test_six_ministry_routing_is_evidence_based(fresh_db, monkeypatch):
         assert row["governance_ministry"] == ministry
 
 
+def test_governance_resort_window_reprocesses_recent_mail_only(fresh_db, monkeypatch):
+    import time as _time
+    acc = _mk_account(fresh_db)
+    now = _time.time()
+    recent = _insert_msg(fresh_db, acc, 1, category="通知", date_ts=now - 86400)
+    old = _insert_msg(fresh_db, acc, 2, category="通知", date_ts=now - 30 * 86400)
+    monkeypatch.setattr(governance.ai, "ai_config", lambda: {"enabled": False})
+
+    assert governance.run_governance(trigger="test")["last_run"]["processed_count"] == 2
+    # 全部治理过：普通一键分拣没有可处理的邮件
+    assert governance.run_governance(trigger="test")["last_run"]["selected_count"] == 0
+    # 重新分拣最近 7 天：只处理窗口内的那封
+    result = governance.run_governance(trigger="test", since_days=7)
+    assert result["last_run"]["selected_count"] == 1
+    decided = {r["message_id"] for r in fresh_db.execute(
+        "SELECT message_id FROM governance_decisions WHERE run_id=?", (result["last_run"]["id"],))}
+    assert decided == {recent} and old not in decided
+
+
+def test_governance_run_api_accepts_resort_days(fresh_db, monkeypatch):
+    calls = []
+    monkeypatch.setattr(governance, "run_governance",
+                        lambda **kw: calls.append(kw) or {"last_run": {}})
+    asyncio.run(mailhub_app.governance_run(mailhub_app.GovernanceRunBody(days=7)))
+    asyncio.run(mailhub_app.governance_run())
+    assert calls[0]["since_days"] == 7 and calls[0]["trigger"] == "user-resort"
+    assert calls[1]["since_days"] == 0 and calls[1]["trigger"] == "user-one-click"
+    with pytest.raises(Exception):
+        mailhub_app.GovernanceRunBody(days=365)
+
+
 def test_governance_persists_redacted_decision_and_is_idempotent(fresh_db, monkeypatch):
     acc = _mk_account(fresh_db)
     mid = _insert_msg(fresh_db, acc, 1, category="通知", subject="TOP SECRET SUBJECT")
