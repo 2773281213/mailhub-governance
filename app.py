@@ -714,6 +714,31 @@ async def list_messages(category: str = "", account: int = 0, unread: int = -1,
                                    page_size, bill_tier, before_ts, before_id, cursor)
 
 
+# ---------- 已读状态双向同步：本地改动登记 ----------
+
+def _register_flag_push(conn, ids: list[int], flag: int) -> list[int]:
+    """登记「待写回服务器的已读状态」，返回涉及的账户 id（去重、升序）。
+
+    flag：1 = 下次同步要把这些邮件在服务器上标为已读（本地同时置已读），
+    -1 = 标为未读（本地同时置未读）。调用方负责只传入状态确实发生变化的邮件，
+    返回的账户 id 供调用方逐个触发同步。
+    """
+    if not ids:
+        return []
+    ph = ",".join("?" * len(ids))
+    conn.execute(f"UPDATE messages SET unread=?, flag_push=? WHERE id IN ({ph})",
+                 [0 if flag > 0 else 1, 1 if flag > 0 else -1] + list(ids))
+    rows = conn.execute(
+        f"SELECT DISTINCT account_id FROM messages WHERE id IN ({ph})", list(ids)).fetchall()
+    return sorted({int(r["account_id"]) for r in rows})
+
+
+def _trigger_read_state_sync(account_ids: list[int]):
+    """让这些账户尽快跑一次同步；同一请求里每个账户只触发一次。"""
+    for acc_id in sorted(set(account_ids)):
+        sync.engine.trigger(acc_id)
+
+
 @app.get("/api/messages/{msg_id}")
 async def get_message(msg_id: int, mark_read: bool = True):
     conn = get_conn()
@@ -729,8 +754,15 @@ async def get_message(msg_id: int, mark_read: bool = True):
     # 打开即本地标记已读（服务器端标记由前端显式调用）；
     # App 预览用 mark_read=false 只看内容，不改未读状态
     if mark_read and d["unread"]:
-        conn.execute("UPDATE messages SET unread=0 WHERE id=?", (msg_id,))
+        push = sync.read_state_sync_enabled()
+        if push:
+            # 开关开启：本地标已读的同时登记待推送，下一次同步写回服务器 \Seen
+            accounts = _register_flag_push(conn, [int(d["id"])], 1)
+        else:
+            conn.execute("UPDATE messages SET unread=0 WHERE id=?", (msg_id,))
         conn.commit()
+        if push:
+            _trigger_read_state_sync(accounts)
     return d
 
 
@@ -910,6 +942,8 @@ async def batch_messages(body: BatchBody):
 
     errors = []
     undo_payload = None
+    push_accounts: list[int] = []
+    read_state_on = sync.read_state_sync_enabled()
     if action == "purge":
         # 不可逆：先在服务器删，再从本地移除，审计记录标注不可撤销
         succeeded, errors = await asyncio.to_thread(_server_op, allowed_ids, "delete")
@@ -930,12 +964,26 @@ async def batch_messages(body: BatchBody):
             ph = ",".join("?" * len(allowed_ids))
             conn.execute(f"UPDATE messages SET unread=? WHERE id IN ({ph})",
                          [0 if action == "read" else 1] + allowed_ids)
+            if read_state_on:
+                if body.server:
+                    # 已经直接写到了邮箱服务器，这些邮件不再有待推送的标记
+                    conn.execute(f"UPDATE messages SET flag_push=0 WHERE id IN ({ph})",
+                                 allowed_ids)
+                else:
+                    # 纯本地改动：只给状态真的变了的邮件登记待推送，避免把没变化的
+                    # 邮件也写回服务器
+                    want = 0 if action == "read" else 1
+                    changed = [m["id"] for m in msgs
+                               if m["id"] in set(allowed_ids)
+                               and int(m["unread"] or 0) != want]
+                    push_accounts = _register_flag_push(conn, changed, 1 if want == 0 else -1)
             # server=True 时已读状态已经写到了邮箱服务器；撤销只能改回本地字段，
             # 两边从此不一致。所以只对纯本地的已读/未读记录撤销载荷。
             if not body.server:
                 prev = {m["id"]: m["unread"] for m in msgs if m["id"] in set(allowed_ids)}
                 undo_payload = {"unread": prev}
     conn.commit()
+    _trigger_read_state_sync(push_accounts)
 
     overrode = override and action in policy.DESTRUCTIVE_ACTIONS and any(
         policy.is_protected(m)[0] for m in msgs if m["id"] in set(allowed_ids))
@@ -1081,6 +1129,7 @@ async def undo_action(audit_id: int):
 
     payload = json.loads(row["undo_payload"])
     restored = 0
+    push_accounts: list[int] = []
     if row["action"] == "soft_delete":
         ids = payload.get("ids", [])[:2000]
         if ids:
@@ -1088,11 +1137,19 @@ async def undo_action(audit_id: int):
             restored = conn.execute(
                 f"UPDATE messages SET deleted_ts=0 WHERE id IN ({ph})", ids).rowcount
     elif row["action"] in ("read", "unread"):
-        for mid, prev in (payload.get("unread") or {}).items():
+        pairs = [(int(mid), int(prev)) for mid, prev in (payload.get("unread") or {}).items()]
+        for mid, prev in pairs:
             restored += conn.execute(
-                "UPDATE messages SET unread=? WHERE id=?", (int(prev), int(mid))).rowcount
+                "UPDATE messages SET unread=? WHERE id=?", (prev, mid)).rowcount
+        if pairs and sync.read_state_sync_enabled():
+            # 撤销把已读状态改了回来：按恢复后的状态登记待推送
+            # （恢复成未读就标 -1，恢复成已读就标 1）
+            for group, flag in (([mid for mid, prev in pairs if not prev], 1),
+                               ([mid for mid, prev in pairs if prev], -1)):
+                push_accounts += _register_flag_push(conn, group, flag)
     conn.execute("UPDATE audit_log SET undone=1 WHERE id=?", (audit_id,))
     conn.commit()
+    _trigger_read_state_sync(push_accounts)
     audit("undo", actor="user", tier="A", target_ids=[audit_id],
           reason=f"撤销审计 #{audit_id}（{row['action']}），恢复 {restored} 封")
     return {"ok": True, "restored": restored}
@@ -1310,6 +1367,7 @@ class SettingsBody(BaseModel):
     clean_otp_days: int | None = None
     clean_server: bool | None = None
     clean_bill_minor_days: int | None = None
+    sync_read_state: bool | None = None      # 已读状态双向同步，默认关闭
     bill_amount_threshold: float | None = None
     bill_routine_count: int | None = None
     bill_auto_renew: str | None = None      # 重要 / 一般
@@ -1357,6 +1415,7 @@ async def get_settings():
         "ai_backfill_days": cfg["backfill_days"],
         "clean_otp_days": int(get_setting("clean_otp_days", "0") or 0),
         "clean_server": get_setting("clean_server", "0") == "1",
+        "sync_read_state": sync.read_state_sync_enabled(),
         "clean_bill_minor_days": int(get_setting("clean_bill_minor_days", "0") or 0),
         "bill_amount_threshold": float(get_setting("bill_amount_threshold", "")
                                        or billing.DEFAULTS["amount_threshold"]),
@@ -1518,6 +1577,8 @@ async def put_settings(body: SettingsBody, request: Request = None):
         set_setting("clean_otp_days", str(max(0, body.clean_otp_days)))
     if body.clean_server is not None:
         set_setting("clean_server", "1" if body.clean_server else "0")
+    if body.sync_read_state is not None:
+        set_setting("sync_read_state", "1" if body.sync_read_state else "0")
     if body.digest_hour is not None:
         set_setting("digest_hour", str(min(23, max(0, body.digest_hour))))
     # 推送凭据只存加密键，旧明文键顺手清掉；clear 优先于同一请求里的新值

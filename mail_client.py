@@ -377,6 +377,27 @@ class ImapSession:
                     self._probe_parts[uid] = (head, payload)
         return sizes
 
+    def fetch_flags(self, uids: list[int]) -> dict[int, set[str]]:
+        """查询邮件在服务器上的标记集合：UID -> {\\Seen, \\Flagged, ...}。
+
+        分块执行 UID FETCH <set> (FLAGS)。服务器没有返回、响应失败或命令抛异常的
+        UID 不会出现在结果里，调用方应按「状态未知」处理，不要据此改本地状态。
+        """
+        flags: dict[int, set[str]] = {}
+        for uidset in _uid_chunks([int(u) for u in uids]):
+            try:
+                typ, data = self.conn.uid("fetch", uidset, "(FLAGS)")
+            except Exception:
+                continue
+            if typ != "OK":
+                continue
+            for head, _payload in _iter_heads(data):
+                uid = _uid_of(head)
+                if uid <= 0:
+                    continue
+                flags[uid] = set(_flags_of(head).split())
+        return flags
+
     def fetch_messages(self, uids: list[int]) -> tuple[list[dict], set[int]]:
         """按 UID 抓取邮件（BODY.PEEK 不改变已读状态），返回 (解析后的邮件, 失败 UID)。
 

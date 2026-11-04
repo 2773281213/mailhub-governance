@@ -211,6 +211,8 @@ MIGRATIONS = [
     "CREATE INDEX IF NOT EXISTS idx_msg_deleted_date ON messages(deleted_ts, date_ts DESC, id DESC)",
     # 大邮件保护：正文只存了头部和开头的 1MB 时置 1，提示用户到网页邮箱看原文
     "ALTER TABLE messages ADD COLUMN body_truncated INTEGER DEFAULT 0",
+    # 已读状态双向同步的待推送标记：1 = 要在服务器上标为已读，-1 = 标为未读，0 = 无
+    "ALTER TABLE messages ADD COLUMN flag_push INTEGER DEFAULT 0",
 ]
 
 

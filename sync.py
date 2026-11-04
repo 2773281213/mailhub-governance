@@ -213,6 +213,100 @@ def _rebind_by_message_id(conn, acc_id: int, message: dict) -> bool:
     return True
 
 
+# ---------- 已读状态双向同步（可选开关 sync_read_state，默认关闭） ----------
+
+# 拉取方向每轮只看最近这么多封本地未读邮件，避免每轮把整个收件箱的 FLAGS 都取一遍
+READ_STATE_PULL_LIMIT = 200
+
+
+def read_state_sync_enabled() -> bool:
+    """「与邮箱服务器同步已读状态」开关是否开启。
+
+    两个方向必须由同一个开关控制：只开拉取时，用户在 MailHub 里标的未读会被
+    服务器的 \\Seen 冲回已读。
+    """
+    return get_setting("sync_read_state", "0") == "1"
+
+
+def _has_seen(marks) -> bool:
+    """标记集合里是否有 \\Seen（兼容 bytes 与大小写差异）。"""
+    for mark in marks or ():
+        text = mark.decode(errors="replace") if isinstance(mark, bytes) else str(mark)
+        if text.strip().lower() == "\\seen":
+            return True
+    return False
+
+
+def _push_read_state(sess, conn, acc_id: int):
+    """把本地登记的已读/未读改动写回服务器，成功的邮件清掉待推送标记。
+
+    只处理 uid > 0 的行：UIDVALIDITY 变化后解绑的旧记录在服务器上已经没有 UID。
+    失败保留 flag_push，下一轮同步再试。
+    """
+    rows = conn.execute(
+        """SELECT id, uid, flag_push FROM messages
+           WHERE account_id=? AND flag_push != 0 AND uid > 0 ORDER BY uid""",
+        (acc_id,),
+    ).fetchall()
+    if not rows:
+        return
+    groups: dict[int, list[tuple[int, int]]] = {}
+    for r in rows:
+        groups.setdefault(1 if int(r["flag_push"]) > 0 else -1, []).append(
+            (int(r["id"]), int(r["uid"])))
+    for flag_push in sorted(groups):
+        items = groups[flag_push]
+        try:
+            sess.mark_read([uid for _mid, uid in items], flag_push > 0)
+        except Exception as exc:
+            # 尽力而为：只记日志（不含凭据），标记保留到下一轮重试
+            print(f"[MailHub] 账户{acc_id} 推送已读状态失败：{str(exc)[:120]}", flush=True)
+            continue
+        conn.executemany("UPDATE messages SET flag_push=0 WHERE id=?",
+                         [(mid,) for mid, _uid in items])
+        conn.commit()
+
+
+def _pull_read_state(sess, conn, acc_id: int):
+    """把服务器上已读的邮件同步为本地已读。
+
+    只做「服务器已读 → 本地已读」这一个方向：本地未读的邮件才会有变化，
+    flag_push != 0 的邮件不在候选里，所以用户刚标的未读不会被冲回已读。
+    """
+    rows = conn.execute(
+        """SELECT id, uid FROM messages
+           WHERE account_id=? AND unread=1 AND flag_push=0 AND deleted_ts=0 AND uid > 0
+           ORDER BY uid DESC LIMIT ?""",
+        (acc_id, READ_STATE_PULL_LIMIT),
+    ).fetchall()
+    if not rows:
+        return
+    by_uid = {int(r["uid"]): int(r["id"]) for r in rows}
+    server_flags = sess.fetch_flags(sorted(by_uid)) or {}
+    seen_ids = [by_uid[int(uid)] for uid, marks in server_flags.items()
+                if int(uid) in by_uid and _has_seen(marks)]
+    if not seen_ids:
+        return
+    conn.executemany("UPDATE messages SET unread=0 WHERE id=?", [(mid,) for mid in seen_ids])
+    conn.commit()
+
+
+def _sync_read_state(sess, conn, acc_id: int):
+    """已读状态双向同步：先推送本地改动，再拉取服务器标记。
+
+    两个方向都是尽力而为：任何异常只记日志（不含凭据），不影响本轮新邮件的同步，
+    也不把账户状态置为 error。
+    """
+    try:
+        _push_read_state(sess, conn, acc_id)
+    except Exception as exc:
+        print(f"[MailHub] 账户{acc_id} 推送已读状态异常：{str(exc)[:120]}", flush=True)
+    try:
+        _pull_read_state(sess, conn, acc_id)
+    except Exception as exc:
+        print(f"[MailHub] 账户{acc_id} 拉取已读状态异常：{str(exc)[:120]}", flush=True)
+
+
 def sync_account(acc_id: int) -> int:
     """同步单个账户，返回新邮件数；线程内调用"""
     lock = _sync_locks.setdefault(acc_id, threading.Lock())
@@ -233,10 +327,17 @@ def sync_account(acc_id: int) -> int:
         try:
             uidvalidity = sess.select_inbox()
             last_uid = acc["last_uid"]
+            uid_rebuilt = False
             if uidvalidity and acc["uidvalidity"] and uidvalidity != acc["uidvalidity"]:
                 # UIDVALIDITY 变化说明服务器重建了邮箱，旧 UID 全部作废
                 _unbind_stale_uids(conn, acc_id, uidvalidity)
                 last_uid = 0
+                uid_rebuilt = True
+            # 已读状态双向同步放在搜索新邮件之前：推送 + 拉取都是尽力而为，
+            # 失败只记日志，不影响本轮新邮件入库。UIDVALIDITY 刚变化的那一轮跳过，
+            # 因为旧 UID 已经作废，按旧 UID 读写只会误改服务器上的其他邮件。
+            if not uid_rebuilt and read_state_sync_enabled():
+                _sync_read_state(sess, conn, acc_id)
             uids = sess.search_uids(last_uid)
             new_count = 0
             fresh: list[dict] = []   # 本轮新入库的邮件，用于推送通知
