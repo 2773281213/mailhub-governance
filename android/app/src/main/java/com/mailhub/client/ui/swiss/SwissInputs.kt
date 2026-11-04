@@ -23,6 +23,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
@@ -88,6 +89,10 @@ fun SearchField(
 /**
  * 文字型筛选项：只有一个文字加一条下划线。
  * 选中时文字粗体、下划线 2dp；不做胶囊、不做圆角、没有底色块。
+ *
+ * 触控区最小 48dp，文字往下压到触控区底部、下划线再贴在最下面，
+ * 所以同一行里每个筛选项的下划线都落在同一条线上。与之同处一行的纯文字按钮
+ * 要自己按 [FilterOptionTextBottomInset] 对齐首行基线（见收件箱筛选行）。
  */
 @Composable
 fun FilterOption(
@@ -121,8 +126,17 @@ fun FilterOption(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(2.dp)
+                .height(FilterUnderlineThickness)
                 .background(if (selected) colors.foreground else colors.background),
         )
     }
 }
+
+/** 筛选项下划线的粗细：选中时画前景色，未选中时画一条背景色的同高轨道把位置占住。 */
+val FilterUnderlineThickness: Dp = 2.dp
+
+/**
+ * 筛选项的文字下沿到触控区底边的距离：文字与下划线之间的留白，加上下划线本身。
+ * 和筛选项同处一行的纯文字按钮靠它换算首行基线，这样两边不用各自记住内部留白。
+ */
+val FilterOptionTextBottomInset: Dp = SwissSpace.Xxs + FilterUnderlineThickness

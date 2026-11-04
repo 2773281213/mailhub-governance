@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -17,7 +18,11 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mailhub.client.data.model.Account
 import com.mailhub.client.ui.screens.common.MailRow
@@ -29,6 +34,7 @@ import com.mailhub.client.ui.swiss.ConfirmPanel
 import com.mailhub.client.ui.swiss.EmptyState
 import com.mailhub.client.ui.swiss.ErrorState
 import com.mailhub.client.ui.swiss.FilterOption
+import com.mailhub.client.ui.swiss.FilterOptionTextBottomInset
 import com.mailhub.client.ui.swiss.GridRow
 import com.mailhub.client.ui.swiss.HairlineRule
 import com.mailhub.client.ui.swiss.LoadingRule
@@ -135,21 +141,25 @@ private fun FilterSection(state: InboxUiState, onEvent: (InboxEvent) -> Unit) {
     Spacer(modifier = Modifier.height(SwissSpace.S))
     GridRow {
         FilterOption(
-            text = "全部",
+            text = AllFilterText,
             selected = !state.filters.unreadOnly,
             onClick = { onEvent(InboxEvent.SetUnreadOnly(false)) },
             modifier = Modifier.cols(1, 4),
         )
         FilterOption(
-            text = "未读",
+            text = UnreadFilterText,
             selected = state.filters.unreadOnly,
             onClick = { onEvent(InboxEvent.SetUnreadOnly(true)) },
             modifier = Modifier.cols(5, 4),
         )
+        val expandText = if (state.filtersExpanded) CollapseFiltersText else ExpandFiltersText
         RowTextButton(
-            text = if (state.filtersExpanded) CollapseFiltersText else ExpandFiltersText,
+            text = expandText,
             onClick = { onEvent(InboxEvent.ToggleFilters) },
             modifier = Modifier.cols(9, 4),
+            labelModifier = Modifier.padding(
+                top = filterRowLabelTopPadding(tabText = AllFilterText, buttonText = expandText),
+            ),
         )
     }
     Spacer(modifier = Modifier.height(SwissSpace.Xs))
@@ -187,6 +197,53 @@ private const val ExpandFiltersText = "筛选 →"
 
 /** 收起按钮的文字。 */
 private const val CollapseFiltersText = "收起 →"
+
+/** 状态筛选「全部」的文字。 */
+private const val AllFilterText = "全部"
+
+/** 状态筛选「未读」的文字。 */
+private const val UnreadFilterText = "未读"
+
+/**
+ * 让「筛选 →」与同一行的两个筛选项共用同一条首行基线的顶部内边距。
+ *
+ * 根因：`FilterOption` 的触控区固定 48dp，文字压在底部，下沿之下还留着
+ * [FilterOptionTextBottomInset]（文字与下划线之间的留白 + 下划线本身）；
+ * 而这行里的纯文字按钮是顶边摆放的，于是两者的首行基线差出一整段。
+ *
+ * 做法：把 caption 的首行基线换算成「离触控区底边多远」，再把 label 的首行基线
+ * 从它自己的顶边减掉，差多少就补多少顶部内边距。参与运算的全是测量结果和设计 token，
+ * 不含任何硬编码的间距数字。文字下移不影响触控区（仍是 48dp），也不动下划线的位置。
+ *
+ * 测量必须用这一行里真实的那两段文字：中英文字形回退到不同字体，行高和基线都不一样，
+ * 拿别的字符去量会差好几 dp（[tabText] 传筛选项的文字，[buttonText] 传按钮的文字）。
+ */
+@Composable
+private fun filterRowLabelTopPadding(tabText: String, buttonText: String): Dp {
+    val caption = SwissType.caption()
+    val label = SwissType.label()
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    return remember(measurer, caption, label, tabText, buttonText, density) {
+        with(density) {
+            val captionLine = measurer.measure(
+                text = AnnotatedString(tabText),
+                style = caption,
+                maxLines = 1,
+            )
+            val labelLine = measurer.measure(
+                text = AnnotatedString(buttonText),
+                style = label,
+                maxLines = 1,
+            )
+            // caption 首行基线到触控区底边的距离：底部留白 + 基线到文字下沿的距离
+            val captionBaselineFromBottom =
+                FilterOptionTextBottomInset.toPx() + (captionLine.size.height - captionLine.firstBaseline)
+            val targetFromTop = SwissSpace.Xl.toPx() - captionBaselineFromBottom
+            (targetFromTop - labelLine.firstBaseline).coerceAtLeast(0f).toDp()
+        }
+    }
+}
 
 /** 一组筛选项上方的 label。 */
 @Composable
@@ -369,13 +426,17 @@ private fun SelectActionBar(state: InboxUiState, onEvent: (InboxEvent) -> Unit) 
     }
 }
 
-/** 文字按钮：只有一行 label 文字和最小触控高度，不做底色、不做胶囊。 */
+/**
+ * 文字按钮：只有一行 label 文字和最小触控高度，不做底色、不做胶囊。
+ * [labelModifier] 加在文字上，用来和同一行的其它文字对齐首行基线（默认不缩进）。
+ */
 @Composable
 private fun RowTextButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    labelModifier: Modifier = Modifier,
 ) {
     val colors = LocalSwissColors.current
     val interactionSource = remember { MutableInteractionSource() }
@@ -393,6 +454,7 @@ private fun RowTextButton(
         SText(
             text = text,
             style = SwissType.label(),
+            modifier = labelModifier,
             color = colors.foreground,
             maxLines = 1,
         )

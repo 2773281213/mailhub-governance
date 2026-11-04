@@ -276,8 +276,9 @@ private fun DetailBody(
 private const val RiskyLinkBlockedTextBadge = "安全扫描判定这封邮件有风险，请勿点击其中的链接。"
 
 /**
- * 风险平涂块：红底占第 1–12 栏，里面的米白粗体文字从第 2 栏的栏线起排、到第 12 栏为止，
- * 与按钮、正文框的文字内缩方式一致。
+ * 风险平涂块：红底占第 1–12 栏，里面的米白粗体文字从第 2 栏的栏线起排、到第 11 栏的右缘为止，
+ * 也就是 cols(2, 10)：左侧内缩一栏，右侧留出一栏加一个栏间距的空白，两边对称。
+ * 文字右缘不能压到第 12 栏的右缘，那里正好是红块的边缘，长文本会贴着边缘排。
  *
  * 红底和文字是同一行里的两层：红底单独一个 GridRow，宽高都跟着整块走
  * （matchParentSize），这样它里面的栏线仍然是整页的栏线，文字才能落在真正的栏线上。
@@ -300,7 +301,7 @@ private fun RiskBlock(reasons: String) {
                 text = reasons,
                 style = SwissType.body().copy(fontWeight = FontWeight.Bold),
                 modifier = Modifier
-                    .cols(2, 11)
+                    .cols(2, 10)
                     .padding(vertical = SwissSpace.S),
                 color = SwissPalette.Paper,
             )

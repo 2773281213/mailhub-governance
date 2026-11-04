@@ -20,7 +20,8 @@ import org.robolectric.annotation.GraphicsMode
 import kotlin.math.abs
 
 /**
- * 风险块里的米白文字必须从第 2 栏的栏线起排、到第 12 栏为止。
+ * 风险块里的米白文字必须从第 2 栏的栏线起排、到第 11 栏的右缘为止（cols(2, 10)），
+ * 右侧留出一栏加一个栏间距的空白，与左侧内缩对称。
  *
  * 做法：渲染风险邮件详情，取正文里那行 risk_reasons 的节点边界，
  * 和 [gridSpecFor] 算出来的栏线比较（允许 1dp 的取整误差）。
@@ -60,9 +61,9 @@ class RiskBlockLayoutTest {
 
         val total = widthDp.dp
         val spec = gridSpecFor(total)
-        // 文字用 cols(2, 11)：左缘在第 2 栏线，右缘在第 12 栏的右缘
+        // 文字用 cols(2, 10)：左缘在第 2 栏线，右缘在第 11 栏的右缘
         val expectedLeft = spec.x(2, total)
-        val expectedRight = spec.x(2, total) + spec.spanWidth(11, total)
+        val expectedRight = spec.x(2, total) + spec.spanWidth(10, total)
 
         val bounds = composeRule.onNodeWithText(message.riskReasons, substring = true)
             .getBoundsInRoot()

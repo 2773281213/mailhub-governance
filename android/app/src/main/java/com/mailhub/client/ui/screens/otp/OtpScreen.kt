@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -14,8 +15,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -196,6 +201,10 @@ private fun LatestCode(
 /**
  * 「更早」里的一行：验证码 headline 等宽数字占第 1–5 栏，
  * 发件人占第 6–10 栏，时间占第 11–12 栏；行间用 1dp 细线分隔，点击整行即复制。
+ *
+ * 三种字号的行高不同，按顶边摆放时小字的首行基线会浮在数字之上；
+ * 这里用 [firstBaselinePadding] 量出各自的首行基线差，给发件人和时间补顶部内边距，
+ * 让三者的首行基线落在同一条线上（栏位不变）。
  */
 @Composable
 private fun EarlierRow(
@@ -205,6 +214,21 @@ private fun EarlierRow(
 ) {
     val colors = LocalSwissColors.current
     val interactionSource = remember { MutableInteractionSource() }
+    val codeStyle = earlierCodeStyle()
+    val senderText = otpSenderText(item)
+    val clockText = otpClockText(item.dateTs, zoneId)
+    val senderTop = firstBaselinePadding(
+        largeText = item.otpCode,
+        largeStyle = codeStyle,
+        smallText = senderText,
+        smallStyle = SwissType.label(),
+    )
+    val clockTop = firstBaselinePadding(
+        largeText = item.otpCode,
+        largeStyle = codeStyle,
+        smallText = clockText,
+        smallStyle = SwissType.caption(),
+    )
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -220,27 +244,61 @@ private fun EarlierRow(
         GridRow {
             SText(
                 text = item.otpCode,
-                style = earlierCodeStyle(),
+                style = codeStyle,
                 modifier = Modifier.cols(1, 5),
                 color = colors.foreground,
                 maxLines = 1,
             )
             SText(
-                text = otpSenderText(item),
+                text = senderText,
                 style = SwissType.label(),
-                modifier = Modifier.cols(6, 5),
+                modifier = Modifier
+                    .cols(6, 5)
+                    .padding(top = senderTop),
                 color = colors.foreground,
                 maxLines = 1,
             )
             SText(
-                text = otpClockText(item.dateTs, zoneId),
+                text = clockText,
                 style = SwissType.caption(),
-                modifier = Modifier.cols(11, 2),
+                modifier = Modifier
+                    .cols(11, 2)
+                    .padding(top = clockTop),
                 color = colors.foreground,
                 maxLines = 1,
             )
         }
         Spacer(modifier = Modifier.height(SwissSpace.Xs))
+    }
+}
+
+/**
+ * 两种字号的文字放在同一行里时，小字需要补多少顶部内边距才能和大字共用一条首行基线。
+ *
+ * 不同字号的行高不同，按顶边摆放时首行基线会错开，差值只能靠测量得到，
+ * 不能写死间距数字。行高和基线还跟字形有关：中文会回退到另一套字体，
+ * 行盒和基线都不一样，所以两边都传这一行里真实的文字，量出来的才对得上。
+ */
+@Composable
+private fun firstBaselinePadding(
+    largeText: String,
+    largeStyle: TextStyle,
+    smallText: String,
+    smallStyle: TextStyle,
+): Dp = with(LocalDensity.current) {
+    val measurer = rememberTextMeasurer()
+    remember(measurer, largeText, largeStyle, smallText, smallStyle, this) {
+        val largeBaseline = measurer.measure(
+            text = AnnotatedString(largeText),
+            style = largeStyle,
+            maxLines = 1,
+        ).firstBaseline
+        val smallBaseline = measurer.measure(
+            text = AnnotatedString(smallText),
+            style = smallStyle,
+            maxLines = 1,
+        ).firstBaseline
+        (largeBaseline - smallBaseline).coerceAtLeast(0f).toDp()
     }
 }
 
