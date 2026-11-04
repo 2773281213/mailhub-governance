@@ -113,6 +113,31 @@ class SessionManager(
         _state.value = SessionState.LoggedIn(session, client)
     }
 
+    /**
+     * 令牌原地更换：退出所有设备、改密码这类接口会返回新令牌并吊销旧令牌。
+     *
+     * 只在已登录时生效：用同一个服务器地址和新令牌建新客户端，把新会话落盘，
+     * 再把状态切到 [SessionState.LoggedIn]；切换后旧客户端的 401 会因为不再是
+     * 当前客户端而被忽略，不会让新会话退出。其他状态下什么都不做。
+     *
+     * [token] 不写日志。
+     */
+    suspend fun replaceToken(token: String, sessionId: String, expiresTs: Double): Boolean {
+        val current = _state.value as? SessionState.LoggedIn ?: return false
+        // 服务器地址被改坏时没有可信的来源，按不可切换处理
+        val url = current.session.serverUrl.toHttpUrlOrNull() ?: return false
+        val session = current.session.copy(
+            token = token,
+            sessionId = sessionId,
+            expiresTs = expiresTs,
+        )
+        val client = newClient(url, token)
+        store.save(session)
+        expiring.set(false)
+        _state.value = SessionState.LoggedIn(session, client)
+        return true
+    }
+
     /** 退出登录：清本地存储，状态转为 [SessionState.Reason.UserLogout]。 */
     suspend fun clearForLogout() {
         try {

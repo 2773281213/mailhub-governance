@@ -14,6 +14,7 @@ import retrofit2.HttpException
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import java.io.IOException
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
 private const val HTTP_UNAUTHORIZED = 401
@@ -58,11 +59,39 @@ class ApiClient(
             .build()
     }
 
-    val api: MailHubApi by lazy { retrofit.create(MailHubApi::class.java) }
+    /** 已创建的接口实例，按接口类型缓存；同一个接口只走一次 Retrofit 创建。 */
+    private val services = ConcurrentHashMap<Class<*>, Any>()
+
+    val api: MailHubApi by lazy { service(MailHubApi::class.java) }
+
+    /**
+     * 取任意功能声明的接口实例。
+     *
+     * 各功能在自己的目录里声明接口，用这里拿实例，就不必都往 [MailHubApi] 里加方法；
+     * 同一个客户端上同一个接口只会创建一次，重复调用返回同一个对象。
+     */
+    fun <S : Any> service(type: Class<S>): S {
+        services[type]?.let { cached ->
+            @Suppress("UNCHECKED_CAST")
+            return cached as S
+        }
+        val created = retrofit.create(type)
+        // 并发首次创建时只保留先放进去的那一个，保证同一个接口对外始终是同一个实例
+        val existing = services.putIfAbsent(type, created)
+        @Suppress("UNCHECKED_CAST")
+        return (existing ?: created) as S
+    }
 
     /** 所有接口统一走这里：失败时 Result 里是 [ApiError]，不会把解码异常抛给调用方。 */
-    suspend fun <T> call(block: suspend (MailHubApi) -> T): Result<T> = try {
-        Result.success(block(api))
+    suspend fun <T> call(block: suspend (MailHubApi) -> T): Result<T> = mapErrors { block(api) }
+
+    /** 功能自有接口的统一入口：错误映射与 [call] 完全一致，401 也照常回调。 */
+    suspend fun <S : Any, T> callService(type: Class<S>, block: suspend (S) -> T): Result<T> =
+        mapErrors { block(service(type)) }
+
+    /** [call] 与 [callService] 共用的异常映射，避免两处各写一份 try/catch。 */
+    private suspend fun <T> mapErrors(block: suspend () -> T): Result<T> = try {
+        Result.success(block())
     } catch (e: HttpException) {
         Result.failure(e.toApiError())
     } catch (e: IOException) {
