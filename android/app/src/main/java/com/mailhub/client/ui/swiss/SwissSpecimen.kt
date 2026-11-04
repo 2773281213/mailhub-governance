@@ -70,7 +70,8 @@ fun SwissSpecimen(
 
             SpecimenSection(index = "02", title = "颜色") {
                 GridRow {
-                    ColorSwatch("Ink #000000", SwissPalette.Ink, Modifier.cols(1, 2))
+                    // 深色模式下 Ink 色块和背景同色，必须像 Paper 色块一样加 1dp 前景色描边才看得见
+                    ColorSwatch("Ink #000000", SwissPalette.Ink, Modifier.cols(1, 2), outlined = true)
                     ColorSwatch("Paper #F2EDE4", SwissPalette.Paper, Modifier.cols(5, 2), outlined = true)
                     ColorSwatch("Red #DA291C", SwissPalette.Red, Modifier.cols(9, 2))
                 }

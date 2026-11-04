@@ -148,7 +148,9 @@ class SessionManager(
                 // 清不掉也不影响状态判定，下次启动会再次尝试
             }
         }
-        _state.value = target
+        // 清存储是挂起操作，挂起期间可能已经完成了新的登录，直接赋值会把它覆盖掉，
+        // 所以只在状态仍是 Restoring 时写入终态。
+        _state.compareAndSet(SessionState.Restoring, target)
     }
 
     /**

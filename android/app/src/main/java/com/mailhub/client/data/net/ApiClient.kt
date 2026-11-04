@@ -24,8 +24,6 @@ val ApiJson = Json {
     coerceInputValues = true
     // client、device_name 这类默认值也要编码进请求体
     encodeDefaults = true
-    // 后端偶发返回未加引号的字符串时也能解码
-    isLenient = true
 }
 
 /**

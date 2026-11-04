@@ -1,0 +1,70 @@
+package com.mailhub.client.ui.screens.shell
+
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import com.mailhub.client.ui.swiss.SwissTheme
+import org.junit.Assert.assertEquals
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
+
+/** 索引入口与全屏索引层：编号列表、点“退出”走二次确认回调、二级页面带上编号。 */
+@RunWith(RobolectricTestRunner::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(sdk = [36])
+class IndexLayerTest {
+
+    @get:Rule
+    val composeRule = createComposeRule()
+
+    @Test
+    @Config(qualifiers = "w360dp-h800dp-xxhdpi")
+    fun indexLayerListsAccountSettingsAndLogout() {
+        var closed = 0
+        var logout = 0
+        var secondary: Pair<String, String>? = null
+
+        composeRule.setContent {
+            SwissTheme {
+                IndexLayer(
+                    onOpenSecondary = { index, title -> secondary = index to title },
+                    onLogout = { logout++ },
+                    onClose = { closed++ },
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("账户").assertExists()
+        composeRule.onNodeWithText("设置").assertExists()
+        composeRule.onNodeWithText("退出").assertExists()
+
+        composeRule.onNodeWithText("退出").performClick()
+        assertEquals(1, logout)
+        assertEquals(null, secondary)
+
+        composeRule.onNodeWithText("账户").performClick()
+        assertEquals("05" to "账户", secondary)
+
+        composeRule.onNodeWithText("关闭").performClick()
+        assertEquals(1, closed)
+    }
+
+    @Test
+    @Config(qualifiers = "w360dp-h800dp-xxhdpi")
+    fun indexEntryOpensIndexLayer() {
+        var opened = 0
+
+        composeRule.setContent {
+            SwissTheme {
+                IndexEntry(onOpen = { opened++ })
+            }
+        }
+
+        composeRule.onNodeWithText("索引").performClick()
+        assertEquals(1, opened)
+    }
+}
