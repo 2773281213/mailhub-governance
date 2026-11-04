@@ -8,6 +8,8 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.github.takahirom.roborazzi.RoborazziOptions
+import com.github.takahirom.roborazzi.RoborazziTaskType
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.mailhub.client.ui.swiss.GridRow
 import com.mailhub.client.ui.swiss.MetaLine
@@ -147,19 +149,14 @@ class SwissAlignmentTest {
 
         val imageFile = File("build/alignment/accent-dark.png")
         imageFile.parentFile?.mkdirs()
-        val previousRecord = System.getProperty("roborazzi.test.record")
-        System.setProperty("roborazzi.test.record", "true")
-        try {
-            composeRule
-                .onNodeWithText("危险操作", substring = true, useUnmergedTree = true)
-                .captureRoboImage(imageFile.path)
-        } finally {
-            if (previousRecord == null) {
-                System.clearProperty("roborazzi.test.record")
-            } else {
-                System.setProperty("roborazzi.test.record", previousRecord)
-            }
-        }
+        // 这里要的是「无条件写一张临时截图再扫像素」，所以显式指定 taskType = Record：
+        // verifyRoborazziDebug 会把整个测试进程设成 verify 模式，运行时再改系统属性已经晚了。
+        composeRule
+            .onNodeWithText("危险操作", substring = true, useUnmergedTree = true)
+            .captureRoboImage(
+                imageFile.path,
+                RoborazziOptions(taskType = RoborazziTaskType.Record),
+            )
 
         val image = requireNotNull(ImageIO.read(imageFile)) { "读取截图失败：${imageFile.path}" }
         var paperPixels = 0

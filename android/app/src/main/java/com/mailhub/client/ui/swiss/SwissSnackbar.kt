@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 
 /** 前景色底、背景色字的一条提示，文字左边缘落在第 1 条栏线上。 */
 @Composable
@@ -20,7 +19,12 @@ fun SwissSnackbar(
         modifier = modifier
             .fillMaxWidth()
             .background(colors.foreground)
-            .padding(start = spec.margin, end = 16.dp, top = 12.dp, bottom = 12.dp),
+            .padding(
+                start = spec.margin,
+                end = SwissSpace.S,
+                top = SwissSpace.Xs,
+                bottom = SwissSpace.Xs,
+            ),
     ) {
         SText(
             text = message,

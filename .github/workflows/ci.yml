@@ -70,6 +70,6 @@ jobs:
           distribution: temurin
           java-version: "21"
       - uses: gradle/actions/setup-gradle@v4
-      - name: Build and unit test
-        run: ./gradlew --no-daemon :app:assembleDebug :app:testDebugUnitTest
+      - name: Build, guard, lint and screenshot verify
+        run: ./gradlew --no-daemon :app:swissGuard :app:swissGuardSelfTest :app:testDebugUnitTest :app:verifyRoborazziDebug :app:lintDebug :app:assembleDebug
 

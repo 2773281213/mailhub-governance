@@ -3,12 +3,16 @@ package com.mailhub.client
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import com.mailhub.client.ui.swiss.SwissSpecimen
 import com.mailhub.client.ui.swiss.SwissTheme
 
 /** T07 起用设计系统样张占位；T08 起接业务页面。 */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        // targetSdk 36 强制边到边显示：这里显式开启，让系统栏透明，
+        // 状态栏和导航栏的位置由 SwissScaffold 的 safeDrawing insets 让出来。
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent {
             SwissTheme {
