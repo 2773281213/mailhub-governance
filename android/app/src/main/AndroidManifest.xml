@@ -2,6 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 后台通知：API 33 起需要运行时申请，申请由集成任务弹出 -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- 周期任务设了 setPersisted(true)，开机后由系统恢复调度 -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:name=".MailHubApp"
@@ -37,6 +41,12 @@
                     android:scheme="mailhub" />
             </intent-filter>
         </activity>
+
+        <!-- 拉取 /api/changes 的周期任务：只允许系统的 JobScheduler 绑定，不对外导出 -->
+        <service
+            android:name=".work.ChangesJobService"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
     </application>
 
 </manifest>
