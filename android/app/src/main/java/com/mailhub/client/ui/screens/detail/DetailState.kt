@@ -128,6 +128,15 @@ fun judgeReasonText(detail: MessageDetail): String {
     return DetailEmptyValue
 }
 
+/**
+ * 是否显示验证码区块。
+ *
+ * 钓鱼邮件里的「验证码」是攻击者写进正文的，把它做成醒目的大号数字再加一个「复制」按钮，
+ * 等于在引导用户配合攻击。服务端入库时已经清空了中高风险邮件的 otp_code，
+ * 客户端这里再挡一层：只要是风险邮件就一律不显示，即使 [otpCode] 不为空。
+ */
+fun showsOtpBlock(isRisky: Boolean, otpCode: String): Boolean = !isRisky && otpCode.isNotBlank()
+
 /** 取详情的失败文案，一律用黑色正文说明。 */
 fun detailErrorText(error: Throwable): String = when (error) {
     is ApiError.Network -> "无法连接服务器，请检查网络后重试"

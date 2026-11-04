@@ -122,7 +122,10 @@ fun InboxScreen(
     }
 }
 
-/** 搜索框 + 状态、分类、账户三组筛选项。 */
+/**
+ * 搜索框 + 状态行 + 一行摘要；分类和账户两组筛选项默认收起，
+ * 点「筛选 →」才在摘要下方展开（同时按钮变成「收起 →」）。
+ */
 @Composable
 private fun FilterSection(state: InboxUiState, onEvent: (InboxEvent) -> Unit) {
     SearchField(
@@ -143,19 +146,58 @@ private fun FilterSection(state: InboxUiState, onEvent: (InboxEvent) -> Unit) {
             onClick = { onEvent(InboxEvent.SetUnreadOnly(true)) },
             modifier = Modifier.cols(5, 4),
         )
+        RowTextButton(
+            text = if (state.filtersExpanded) CollapseFiltersText else ExpandFiltersText,
+            onClick = { onEvent(InboxEvent.ToggleFilters) },
+            modifier = Modifier.cols(9, 4),
+        )
     }
     Spacer(modifier = Modifier.height(SwissSpace.Xs))
-    CategoryFilters(
-        categories = state.categories,
-        selected = state.filters.category,
-        onSelect = { onEvent(InboxEvent.SelectCategory(it)) },
-    )
-    if (state.accounts.isNotEmpty()) {
+    GridRow {
+        SText(
+            text = filtersSummary(state.filters, state.categories, state.accounts),
+            style = SwissType.caption(),
+            modifier = Modifier.cols(1, 12),
+            color = LocalSwissColors.current.foreground,
+            maxLines = 1,
+        )
+    }
+    if (state.filtersExpanded) {
         Spacer(modifier = Modifier.height(SwissSpace.Xs))
-        AccountFilters(
-            accounts = state.accounts,
-            selectedId = state.filters.accountId,
-            onSelect = { onEvent(InboxEvent.SelectAccount(it)) },
+        FilterGroupLabel(text = "分类")
+        CategoryFilters(
+            categories = state.categories,
+            selected = state.filters.category,
+            onSelect = { onEvent(InboxEvent.SelectCategory(it)) },
+        )
+        if (state.accounts.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(SwissSpace.S))
+            FilterGroupLabel(text = "账户")
+            AccountFilters(
+                accounts = state.accounts,
+                selectedId = state.filters.accountId,
+                onSelect = { onEvent(InboxEvent.SelectAccount(it)) },
+            )
+        }
+    }
+}
+
+/** 展开按钮的文字。 */
+private const val ExpandFiltersText = "筛选 →"
+
+/** 收起按钮的文字。 */
+private const val CollapseFiltersText = "收起 →"
+
+/** 一组筛选项上方的 label。 */
+@Composable
+private fun FilterGroupLabel(text: String) {
+    GridRow {
+        SText(
+            text = text,
+            style = SwissType.caption(),
+            modifier = Modifier.cols(1, 12),
+            color = LocalSwissColors.current.foreground,
+            maxLines = 1,
         )
     }
 }

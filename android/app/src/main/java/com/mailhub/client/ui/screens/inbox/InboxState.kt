@@ -4,6 +4,8 @@ import com.mailhub.client.data.model.Account
 import com.mailhub.client.data.model.MessageSummary
 import com.mailhub.client.data.net.ApiError
 import com.mailhub.client.ui.screens.common.MailRowData
+import com.mailhub.client.ui.screens.common.accountLabel
+import com.mailhub.client.ui.screens.common.categoryLabel
 import com.mailhub.client.ui.screens.common.displayCategoryNumber
 
 /** 每页 30 条，游标分页。 */
@@ -44,6 +46,11 @@ data class InboxUiState(
     val selected: Set<Long> = emptySet(),
     /** 删除二次确认面板是否打开。 */
     val confirmingDelete: Boolean = false,
+    /**
+     * 分类 / 账户两组筛选项是否展开。默认收起，只留搜索框、状态行和一行摘要，
+     * 让 360×800 的第一屏能看到邮件；展开与收起只是界面状态，不触发重新加载。
+     */
+    val filtersExpanded: Boolean = false,
     /** 批量操作进行中，按钮置为不可用。 */
     val busy: Boolean = false,
     /** 一次性提示，显示成 Snackbar。 */
@@ -68,6 +75,9 @@ sealed interface InboxEvent {
 
     /** 选账户；0 表示全部账户。 */
     data class SelectAccount(val accountId: Int) : InboxEvent
+
+    /** 展开 / 收起分类与账户两组筛选项；纯界面状态，不发请求。 */
+    data object ToggleFilters : InboxEvent
 
     data object Refresh : InboxEvent
 
@@ -103,6 +113,46 @@ fun categoryParams(displayCategory: String): Pair<String, String> {
         return "账单" to displayCategory.removeSuffix("账单")
     }
     return displayCategory to ""
+}
+
+/**
+ * 收起状态下的一行筛选摘要：「分类：全部 · 账户：全部账户」；
+ * 有生效的筛选时写具体值，例如「分类：05 安全 · 账户：A1 工作邮箱」。
+ */
+fun filtersSummary(
+    filters: InboxFilters,
+    categories: List<String>,
+    accounts: List<Account>,
+): String {
+    val category = if (filters.category.isBlank()) {
+        AllCategoriesSummary
+    } else {
+        categoryLabel(
+            displayCategoryNumber(categories, filters.category),
+            filters.category,
+        )
+    }
+    val account = accountSummary(filters.accountId, accounts)
+    return "分类：$category · 账户：$account"
+}
+
+/** 摘要里分类「不限」的写法。 */
+private const val AllCategoriesSummary = "全部"
+
+/** 摘要里账户「不限」的写法，和账户筛选项的第一项同名。 */
+private const val AllAccountsSummary = "全部账户"
+
+/** 账户摘要：「A1 工作邮箱」；对不上账户列表时退回「全部账户」。 */
+private fun accountSummary(accountId: Int, accounts: List<Account>): String {
+    if (accountId <= 0) return AllAccountsSummary
+    val account = accounts.firstOrNull { it.id == accountId } ?: return AllAccountsSummary
+    val label = accountLabel(accounts, account.id)
+    val name = account.name
+    return when {
+        name.isBlank() -> label.ifBlank { AllAccountsSummary }
+        label.isBlank() -> name
+        else -> "$label $name"
+    }
 }
 
 /** 追加一页并按下发顺序去重（服务端翻页边界可能重复一条）。 */

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -206,7 +207,7 @@ private fun DetailBody(
     TableRow(label = "判定依据", value = judgeReasonText(message))
     Spacer(modifier = Modifier.height(SwissSpace.S))
 
-    if (message.otpCode.isNotBlank()) {
+    if (showsOtpBlock(isRisky = message.isRisky, otpCode = message.otpCode)) {
         OtpBlock(
             code = message.otpCode,
             onCopy = { clipboard.copy(message.otpCode) },
@@ -275,22 +276,32 @@ private fun DetailBody(
 private const val RiskyLinkBlockedTextBadge = "安全扫描判定这封邮件有风险，请勿点击其中的链接。"
 
 /**
- * 风险平涂块：占第 1–12 栏，红底米白粗体，内容就是 risk_reasons。
+ * 风险平涂块：红底占第 1–12 栏，里面的米白粗体文字从第 2 栏的栏线起排、到第 12 栏为止，
+ * 与按钮、正文框的文字内缩方式一致。
+ *
+ * 红底和文字是同一行里的两层：红底单独一个 GridRow，宽高都跟着整块走
+ * （matchParentSize），这样它里面的栏线仍然是整页的栏线，文字才能落在真正的栏线上。
  */
 @Composable
 private fun RiskBlock(reasons: String) {
     val colors = LocalSwissColors.current
-    GridRow {
-        Box(
-            modifier = Modifier
-                .cols(1, 12)
-                .fillMaxWidth()
-                .background(colors.accent)
-                .padding(SwissSpace.S),
-        ) {
+    Box(modifier = Modifier.fillMaxWidth()) {
+        GridRow(modifier = Modifier.matchParentSize()) {
+            Box(
+                modifier = Modifier
+                    .cols(1, 12)
+                    .fillMaxWidth()
+                    .fillMaxHeight()
+                    .background(colors.accent),
+            )
+        }
+        GridRow {
             SText(
                 text = reasons,
                 style = SwissType.body().copy(fontWeight = FontWeight.Bold),
+                modifier = Modifier
+                    .cols(2, 11)
+                    .padding(vertical = SwissSpace.S),
                 color = SwissPalette.Paper,
             )
         }

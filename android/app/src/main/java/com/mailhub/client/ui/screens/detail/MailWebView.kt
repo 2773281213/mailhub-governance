@@ -75,6 +75,24 @@ fun allowsNetworkRequest(url: String, method: String, config: MailWebViewConfig)
 /** 确认框里显示的完整域名；解析不出主机名时原样返回地址。 */
 fun hostOf(url: String): String = runCatching { URI(url).host ?: url }.getOrDefault(url)
 
+/**
+ * 配置变化后是否需要重新加载正文。
+ *
+ * Android 官方文档对 `WebSettings.setBlockNetworkLoads` 的说明是：值从 true 改成 false 之后，
+ * 已经显示的正文引用的网络资源**不会**被重新抓取，必须先调用 `WebView#reload()`。
+ * 在 `about:blank` 基址下 `reload()` 的行为不可靠，所以这里改判为「重新加载一遍正文」，
+ * 由调用方再走一次 `loadDataWithBaseURL(...)`。
+ *
+ * 只有影响网络加载的两项会触发重载：[MailWebViewConfig.blockNetworkLoads] 与
+ * [MailWebViewConfig.allowRemoteImages]；其余安全设置的开关不改变已经渲染出来的内容。
+ * [old] 为空表示还没应用过配置（第一次加载），同样按需要加载处理。
+ */
+fun needsReload(old: MailWebViewConfig?, new: MailWebViewConfig): Boolean {
+    if (old == null) return true
+    return old.blockNetworkLoads != new.blockNetworkLoads ||
+        old.allowRemoteImages != new.allowRemoteImages
+}
+
 /** 把配置写进真实的 WebSettings。 */
 fun WebSettings.applyMailConfig(config: MailWebViewConfig) {
     javaScriptEnabled = config.javaScriptEnabled
@@ -162,12 +180,16 @@ fun MailBodyWebView(
             }
         },
         update = { view ->
+            // 配置是否要求重新加载正文，必须在写回 appliedConfig 之前算出来
+            val reloadForConfig = needsReload(view.appliedConfig, config)
+            val reloadForHtml = view.appliedHtml != html
             if (view.appliedConfig != config) {
                 view.settings.applyMailConfig(config)
                 view.webViewClient = MailBodyClient(config, onLink)
                 view.appliedConfig = config
             }
-            if (view.appliedHtml != html) {
+            // 放开 / 收回外部图片后必须重新加载正文，否则图片不会出现（也不会消失）
+            if (reloadForConfig || reloadForHtml) {
                 view.loadDataWithBaseURL(NoBaseUrl, html, HtmlMime, Charset, null)
                 view.appliedHtml = html
             }

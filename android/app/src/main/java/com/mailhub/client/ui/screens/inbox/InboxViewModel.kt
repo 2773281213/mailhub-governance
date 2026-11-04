@@ -62,6 +62,8 @@ class InboxViewModel(
             is InboxEvent.SetUnreadOnly -> changeFilters { it.copy(unreadOnly = event.unreadOnly) }
             is InboxEvent.SelectCategory -> changeFilters { it.copy(category = event.category) }
             is InboxEvent.SelectAccount -> changeFilters { it.copy(accountId = event.accountId) }
+            // 展开 / 收起只是界面状态，不重新加载；选择筛选项后仍然保持展开
+            InboxEvent.ToggleFilters -> _state.update { it.copy(filtersExpanded = !it.filtersExpanded) }
             InboxEvent.Refresh -> {
                 loadMeta()
                 reload()

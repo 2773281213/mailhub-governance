@@ -74,4 +74,42 @@ class MailWebViewConfigTest {
         // 解析不出主机名时原样显示地址
         assertEquals("about:blank", hostOf("about:blank"))
     }
+
+    @Test
+    fun firstConfigApplicationAlwaysLoadsTheBody() {
+        val config = mailWebViewConfig(isRisky = false, showExternalImages = false)
+
+        // 还没有应用过配置：正文本身要加载一次
+        assertTrue(needsReload(old = null, new = config))
+    }
+
+    @Test
+    fun turningOnRemoteImagesReloadsTheBody() {
+        val before = mailWebViewConfig(isRisky = false, showExternalImages = false)
+        val after = mailWebViewConfig(isRisky = false, showExternalImages = true)
+
+        // setBlockNetworkLoads 从 true 改成 false 之后，已经显示的内容不会重新抓图片，
+        // 必须重新加载正文，图片才会出现
+        assertTrue(needsReload(before, after))
+        // 反过来收回图片同样要重载，否则图片会一直留在屏幕上
+        assertTrue(needsReload(after, before))
+    }
+
+    @Test
+    fun onlyNetworkSettingsTriggerAReload() {
+        val base = mailWebViewConfig(isRisky = false, showExternalImages = false)
+        val risky = mailWebViewConfig(isRisky = true, showExternalImages = false)
+
+        // 配置完全没变：不重载
+        assertFalse(needsReload(base, base))
+        // 只有 link 相关的开关变了（这两项本来就不会变，这里作为纯函数的边界断言）：
+        // 不影响已经渲染出来的内容，不重载
+        assertFalse(needsReload(base, base.copy(allowLinks = true)))
+        assertFalse(needsReload(base, base.copy(javaScriptEnabled = false)))
+        // 风险与非风险之间切换的是 allowLinks，同样不重载
+        assertFalse(needsReload(base, risky))
+        // 网络设置一变就重载
+        assertTrue(needsReload(base, risky.copy(blockNetworkLoads = false)))
+        assertTrue(needsReload(base, base.copy(allowRemoteImages = true)))
+    }
 }
