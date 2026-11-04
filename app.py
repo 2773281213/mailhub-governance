@@ -158,6 +158,26 @@ def _request_token(request: Request | None) -> tuple[str | None, str]:
     return None, ""
 
 
+# OAuth 回调免会话白名单：只有这两条路径，provider 限定 [a-z0-9_]+ 且整段精确匹配，
+# 方法也必须分别是 GET / POST。不能放宽成 /api/oauth/ 前缀，否则会把 /api/oauth/start、
+# /api/oauth/providers 这类需要登录的接口一起放行。
+_OAUTH_CALLBACK_ROUTES = (
+    ("GET", re.compile(r"^/api/oauth/[a-z0-9_]+/callback$")),
+    ("POST", re.compile(r"^/api/oauth/[a-z0-9_]+/fragment$")),
+)
+# 免会话的依据：这两个端点既不读 cookie 也不读 Bearer，只按 /api/oauth/start 生成的 state
+# 定位事务。state 是 32 字节随机数，数据库里只存它的 SHA-256，10 分钟过期且只能消费一次；
+# 而 /api/oauth/start 本身需要登录，所以拿不到会话的 Custom Tabs 也只能完成自己发起的那次登录。
+# CSRF 校验对这些端点不变：fragment 的 POST 由 MailHub 自己的回调页同源发起，Origin 能通过。
+
+
+def _is_session_exempt(method: str, path: str) -> bool:
+    """判断请求是否免会话：登录、健康检查，以及上面两条 OAuth 回调端点。"""
+    if path in ("/api/login", "/api/health"):
+        return True
+    return any(method == verb and pattern.match(path) for verb, pattern in _OAUTH_CALLBACK_ROUTES)
+
+
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
     path = request.url.path
@@ -166,7 +186,7 @@ async def auth_middleware(request: Request, call_next):
         skip_csrf = (path != "/api/login" and source == "bearer" and COOKIE_NAME not in request.cookies)
         if not skip_csrf and not _is_same_origin(request):
             return JSONResponse({"detail": "跨站请求已拒绝"}, status_code=403)
-    if path.startswith("/api/") and path not in ("/api/login", "/api/health"):
+    if path.startswith("/api/") and not _is_session_exempt(request.method, path):
         if not sessions.verify_session(token):
             return JSONResponse({"detail": "未登录"}, status_code=401)
     return await call_next(request)
