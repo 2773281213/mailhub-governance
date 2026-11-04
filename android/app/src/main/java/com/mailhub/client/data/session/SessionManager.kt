@@ -58,6 +58,24 @@ class SessionManager(
     private val restoreMutex = Mutex()
     private var restored = false
 
+    /**
+     * 状态切换锁：「改存储 → 切状态」必须作为一个整体执行。
+     *
+     * 否则旧客户端的 401 处理可能在 [replaceToken] 落盘新令牌之后才清空存储，
+     * 界面显示已登录，存储里却什么都没有，下次启动就变成未登录。
+     * 持锁期间不做网络请求。
+     */
+    private val transitionMutex = Mutex()
+
+    /**
+     * 刚因 401 过期的会话（只在内存里，仅由 [transitionMutex] 保护）。
+     *
+     * 退出所有设备、改密码时，服务器先吊销旧令牌再返回新令牌；同一时刻在途的旧令牌请求
+     * 收到 401 会先把会话判为过期。随后到达的 [replaceToken] 用它恢复到新令牌，
+     * 避免用户被自己的操作踢下线。主动退出、重新登录都会清掉它。
+     */
+    private var lastExpired: Session? = null
+
     /** 并发 401 只处理一次，避免重复清存储、重复发事件。 */
     private val expiring = AtomicBoolean(false)
 
@@ -108,46 +126,61 @@ class SessionManager(
 
     /** 登录成功后调用：先落盘，再切换到已登录状态。 */
     suspend fun activate(session: Session, client: ApiClient) {
-        store.save(session)
-        expiring.set(false)
-        _state.value = SessionState.LoggedIn(session, client)
+        transitionMutex.withLock {
+            store.save(session)
+            lastExpired = null
+            expiring.set(false)
+            _state.value = SessionState.LoggedIn(session, client)
+        }
     }
 
     /**
      * 令牌原地更换：退出所有设备、改密码这类接口会返回新令牌并吊销旧令牌。
      *
-     * 只在已登录时生效：用同一个服务器地址和新令牌建新客户端，把新会话落盘，
-     * 再把状态切到 [SessionState.LoggedIn]；切换后旧客户端的 401 会因为不再是
-     * 当前客户端而被忽略，不会让新会话退出。其他状态下什么都不做。
+     * 已登录时：用同一个服务器地址和新令牌建新客户端，把新会话落盘，再把状态切到
+     * [SessionState.LoggedIn]；切换后旧客户端的 401 会因为不再是当前客户端而被忽略。
+     *
+     * 旧令牌在途请求的 401 抢先把会话判为过期时，用 [lastExpired] 恢复到新令牌。
+     * 未登录、主动退出等其他状态下什么都不做，返回 false。
      *
      * [token] 不写日志。
      */
-    suspend fun replaceToken(token: String, sessionId: String, expiresTs: Double): Boolean {
-        val current = _state.value as? SessionState.LoggedIn ?: return false
-        // 服务器地址被改坏时没有可信的来源，按不可切换处理
-        val url = current.session.serverUrl.toHttpUrlOrNull() ?: return false
-        val session = current.session.copy(
-            token = token,
-            sessionId = sessionId,
-            expiresTs = expiresTs,
-        )
-        val client = newClient(url, token)
-        store.save(session)
-        expiring.set(false)
-        _state.value = SessionState.LoggedIn(session, client)
-        return true
-    }
+    suspend fun replaceToken(token: String, sessionId: String, expiresTs: Double): Boolean =
+        transitionMutex.withLock {
+            val base = when (val now = _state.value) {
+                is SessionState.LoggedIn -> now.session
+                is SessionState.LoggedOut ->
+                    lastExpired.takeIf { now.reason == SessionState.Reason.Expired }
+                SessionState.Restoring -> null
+            } ?: return@withLock false
+            // 服务器地址被改坏时没有可信的来源，按不可切换处理
+            val url = base.serverUrl.toHttpUrlOrNull() ?: return@withLock false
+            val session = base.copy(
+                token = token,
+                sessionId = sessionId,
+                expiresTs = expiresTs,
+            )
+            val client = newClient(url, token)
+            store.save(session)
+            lastExpired = null
+            expiring.set(false)
+            _state.value = SessionState.LoggedIn(session, client)
+            true
+        }
 
     /** 退出登录：清本地存储，状态转为 [SessionState.Reason.UserLogout]。 */
     suspend fun clearForLogout() {
-        try {
-            store.clear()
-        } catch (e: CancellationException) {
-            throw e
-        } catch (_: Exception) {
-            // 本地清理失败也要把状态切到未登录，否则界面会卡在登录态
+        transitionMutex.withLock {
+            try {
+                store.clear()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                // 本地清理失败也要把状态切到未登录，否则界面会卡在登录态
+            }
+            lastExpired = null
+            _state.value = SessionState.LoggedOut(SessionState.Reason.UserLogout)
         }
-        _state.value = SessionState.LoggedOut(SessionState.Reason.UserLogout)
     }
 
     private suspend fun readStoredSession(): Session? = try {
@@ -159,23 +192,26 @@ class SessionManager(
         null
     }
 
-    /** 恢复过程中的终态只在还处于 [SessionState.Restoring] 时写入，避免覆盖刚完成的登录。 */
+    /**
+     * 恢复过程中的终态只在还处于 [SessionState.Restoring] 时写入，避免覆盖刚完成的登录。
+     * 清存储与写终态在 [transitionMutex] 里一起完成：否则清存储可能抹掉刚登录落盘的新会话。
+     */
     private suspend fun settleRestore(target: SessionState, clearStore: Boolean) {
-        if (_state.value !is SessionState.Restoring) {
-            return
-        }
-        if (clearStore) {
-            try {
-                store.clear()
-            } catch (e: CancellationException) {
-                throw e
-            } catch (_: Exception) {
-                // 清不掉也不影响状态判定，下次启动会再次尝试
+        transitionMutex.withLock {
+            if (_state.value !is SessionState.Restoring) {
+                return
             }
+            if (clearStore) {
+                try {
+                    store.clear()
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (_: Exception) {
+                    // 清不掉也不影响状态判定，下次启动会再次尝试
+                }
+            }
+            _state.value = target
         }
-        // 清存储是挂起操作，挂起期间可能已经完成了新的登录，直接赋值会把它覆盖掉，
-        // 所以只在状态仍是 Restoring 时写入终态。
-        _state.compareAndSet(SessionState.Restoring, target)
     }
 
     /**
@@ -192,19 +228,21 @@ class SessionManager(
         }
         scope.launch {
             try {
-                val now = _state.value
-                if (now is SessionState.LoggedIn && now.client === client) {
-                    try {
-                        store.clear()
-                    } catch (e: CancellationException) {
-                        throw e
-                    } catch (_: Exception) {
-                        // 存储清理失败也要让界面回到未登录
+                transitionMutex.withLock {
+                    // 拿到锁后再确认一次：等锁期间可能已经换了令牌或重新登录，
+                    // 那样这个 401 属于旧客户端，必须忽略，不能清掉新会话
+                    val now = _state.value
+                    if (now is SessionState.LoggedIn && now.client === client) {
+                        try {
+                            store.clear()
+                        } catch (e: CancellationException) {
+                            throw e
+                        } catch (_: Exception) {
+                            // 存储清理失败也要让界面回到未登录
+                        }
+                        lastExpired = now.session
+                        _state.value = SessionState.LoggedOut(SessionState.Reason.Expired)
                     }
-                    _state.compareAndSet(
-                        now,
-                        SessionState.LoggedOut(SessionState.Reason.Expired),
-                    )
                 }
             } finally {
                 expiring.set(false)
