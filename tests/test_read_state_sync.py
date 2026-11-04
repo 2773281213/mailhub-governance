@@ -438,3 +438,81 @@ def test_fetch_flags_parses_flags_and_chunks_uids():
     assert flags[2] == set()
     assert 250 not in flags        # 服务器没返回的 UID 不出现
     assert len(flags) == 249
+
+# ---------------- 11. 条件写入：推送期间用户改了意图，新意图不能被清掉 ----------------
+
+class _RaceSession(FakeReadStateSession):
+    """在推送 / 拉取的关键时刻插一次「用户操作」，模拟 API 线程与同步线程交错。
+
+    真实场景里 API 线程用自己的连接在另一个线程里改库；这里在假会话的回调里
+    直接改同一张表，时机等价：都发生在同步线程读完库、写回之前。
+    """
+
+    def __init__(self, *args, on_mark_read=None, on_fetch_flags=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.on_mark_read = on_mark_read
+        self.on_fetch_flags = on_fetch_flags
+
+    def mark_read(self, uids, read=True):
+        # 先完成服务器上的置位，再让「用户」改本地库，最后才轮到同步线程清标记
+        super().mark_read(uids, read)
+        if self.on_mark_read:
+            self.on_mark_read(list(uids), read)
+
+    def fetch_flags(self, uids):
+        flags = super().fetch_flags(uids)
+        if self.on_fetch_flags:
+            self.on_fetch_flags(list(uids), flags)
+        return flags
+
+
+def test_push_keeps_user_flip_to_unread_during_push(fresh_db, monkeypatch):
+    """推送期间用户把同一封邮件改成未读（flag_push=-1）：新意图不能被清掉。"""
+    acc = _mk_account(fresh_db)
+    mid = _insert_msg(fresh_db, acc, 1, unread=0, flag_push=1)
+    fresh_db.execute("UPDATE accounts SET uidvalidity=4, last_uid=1 WHERE id=?", (acc,))
+    fresh_db.commit()
+    _enable_read_state_sync(fresh_db)
+
+    def user_marks_unread(uids, read):
+        """模拟用户在这封邮件的 \\Seen 刚写到服务器时又点了「标为未读」。"""
+        fresh_db.execute("UPDATE messages SET unread=1, flag_push=-1 WHERE id=?", (mid,))
+        fresh_db.commit()
+
+    session = _RaceSession(4, server_flags={1: set()}, on_mark_read=user_marks_unread)
+    _run_sync(monkeypatch, acc, session)
+
+    assert session.mark_read_calls == [([1], True)]
+    # 推送只清掉「刚推的 1」，用户新登记的 -1 必须保留
+    assert _field(fresh_db, mid, "flag_push") == -1
+    assert _field(fresh_db, mid, "unread") == 1
+
+    # 下一轮按新意图推送：在服务器上标回未读
+    nxt = _RaceSession(4, server_flags={1: {"\\Seen"}})
+    _run_sync(monkeypatch, acc, nxt)
+
+    assert nxt.mark_read_calls == [([1], False)]
+    assert _field(fresh_db, mid, "flag_push") == 0
+    assert _field(fresh_db, mid, "unread") == 1
+
+
+def test_pull_keeps_user_marked_unread_after_query(fresh_db, monkeypatch):
+    """拉取：查询之后用户把这封邮件标为未读，写回不能把它冲回已读。"""
+    acc = _mk_account(fresh_db)
+    mid = _insert_msg(fresh_db, acc, 1, unread=1)
+    fresh_db.execute("UPDATE accounts SET uidvalidity=6, last_uid=1 WHERE id=?", (acc,))
+    fresh_db.commit()
+    _enable_read_state_sync(fresh_db)
+
+    def user_marks_unread(uids, flags):
+        """服务器说 uid 1 带 \\Seen，就在这一刻用户点了「标为未读」。"""
+        fresh_db.execute("UPDATE messages SET unread=1, flag_push=-1 WHERE id=?", (mid,))
+        fresh_db.commit()
+
+    session = _RaceSession(6, server_flags={1: {"\\Seen"}}, on_fetch_flags=user_marks_unread)
+    _run_sync(monkeypatch, acc, session)
+
+    assert session.fetch_flags_calls == [[1]]
+    # 写回带了 unread=1 AND flag_push=0 的条件，用户刚标的未读必须保住
+    assert _field(fresh_db, mid, "unread") == 1
+    assert _field(fresh_db, mid, "flag_push") == -1

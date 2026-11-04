@@ -238,7 +238,7 @@ def _has_seen(marks) -> bool:
 
 
 def _push_read_state(sess, conn, acc_id: int):
-    """把本地登记的已读/未读改动写回服务器，成功的邮件清掉待推送标记。
+    """把本地登记的已读/未读改动写回服务器，成功的邮件只清掉刚推送的那个待推送值。
 
     只处理 uid > 0 的行：UIDVALIDITY 变化后解绑的旧记录在服务器上已经没有 UID。
     失败保留 flag_push，下一轮同步再试。
@@ -262,8 +262,10 @@ def _push_read_state(sess, conn, acc_id: int):
             # 尽力而为：只记日志（不含凭据），标记保留到下一轮重试
             print(f"[MailHub] 账户{acc_id} 推送已读状态失败：{str(exc)[:120]}", flush=True)
             continue
-        conn.executemany("UPDATE messages SET flag_push=0 WHERE id=?",
-                         [(mid,) for mid, _uid in items])
+        # 只清除刚推送的那个值：推送期间用户若又把同一封邮件改成相反的意图
+        # （flag_push 从 1 变成 -1），那次新改动必须留着，下一轮再按新意图推送。
+        conn.executemany("UPDATE messages SET flag_push=0 WHERE id=? AND flag_push=?",
+                         [(mid, flag_push) for mid, _uid in items])
         conn.commit()
 
 
@@ -271,7 +273,8 @@ def _pull_read_state(sess, conn, acc_id: int):
     """把服务器上已读的邮件同步为本地已读。
 
     只做「服务器已读 → 本地已读」这一个方向：本地未读的邮件才会有变化，
-    flag_push != 0 的邮件不在候选里，所以用户刚标的未读不会被冲回已读。
+    flag_push != 0 的邮件不在候选里，写回时再用 unread=1 AND flag_push=0 复核一次，
+    所以查询与写回之间用户刚标的未读也不会被冲回已读。
     """
     rows = conn.execute(
         """SELECT id, uid FROM messages
@@ -287,7 +290,11 @@ def _pull_read_state(sess, conn, acc_id: int):
                 if int(uid) in by_uid and _has_seen(marks)]
     if not seen_ids:
         return
-    conn.executemany("UPDATE messages SET unread=0 WHERE id=?", [(mid,) for mid in seen_ids])
+    # 写回时再校验一次「仍是未读且没有新的本地改动」：查询与写回之间用户可能刚
+    # 把这封邮件标成未读（unread=1、flag_push=-1），不能被服务器的 \Seen 冲回已读。
+    conn.executemany(
+        "UPDATE messages SET unread=0 WHERE id=? AND unread=1 AND flag_push=0",
+        [(mid,) for mid in seen_ids])
     conn.commit()
 
 
