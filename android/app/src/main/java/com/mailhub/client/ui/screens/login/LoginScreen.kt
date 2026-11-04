@@ -26,7 +26,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mailhub.client.AppContainer
 import com.mailhub.client.ui.screens.common.PageMeta
 import com.mailhub.client.ui.screens.common.pageMetaOf
-import com.mailhub.client.ui.swiss.GeoCircle
+import com.mailhub.client.ui.swiss.GeoBar
 import com.mailhub.client.ui.swiss.GeoSquare
 import com.mailhub.client.ui.swiss.GridRow
 import com.mailhub.client.ui.swiss.IndexLabel
@@ -40,10 +40,11 @@ import com.mailhub.client.ui.swiss.SwissSpace
 import com.mailhub.client.ui.swiss.SwissTextField
 import com.mailhub.client.ui.swiss.SwissType
 import com.mailhub.client.ui.swiss.cols
+import com.mailhub.client.ui.swiss.geoSide
 import java.time.Year
 
 /**
- * 登录页（无状态）。构图不对称：编号和元信息占顶部一行，黑色方块与红色圆错开摆放，
+ * 登录页（无状态）。构图不对称：编号和元信息占顶部一行，黑色方块与红色竖条错开摆放，
  * 大标题压在左侧，表单单栏排开，主按钮只占左侧 6 栏。
  * 提交中显示加载条；失败时出错的输入框画红色下划线，说明一律用黑色正文。
  */
@@ -81,10 +82,14 @@ fun LoginScreen(
                 color = colors.foreground,
                 modifier = Modifier.cols(1, 6),
             )
-            // 圆的顶边比方块低一个段落间距，两者错开
-            Column(modifier = Modifier.cols(8, 3)) {
+            // 红色竖条的顶边比方块低一个段落间距，两者错开
+            Column(modifier = Modifier.cols(8, 1)) {
                 Spacer(modifier = Modifier.height(SwissSpace.Xxl))
-                GeoCircle(span = 3, color = colors.accent)
+                GeoBar(
+                    widthSpan = 1,
+                    height = geoSide(6),
+                    color = colors.accent,
+                )
             }
         }
         Spacer(modifier = Modifier.height(SwissSpace.Xl))

@@ -16,7 +16,7 @@ import androidx.compose.ui.Modifier
 import kotlinx.coroutines.delay
 
 /**
- * 空状态：用简单几何形构图（一个前景色方块加一个红色圆），不对称摆放，
+ * 空状态：用简单几何形构图（一个前景色方块加一根红色横条），不对称摆放，
  * 下面接编号、标题和说明。没有装饰插画，也不用透明度。
  */
 @Composable
@@ -34,11 +34,15 @@ fun EmptyState(
                 color = colors.foreground,
                 modifier = Modifier.cols(1, 4),
             )
-            GeoCircle(
-                span = 2,
-                color = colors.accent,
-                modifier = Modifier.cols(6, 2),
-            )
+            // 红色横条贴在黑方块的底边上：先空出「方块边长减去横条高度」的距离
+            Column(modifier = Modifier.cols(6, 4)) {
+                Spacer(modifier = Modifier.height(geoSide(4) - SwissSpace.Xs))
+                GeoBar(
+                    widthSpan = 4,
+                    height = SwissSpace.Xs,
+                    color = colors.accent,
+                )
+            }
         }
         Spacer(modifier = Modifier.height(SwissSpace.M))
         GridRow {

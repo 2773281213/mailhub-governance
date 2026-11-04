@@ -91,18 +91,17 @@ dependencies {
 private data class SwissGuardRule(
     val name: String,
     val pattern: Regex,
-    /** 豁免的文件，按项目相对路径（例如 src/main/java/com/mailhub/client/ui/swiss/GeoShapes.kt）。 */
+    /** 豁免的文件，按项目相对路径（例如 src/main/java/com/mailhub/client/ui/swiss/SwissPalette.kt）。 */
     val exceptions: Set<String> = emptySet(),
     /** 只对匹配该路径的规则生效，例如只检查 ui/screens 下的硬编码间距。 */
     val pathPattern: Regex? = null,
 )
 
-private val swissGeoShapes = "src/main/java/com/mailhub/client/ui/swiss/GeoShapes.kt"
 private val swissPalette = "src/main/java/com/mailhub/client/ui/swiss/SwissPalette.kt"
 
 private val swissGuardRules: List<SwissGuardRule> = listOf(
     SwissGuardRule("圆角", Regex("RoundedCornerShape")),
-    SwissGuardRule("圆形", Regex("CircleShape"), exceptions = setOf(swissGeoShapes)),
+    SwissGuardRule("圆形", Regex("CircleShape")),
     SwissGuardRule("阴影", Regex("\\.shadow\\(|elevation")),
     SwissGuardRule("渐变画刷", Regex("Brush\\.\\w*Gradient")),
     SwissGuardRule("资源 XML 阴影与高程", Regex("android:elevation|shadowColor")),
@@ -112,12 +111,10 @@ private val swissGuardRules: List<SwissGuardRule> = listOf(
     SwissGuardRule(
         "居中布局",
         Regex("Alignment\\.(Center|CenterHorizontally|TopCenter|BottomCenter)\\b|Arrangement\\.Center\\b"),
-        exceptions = setOf(swissGeoShapes),
     ),
     SwissGuardRule(
         "边缘对齐布局",
         Regex("Alignment\\.(CenterStart|CenterEnd|TopEnd|BottomEnd|CenterVertically)\\b"),
-        exceptions = setOf(swissGeoShapes),
     ),
     SwissGuardRule("均分排列", Regex("Arrangement\\.Space(Evenly|Around)")),
     SwissGuardRule("颜色字面量", Regex("Color\\(0x"), exceptions = setOf(swissPalette)),
@@ -133,7 +130,7 @@ private val swissGuardRules: List<SwissGuardRule> = listOf(
     SwissGuardRule("切角与裁剪", Regex("CutCornerShape|\\.clip\\(")),
     SwissGuardRule("模糊", Regex("\\.blur\\(")),
     SwissGuardRule("自定义画刷", Regex("ShaderBrush")),
-    SwissGuardRule("圆形绘制", Regex("drawCircle"), exceptions = setOf(swissGeoShapes)),
+    SwissGuardRule("圆形绘制", Regex("drawCircle")),
     SwissGuardRule("位图资源", Regex("painterResource")),
     SwissGuardRule(
         "透明度",
