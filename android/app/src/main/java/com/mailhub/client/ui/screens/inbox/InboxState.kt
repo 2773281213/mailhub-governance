@@ -2,13 +2,12 @@ package com.mailhub.client.ui.screens.inbox
 
 import com.mailhub.client.data.model.Account
 import com.mailhub.client.data.model.MessageSummary
+import com.mailhub.client.data.model.senderDisplay
 import com.mailhub.client.data.net.ApiError
 import com.mailhub.client.ui.screens.common.MailRowData
 import com.mailhub.client.ui.screens.common.accountLabel
 import com.mailhub.client.ui.screens.common.categoryLabel
 import com.mailhub.client.ui.screens.common.displayCategoryNumber
-import com.mailhub.client.ui.screens.common.riskLevelIsRisky
-import com.mailhub.client.ui.screens.common.senderLabel
 
 /** 每页 30 条，游标分页。 */
 const val InboxPageSize: Int = 30
@@ -178,7 +177,7 @@ const val EmptySubjectText: String = "(无主题)"
  * 列表里的一封邮件换成共享行的数据：分类用 display_category（账单展开成
  * 「重要账单」「一般账单」），编号取 /api/meta 的下发顺序。
  *
- * 发件人一律走 [senderLabel]：风险邮件、显示名里嵌着别的地址的邮件都显示真实地址，
+ * 发件人一律走 [senderDisplay]：风险邮件、显示名里嵌着别的地址的邮件都显示真实地址，
  * 不替攻击者展示伪造成官方样子的显示名。
  */
 fun mailRowOf(item: MessageSummary, categories: List<String>): MailRowData {
@@ -186,7 +185,7 @@ fun mailRowOf(item: MessageSummary, categories: List<String>): MailRowData {
     return MailRowData(
         id = item.id,
         subject = item.subject.ifBlank { EmptySubjectText },
-        sender = senderLabel(item.senderName, item.senderAddr, riskLevelIsRisky(item.riskLevel)),
+        sender = item.senderDisplay,
         dateTs = item.dateTs,
         isUnread = item.isUnread,
         snippet = item.summary.ifBlank { item.snippet },

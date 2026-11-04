@@ -1,5 +1,6 @@
 package com.mailhub.client.ui.screens.inbox
 
+import com.mailhub.client.data.model.MessageSummary
 import com.mailhub.client.data.net.ApiError
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -59,5 +60,27 @@ class InboxStateTest {
         assertEquals("无法连接服务器，请检查网络后重试", inboxErrorText(ApiError.Network("timeout")))
         assertEquals("登录已过期，请重新登录", inboxErrorText(ApiError.Unauthorized()))
         assertEquals("受保护邮件", inboxErrorText(ApiError.Forbidden("受保护邮件", protected = true)))
+    }
+
+    /** 发件人防伪造：列表行必须走共享的显示规则，不能直接用显示名。 */
+    @Test
+    fun inboxRowUsesTheLabelNotTheRawDisplayName() {
+        val riskyMail = MessageSummary(
+            id = 1,
+            subject = "账户存在异常登录，请立即验证你的身份",
+            senderName = "service@paypal.com",
+            senderAddr = "notice@paypa1-secure.example",
+            riskLevel = "high",
+        )
+        val normalMail = MessageSummary(
+            id = 2,
+            subject = "本月账单已生成",
+            senderName = "云服务账单",
+            senderAddr = "billing@cloud.example",
+            riskLevel = "none",
+        )
+
+        assertEquals("notice@paypa1-secure.example", mailRowOf(riskyMail, emptyList()).sender)
+        assertEquals("云服务账单", mailRowOf(normalMail, emptyList()).sender)
     }
 }

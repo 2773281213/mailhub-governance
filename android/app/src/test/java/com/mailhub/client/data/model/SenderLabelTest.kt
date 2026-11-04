@@ -1,7 +1,5 @@
-package com.mailhub.client.ui.screens.common
+package com.mailhub.client.data.model
 
-import com.mailhub.client.data.model.MessageSummary
-import com.mailhub.client.ui.screens.inbox.mailRowOf
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -46,23 +44,9 @@ class SenderLabelTest {
     }
 
     @Test
-    fun inboxRowUsesTheLabelNotTheRawDisplayName() {
-        val riskyMail = MessageSummary(
-            id = 1,
-            subject = "账户存在异常登录，请立即验证你的身份",
-            senderName = forgedAddress,
-            senderAddr = realAddress,
-            riskLevel = "high",
-        )
-        val normalMail = MessageSummary(
-            id = 2,
-            subject = "本月账单已生成",
-            senderName = "云服务账单",
-            senderAddr = "billing@cloud.example",
-            riskLevel = "none",
-        )
-
-        assertEquals(realAddress, mailRowOf(riskyMail, emptyList()).sender)
-        assertEquals("云服务账单", mailRowOf(normalMail, emptyList()).sender)
+    fun summaryUsesTheSameRuleAsTheRawFunction() {
+        val risky = MessageSummary(senderName = "PayPa1 安全中心", senderAddr = realAddress, riskLevel = "high")
+        assertEquals(realAddress, risky.senderDisplay)
+        assertEquals("PayPa1 安全中心", risky.copy(riskLevel = "none").senderDisplay)
     }
 }

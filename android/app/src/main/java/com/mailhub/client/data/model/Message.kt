@@ -28,6 +28,9 @@ data class MessageSummary(
 ) {
     val isUnread: Boolean get() = unread == 1
     val hasAttachment: Boolean get() = hasAttach == 1
+
+    /** 是否被安全扫描判定为需要提醒的邮件。 */
+    val isRisky: Boolean get() = riskLevelIsRisky(riskLevel)
 }
 
 @Serializable
@@ -85,7 +88,7 @@ data class MessageDetail(
     val isBodyTruncated: Boolean get() = bodyTruncated == 1
 
     /** 是否被安全扫描判定为需要提醒的邮件。 */
-    val isRisky: Boolean get() = riskLevel == "medium" || riskLevel == "high"
+    val isRisky: Boolean get() = riskLevelIsRisky(riskLevel)
 }
 
 @Serializable

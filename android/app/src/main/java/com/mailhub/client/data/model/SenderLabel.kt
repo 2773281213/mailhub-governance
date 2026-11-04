@@ -1,4 +1,4 @@
-package com.mailhub.client.ui.screens.common
+package com.mailhub.client.data.model
 
 /**
  * 列表行上显示的「发件人」文字。
@@ -12,7 +12,7 @@ package com.mailhub.client.ui.screens.common
  * - 显示名为空时也退回真实地址；
  * - 其余情况显示显示名。
  *
- * 纯函数，不依赖 Android 或 Compose 运行时，方便直接断言。
+ * 纯函数，不依赖 Android 或 Compose 运行时：界面和后台通知共用，方便直接断言。
  */
 fun senderLabel(name: String, addr: String, isRisky: Boolean): String {
     val displayName = name.trim()
@@ -26,11 +26,12 @@ fun senderLabel(name: String, addr: String, isRisky: Boolean): String {
 }
 
 /**
- * 列表用的风险判定。
- *
- * 后端 `messages.risk_level` 是 TEXT，取值 `none` / `medium` / `high`；
- * `MessageSummary` 只带这个字符串（没有 `MessageDetail.isRisky` 那个便捷属性），
- * 所以列表行在这里判一次。
+ * 风险判定：后端 `messages.risk_level` 是 TEXT，取值 `none` / `medium` / `high`。
+ * 列表、详情和后台通知都用这一个判断。
  */
 fun riskLevelIsRisky(riskLevel: String): Boolean =
     riskLevel == "medium" || riskLevel == "high"
+
+/** 列表行、通知里显示的发件人：按 [senderLabel] 的规则。 */
+val MessageSummary.senderDisplay: String
+    get() = senderLabel(senderName, senderAddr, isRisky)
