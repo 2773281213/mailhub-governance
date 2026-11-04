@@ -2,7 +2,6 @@ package com.mailhub.client.ui.screens.accounts
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -33,6 +32,7 @@ import com.mailhub.client.ui.swiss.SectionHeader
 import com.mailhub.client.ui.swiss.SwissButton
 import com.mailhub.client.ui.swiss.SwissButtonKind
 import com.mailhub.client.ui.swiss.SwissSpace
+import com.mailhub.client.ui.swiss.SwissTextButton
 import com.mailhub.client.ui.swiss.SwissTextField
 import com.mailhub.client.ui.swiss.SwissType
 import com.mailhub.client.ui.swiss.TableRow
@@ -174,7 +174,7 @@ private fun EmailSection(state: AddAccountUiState, onEvent: (AddAccountEvent) ->
         TableRow(label = "服务商", value = target?.label.orEmpty())
         Spacer(modifier = Modifier.height(SwissSpace.Xs))
         GridRow {
-            RowTextButton(
+            SwissTextButton(
                 text = "改邮箱 →",
                 onClick = { onEvent(AddAccountEvent.BackToEmail) },
                 modifier = Modifier.cols(3, 4),
@@ -345,7 +345,7 @@ private fun SecretBody(
     if (method.setupUrl.isNotEmpty()) {
         Spacer(modifier = Modifier.height(SwissSpace.Xs))
         GridRow {
-            RowTextButton(
+            SwissTextButton(
                 text = "${method.setupLabel.ifBlank { "打开服务商设置" }} →",
                 onClick = { onEvent(AddAccountEvent.OpenSetup) },
                 modifier = Modifier.cols(3, 7),
@@ -479,12 +479,12 @@ private fun DeviceBody(state: AddAccountUiState, onEvent: (AddAccountEvent) -> U
     }
     Spacer(modifier = Modifier.height(SwissSpace.S))
     GridRow {
-        RowTextButton(
+        SwissTextButton(
             text = "复制 →",
             onClick = { onEvent(AddAccountEvent.CopyUserCode) },
             modifier = Modifier.cols(1, 3),
         )
-        RowTextButton(
+        SwissTextButton(
             text = "打开登录页 →",
             onClick = { onEvent(AddAccountEvent.OpenVerification) },
             modifier = Modifier.cols(5, 4),
@@ -566,32 +566,3 @@ private fun StepLine(index: String, text: String) {
     }
 }
 
-/** 文字按钮：只有一行 label 文字和最小触控高度，不做底色、不做胶囊。 */
-@Composable
-private fun RowTextButton(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-) {
-    val colors = LocalSwissColors.current
-    val interactionSource = remember { MutableInteractionSource() }
-    Box(
-        modifier = modifier
-            .sizeIn(minHeight = SwissSpace.Xl)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                enabled = enabled,
-                role = Role.Button,
-                onClick = onClick,
-            ),
-    ) {
-        SText(
-            text = text,
-            style = SwissType.label(),
-            color = colors.foreground,
-            maxLines = 1,
-        )
-    }
-}

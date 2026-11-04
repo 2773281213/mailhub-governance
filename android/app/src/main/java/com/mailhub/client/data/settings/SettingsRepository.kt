@@ -3,6 +3,7 @@ package com.mailhub.client.data.settings
 import com.mailhub.client.data.model.LoginResponse
 import com.mailhub.client.data.net.ApiError
 import com.mailhub.client.data.session.SessionManager
+import com.mailhub.client.data.session.callService
 
 /**
  * 设置功能的薄封装，写法与 [com.mailhub.client.data.accounts.AccountsRepository] 一致：
@@ -23,9 +24,6 @@ class SettingsRepository(private val sessionManager: SessionManager) {
     suspend fun replaceToken(token: String, sessionId: String, expiresTs: Double): Boolean =
         sessionManager.replaceToken(token, sessionId, expiresTs)
 
-    private suspend fun <T> call(block: suspend (SettingsApi) -> T): Result<T> {
-        val client = sessionManager.currentClient()
-            ?: return Result.failure(ApiError.Network("尚未登录"))
-        return client.callService(SettingsApi::class.java, block)
-    }
+    private suspend fun <T> call(block: suspend (SettingsApi) -> T): Result<T> =
+        sessionManager.callService(SettingsApi::class.java, block)
 }

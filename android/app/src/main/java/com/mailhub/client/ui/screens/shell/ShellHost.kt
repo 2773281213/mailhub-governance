@@ -12,13 +12,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -43,6 +41,7 @@ import com.mailhub.client.ui.swiss.IndexLabel
 import com.mailhub.client.ui.swiss.LocalSwissColors
 import com.mailhub.client.ui.swiss.SText
 import com.mailhub.client.ui.swiss.SwissSpace
+import com.mailhub.client.ui.swiss.SwissTextButton
 import com.mailhub.client.ui.swiss.SwissType
 import com.mailhub.client.ui.swiss.cols
 import java.time.Year
@@ -209,7 +208,7 @@ internal fun IndexLayer(
     ) {
         GridRow {
             IndexLabel(index = "索引", modifier = Modifier.cols(1, 2))
-            TextButton(text = "关闭", onClick = onClose, modifier = Modifier.cols(10, 3))
+            SwissTextButton(text = "关闭", onClick = onClose, modifier = Modifier.cols(10, 3))
         }
         Spacer(modifier = Modifier.height(SwissSpace.Xl))
         IndexRow(index = "05", title = "账户", onClick = { onOpenSecondary("05", "账户") })
@@ -252,31 +251,3 @@ private fun IndexRow(
     }
 }
 
-/** 文字按钮：只有一行 label 文字和一个最小触控高度，不做底色、不做胶囊。 */
-@Composable
-private fun TextButton(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val colors = LocalSwissColors.current
-    val interactionSource = remember { MutableInteractionSource() }
-    Box(
-        modifier = modifier
-            .sizeIn(minHeight = SwissSpace.Xl)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                role = Role.Button,
-                onClick = onClick,
-            ),
-        contentAlignment = Alignment.TopStart,
-    ) {
-        SText(
-            text = text,
-            style = SwissType.label(),
-            color = colors.foreground,
-            maxLines = 1,
-        )
-    }
-}

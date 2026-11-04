@@ -1,9 +1,6 @@
 package com.mailhub.client.ui.swiss
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
@@ -13,19 +10,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 
 /**
  * 页面骨架，下一阶段的页面全部用它开头。
@@ -87,11 +80,13 @@ fun SwissScaffold(
                 maxLines = 2,
             )
             if (actionLabel != null) {
-                HeaderActionText(
+                SwissTextButton(
                     text = actionLabel,
                     onClick = onAction,
-                    modifier = Modifier.cols(11, 2),
-                    textTop = tops[3],
+                    modifier = Modifier
+                        .cols(11, 2)
+                        .fillMaxWidth(),
+                    labelModifier = Modifier.padding(top = tops[3]),
                 )
             }
         }
@@ -126,41 +121,6 @@ private fun headerBaselineTops(texts: List<String>): List<Dp> {
         }
         val target = baselines.maxOrNull() ?: 0f
         with(density) { baselines.map { (target - it).coerceAtLeast(0f).toDp() } }
-    }
-}
-
-/**
- * 页头操作入口的文字按钮：只有一行 label 文字，最小触控高度 48dp。
- * 和页头里其它文字同为 label 样式，[textTop] 把它补到整行共用的那条首行基线上。
- */
-@Composable
-private fun HeaderActionText(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    textTop: Dp = 0.dp,
-) {
-    val colors = LocalSwissColors.current
-    val interactionSource = remember { MutableInteractionSource() }
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .sizeIn(minHeight = SwissSpace.Xl)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                role = Role.Button,
-                onClick = onClick,
-            ),
-        contentAlignment = Alignment.TopStart,
-    ) {
-        SText(
-            text = text,
-            style = SwissType.label(),
-            modifier = Modifier.padding(top = textTop),
-            color = colors.foreground,
-            maxLines = 1,
-        )
     }
 }
 

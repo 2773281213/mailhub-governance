@@ -5,6 +5,7 @@ import com.mailhub.client.data.model.OkResponse
 import com.mailhub.client.data.model.SyncState
 import com.mailhub.client.data.net.ApiError
 import com.mailhub.client.data.session.SessionManager
+import com.mailhub.client.data.session.callService
 
 /**
  * 账户功能的薄封装，写法与 [com.mailhub.client.data.repo.MailRepository] 一致：
@@ -58,9 +59,6 @@ class AccountsRepository(private val sessionManager: SessionManager) {
         call { it.devicePoll(DevicePollBody(transactionId)) }
 
     /** 未登录时直接失败，与 MailRepository 的处理一致。 */
-    private suspend fun <T> call(block: suspend (AccountsApi) -> T): Result<T> {
-        val client = sessionManager.currentClient()
-            ?: return Result.failure(ApiError.Network("尚未登录"))
-        return client.callService(AccountsApi::class.java, block)
-    }
+    private suspend fun <T> call(block: suspend (AccountsApi) -> T): Result<T> =
+        sessionManager.callService(AccountsApi::class.java, block)
 }

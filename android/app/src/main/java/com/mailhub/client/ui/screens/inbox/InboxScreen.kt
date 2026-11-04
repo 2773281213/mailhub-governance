@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -48,6 +47,7 @@ import com.mailhub.client.ui.swiss.SwissScaffold
 import com.mailhub.client.ui.swiss.SwissSnackbar
 import com.mailhub.client.ui.swiss.SwissSpace
 import com.mailhub.client.ui.swiss.SwissTabBar
+import com.mailhub.client.ui.swiss.SwissTextButton
 import com.mailhub.client.ui.swiss.SwissType
 import com.mailhub.client.ui.swiss.cols
 
@@ -144,7 +144,7 @@ private fun FilterSection(state: InboxUiState, onEvent: (InboxEvent) -> Unit) {
             modifier = Modifier.cols(5, 4),
         )
         val expandText = if (state.filtersExpanded) CollapseFiltersText else ExpandFiltersText
-        RowTextButton(
+        SwissTextButton(
             text = expandText,
             onClick = { onEvent(InboxEvent.ToggleFilters) },
             modifier = Modifier.cols(9, 4),
@@ -345,7 +345,7 @@ private fun InboxList(
         }
         item(key = RefreshKey) {
             GridRow {
-                RowTextButton(
+                SwissTextButton(
                     text = RefreshText,
                     onClick = { onEvent(InboxEvent.Refresh) },
                     modifier = Modifier.cols(1, 3),
@@ -421,65 +421,30 @@ private fun SelectActionBar(state: InboxUiState, onEvent: (InboxEvent) -> Unit) 
     Column(modifier = Modifier.fillMaxWidth()) {
         HairlineRule()
         GridRow(modifier = Modifier.height(SwissSpace.Xl)) {
-            RowTextButton(
+            SwissTextButton(
                 text = "已读",
                 enabled = enabled,
                 onClick = { onEvent(InboxEvent.SetRead(true)) },
                 modifier = Modifier.cols(1, 3),
             )
-            RowTextButton(
+            SwissTextButton(
                 text = "未读",
                 enabled = enabled,
                 onClick = { onEvent(InboxEvent.SetRead(false)) },
                 modifier = Modifier.cols(4, 3),
             )
-            RowTextButton(
+            SwissTextButton(
                 text = "删除",
                 enabled = enabled,
                 onClick = { onEvent(InboxEvent.RequestDelete) },
                 modifier = Modifier.cols(7, 3),
             )
-            RowTextButton(
+            SwissTextButton(
                 text = "取消",
                 onClick = { onEvent(InboxEvent.CancelSelect) },
                 modifier = Modifier.cols(10, 3),
             )
         }
-    }
-}
-
-/**
- * 文字按钮：只有一行 label 文字和最小触控高度，不做底色、不做胶囊。
- * [labelModifier] 加在文字上，用来和同一行的其它文字对齐首行基线（默认不缩进）。
- */
-@Composable
-private fun RowTextButton(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    labelModifier: Modifier = Modifier,
-) {
-    val colors = LocalSwissColors.current
-    val interactionSource = remember { MutableInteractionSource() }
-    Box(
-        modifier = modifier
-            .sizeIn(minHeight = SwissSpace.Xl)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                enabled = enabled,
-                role = Role.Button,
-                onClick = onClick,
-            ),
-    ) {
-        SText(
-            text = text,
-            style = SwissType.label(),
-            modifier = labelModifier,
-            color = colors.foreground,
-            maxLines = 1,
-        )
     }
 }
 

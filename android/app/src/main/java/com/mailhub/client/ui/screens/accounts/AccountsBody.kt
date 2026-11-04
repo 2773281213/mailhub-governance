@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -32,6 +31,7 @@ import com.mailhub.client.ui.swiss.SwissButton
 import com.mailhub.client.ui.swiss.SwissButtonKind
 import com.mailhub.client.ui.swiss.SwissSnackbar
 import com.mailhub.client.ui.swiss.SwissSpace
+import com.mailhub.client.ui.swiss.SwissTextButton
 import com.mailhub.client.ui.swiss.SwissType
 import com.mailhub.client.ui.swiss.cols
 
@@ -218,19 +218,19 @@ private fun AccountRow(
         }
         if (expanded) {
             GridRow {
-                RowTextButton(
+                SwissTextButton(
                     text = "同步 →",
                     onClick = { onEvent(AccountsEvent.SyncNow(account.id)) },
                     enabled = !busy,
                     modifier = Modifier.cols(3, 3),
                 )
-                RowTextButton(
+                SwissTextButton(
                     text = "测试连接 →",
                     onClick = { onEvent(AccountsEvent.TestConnection(account.id)) },
                     enabled = !busy,
                     modifier = Modifier.cols(6, 4),
                 )
-                RowTextButton(
+                SwissTextButton(
                     text = "删除 →",
                     onClick = { onEvent(AccountsEvent.RequestDelete(account.id)) },
                     enabled = !busy,
@@ -239,36 +239,6 @@ private fun AccountRow(
             }
             Spacer(modifier = Modifier.height(SwissSpace.Xs))
         }
-    }
-}
-
-/** 文字按钮：只有一行 label 文字和最小触控高度，不做底色、不做胶囊。 */
-@Composable
-private fun RowTextButton(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-) {
-    val colors = LocalSwissColors.current
-    val interactionSource = remember { MutableInteractionSource() }
-    Box(
-        modifier = modifier
-            .sizeIn(minHeight = SwissSpace.Xl)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                enabled = enabled,
-                role = Role.Button,
-                onClick = onClick,
-            ),
-    ) {
-        SText(
-            text = text,
-            style = SwissType.label(),
-            color = colors.foreground,
-            maxLines = 1,
-        )
     }
 }
 
