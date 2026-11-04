@@ -8,7 +8,7 @@
 *.pfx
 
 # Runtime data
-data/
+/data/
 backups/
 *.db
 *.db-shm

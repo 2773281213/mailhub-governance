@@ -25,22 +25,16 @@ data class Session(
 
 /**
  * DataStore Preferences 里的会话存储。server_url 明文，token 经 [Cipher] 加密后保存。
- * 拦截器需要同步读取当前令牌，所以额外维护一个 [cached] 内存副本。
+ * 只负责持久化，不保存内存状态；当前会话由 [SessionManager] 统一持有。
  */
 class SessionStore(
     private val dataStore: DataStore<Preferences>,
     private val cipher: Cipher,
 ) {
-    @Volatile
-    var cached: Session? = null
-        private set
-
     val session: Flow<Session?> = dataStore.data.map { it.toSession() }
 
-    suspend fun refresh(): Session? {
-        cached = dataStore.data.first().toSession()
-        return cached
-    }
+    /** 直接从存储读一次会话；读不到或解密失败时返回 null。 */
+    suspend fun refresh(): Session? = dataStore.data.first().toSession()
 
     suspend fun save(session: Session) {
         dataStore.edit { prefs ->
@@ -50,12 +44,10 @@ class SessionStore(
             prefs[KEY_EXPIRES_TS] = session.expiresTs
             prefs[KEY_DEVICE_NAME] = session.deviceName
         }
-        cached = session
     }
 
     suspend fun clear() {
         dataStore.edit { it.clear() }
-        cached = null
     }
 
     private fun Preferences.toSession(): Session? {

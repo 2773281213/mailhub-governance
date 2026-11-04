@@ -1,26 +1,20 @@
 package com.mailhub.client.data.net
 
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.emptyPreferences
+import com.mailhub.client.data.FakeCipher
+import com.mailhub.client.data.InMemoryDataStore
 import com.mailhub.client.data.model.LoginRequest
 import com.mailhub.client.data.repo.AuthRepository
-import com.mailhub.client.data.session.Cipher
-import com.mailhub.client.data.session.Session
+import com.mailhub.client.data.session.SessionManager
+import com.mailhub.client.data.session.SessionState
 import com.mailhub.client.data.session.SessionStore
+import com.mailhub.client.data.testSession
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonPrimitive
 import mockwebserver3.MockResponse
@@ -38,32 +32,12 @@ class ApiClientTest {
 
     private lateinit var server: MockWebServer
     private lateinit var scope: CoroutineScope
+    private lateinit var dataStore: InMemoryDataStore
     private lateinit var store: SessionStore
-    private lateinit var expiredFlow: MutableSharedFlow<Unit>
+    private lateinit var manager: SessionManager
+
+    /** 未登录客户端：不带令牌，用于登录接口和普通接口的用例。 */
     private lateinit var client: ApiClient
-
-    private class FakeCipher : Cipher {
-        override fun encrypt(plain: String): String = "enc:$plain"
-        override fun decrypt(blob: String): String = blob.removePrefix("enc:")
-    }
-
-    /**
-     * 内存版 DataStore。真实 DataStore 在 Windows 上用 renameTo 覆盖文件会失败，
-     * 单元测试用内存实现，生产代码仍然用 PreferenceDataStoreFactory。
-     */
-    private class InMemoryDataStore : DataStore<Preferences> {
-        private val mutex = Mutex()
-        private val state = MutableStateFlow<Preferences>(emptyPreferences())
-
-        override val data: StateFlow<Preferences> = state
-
-        override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences =
-            mutex.withLock {
-                val next = transform(state.value)
-                state.value = next
-                next
-            }
-    }
 
     private fun jsonResponse(code: Int, body: String): MockResponse =
         MockResponse.Builder()
@@ -72,22 +46,25 @@ class ApiClientTest {
             .body(body)
             .build()
 
-    private fun session(token: String) = Session(
-        serverUrl = server.url("/").toString(),
-        token = token,
-        sessionId = "sid-1",
-        expiresTs = 123.0,
-        deviceName = "Pixel",
-    )
+    private fun session(token: String) = testSession(server.url("/").toString(), token, expiresTs = 123.0)
+
+    /** 造一个「已登录」的会话：存储里有令牌，状态里是这个绑定了令牌的客户端。 */
+    private suspend fun activateSession(token: String): ApiClient {
+        val stored = session(token)
+        val bound = manager.newClient(server.url("/"), token)
+        manager.activate(stored, bound)
+        return bound
+    }
 
     @Before
     fun setUp() {
         server = MockWebServer()
         server.start()
         scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-        store = SessionStore(InMemoryDataStore(), FakeCipher())
-        expiredFlow = MutableSharedFlow(extraBufferCapacity = 1)
-        client = ApiClient(server.url("/"), store, expiredFlow)
+        dataStore = InMemoryDataStore()
+        store = SessionStore(dataStore, FakeCipher())
+        manager = SessionManager(store)
+        client = manager.newClient(server.url("/"), null)
     }
 
     @After
@@ -102,19 +79,13 @@ class ApiClientTest {
         server.enqueue(jsonResponse(200, """{"api_version":1,"tz":"Asia/Shanghai"}"""))
         server.enqueue(jsonResponse(200, """{"ok":true}"""))
 
-        var current: ApiClient? = null
-        val auth = AuthRepository(
-            sessionStore = store,
-            clientFactory = { url -> ApiClient(url, store, expiredFlow) },
-            clientProvider = { current },
-            onClientReady = { current = it },
-        )
+        val auth = AuthRepository(manager)
 
         val meta = auth.login(server.url("/").toString(), "pw", "Pixel 8").getOrThrow()
         assertEquals(1, meta.apiVersion)
         assertEquals("tok-123", store.session.first()?.token)
 
-        current!!.call { it.logout() }.getOrThrow()
+        manager.currentClient()!!.call { it.logout() }.getOrThrow()
 
         val loginRequest = server.takeRequest()
         val metaRequest = server.takeRequest()
@@ -130,31 +101,31 @@ class ApiClientTest {
 
     @Test
     fun unauthorizedOnNormalCallClearsSessionAndEmitsOnce() = runBlocking {
-        store.save(session("tok-1"))
-        val events = mutableListOf<Unit>()
-        val job = launch(Dispatchers.Default) { expiredFlow.collect { events += it } }
-        delay(100)
+        val bound = activateSession("tok-1")
 
         server.enqueue(jsonResponse(401, """{"detail":"会话已失效"}"""))
-        val result = client.call { it.meta() }
+        val result = bound.call { it.meta() }
 
         val error = result.exceptionOrNull()
         assertTrue("error=$error", error is ApiError.Unauthorized)
         assertEquals("会话已失效", (error as ApiError.Unauthorized).detail)
-        assertNull(store.session.first())
 
-        delay(200)
-        assertEquals(1, events.size)
-        job.cancel()
+        // 状态只转一次，存储也只清一次
+        val expired = withTimeout(5_000) {
+            manager.state.first { it !is SessionState.LoggedIn }
+        }
+        assertEquals(SessionState.LoggedOut(SessionState.Reason.Expired), expired)
+        assertNull(store.session.first())
+        assertEquals(1, dataStore.clearCount.get())
+        assertEquals(SessionState.LoggedOut(SessionState.Reason.Expired), manager.state.value)
     }
 
     @Test
     fun unauthorizedOnLoginDoesNotClearSession() = runBlocking {
-        store.save(session("tok-keep"))
-        val events = mutableListOf<Unit>()
-        val job = launch(Dispatchers.Default) { expiredFlow.collect { events += it } }
-        delay(100)
+        val bound = activateSession("tok-keep")
+        val clearsBefore = dataStore.clearCount.get()
 
+        // 登录走的是不带令牌的客户端
         server.enqueue(jsonResponse(401, """{"detail":"密码错误"}"""))
         val result = client.call { it.login(LoginRequest(password = "bad", deviceName = "Pixel")) }
 
@@ -163,9 +134,15 @@ class ApiClientTest {
         assertEquals("密码错误", (error as ApiError.Unauthorized).detail)
         assertNotNull(store.session.first())
 
-        delay(200)
-        assertEquals(0, events.size)
-        job.cancel()
+        // 当前客户端请求登录接口得到的 401 同样不是会话过期
+        server.enqueue(jsonResponse(401, """{"detail":"密码错误"}"""))
+        val second = bound.call { it.login(LoginRequest(password = "bad", deviceName = "Pixel")) }
+        assertTrue("error=${second.exceptionOrNull()}", second.exceptionOrNull() is ApiError.Unauthorized)
+
+        val state = manager.state.value
+        assertTrue("state=$state", state is SessionState.LoggedIn)
+        assertEquals("tok-keep", (state as SessionState.LoggedIn).session.token)
+        assertEquals(clearsBefore, dataStore.clearCount.get())
     }
 
     @Test

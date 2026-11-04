@@ -11,12 +11,12 @@ import com.mailhub.client.data.model.Meta
 import com.mailhub.client.data.model.OkResponse
 import com.mailhub.client.data.model.OtpItem
 import com.mailhub.client.data.model.Overview
-import com.mailhub.client.data.net.ApiClient
 import com.mailhub.client.data.net.ApiError
 import com.mailhub.client.data.net.MailHubApi
+import com.mailhub.client.data.session.SessionManager
 
-/** 各接口的薄封装，失败时 Result 里是 [ApiError]。 */
-class MailRepository(private val clientProvider: () -> ApiClient?) {
+/** 各接口的薄封装，失败时 Result 里是 [ApiError]。客户端始终取自当前会话状态。 */
+class MailRepository(private val sessionManager: SessionManager) {
 
     suspend fun meta(): Result<Meta> = call { it.meta() }
 
@@ -59,7 +59,7 @@ class MailRepository(private val clientProvider: () -> ApiClient?) {
     suspend fun otp(limit: Int? = null): Result<List<OtpItem>> = call { it.otp(limit) }
 
     private suspend fun <T> call(block: suspend (MailHubApi) -> T): Result<T> {
-        val client = clientProvider() ?: return Result.failure(ApiError.Network("尚未登录"))
-        return client.call(block)
+        val client = sessionManager.currentClient()
+        return client?.call(block) ?: Result.failure(ApiError.Network("尚未登录"))
     }
 }

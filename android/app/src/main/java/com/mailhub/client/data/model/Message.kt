@@ -61,7 +61,8 @@ data class MessageDetail(
     @SerialName("account_name") val accountName: String = "",
     @SerialName("body_text") val bodyText: String = "",
     @SerialName("body_html") val bodyHtml: String = "",
-    @SerialName("risk_level") val riskLevel: Int = 0,
+    // 后端 messages.risk_level 是 TEXT，取值 none | medium | high
+    @SerialName("risk_level") val riskLevel: String = "none",
     @SerialName("risk_reasons") val riskReasons: String = "",
     val confidence: Double = 0.0,
     @SerialName("ai_reason") val aiReason: String = "",
@@ -71,6 +72,9 @@ data class MessageDetail(
 ) {
     val isUnread: Boolean get() = unread == 1
     val hasAttachment: Boolean get() = hasAttach == 1
+
+    /** 是否被安全扫描判定为需要提醒的邮件。 */
+    val isRisky: Boolean get() = riskLevel == "medium" || riskLevel == "high"
 }
 
 @Serializable

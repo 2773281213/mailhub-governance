@@ -8,6 +8,9 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
  * 服务器地址校验。release 只接受 https；debug 额外接受模拟器和本机的 http 地址，
  * 与 debug 的 network_security_config 保持一致。
  * 带路径的地址（例如反向代理挂在 /mailhub）保留路径，API 路径拼在它后面。
+ *
+ * 不接受带用户信息、查询串或片段（#）的地址：这些内容无法拼进接口路径，
+ * 也容易把凭据写进日志。
  */
 object ServerUrl {
 
@@ -21,12 +24,20 @@ object ServerUrl {
         if (trimmed.isEmpty()) {
             return Result.failure(IllegalArgumentException("服务器地址不能为空"))
         }
+        // scheme 不区分大小写（HTTPS:// 等同于 https://）
         val withScheme = when {
-            trimmed.startsWith("https://") || trimmed.startsWith("http://") -> trimmed
+            trimmed.startsWith("https://", ignoreCase = true) ||
+                trimmed.startsWith("http://", ignoreCase = true) -> trimmed
             else -> "https://$trimmed"
         }
         val url = withScheme.toHttpUrlOrNull()
             ?: return Result.failure(IllegalArgumentException("服务器地址格式不正确"))
+        if (url.username.isNotEmpty() || url.password.isNotEmpty()) {
+            return Result.failure(IllegalArgumentException("服务器地址不能带用户名或密码"))
+        }
+        if (url.query != null || url.fragment != null) {
+            return Result.failure(IllegalArgumentException("服务器地址不能带查询参数或 # 片段"))
+        }
         if (url.isHttps) {
             return Result.success(url)
         }

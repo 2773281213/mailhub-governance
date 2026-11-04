@@ -12,6 +12,7 @@ data class Meta(
     @SerialName("display_categories") val displayCategories: List<String> = emptyList(),
     @SerialName("bill_tiers") val billTiers: List<String> = emptyList(),
     val ministries: List<String> = emptyList(),
-    @SerialName("governance_version") val governanceVersion: Int = 0,
+    // 后端返回的是治理版本字符串（例如 mailhub-three-six-v2），不是数字
+    @SerialName("governance_version") val governanceVersion: String = "",
     val features: Map<String, Boolean> = emptyMap(),
 )

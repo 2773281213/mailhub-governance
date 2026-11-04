@@ -14,4 +14,7 @@ sealed class ApiError(message: String? = null, cause: Throwable? = null) : Excep
     class TooManyRequests(val retryAfterSec: Int) : ApiError("请求过于频繁")
 
     class Server(val code: Int, val detail: String?) : ApiError(detail ?: "服务器错误 $code")
+
+    /** 服务器返回的 JSON 与 DTO 不匹配，解码失败。 */
+    class Decode(val detail: String, cause: Throwable? = null) : ApiError(detail, cause)
 }
