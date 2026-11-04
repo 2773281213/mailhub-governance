@@ -328,8 +328,14 @@ def _stored_facets(row: dict) -> dict:
 
 
 def decide_bill(conn, row: dict, *, ai_facets: dict | None = None, cfg: dict | None = None,
-                now: float | None = None, reuse_facets: bool = False) -> dict:
-    """为一封账单计算 {tier, facets, reason}。用户手动锁定的等级保持不变。"""
+                now: float | None = None, reuse_facets: bool = False,
+                routine_counts: dict | None = None,
+                preferences: dict | None = None) -> dict:
+    """为一封账单计算 {tier, facets, reason}。用户手动锁定的等级保持不变。
+
+    routine_counts / preferences 是批量预先查好的同类统计与偏好（键为模板键）：
+    传了就只用字典，不再逐封查库；不传则沿用原来的单封查询。
+    """
     now = time.time() if now is None else now
     if row.get("bill_tier_locked") and row.get("bill_tier") in billing.TIERS:
         return {"tier": row["bill_tier"], "facets": _stored_facets(row), "reason": "用户手动设定"}
@@ -339,9 +345,18 @@ def decide_bill(conn, row: dict, *, ai_facets: dict | None = None, cfg: dict | N
     if not facets.get("direction"):
         facets = billing.extract_facets(str(row.get("subject") or ""), str(row.get("body_text") or ""))
         facets = billing.merge_ai_facets(facets, ai_facets)
+    if routine_counts is None:
+        routine_count = _routine_count(conn, key, now)
+    else:
+        routine_count = int(routine_counts.get(key, 0)) if key else 0
+    if preferences is None:
+        preference = _preference(conn, key)
+    else:
+        preference = (preferences.get(key) or "") if key else ""
+        if preference not in billing.TIERS:
+            preference = ""
     tier, reason = billing.decide_tier(
-        facets, routine_count=_routine_count(conn, key, now),
-        preference=_preference(conn, key), cfg=cfg)
+        facets, routine_count=routine_count, preference=preference, cfg=cfg)
     return {"tier": tier, "facets": billing.stored_facets(facets), "reason": reason}
 
 
@@ -375,10 +390,25 @@ def retier_bills(conn, *, template: str = "", only_missing: bool = False) -> int
             FROM messages WHERE {where}""", args).fetchall()
     cfg = bill_config()
     now = time.time()
+    # 同类统计与偏好各用一条查询预先取好，避免每封账单再各查一次（N+1）。
+    # 口径与原单封查询一致：时间窗口相同，统计不过滤 deleted_ts，偏好只认有效等级。
+    routine_counts: dict = {}
+    preferences: dict = {}
+    if rows:
+        window_start = now - billing.ROUTINE_WINDOW_SECONDS
+        for r in conn.execute(
+                "SELECT template_key AS k, COUNT(*) AS c FROM messages "
+                "WHERE template_key<>'' AND date_ts >= ? GROUP BY template_key",
+                (window_start,)).fetchall():
+            routine_counts[r["k"]] = int(r["c"])
+        for r in conn.execute(
+                "SELECT template_key AS k, tier FROM bill_prefs").fetchall():
+            preferences[r["k"]] = r["tier"]
     changed = 0
     for r in rows:
         row = dict(r)
-        bill = decide_bill(conn, row, cfg=cfg, now=now, reuse_facets=True)
+        bill = decide_bill(conn, row, cfg=cfg, now=now, reuse_facets=True,
+                           routine_counts=routine_counts, preferences=preferences)
         importance = billing.tier_importance(bill["tier"], bill["facets"], int(row["importance"] or 0))
         facets_json = json.dumps(bill["facets"], ensure_ascii=False, sort_keys=True)
         if bill["tier"] != row["bill_tier"] or facets_json != (row["bill_facets"] or "{}") \

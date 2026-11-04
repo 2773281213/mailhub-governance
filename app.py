@@ -530,15 +530,27 @@ async def update_account(acc_id: int, body: AccountBody):
     return {"ok": True}
 
 
-@app.delete("/api/accounts/{acc_id}")
-async def delete_account(acc_id: int):
+def _delete_account_sync(acc_id: int) -> str | None:
+    """删除账户并提交（级联删掉该账户的全部本地邮件）；账户不存在时返回 None。
+
+    删邮件是重活，放到工作线程里跑；工作线程用自己线程本地的 SQLite 连接，
+    所以查询、删除和提交都在这里一次做完。
+    """
     conn = get_conn()
     row = conn.execute("SELECT email FROM accounts WHERE id=?", (acc_id,)).fetchone()
     if not row:
-        raise HTTPException(status_code=404, detail="账户不存在")
+        return None
     email = row["email"]
     conn.execute("DELETE FROM accounts WHERE id=?", (acc_id,))
     conn.commit()
+    return email
+
+
+@app.delete("/api/accounts/{acc_id}")
+async def delete_account(acc_id: int):
+    email = await asyncio.to_thread(_delete_account_sync, acc_id)
+    if email is None:
+        raise HTTPException(status_code=404, detail="账户不存在")
     # 同步引擎还挂着这个账户的状态、并发锁和排队中的手动同步，一起清掉
     sync.forget_account(acc_id)
     audit("delete_account", actor="user", tier="C", target_ids=[acc_id],
@@ -780,6 +792,18 @@ async def list_changes(after_id: int = 0, limit: int = 50):
     return await asyncio.to_thread(_changes_sync, after_id, limit)
 
 
+def _retier_bills_sync(template: str = "") -> int:
+    """在工作线程里重新定级（不调用 AI）。
+
+    重新定级会扫全部账单并逐条回写，属于重活；工作线程只能用自己线程本地的
+    SQLite 连接，所以调用前同一流程里的写入必须已经 commit。
+    """
+    conn = get_conn()
+    if template:
+        return governance.retier_bills(conn, template=template)
+    return governance.retier_bills(conn)
+
+
 class BillTierBody(BaseModel):
     tier: str
     similar: bool = True        # 同类邮件（同发件域名 + 同标题模板）以后都按这个等级
@@ -813,7 +837,7 @@ async def set_bill_tier(msg_id: int, body: BillTierBody):
             "ON CONFLICT(template_key) DO UPDATE SET tier=excluded.tier, created_ts=excluded.created_ts",
             (key, body.tier, time.time()))
         conn.commit()
-        similar = governance.retier_bills(conn, template=key)
+        similar = await asyncio.to_thread(_retier_bills_sync, key)
     conn.commit()
     audit("bill_tier", actor="user", tier="A", target_ids=[msg_id],
           reason=f"设为{body.tier}账单" + ("，同类邮件以后都按此等级" if body.similar else ""))
@@ -902,12 +926,15 @@ async def batch_messages(body: BatchBody):
         if body.server:
             succeeded, errors = await asyncio.to_thread(_server_op, allowed_ids, body.action)
             allowed_ids = succeeded
-        prev = {m["id"]: m["unread"] for m in msgs if m["id"] in set(allowed_ids)}
         if allowed_ids:
             ph = ",".join("?" * len(allowed_ids))
             conn.execute(f"UPDATE messages SET unread=? WHERE id IN ({ph})",
                          [0 if action == "read" else 1] + allowed_ids)
-            undo_payload = {"unread": prev}
+            # server=True 时已读状态已经写到了邮箱服务器；撤销只能改回本地字段，
+            # 两边从此不一致。所以只对纯本地的已读/未读记录撤销载荷。
+            if not body.server:
+                prev = {m["id"]: m["unread"] for m in msgs if m["id"] in set(allowed_ids)}
+                undo_payload = {"unread": prev}
     conn.commit()
 
     overrode = override and action in policy.DESTRUCTIVE_ACTIONS and any(
@@ -917,6 +944,9 @@ async def batch_messages(body: BatchBody):
         reason += f"；{len(errors)} 个账户执行失败"
     elif blocked:
         reason += f"，{len(blocked)} 封被策略拦截"
+    # 全部失败时没有发生任何同步，不能写成已同步
+    if action in ("read", "unread") and body.server and allowed_ids:
+        reason += "；已同步到邮件服务器，撤销只能恢复本地状态，因此不提供撤销"
     audit_id = audit(action, actor="user", tier=policy.ACTION_TIER.get(action, "C"),
                      target_ids=allowed_ids,
                      allowed=bool(allowed_ids),
@@ -1246,7 +1276,8 @@ async def classify_now():
 
 @app.get("/api/governance/status")
 async def governance_status():
-    return governance.governance_status()
+    # 状态查询要统计全部待治理邮件，放到工作线程执行，避免阻塞事件循环
+    return await asyncio.to_thread(governance.governance_status)
 
 
 class GovernanceRunBody(BaseModel):
@@ -1528,8 +1559,10 @@ async def put_settings(body: SettingsBody, request: Request = None):
             set_setting(key, value)
             bill_changed = True
     if bill_changed:
-        # 策略变了：按已存的交易画像重新定级（不调用 AI，用户手动设定的不动）
-        governance.retier_bills(get_conn())
+        # 策略变了：按已存的交易画像重新定级（不调用 AI，用户手动设定的不动）。
+        # 重新定级要扫全部账单并逐条回写，放到工作线程；上面每条 set_setting 都已
+        # commit，工作线程自己的连接能看到这些改动。
+        await asyncio.to_thread(_retier_bills_sync)
     if body.new_password is not None:
         if source == "bearer":
             return {"ok": True, **_token_payload(new_session)}
