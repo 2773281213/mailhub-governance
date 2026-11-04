@@ -175,10 +175,15 @@ def _normalize_start(body: OAuthStartBody, expected_provider: str = "") -> dict:
         "provider": provider,
         "email": email_addr,
         "name": (body.name or email_addr).strip()[:100],
-        "color": body.color if _COLOR_RE.fullmatch(body.color or "") else "#38bdf8",
+        "color": normalize_color(body.color),
         "poll_interval": min(86400, max(60, int(body.poll_interval or 300))),
         "account_id": account_id,
     }
+
+
+def normalize_color(value: str) -> str:
+    """把账户颜色规范成 #RRGGBB；不合法（含 CSS 注入尝试）时退回默认的浅蓝。"""
+    return value if _COLOR_RE.fullmatch(value or "") else "#38bdf8"
 
 
 def detect_provider(email_addr: str) -> str:

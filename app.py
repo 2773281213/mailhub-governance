@@ -200,21 +200,40 @@ class LoginBody(BaseModel):
     device_name: str = ""
 
 
+def _token_payload(token: str) -> dict:
+    """按令牌生成移动端需要的会话信息：登录、退出所有设备、改密码三处共用。"""
+    row = get_conn().execute(
+        "SELECT expires_ts FROM sessions WHERE id_hash=?",
+        (sessions._hash(token),)
+    ).fetchone()
+    expires_ts = row["expires_ts"] if row else time.time() + sessions.SESSION_TTL
+    return {
+        "token": token,
+        "session_id": sessions.session_id(token),
+        "expires_ts": expires_ts,
+    }
+
+
 @app.post("/api/login")
 async def login(body: LoginBody, request: Request, response: Response):
-    ip = _client_ip(request)
-    wait = login_throttle.retry_after(ip)
-    if wait:
-        raise HTTPException(status_code=429, detail=f"尝试过多，请 {-(-wait // 60)} 分钟后再试",
-                            headers={"Retry-After": str(wait)})
+    # 先校验客户端类型：400 不计入限流
     client_type = (body.client or "web").strip().lower()
     if client_type not in ("web", "android"):
         raise HTTPException(status_code=400, detail="不支持的客户端类型")
-    if not await asyncio.to_thread(verify_password, body.password, get_setting("admin_hash")):
-
-        login_throttle.record_failure(ip)
+    ip = _client_ip(request)
+    # begin 在锁内完成「算等待时间 + 占用进行中名额」，并发请求无法抢在失败记录之前通过
+    wait = login_throttle.begin(ip)
+    if wait:
+        raise HTTPException(status_code=429, detail=f"尝试过多，请 {-(-wait // 60)} 分钟后再试",
+                            headers={"Retry-After": str(wait)})
+    ok = False
+    try:
+        ok = await asyncio.to_thread(verify_password, body.password, get_setting("admin_hash"))
+    finally:
+        # 无论成功、失败还是异常都要释放名额，否则该 IP 会永久卡在限流里
+        login_throttle.finish(ip, ok)
+    if not ok:
         raise HTTPException(status_code=401, detail="密码错误")
-    login_throttle.record_success(ip)
 
     label = (body.device_name or "").strip()[:60]
     if client_type == "web":
@@ -223,18 +242,7 @@ async def login(body: LoginBody, request: Request, response: Response):
         return {"ok": True}
     else:
         token = sessions.create_session(client="android", label=label)
-        sid = sessions.session_id(token)
-        row = get_conn().execute(
-            "SELECT expires_ts FROM sessions WHERE id_hash=?",
-            (sessions._hash(token),)
-        ).fetchone()
-        expires_ts = row["expires_ts"] if row else time.time() + sessions.SESSION_TTL
-        return {
-            "ok": True,
-            "token": token,
-            "session_id": sid,
-            "expires_ts": expires_ts,
-        }
+        return {"ok": True, **_token_payload(token)}
 
 
 @app.post("/api/logout")
@@ -265,7 +273,7 @@ async def revoke_all_sessions(response: Response, request: Request = None):
     if source == "bearer":
         new_token = sessions.create_session(client=orig_client, label=orig_label)
         audit("revoke_sessions", actor="user", tier="A", reason=f"退出所有设备，吊销 {count} 个会话")
-        return {"ok": True, "revoked": count, "token": new_token}
+        return {"ok": True, "revoked": count, **_token_payload(new_token)}
     else:
         new_token = sessions.create_session()
         _set_session_cookie(response, new_token)
@@ -461,12 +469,13 @@ async def create_account(body: AccountBody):
                             detail="这个邮箱已经添加过了，请在账户列表里编辑或重新授权")
     host, port = _resolve_host(body)
     await _probe_password_account(body, host, port)
+    color = oauth_auth.normalize_color(body.color)
     cur = conn.execute(
         """INSERT INTO accounts(name, provider, email, imap_host, imap_port, auth_type,
                                 secret_enc, poll_interval, color, enabled, created_ts)
            VALUES(?,?,?,?,?,?,?,?,?,?,?)""",
         (body.name or body.email, body.provider, body.email, host, port, "password",
-         encrypt(body.secret), body.poll_interval, body.color, int(body.enabled), time.time()),
+         encrypt(body.secret), body.poll_interval, color, int(body.enabled), time.time()),
     )
     conn.commit()
     sync.engine.trigger(cur.lastrowid)
@@ -488,7 +497,7 @@ async def update_account(acc_id: int, body: AccountBody):
         """UPDATE accounts SET name=?, provider=?, email=?, imap_host=?, imap_port=?,
            poll_interval=?, color=?, enabled=? WHERE id=?""",
         (body.name or body.email, body.provider, body.email, host, port,
-         body.poll_interval, body.color, int(body.enabled), acc_id),
+         body.poll_interval, oauth_auth.normalize_color(body.color), int(body.enabled), acc_id),
     )
     if body.secret:
         conn.execute("""UPDATE accounts SET auth_type='password', secret_enc=?,
@@ -643,12 +652,18 @@ def _list_messages_sync(category: str = "", account: int = 0, unread: int = -1,
     rows = conn.execute(
         f"""SELECT m.id, m.account_id, m.uid, m.subject, m.sender_name, m.sender_addr,
                    m.date_ts, m.snippet, m.category, m.otp_code, m.importance, m.summary,
-                   m.unread, m.has_attach, m.bill_tier, a.name AS account_name, a.color AS account_color
+                   m.unread, m.has_attach, m.bill_tier, m.risk_level,
+                   a.name AS account_name, a.color AS account_color
             FROM messages m JOIN accounts a ON a.id=m.account_id
             WHERE {cond} ORDER BY m.date_ts DESC, m.id DESC {tail}""",
         args + tail_args,
     ).fetchall()
-    items = [dict(r) for r in rows]
+    # 与 /api/changes 一致地补上展示分类；网页端会忽略多出来的字段
+    items = []
+    for r in rows:
+        d = dict(r)
+        d["display_category"] = _display_category(d["category"], d["bill_tier"])
+        items.append(d)
     next_cursor = None
     if len(items) == page_size:
         last = items[-1]
@@ -698,7 +713,11 @@ def _changes_sync(after_id: int = 0, limit: int = 50):
         "SELECT COALESCE(MAX(id), 0) AS m FROM messages").fetchone()["m"])
     if after_id <= 0:
         # 初始化调用：只告诉客户端当前水位，不补发历史邮件
-        return {"items": [], "cursor": max_id}
+        return {"items": [], "cursor": max_id, "reset": False}
+    if after_id > max_id:
+        # 数据库被恢复成旧备份时 max_id 会倒退，客户端游标比它大就永远卡住；
+        # 让客户端从头重新拉一遍（reset 信号）
+        return {"items": [], "cursor": max_id, "reset": True}
     # 屏障：还没治理完的新邮件先挡住它和它之后的邮件，避免客户端看到待定级的旧标签。
     # 超过 1 小时仍未治理的邮件不再挡路，治理任务挂掉也不会让通知永久卡住。
     barrier_row = conn.execute(
@@ -731,7 +750,7 @@ def _changes_sync(after_id: int = 0, limit: int = 50):
         cursor = barrier - 1
     else:
         cursor = max_id
-    return {"items": items, "cursor": max(cursor, after_id)}
+    return {"items": items, "cursor": max(cursor, after_id), "reset": False}
 
 
 @app.get("/api/changes")
@@ -956,12 +975,13 @@ async def clean_messages(body: CleanBody):
 @app.get("/api/trash")
 async def list_trash(limit: int = 100):
     conn = get_conn()
+    # 负数 LIMIT 在 SQLite 里等于不限制条数，先夹到 1..500
     rows = conn.execute(
         """SELECT m.id, m.subject, m.sender_addr, m.date_ts, m.category, m.deleted_ts,
                   a.name AS account_name, a.color AS account_color
            FROM messages m JOIN accounts a ON a.id=m.account_id
            WHERE m.deleted_ts > 0 ORDER BY m.deleted_ts DESC LIMIT ?""",
-        (min(500, limit),)).fetchall()
+        (max(1, min(500, limit)),)).fetchall()
     return [dict(r) for r in rows]
 
 
@@ -989,7 +1009,7 @@ async def list_audit(limit: int = 50, offset: int = 0):
         """SELECT id, ts, actor, action, tier, target_count, reason,
                   allowed, reversible, undone
            FROM audit_log ORDER BY ts DESC LIMIT ? OFFSET ?""",
-        (min(200, limit), max(0, offset))).fetchall()
+        (max(1, min(200, limit)), max(0, offset))).fetchall()
     total = conn.execute("SELECT COUNT(*) c FROM audit_log").fetchone()["c"]
     return {"total": total, "items": [dict(r) for r in rows]}
 
@@ -1069,7 +1089,7 @@ async def otp_list(limit: int = 24):
            FROM messages m JOIN accounts a ON a.id=m.account_id
            WHERE m.category='验证码' AND m.otp_code != '' AND m.deleted_ts=0
            ORDER BY m.date_ts DESC LIMIT ?""",
-        (min(100, limit),),
+        (max(1, min(100, limit)),),
     ).fetchall()
     return [dict(r) for r in rows]
 
@@ -1318,10 +1338,17 @@ async def get_settings():
     }
 
 
-def _save_oauth_settings(body: SettingsBody, *, prefix: str, provider: str, label: str):
+def _validate_oauth_settings(body: SettingsBody, *, prefix: str, provider: str,
+                             label: str) -> tuple[str | None, str | None, bool]:
+    """只校验某个服务商的 OAuth 客户端配置，不写任何设置。
+
+    返回 (新的 Client ID 或 None 表示不改, 新的 Secret 或 None 表示不改, 是否清除 Secret)。
+    校验不过直接抛 400，调用方因此可以先校验完所有服务商再统一写入。
+    """
     client_id = getattr(body, f"{prefix}_oauth_client_id")
     client_secret = getattr(body, f"{prefix}_oauth_client_secret")
-    clear_secret = getattr(body, f"clear_{prefix}_oauth_client_secret")
+    clear_secret = bool(getattr(body, f"clear_{prefix}_oauth_client_secret"))
+    new_id = None
     if client_id is not None:
         new_id = client_id.strip()
         if len(new_id) > 500:
@@ -1329,9 +1356,22 @@ def _save_oauth_settings(body: SettingsBody, *, prefix: str, provider: str, labe
         identity_error = oauth_auth.oauth_client_identity_error(provider, new_id)
         if new_id and identity_error:
             raise HTTPException(status_code=400, detail=identity_error)
+    new_secret = None
+    if not clear_secret and client_secret:
+        new_secret = client_secret.strip()
+        if len(new_secret) > 2000:
+            raise HTTPException(status_code=400, detail=f"{label} Client Secret 过长")
+    return new_id, new_secret, clear_secret
+
+
+def _apply_oauth_settings(*, prefix: str, provider: str, label: str,
+                          client_id: str | None, client_secret: str | None,
+                          clear_secret: bool):
+    """写入已经通过 _validate_oauth_settings 校验的 OAuth 客户端配置。"""
+    if client_id is not None:
         old_id = get_setting(f"{prefix}_oauth_client_id", "").strip()
-        set_setting(f"{prefix}_oauth_client_id", new_id)
-        if old_id and old_id != new_id:
+        set_setting(f"{prefix}_oauth_client_id", client_id)
+        if old_id and old_id != client_id:
             conn = get_conn()
             conn.execute(
                 """UPDATE accounts SET oauth_reauth_required=1,
@@ -1342,11 +1382,8 @@ def _save_oauth_settings(body: SettingsBody, *, prefix: str, provider: str, labe
             conn.commit()
     if clear_secret:
         set_setting(f"{prefix}_oauth_client_secret_enc", "")
-    elif client_secret:
-        secret = client_secret.strip()
-        if len(secret) > 2000:
-            raise HTTPException(status_code=400, detail=f"{label} Client Secret 过长")
-        set_setting(f"{prefix}_oauth_client_secret_enc", encrypt(secret))
+    elif client_secret is not None:
+        set_setting(f"{prefix}_oauth_client_secret_enc", encrypt(client_secret))
 
 
 @app.put("/api/settings")
@@ -1380,8 +1417,17 @@ async def put_settings(body: SettingsBody, request: Request = None):
         if len(bark_url) > 500:
             raise HTTPException(status_code=400, detail="Bark 推送地址过长（上限 500 字符）")
     tg_token = (body.notify_tg_token or "").strip()
-    _save_oauth_settings(body, prefix="google", provider="gmail", label="Google")
-    _save_oauth_settings(body, prefix="microsoft", provider="outlook", label="Microsoft")
+    # OAuth 客户端配置：两个服务商都校验通过后再依次写入，避免只存了一半
+    google_settings = _validate_oauth_settings(body, prefix="google", provider="gmail",
+                                               label="Google")
+    microsoft_settings = _validate_oauth_settings(body, prefix="microsoft", provider="outlook",
+                                                  label="Microsoft")
+    _apply_oauth_settings(prefix="google", provider="gmail", label="Google",
+                          client_id=google_settings[0], client_secret=google_settings[1],
+                          clear_secret=google_settings[2])
+    _apply_oauth_settings(prefix="microsoft", provider="outlook", label="Microsoft",
+                          client_id=microsoft_settings[0], client_secret=microsoft_settings[1],
+                          clear_secret=microsoft_settings[2])
     if body.new_password is not None:
         new_hash = await asyncio.to_thread(hash_password, body.new_password)
         set_setting("admin_hash", new_hash)
@@ -1464,7 +1510,7 @@ async def put_settings(body: SettingsBody, request: Request = None):
         governance.retier_bills(get_conn())
     if body.new_password is not None:
         if source == "bearer":
-            return {"ok": True, "token": new_session}
+            return {"ok": True, **_token_payload(new_session)}
         # 当前设备换发新会话继续使用；其他设备的会话已在上面全部吊销
         response = JSONResponse({"ok": True})
         _set_session_cookie(response, new_session)
