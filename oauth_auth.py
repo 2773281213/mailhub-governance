@@ -568,8 +568,11 @@ def _take_browser_transaction(state: str, provider: str) -> dict:
     tx = dict(row)
     # 只有 status='pending' 的事务能被改写，rowcount 为 0 说明已经有人消费过这个 state，
     # 因此同一个 state 并发或重复回调都只可能成功一次。
+    # 同时清空 verifier_enc：事务消费后 PKCE verifier 不再有用，没必要在库里留到过期；
+    # 调用方用的是上面更新前读出的 tx，换取令牌时仍能拿到 verifier。
     consumed = conn.execute(
-        "UPDATE oauth_transactions SET status='consumed' WHERE id=? AND status='pending'",
+        "UPDATE oauth_transactions SET status='consumed', verifier_enc=''"
+        " WHERE id=? AND status='pending'",
         (tx["id"],),
     ).rowcount
     conn.commit()

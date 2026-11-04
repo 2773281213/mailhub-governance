@@ -117,7 +117,7 @@ medium/high 风险邮件强制归入「可疑」分类并进入只读风险观�
 
 - 授权码/OAuth Token 用 Fernet 加密落库，密钥由 `MAILHUB_SECRET` 经 HKDF-SHA256 派生，主密钥在 `/opt/mailhub/.env`（0600）。更换密钥时把旧值设为 `MAILHUB_SECRET_PREVIOUS` 重启一次，启动时会把所有凭据改用新密钥重新加密；解密失败会写警告日志（不含密文）
 - 会话保存在服务端（只存令牌的 SHA-256）：网页端 cookie 为 `httponly` + `secure` + `samesite=lax`，原生客户端使用 `Authorization: Bearer <token>` 认证。支持列出已登录设备与单独吊销；登出只吊销当前设备；修改密码或"退出所有设备"会吊销全部会话
-- 唯一免会话的接口是 OAuth 回调：`GET /api/oauth/{provider}/callback` 与 `POST /api/oauth/{provider}/fragment`（`provider` 只允许 `[a-z0-9_]+`，正则整段精确匹配，方法也必须是 GET / POST，不按 `/api/oauth/` 前缀放行）。安卓 App 用 Custom Tabs 打开授权页，那里没有 MailHub 的 cookie，所以免会话；依据是这两个端点不读 cookie 也不读 Bearer，只按 `state` 定位事务：`state` 是 32 字节随机数，库里只存 SHA-256，10 分钟过期、只能消费一次，而 `/api/oauth/start` 本身要求登录。CSRF 的 Origin 校验对这些请求不变
+- 除登录（`/api/login`）与健康检查（`/api/health`）外，免会话的接口只有 OAuth 回调：`GET /api/oauth/{provider}/callback` 与 `POST /api/oauth/{provider}/fragment`（`provider` 只允许 `[a-z0-9_]+`，正则整段精确匹配，方法也必须是 GET / POST，不按 `/api/oauth/` 前缀放行）。安卓 App 用 Custom Tabs 打开授权页，那里没有 MailHub 的 cookie，所以免会话；依据是这两个端点不读 cookie 也不读 Bearer，只按 `state` 定位事务：`state` 是 32 字节随机数，库里只存 SHA-256，10 分钟过期、只能消费一次，而 `/api/oauth/start` 本身要求登录。CSRF 的 Origin 校验对这些请求不变
 - 登录失败按来源 IP 指数退避：前 5 次不限，之后等待 60 秒并逐次翻倍，最长 1 小时；所有来源合计 10 分钟内失败 100 次时暂停登录
 - 首次启动生成的管理密码写入数据目录下的 `initial-admin-password.txt`（0600），日志里只有文件路径；改密码后该文件被删除
 - CSRF：会改变状态的 `/api` 请求必须来自本站（`Origin` 与 Host 或 `MAILHUB_PUBLIC_URL` 一致，或 `Sec-Fetch-Site: same-origin`）；跨站请求返回 403

@@ -162,8 +162,8 @@ def _request_token(request: Request | None) -> tuple[str | None, str]:
 # 方法也必须分别是 GET / POST。不能放宽成 /api/oauth/ 前缀，否则会把 /api/oauth/start、
 # /api/oauth/providers 这类需要登录的接口一起放行。
 _OAUTH_CALLBACK_ROUTES = (
-    ("GET", re.compile(r"^/api/oauth/[a-z0-9_]+/callback$")),
-    ("POST", re.compile(r"^/api/oauth/[a-z0-9_]+/fragment$")),
+    ("GET", re.compile(r"/api/oauth/[a-z0-9_]+/callback")),
+    ("POST", re.compile(r"/api/oauth/[a-z0-9_]+/fragment")),
 )
 # 免会话的依据：这两个端点既不读 cookie 也不读 Bearer，只按 /api/oauth/start 生成的 state
 # 定位事务。state 是 32 字节随机数，数据库里只存它的 SHA-256，10 分钟过期且只能消费一次；
@@ -175,7 +175,9 @@ def _is_session_exempt(method: str, path: str) -> bool:
     """判断请求是否免会话：登录、健康检查，以及上面两条 OAuth 回调端点。"""
     if path in ("/api/login", "/api/health"):
         return True
-    return any(method == verb and pattern.match(path) for verb, pattern in _OAUTH_CALLBACK_ROUTES)
+    # 用 fullmatch 而不是 match：Python 正则的 $ 允许在结尾换行符之前匹配，
+    # 那样 "/api/oauth/gmail/callback\n" 也会被当成免会话路径。
+    return any(method == verb and pattern.fullmatch(path) for verb, pattern in _OAUTH_CALLBACK_ROUTES)
 
 
 @app.middleware("http")

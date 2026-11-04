@@ -1058,3 +1058,23 @@ def test_session_exempt_paths_are_exact_matches():
     ]
     for method, path in blocked:
         assert mailhub_app._is_session_exempt(method, path) is False, (method, path)
+
+
+def test_session_exempt_ignores_trailing_newline():
+    """免会话路径按整段匹配：末尾多一个换行符不能被判成免会话。"""
+    assert mailhub_app._is_session_exempt("GET", "/api/oauth/gmail/callback\n") is False
+    assert mailhub_app._is_session_exempt("GET", "/api/oauth/gmail/callback") is True
+
+
+def test_consumed_transaction_clears_the_encrypted_verifier(isolated_db, monkeypatch):
+    """成功回调消费事务后，库里该事务的 verifier_enc 被清空，不再保留到过期。"""
+    tx_id, state = _start_gmail(monkeypatch)
+    _stub_gmail_login(monkeypatch, 66)
+    page = asyncio.run(oauth_auth.oauth_callback("gmail", state=state, code="the-code"))
+    assert b'"ok": true' in page.body
+
+    row = isolated_db.execute(
+        "SELECT status, verifier_enc FROM oauth_transactions WHERE id=?", (tx_id,),
+    ).fetchone()
+    assert row["status"] == "done"
+    assert row["verifier_enc"] == ""
