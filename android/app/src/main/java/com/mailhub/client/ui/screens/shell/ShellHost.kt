@@ -31,6 +31,9 @@ import com.mailhub.client.ui.screens.detail.DetailViewModelFactory
 import com.mailhub.client.ui.screens.inbox.InboxScreenHost
 import com.mailhub.client.ui.screens.inbox.InboxViewModel
 import com.mailhub.client.ui.screens.inbox.InboxViewModelFactory
+import com.mailhub.client.ui.screens.otp.OtpScreenHost
+import com.mailhub.client.ui.screens.otp.OtpViewModel
+import com.mailhub.client.ui.screens.otp.OtpViewModelFactory
 import com.mailhub.client.ui.screens.overview.OverviewScreenHost
 import com.mailhub.client.ui.screens.placeholder.PlaceholderScreen
 import com.mailhub.client.ui.swiss.ConfirmPanel
@@ -72,6 +75,10 @@ fun ShellHost(
     )
     val detailViewModel: DetailViewModel = viewModel(
         factory = DetailViewModelFactory(container.mailRepository),
+    )
+    // 验证码看板自己的 ViewModel：刷新循环跟着页面可见性开关，与收件箱互不影响
+    val otpViewModel: OtpViewModel = viewModel(
+        factory = OtpViewModelFactory(container.mailRepository),
     )
 
     LaunchedEffect(viewModel) {
@@ -127,6 +134,14 @@ fun ShellHost(
                         inboxViewModel.removeLocally(id)
                         viewModel.pop()
                     },
+                    modifier = Modifier.weight(1f),
+                    selectedTab = tabIndexFor(route),
+                    onSelectTab = viewModel::selectTab,
+                )
+
+                Route.Otp -> OtpScreenHost(
+                    viewModel = otpViewModel,
+                    meta = pageMeta,
                     modifier = Modifier.weight(1f),
                     selectedTab = tabIndexFor(route),
                     onSelectTab = viewModel::selectTab,
