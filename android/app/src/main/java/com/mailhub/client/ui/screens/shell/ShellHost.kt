@@ -25,6 +25,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mailhub.client.AppContainer
 import com.mailhub.client.ui.screens.common.pageMetaOf
+import com.mailhub.client.ui.screens.detail.DetailScreenHost
+import com.mailhub.client.ui.screens.detail.DetailViewModel
+import com.mailhub.client.ui.screens.detail.DetailViewModelFactory
+import com.mailhub.client.ui.screens.inbox.InboxScreenHost
+import com.mailhub.client.ui.screens.inbox.InboxViewModel
+import com.mailhub.client.ui.screens.inbox.InboxViewModelFactory
 import com.mailhub.client.ui.screens.overview.OverviewScreenHost
 import com.mailhub.client.ui.screens.placeholder.PlaceholderScreen
 import com.mailhub.client.ui.swiss.ConfirmPanel
@@ -60,6 +66,13 @@ fun ShellHost(
     val indexOpen by viewModel.indexOpen.collectAsStateWithLifecycle()
     val confirmingLogout by viewModel.confirmingLogout.collectAsStateWithLifecycle()
     val meta by viewModel.meta.collectAsStateWithLifecycle()
+    // 收件箱和详情共用一个收件箱 ViewModel：详情返回时那一行的已读状态和删除结果直接写回列表
+    val inboxViewModel: InboxViewModel = viewModel(
+        factory = InboxViewModelFactory(container.mailRepository),
+    )
+    val detailViewModel: DetailViewModel = viewModel(
+        factory = DetailViewModelFactory(container.mailRepository),
+    )
 
     LaunchedEffect(viewModel) {
         viewModel.start()
@@ -86,16 +99,40 @@ fun ShellHost(
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             IndexEntry(onOpen = viewModel::openIndex)
-            if (route == Route.Overview) {
-                OverviewScreenHost(
+            when (route) {
+                Route.Overview -> OverviewScreenHost(
                     container = container,
                     meta = pageMeta,
                     modifier = Modifier.weight(1f),
                     selectedTab = tabIndexFor(route),
                     onSelectTab = viewModel::selectTab,
                 )
-            } else {
-                PlaceholderScreen(
+
+                Route.Inbox -> InboxScreenHost(
+                    viewModel = inboxViewModel,
+                    meta = pageMeta,
+                    onOpenMessage = { id -> viewModel.push(Route.Detail(id)) },
+                    modifier = Modifier.weight(1f),
+                    selectedTab = tabIndexFor(route),
+                    onSelectTab = viewModel::selectTab,
+                )
+
+                is Route.Detail -> DetailScreenHost(
+                    viewModel = detailViewModel,
+                    messageId = route.id,
+                    meta = pageMeta,
+                    onMarkedRead = inboxViewModel::markReadLocally,
+                    onMarkedUnread = inboxViewModel::markUnreadLocally,
+                    onDeleted = { id ->
+                        inboxViewModel.removeLocally(id)
+                        viewModel.pop()
+                    },
+                    modifier = Modifier.weight(1f),
+                    selectedTab = tabIndexFor(route),
+                    onSelectTab = viewModel::selectTab,
+                )
+
+                else -> PlaceholderScreen(
                     index = header.index,
                     section = header.section,
                     title = header.title,

@@ -81,7 +81,12 @@ class ShellViewModel(
     /** 索引层里的二级页面：关掉索引层再压栈。 */
     fun openSecondary(index: String, title: String) {
         _indexOpen.value = false
-        _stack.value = _stack.value + Route.Secondary(index = index, title = title)
+        push(Route.Secondary(index = index, title = title))
+    }
+
+    /** 压栈：详情等二级页面都用它打开，返回时由 [pop] 弹栈。 */
+    fun push(route: Route) {
+        _stack.value = _stack.value + route
     }
 
     /** 弹出页面栈；已经在栈底时返回 false，让系统处理返回键。 */

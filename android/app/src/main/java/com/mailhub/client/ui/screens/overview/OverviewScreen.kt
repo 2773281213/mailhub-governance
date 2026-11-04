@@ -1,6 +1,5 @@
 package com.mailhub.client.ui.screens.overview
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
@@ -9,7 +8,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -18,12 +16,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mailhub.client.AppContainer
 import com.mailhub.client.data.model.ImportantItem
 import com.mailhub.client.data.model.OverviewStats
+import com.mailhub.client.ui.screens.common.MailRow
+import com.mailhub.client.ui.screens.common.MailRowData
 import com.mailhub.client.ui.screens.common.PageMeta
 import com.mailhub.client.ui.screens.shell.AppTabs
 import com.mailhub.client.ui.swiss.BarChart
@@ -304,54 +303,22 @@ private fun MiniStat(
 }
 
 /**
- * 一条重要邮件：时间占第 1–3 栏（未读时时间上方压一个红色小方块，左缘落在第 1 栏栏线上），
- * 主题与发件人占第 4–12 栏；未读时主题加粗。点击暂不跳转，详情页由下一阶段实现。
+ * 一条重要邮件：直接用共享的 [MailRow]，与收件箱保持同一种行结构
+ * （第 1 栏标记、第 2–4 栏时间、第 5–12 栏主题与发件人）。
+ * 总览不显示摘要和分类，所以这两项留空；未读时主题加粗、第 1 栏出现红色小方块。
  */
 @Composable
 private fun ImportantRow(item: ImportantItem, zoneId: String) {
-    val colors = LocalSwissColors.current
-    Column(modifier = Modifier.fillMaxWidth()) {
-        HairlineRule(color = colors.foreground)
-        Spacer(modifier = Modifier.height(SwissSpace.Xs))
-        GridRow {
-            Column(modifier = Modifier.cols(1, 3)) {
-                if (item.isUnread) {
-                    Box(
-                        modifier = Modifier
-                            .size(SwissSpace.Xs)
-                            .background(colors.accent),
-                    )
-                    Spacer(modifier = Modifier.height(SwissSpace.Xxs))
-                }
-                SText(
-                    text = mailClockText(item.dateTs, zoneId),
-                    style = SwissType.label(),
-                    color = colors.foreground,
-                    maxLines = 1,
-                )
-            }
-            Column(modifier = Modifier.cols(4, 9)) {
-                SText(
-                    text = item.subject,
-                    style = if (item.isUnread) {
-                        SwissType.body().copy(fontWeight = FontWeight.Bold)
-                    } else {
-                        SwissType.body()
-                    },
-                    color = colors.foreground,
-                    maxLines = 2,
-                )
-                Spacer(modifier = Modifier.height(SwissSpace.Xxs))
-                SText(
-                    text = item.senderAddr,
-                    style = SwissType.caption(),
-                    color = colors.foreground,
-                    maxLines = 1,
-                )
-            }
-        }
-        Spacer(modifier = Modifier.height(SwissSpace.Xs))
-    }
+    MailRow(
+        data = MailRowData(
+            id = item.id,
+            subject = item.subject,
+            sender = item.senderAddr,
+            dateTs = item.dateTs,
+            isUnread = item.isUnread,
+        ),
+        zoneId = zoneId,
+    )
 }
 
 /** 提示条：点一下即关闭，不再留到下一次操作。 */
