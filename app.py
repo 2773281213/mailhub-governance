@@ -597,6 +597,23 @@ def _escape_like(text: str) -> str:
     return text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
+# trigram 分词器至少要 3 个字符才能做子串匹配，更短的关键词仍用 LIKE
+FTS_MIN_QUERY_LEN = 3
+
+
+def _fts_phrase(q: str) -> str:
+    """把关键词包成 FTS5 短语：两端加双引号、内部的双引号写成两个，
+
+    用户输入的 * % _ ( OR 之类不会被当成 FTS 查询语法。
+    """
+    return '"' + q.replace('"', '""') + '"'
+
+
+def _fts_searchable(q: str) -> bool:
+    """关键词能否交给三元组索引：够长、索引可用、且不含 FTS5 短语解析不了的 NUL。"""
+    return len(q) >= FTS_MIN_QUERY_LEN and "\x00" not in q and db.fts_search_available()
+
+
 def _message_filter(category: str, account: int, unread: int, q: str,
                     bill_tier: str) -> tuple[str, list]:
     """收件箱筛选条件；列表和「选择全部」共用，保证两者选中的是同一批邮件。"""
@@ -610,10 +627,17 @@ def _message_filter(category: str, account: int, unread: int, q: str,
     if unread in (0, 1):
         where.append("m.unread=?"); args.append(unread)
     if q:
-        where.append("(m.subject LIKE ? ESCAPE '\\' OR m.sender_addr LIKE ? ESCAPE '\\'"
-                     " OR m.sender_name LIKE ? ESCAPE '\\' OR m.snippet LIKE ? ESCAPE '\\')")
-        like = f"%{_escape_like(q)}%"
-        args += [like, like, like, like]
+        if _fts_searchable(q):
+            # 三元组索引做子串匹配，等价于下面 4 个字段的 LIKE，但用得上索引；
+            # trigram 对 ASCII 字母不区分大小写，和 LIKE 的行为一致
+            where.append("m.id IN (SELECT rowid FROM messages_fts"
+                         " WHERE messages_fts MATCH ?)")
+            args.append(_fts_phrase(q))
+        else:
+            where.append("(m.subject LIKE ? ESCAPE '\\' OR m.sender_addr LIKE ? ESCAPE '\\'"
+                         " OR m.sender_name LIKE ? ESCAPE '\\' OR m.snippet LIKE ? ESCAPE '\\')")
+            like = f"%{_escape_like(q)}%"
+            args += [like, like, like, like]
     where.append("m.deleted_ts=0")   # 回收站内容不出现在收件箱
     return " AND ".join(where), args
 

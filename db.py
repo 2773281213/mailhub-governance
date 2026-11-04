@@ -1,4 +1,5 @@
 """SQLite 数据层：线程本地连接、建表、settings 读写"""
+import logging
 import os
 import sqlite3
 import threading
@@ -6,6 +7,8 @@ import time
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.environ.get("MAILHUB_DB", os.path.join(BASE_DIR, "data", "mailhub.db"))
+
+log = logging.getLogger("mailhub.db")
 
 _local = threading.local()
 
@@ -215,6 +218,80 @@ MIGRATIONS = [
     "ALTER TABLE messages ADD COLUMN flag_push INTEGER DEFAULT 0",
 ]
 
+# ---------- FTS5 三元组索引（邮件搜索） ----------
+# 邮箱搜索原来用 LIKE '%词%' 扫全表，前导通配符用不上索引。这里给
+# subject / sender_name / sender_addr / snippet 建一张 external content 的 FTS5
+# 三元组表，做任意子串匹配（中文按每 3 个字符一组，同样有效）。
+# 不支持 FTS5 或 trigram 分词的 SQLite 会在建表时抛 OperationalError，
+# 这时只记一条日志，搜索整体回落原来的 LIKE 路径，其余功能不受影响。
+# 正文 body_text 体积大、原来的搜索也不含它，因此不索引。
+# trigram 默认折叠 ASCII 大小写，与 LIKE 一致；非 ASCII 字母也会被折叠，
+# 因此像 ÄRGER 这种关键词会比 LIKE 多命中（覆盖面更宽，不影响英文与中文搜索）。
+
+# 可用性缓存在模块级变量里：None=还没探测，True/False=探测结果。
+# 同时记住缓存对应的是哪个库，换库（测试、演示脚本）后重新探测。
+_fts_available = None
+_fts_db_path = None
+
+
+def _fts_statements():
+    """FTS5 表与三个同步触发器的建表语句（官方 external content 写法，可重复执行）。"""
+    return [
+        """CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(
+             subject, sender_name, sender_addr, snippet,
+             content='messages', content_rowid='id', tokenize='trigram'
+           )""",
+        """CREATE TRIGGER IF NOT EXISTS messages_fts_ai AFTER INSERT ON messages BEGIN
+             INSERT INTO messages_fts(rowid, subject, sender_name, sender_addr, snippet)
+             VALUES(new.id, new.subject, new.sender_name, new.sender_addr, new.snippet);
+           END""",
+        """CREATE TRIGGER IF NOT EXISTS messages_fts_ad AFTER DELETE ON messages BEGIN
+             INSERT INTO messages_fts(messages_fts, rowid, subject, sender_name, sender_addr, snippet)
+             VALUES('delete', old.id, old.subject, old.sender_name, old.sender_addr, old.snippet);
+           END""",
+        """CREATE TRIGGER IF NOT EXISTS messages_fts_au
+           AFTER UPDATE OF subject, sender_name, sender_addr, snippet ON messages BEGIN
+             INSERT INTO messages_fts(messages_fts, rowid, subject, sender_name, sender_addr, snippet)
+             VALUES('delete', old.id, old.subject, old.sender_name, old.sender_addr, old.snippet);
+             INSERT INTO messages_fts(rowid, subject, sender_name, sender_addr, snippet)
+             VALUES(new.id, new.subject, new.sender_name, new.sender_addr, new.snippet);
+           END""",
+    ]
+
+
+def _create_fts(conn: sqlite3.Connection):
+    """建 FTS5 表与触发器；第一次建表后回填已有邮件（之后启动不再重复回填）。"""
+    existed = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='messages_fts'").fetchone()
+    for sql in _fts_statements():
+        conn.execute(sql)
+    if not existed:
+        conn.execute("INSERT INTO messages_fts(messages_fts) VALUES('rebuild')")
+
+
+def init_fts(conn: sqlite3.Connection) -> bool:
+    """初始化 FTS5 索引并缓存可用性；不可用时只记日志，返回 False。"""
+    global _fts_available, _fts_db_path
+    if _fts_available is not None and _fts_db_path == DB_PATH:
+        return _fts_available
+    try:
+        _create_fts(conn)
+    except sqlite3.OperationalError as exc:
+        log.warning("SQLite 不支持 FTS5 trigram 索引，邮件搜索回落到 LIKE：%s", exc)
+        _fts_available = False
+        _fts_db_path = DB_PATH
+        return False
+    _fts_available = True
+    _fts_db_path = DB_PATH
+    return True
+
+
+def fts_search_available() -> bool:
+    """邮件搜索能否走 FTS5 三元组索引（可用性缓存，不重复探测）。"""
+    if _fts_available is None or _fts_db_path != DB_PATH:
+        init_fts(get_conn())
+    return bool(_fts_available)
+
 
 def get_conn() -> sqlite3.Connection:
     conn = getattr(_local, "conn", None)
@@ -252,6 +329,8 @@ def init_db():
             if "duplicate column name" not in str(exc).lower():
                 raise
     _pin_legacy_ai_base_url(conn)
+    # 邮件搜索的三元组索引：建表/建触发器幂等，首次建表后回填
+    init_fts(conn)
     conn.commit()
 
 
