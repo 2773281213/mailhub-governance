@@ -209,6 +209,8 @@ MIGRATIONS = [
     "ALTER TABLE sessions ADD COLUMN last_seen_ts REAL DEFAULT 0",
     # 移动端游标分页与增量变更：收件箱列表按 (date_ts DESC, id DESC) 翻页
     "CREATE INDEX IF NOT EXISTS idx_msg_deleted_date ON messages(deleted_ts, date_ts DESC, id DESC)",
+    # 大邮件保护：正文只存了头部和开头的 1MB 时置 1，提示用户到网页邮箱看原文
+    "ALTER TABLE messages ADD COLUMN body_truncated INTEGER DEFAULT 0",
 ]
 
 

@@ -69,11 +69,15 @@ def _is_syncing(acc_id: int) -> bool:
 
 
 def _account_exists(conn, acc_id: int) -> bool:
-    """账户是否仍然存在：同步期间用户可能已经把它删掉。"""
+    """账户是否仍然存在：同步期间用户可能已经把它删掉。
+
+    查询本身失败（例如数据库忙、被锁）时返回 True：宁可保留状态，也不要把真实
+    存在的账户从 STATUS 里抹掉，否则用户看不到该账户的错误原因。
+    """
     try:
         row = conn.execute("SELECT 1 FROM accounts WHERE id=?", (acc_id,)).fetchone()
     except Exception:
-        return False
+        return True
     return row is not None
 
 
@@ -164,6 +168,22 @@ def _advance_watermark(last_uid: int, requested: list[int], failed) -> int:
     return watermark
 
 
+# 每块抓取的邮件数：抓完一块就立刻入库，再去抓下一块，避免整轮邮件的正文同时驻留内存
+FETCH_CHUNK_UIDS = 10
+
+
+def _iter_fetched(sess, uids: list[int], failed: set):
+    """按 FETCH_CHUNK_UIDS 逐块抓取，边抓边把该块的邮件交给调用方入库。
+
+    生成器没有把当前块交完就不会去抓下一块，所以同一时间只有一块邮件的正文
+    在内存里。抓取失败的 UID 累积到 failed，由调用方在结束后统一推进水位。
+    """
+    for start in range(0, len(uids), FETCH_CHUNK_UIDS):
+        msgs, chunk_failed = sess.fetch_messages(uids[start:start + FETCH_CHUNK_UIDS])
+        failed.update(chunk_failed)
+        yield from msgs
+
+
 def _unbind_stale_uids(conn, acc_id: int, uidvalidity: int):
     """UIDVALIDITY 变化：旧记录保留在本地，但把 UID 改成负数让出唯一键。
 
@@ -223,9 +243,10 @@ def sync_account(acc_id: int) -> int:
             if uids:
                 _set_status(acc_id, "syncing", f"拉取 {len(uids)} 封")
                 custom = rules.load_custom_rules(conn)
-                msgs, failed = sess.fetch_messages(uids)
+                # 分块抓取、分块入库：失败的 UID 与入库错误跨块累计，最后统一推进水位
+                failed: set[int] = set()
                 insert_error = ""
-                for m in msgs:
+                for m in _iter_fetched(sess, uids, failed):
                     # —— UIDVALIDITY 变化后，同一封信按 Message-ID 认回原来的本地记录 ——
                     if _rebind_by_message_id(conn, acc_id, m):
                         continue
@@ -255,15 +276,17 @@ def sync_account(acc_id: int) -> int:
                                (account_id, uid, msg_id, subject, sender_name, sender_addr, to_addr,
                                 date_ts, snippet, body_text, body_html, category, otp_code, unread,
                                 has_attach, unsubscribe, created_ts, risk_level, risk_reasons,
-                                needs_review, confidence, header_signals, template_key)
-                               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                                needs_review, confidence, header_signals, template_key,
+                                body_truncated)
+                               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                             (acc_id, m["uid"], m["msg_id"], m["subject"], m["sender_name"],
                              m["sender_addr"], m.get("to_addr", ""), m["date_ts"], m["snippet"],
                              m["body_text"], m["body_html"], cat, otp, m["unread"], m["has_attach"],
                              m["unsubscribe"], time.time(), scan["risk"],
                              " · ".join(scan["reasons"])[:500], 0, confidence,
                              json.dumps(signals, sort_keys=True),
-                             billing.template_key(m["sender_addr"], m["subject"])),
+                             billing.template_key(m["sender_addr"], m["subject"]),
+                             m.get("body_truncated", 0)),
                         )
                         if cur.rowcount:
                             new_count += 1
