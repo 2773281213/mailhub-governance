@@ -13,12 +13,28 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MailHub">
 
+        <!--
+            singleTop：浏览器授权页通过 mailhub://oauth/done?tx=… 返回时复用已有实例，
+            走 onNewIntent，不会重建界面。
+        -->
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- OAuth 回调深链：只有事务 id，不带任何令牌。 -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:host="oauth"
+                    android:path="/done"
+                    android:scheme="mailhub" />
             </intent-filter>
         </activity>
     </application>
