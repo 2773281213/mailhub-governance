@@ -48,8 +48,11 @@ import com.mailhub.client.ui.swiss.cols
 import java.time.Year
 
 /**
- * 主界面外壳：顶部索引入口 + 当前页面 + 全屏索引层 + 退出确认。
+ * 主界面外壳：当前页面 + 全屏索引层 + 退出确认。
  * 页面栈由 [ShellViewModel] 持有，系统返回键先关索引层 / 退出确认，再弹栈，栈底交回系统。
+ *
+ * 页头不再单独占一行：固定区只有页面自己的一行页头，索引入口就是这一行第 11–12 栏的
+ * 「索引」（详情页换成「← 收件」），所以这里只把回调下发，不再自己画一行。
  *
  * 安全区在这里一次性让出来（windowInsetsPadding 同时消费 insets），
  * 里面的 SwissScaffold 和标签栏因此不会重复留出状态栏和导航栏的高度。
@@ -105,7 +108,6 @@ fun ShellHost(
             .windowInsetsPadding(WindowInsets.safeDrawing),
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            IndexEntry(onOpen = viewModel::openIndex)
             when (route) {
                 Route.Overview -> OverviewScreenHost(
                     container = container,
@@ -113,6 +115,7 @@ fun ShellHost(
                     modifier = Modifier.weight(1f),
                     selectedTab = tabIndexFor(route),
                     onSelectTab = viewModel::selectTab,
+                    onOpenIndex = viewModel::openIndex,
                 )
 
                 Route.Inbox -> InboxScreenHost(
@@ -122,6 +125,7 @@ fun ShellHost(
                     modifier = Modifier.weight(1f),
                     selectedTab = tabIndexFor(route),
                     onSelectTab = viewModel::selectTab,
+                    onOpenIndex = viewModel::openIndex,
                 )
 
                 is Route.Detail -> DetailScreenHost(
@@ -137,6 +141,7 @@ fun ShellHost(
                     modifier = Modifier.weight(1f),
                     selectedTab = tabIndexFor(route),
                     onSelectTab = viewModel::selectTab,
+                    onBack = viewModel::pop,
                 )
 
                 Route.Otp -> OtpScreenHost(
@@ -145,6 +150,7 @@ fun ShellHost(
                     modifier = Modifier.weight(1f),
                     selectedTab = tabIndexFor(route),
                     onSelectTab = viewModel::selectTab,
+                    onOpenIndex = viewModel::openIndex,
                 )
 
                 else -> PlaceholderScreen(
@@ -155,6 +161,7 @@ fun ShellHost(
                     modifier = Modifier.weight(1f),
                     selectedTab = tabIndexFor(route),
                     onSelectTab = viewModel::selectTab,
+                    onOpenIndex = viewModel::openIndex,
                 )
             }
         }
@@ -178,14 +185,11 @@ fun ShellHost(
     }
 }
 
-/** 页头左侧的索引入口：文字按钮，占第 1–2 栏。 */
-@Composable
-internal fun IndexEntry(onOpen: () -> Unit) {
-    GridRow {
-        TextButton(text = "索引", onClick = onOpen, modifier = Modifier.cols(1, 2))
-    }
-    Spacer(modifier = Modifier.height(SwissSpace.Xs))
-}
+/**
+ * 一级页面页头操作入口「索引」的文字：占第 11–12 栏，点击打开全屏索引层。
+ * 入口本身由各页面的 SwissScaffold 画（见 PageHeader），这里只放文字。
+ */
+const val IndexActionLabel: String = "索引"
 
 /**
  * 全屏索引层：编号用 label，名称用 headline，行间用 1dp 细线分隔。

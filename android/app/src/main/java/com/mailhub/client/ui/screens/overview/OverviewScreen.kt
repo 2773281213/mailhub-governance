@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -16,6 +17,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mailhub.client.AppContainer
@@ -25,12 +31,14 @@ import com.mailhub.client.ui.screens.common.MailRow
 import com.mailhub.client.ui.screens.common.MailRowData
 import com.mailhub.client.ui.screens.common.PageMeta
 import com.mailhub.client.ui.screens.shell.AppTabs
+import com.mailhub.client.ui.screens.shell.IndexActionLabel
 import com.mailhub.client.ui.swiss.BarChart
 import com.mailhub.client.ui.swiss.ErrorState
 import com.mailhub.client.ui.swiss.GridRow
 import com.mailhub.client.ui.swiss.HairlineRule
 import com.mailhub.client.ui.swiss.LoadingRule
 import com.mailhub.client.ui.swiss.LocalSwissColors
+import com.mailhub.client.ui.swiss.PageTitle
 import com.mailhub.client.ui.swiss.SText
 import com.mailhub.client.ui.swiss.SectionHeader
 import com.mailhub.client.ui.swiss.SwissButton
@@ -46,6 +54,8 @@ import com.mailhub.client.ui.swiss.cols
 /**
  * 总览页（无状态）：未读数、三栏统计、三省六部、近 12 天柱状图、重要邮件、晨报、刷新。
  * 整屏只有一个红色主操作（运行治理），其余按钮都是描边或主要样式。
+ *
+ * 固定区只有一行页头，「总览」这个大标题是滚动内容的第一项，跟着内容一起滚出屏幕。
  */
 @Composable
 fun OverviewScreen(
@@ -55,13 +65,15 @@ fun OverviewScreen(
     modifier: Modifier = Modifier,
     selectedTab: Int = 0,
     onSelectTab: (Int) -> Unit = {},
+    onOpenIndex: () -> Unit = {},
 ) {
     SwissScaffold(
         index = "01",
         section = "总览",
         meta = meta.line,
-        title = "总览",
         modifier = modifier,
+        actionLabel = IndexActionLabel,
+        onAction = onOpenIndex,
         bottomBar = {
             SwissTabBar(items = AppTabs, selected = selectedTab, onSelect = onSelectTab)
         },
@@ -71,6 +83,7 @@ fun OverviewScreen(
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState()),
         ) {
+            PageTitle(text = "总览")
             when {
                 state.error != null && state.overview == null -> {
                     ErrorState(
@@ -230,15 +243,10 @@ private fun OverviewBody(
     SectionHeader(index = "05", title = "晨报")
     Spacer(modifier = Modifier.height(SwissSpace.S))
     val digest = overview?.digest
-    GridRow {
-        if (digest != null && digest.content.isNotBlank()) {
-            SText(
-                text = digest.content,
-                style = SwissType.body(),
-                modifier = Modifier.cols(1, 10),
-                color = colors.foreground,
-            )
-        } else {
+    if (digest != null && digest.content.isNotBlank()) {
+        DigestBody(blocks = remember(digest.content) { parseDigest(digest.content) })
+    } else {
+        GridRow {
             SText(
                 text = "今天还没有晨报",
                 style = SwissType.caption(),
@@ -267,6 +275,76 @@ private const val ImportantLimit = 5
 
 /** 表里缺值时的占位符。 */
 private const val EmptyTableValue = "—"
+
+/**
+ * 晨报正文：按 [parseDigest] 给出的段落逐段排版。
+ *
+ * 标题整段加粗；列表项的标记「—」占第 1 栏，文字从第 2 栏起排到第 10 栏，
+ * 换行后仍从第 2 栏起排（悬挂缩进）；空行只留一个 [SwissSpace.S] 的段落间距。
+ */
+@Composable
+private fun DigestBody(blocks: List<DigestBlock>) {
+    val colors = LocalSwissColors.current
+    blocks.forEach { block ->
+        when (block) {
+            DigestBlock.Gap -> Spacer(modifier = Modifier.height(SwissSpace.S))
+
+            is DigestBlock.Heading -> GridRow {
+                DigestText(
+                    spans = block.spans,
+                    modifier = Modifier.cols(1, 10),
+                    forceBold = true,
+                )
+            }
+
+            is DigestBlock.Bullet -> GridRow {
+                SText(
+                    text = DigestBulletMark,
+                    style = SwissType.body(),
+                    modifier = Modifier.cols(1, 1),
+                    color = colors.foreground,
+                    maxLines = 1,
+                )
+                DigestText(spans = block.spans, modifier = Modifier.cols(2, 9))
+            }
+
+            is DigestBlock.Paragraph -> GridRow {
+                DigestText(spans = block.spans, modifier = Modifier.cols(1, 10))
+            }
+        }
+    }
+}
+
+/**
+ * 晨报里的一段文字：body 样式，行内 `**…**` 用 Bold 字重。
+ *
+ * 行内混排加粗只能交给 BasicText 的 AnnotatedString（[SText] 只接受纯字符串），
+ * 字体、颜色和对齐仍然全部取自设计系统的 [SwissType.body] 与三色。
+ */
+@Composable
+private fun DigestText(
+    spans: List<DigestSpan>,
+    modifier: Modifier = Modifier,
+    forceBold: Boolean = false,
+) {
+    val colors = LocalSwissColors.current
+    val text = buildAnnotatedString {
+        spans.forEach { span ->
+            withStyle(
+                SpanStyle(
+                    fontWeight = if (forceBold || span.bold) FontWeight.Bold else FontWeight.Normal,
+                ),
+            ) {
+                append(span.text)
+            }
+        }
+    }
+    BasicText(
+        text = text,
+        modifier = modifier,
+        style = SwissType.body().copy(color = colors.foreground, textAlign = TextAlign.Start),
+    )
+}
 
 /**
  * 未读大数字：用 StatNumber 的字号规则（位数 ≥ 4 时退一档），
@@ -347,6 +425,7 @@ fun OverviewScreenHost(
     modifier: Modifier = Modifier,
     selectedTab: Int = 0,
     onSelectTab: (Int) -> Unit = {},
+    onOpenIndex: () -> Unit = {},
 ) {
     val viewModel: OverviewViewModel = viewModel(
         factory = OverviewViewModelFactory(container.mailRepository),
@@ -363,5 +442,6 @@ fun OverviewScreenHost(
         modifier = modifier,
         selectedTab = selectedTab,
         onSelectTab = onSelectTab,
+        onOpenIndex = onOpenIndex,
     )
 }

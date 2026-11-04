@@ -1,8 +1,14 @@
 package com.mailhub.client.ui.screens.shell
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import com.mailhub.client.ui.screens.common.LocalMailNow
+import com.mailhub.client.ui.screens.inbox.InboxFixtureMeta
+import com.mailhub.client.ui.screens.inbox.InboxFixtureNowTs
+import com.mailhub.client.ui.screens.inbox.InboxScreen
+import com.mailhub.client.ui.screens.inbox.inboxFixtureState
 import com.mailhub.client.ui.swiss.SwissTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -58,13 +64,21 @@ class IndexLayerTest {
     fun indexEntryOpensIndexLayer() {
         var opened = 0
 
+        // 索引入口现在放在页头固定行的第 11–12 栏，用真实的收件箱页面渲染
         composeRule.setContent {
-            SwissTheme {
-                IndexEntry(onOpen = { opened++ })
+            CompositionLocalProvider(LocalMailNow provides InboxFixtureNowTs) {
+                SwissTheme {
+                    InboxScreen(
+                        state = inboxFixtureState(),
+                        meta = InboxFixtureMeta,
+                        onEvent = {},
+                        onOpenIndex = { opened++ },
+                    )
+                }
             }
         }
 
-        composeRule.onNodeWithText("索引").performClick()
+        composeRule.onNodeWithText(IndexActionLabel).performClick()
         assertEquals(1, opened)
     }
 }

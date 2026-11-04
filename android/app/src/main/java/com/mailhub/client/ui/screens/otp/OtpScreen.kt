@@ -30,11 +30,13 @@ import com.mailhub.client.data.model.OtpItem
 import com.mailhub.client.ui.screens.common.PageMeta
 import com.mailhub.client.ui.screens.common.rememberSensitiveClipboard
 import com.mailhub.client.ui.screens.shell.AppTabs
+import com.mailhub.client.ui.screens.shell.IndexActionLabel
 import com.mailhub.client.ui.swiss.EmptyState
 import com.mailhub.client.ui.swiss.GridRow
 import com.mailhub.client.ui.swiss.HairlineRule
 import com.mailhub.client.ui.swiss.LoadingRule
 import com.mailhub.client.ui.swiss.LocalSwissColors
+import com.mailhub.client.ui.swiss.PageTitle
 import com.mailhub.client.ui.swiss.SText
 import com.mailhub.client.ui.swiss.SectionHeader
 import com.mailhub.client.ui.swiss.SwissButton
@@ -48,7 +50,8 @@ import com.mailhub.client.ui.swiss.cols
 import kotlinx.coroutines.launch
 
 /**
- * 验证码看板（无状态）：页头下面是列表第一项的大号验证码，
+ * 验证码看板（无状态）：大标题是滚动内容的第一项，跟着列表一起滚走；
+ * 下面紧跟列表第一项的大号验证码，
  * 收到不到 5 分钟时数字用红，下面一行 caption 说明来源与时间，再下面一个黑色复制按钮；
  * 之后是「02 更早」区块，每行一个验证码，点一行即复制。
  *
@@ -62,13 +65,15 @@ fun OtpScreen(
     modifier: Modifier = Modifier,
     selectedTab: Int = 2,
     onSelectTab: (Int) -> Unit = {},
+    onOpenIndex: () -> Unit = {},
 ) {
     SwissScaffold(
         index = "03",
         section = "验证码",
         meta = meta.line,
-        title = "验证码",
         modifier = modifier,
+        actionLabel = IndexActionLabel,
+        onAction = onOpenIndex,
         bottomBar = {
             Column(modifier = Modifier.fillMaxWidth()) {
                 val notice = state.notice
@@ -87,6 +92,7 @@ fun OtpScreen(
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState()),
         ) {
+            PageTitle(text = OtpTitle)
             val latest = state.latest
             when {
                 latest != null -> BoardBody(
@@ -125,6 +131,9 @@ fun OtpScreen(
         }
     }
 }
+
+/** 页面大标题的文字。 */
+private const val OtpTitle = "验证码"
 
 /** 最新一条 + 「02 更早」区块。 */
 @Composable
@@ -344,6 +353,7 @@ fun OtpScreenHost(
     modifier: Modifier = Modifier,
     selectedTab: Int = 2,
     onSelectTab: (Int) -> Unit = {},
+    onOpenIndex: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val clipboard = rememberSensitiveClipboard()
@@ -372,5 +382,6 @@ fun OtpScreenHost(
         modifier = modifier,
         selectedTab = selectedTab,
         onSelectTab = onSelectTab,
+        onOpenIndex = onOpenIndex,
     )
 }

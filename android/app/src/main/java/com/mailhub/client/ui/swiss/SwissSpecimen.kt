@@ -23,7 +23,8 @@ import androidx.compose.ui.unit.dp
 
 /**
  * 样张页面：从上到下把设计系统的每个组件展示一遍，供截图测试固定下来。
- * 页面本身可以纵向滚动，外层是 SwissScaffold（页头 + 底部标签栏 + 安全区）。
+ * 页面本身可以纵向滚动，外层是 SwissScaffold（固定的一行页头 + 底部标签栏 + 安全区），
+ * 大标题「样张」是滚动内容的第一项。
  */
 @Composable
 fun SwissSpecimen(
@@ -43,7 +44,6 @@ fun SwissSpecimen(
         index = "00",
         section = "设计系统",
         meta = "2026 — 上海",
-        title = "样张",
         modifier = modifier,
         bottomBar = {
             SwissTabBar(
@@ -58,6 +58,8 @@ fun SwissSpecimen(
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState()),
         ) {
+            PageTitle(text = "样张")
+
             SpecimenSection(index = "01", title = "字体") {
                 TypeRow("128", SwissType.display())
                 TypeRow("收件箱", SwissType.displaySmall())

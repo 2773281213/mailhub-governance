@@ -9,6 +9,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.Density
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.mailhub.client.ui.screens.common.LocalMailNow
 import com.mailhub.client.ui.screens.overview.OverviewScreen
 import com.mailhub.client.ui.swiss.GridOverlay
 import com.mailhub.client.ui.swiss.SwissTheme
@@ -36,6 +37,9 @@ class OverviewScreenshotTest {
             val density = LocalDensity.current
             CompositionLocalProvider(
                 LocalDensity provides Density(density = density.density, fontScale = fontScale),
+                // 「现在」固定在示例数据的治理完成时刻：否则过了当天午夜，时间列会从 HH:mm 变成日期，
+                // 截图跟着日期变，校验就会失败
+                LocalMailNow provides SampleData.FinishedTs,
             ) {
                 SwissTheme {
                     Box(modifier = Modifier.fillMaxSize()) {

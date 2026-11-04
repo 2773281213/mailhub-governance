@@ -5,6 +5,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -30,6 +31,7 @@ import com.mailhub.client.ui.screens.common.PageMeta
 import com.mailhub.client.ui.screens.common.accountLabel
 import com.mailhub.client.ui.screens.common.categoryLabel
 import com.mailhub.client.ui.screens.shell.AppTabs
+import com.mailhub.client.ui.screens.shell.IndexActionLabel
 import com.mailhub.client.ui.swiss.ConfirmPanel
 import com.mailhub.client.ui.swiss.EmptyState
 import com.mailhub.client.ui.swiss.ErrorState
@@ -39,6 +41,7 @@ import com.mailhub.client.ui.swiss.GridRow
 import com.mailhub.client.ui.swiss.HairlineRule
 import com.mailhub.client.ui.swiss.LoadingRule
 import com.mailhub.client.ui.swiss.LocalSwissColors
+import com.mailhub.client.ui.swiss.PageTitle
 import com.mailhub.client.ui.swiss.SText
 import com.mailhub.client.ui.swiss.SearchField
 import com.mailhub.client.ui.swiss.SwissScaffold
@@ -61,8 +64,10 @@ private const val AllCategoryIndex = 0
 private const val AllCategoryText = "00 全部"
 
 /**
- * 收件箱（无状态）：搜索框、状态筛选、分类筛选（两位编号）、账户筛选（A1 A2），
- * 下面是共享的邮件行列表。多选模式下底部标签栏换成操作栏。
+ * 收件箱（无状态）：大标题、搜索框、状态筛选、分类筛选（两位编号）、账户筛选（A1 A2）、
+ * 刷新入口和共享的邮件行列表，全部放在同一个 [LazyColumn] 里——只有页头那一行固定，
+ * 其余内容（包括「收件」这个大标题）都跟着列表一起向上滚走。
+ * 多选模式下底部标签栏换成操作栏。
  * 整屏没有红色主操作按钮，红色只出现在未读方块和分类小方块上。
  */
 @Composable
@@ -73,13 +78,15 @@ fun InboxScreen(
     modifier: Modifier = Modifier,
     selectedTab: Int = 1,
     onSelectTab: (Int) -> Unit = {},
+    onOpenIndex: () -> Unit = {},
 ) {
     Box(modifier = modifier) {
         SwissScaffold(
             index = "02",
             section = "收件",
             meta = meta.line,
-            title = "收件",
+            actionLabel = IndexActionLabel,
+            onAction = onOpenIndex,
             bottomBar = {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     val notice = state.notice
@@ -97,23 +104,7 @@ fun InboxScreen(
                 }
             },
         ) {
-            FilterSection(state = state, onEvent = onEvent)
-            Spacer(modifier = Modifier.height(SwissSpace.S))
-            HairlineRule()
-            Spacer(modifier = Modifier.height(SwissSpace.Xs))
-            GridRow {
-                RowTextButton(
-                    text = "刷新 →",
-                    onClick = { onEvent(InboxEvent.Refresh) },
-                    modifier = Modifier.cols(1, 3),
-                )
-            }
-            MailList(
-                state = state,
-                meta = meta,
-                onEvent = onEvent,
-                modifier = Modifier.weight(1f),
-            )
+            InboxList(state = state, meta = meta, onEvent = onEvent)
         }
         if (state.confirmingDelete) {
             ConfirmPanel(
@@ -314,46 +305,17 @@ private fun AccountFilters(
     }
 }
 
-/** 邮件列表：加载中、空、失败各自一个状态；正常时用共享行铺开，滚到底自动翻页。 */
+/**
+ * 收件箱的全部滚动内容：页头大标题、搜索框、筛选行、摘要、展开后的筛选项、「刷新 →」
+ * 和邮件行，放在同一个 [LazyColumn] 里，前面几项作为 header item。
+ * 滚到底自动翻页的逻辑不变：离列表底部还剩 [LoadMoreAhead] 条时加载下一页。
+ */
 @Composable
-private fun MailList(
+private fun InboxList(
     state: InboxUiState,
     meta: PageMeta,
     onEvent: (InboxEvent) -> Unit,
-    modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        when {
-            state.error != null && state.items.isEmpty() -> {
-                Spacer(modifier = Modifier.height(SwissSpace.S))
-                ErrorState(
-                    message = state.error,
-                    onRetry = { onEvent(InboxEvent.Refresh) },
-                )
-            }
-
-            state.loading && state.items.isEmpty() -> {
-                Spacer(modifier = Modifier.height(SwissSpace.M))
-                LoadingRule()
-            }
-
-            state.isEmpty -> {
-                Spacer(modifier = Modifier.height(SwissSpace.M))
-                EmptyState(
-                    index = "02",
-                    title = "没有邮件",
-                    body = "换个筛选条件，或点上面的刷新再试一次。",
-                )
-            }
-
-            else -> MailRows(state = state, meta = meta, onEvent = onEvent)
-        }
-    }
-}
-
-/** 正常的行列表。key 用邮件 id，翻页合并时不会重建已有行。 */
-@Composable
-private fun MailRows(state: InboxUiState, meta: PageMeta, onEvent: (InboxEvent) -> Unit) {
     val listState = rememberLazyListState()
     val shouldLoadMore by remember(listState) {
         derivedStateOf {
@@ -367,30 +329,90 @@ private fun MailRows(state: InboxUiState, meta: PageMeta, onEvent: (InboxEvent) 
             onEvent(InboxEvent.LoadMore)
         }
     }
-    LazyColumn(state = listState, modifier = Modifier.fillMaxWidth()) {
-        items(items = state.items, key = { it.id }) { item ->
-            MailRow(
-                data = mailRowOf(item, state.categories),
-                zoneId = meta.zoneId,
-                selected = if (state.selectMode) item.id in state.selected else null,
-                onClick = {
-                    if (state.selectMode) {
-                        onEvent(InboxEvent.ToggleSelected(item.id))
-                    } else {
-                        onEvent(InboxEvent.Open(item.id))
-                    }
-                },
-                onLongClick = { onEvent(InboxEvent.LongPress(item.id)) },
-            )
+    LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+        item(key = TitleKey) {
+            PageTitle(text = InboxTitle)
+        }
+        item(key = FiltersKey) {
+            FilterSection(state = state, onEvent = onEvent)
+        }
+        item(key = DividerKey) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Spacer(modifier = Modifier.height(SwissSpace.S))
+                HairlineRule()
+                Spacer(modifier = Modifier.height(SwissSpace.Xs))
+            }
+        }
+        item(key = RefreshKey) {
+            GridRow {
+                RowTextButton(
+                    text = RefreshText,
+                    onClick = { onEvent(InboxEvent.Refresh) },
+                    modifier = Modifier.cols(1, 3),
+                )
+            }
+        }
+        when {
+            state.error != null && state.items.isEmpty() -> item(key = StateKey) {
+                Spacer(modifier = Modifier.height(SwissSpace.S))
+                ErrorState(
+                    message = state.error,
+                    onRetry = { onEvent(InboxEvent.Refresh) },
+                )
+            }
+
+            state.loading && state.items.isEmpty() -> item(key = StateKey) {
+                Spacer(modifier = Modifier.height(SwissSpace.M))
+                LoadingRule()
+            }
+
+            state.isEmpty -> item(key = StateKey) {
+                Spacer(modifier = Modifier.height(SwissSpace.M))
+                EmptyState(
+                    index = "02",
+                    title = "没有邮件",
+                    body = "换个筛选条件，或点上面的刷新再试一次。",
+                )
+            }
+
+            else -> items(items = state.items, key = { it.id }) { item ->
+                MailRow(
+                    data = mailRowOf(item, state.categories),
+                    zoneId = meta.zoneId,
+                    selected = if (state.selectMode) item.id in state.selected else null,
+                    onClick = {
+                        if (state.selectMode) {
+                            onEvent(InboxEvent.ToggleSelected(item.id))
+                        } else {
+                            onEvent(InboxEvent.Open(item.id))
+                        }
+                    },
+                    onLongClick = { onEvent(InboxEvent.LongPress(item.id)) },
+                )
+            }
         }
         if (state.loadingMore) {
-            item(key = "loading-more") {
+            item(key = LoadingMoreKey) {
                 Spacer(modifier = Modifier.height(SwissSpace.S))
                 LoadingRule()
             }
         }
     }
 }
+
+/** 列表里各分区项的 key，翻页合并时不会重建页头和筛选区。 */
+private const val TitleKey = "page-title"
+private const val FiltersKey = "filters"
+private const val DividerKey = "divider"
+private const val RefreshKey = "refresh"
+private const val StateKey = "state"
+private const val LoadingMoreKey = "loading-more"
+
+/** 页面大标题的文字。 */
+private const val InboxTitle = "收件"
+
+/** 刷新入口的文字。 */
+private const val RefreshText = "刷新 →"
 
 /** 多选模式下的底部操作栏：已读、未读、删除、取消，各占 3 栏。 */
 @Composable
@@ -491,6 +513,7 @@ fun InboxScreenHost(
     modifier: Modifier = Modifier,
     selectedTab: Int = 1,
     onSelectTab: (Int) -> Unit = {},
+    onOpenIndex: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     LaunchedEffect(viewModel) {
@@ -509,5 +532,6 @@ fun InboxScreenHost(
         modifier = modifier,
         selectedTab = selectedTab,
         onSelectTab = onSelectTab,
+        onOpenIndex = onOpenIndex,
     )
 }

@@ -12,11 +12,22 @@ import android.webkit.WebViewClient
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.viewinterop.AndroidView
+import com.mailhub.client.ui.swiss.SwissPalette
 import com.mailhub.client.ui.swiss.SwissSpace
+import com.mailhub.client.ui.swiss.SwissType
 import java.io.ByteArrayInputStream
 import java.net.URI
+import kotlin.math.roundToInt
 
 /**
  * 正文 WebView 的安全配置。全部是纯数据，不依赖 Android 类型，方便单元测试直接断言。
@@ -116,6 +127,44 @@ private const val NoBaseUrl = "about:blank"
 private const val HtmlMime = "text/html"
 private const val Charset = "utf-8"
 
+/** 正文纸面的颜色：永远是 Paper 米白，深色模式下也是米白（正文是一张纸，不是界面底色）。 */
+val MailBodyPaper: Color = SwissPalette.Paper
+
+/** 正文底色（ARGB）。WebView 的 setBackgroundColor 只认 int，颜色仍然取自 [SwissPalette]。 */
+fun mailBodyBackgroundArgb(): Int = MailBodyPaper.toArgb()
+
+/** 颜色转成 CSS 用的 #RRGGBB，颜色值只从 SwissPalette 生成，不在别处再写一遍。 */
+internal fun cssHex(color: Color): String =
+    String.format("#%06X", color.toArgb() and 0xFFFFFF)
+
+/**
+ * 把邮件正文包进基础样式：只在 `<head>` 里加一段 `<style>`，不引入任何脚本。
+ *
+ * 基础样式负责三件事：
+ * - 去掉 html / body 的默认外边距，底色和文字色取三色（Paper / Ink），
+ *   这样正文框里不会出现一块纯白，上下留白也均匀；
+ * - 正文字号和行高跟 [SwissType.body] 一致（13/20，按 px 计）；
+ * - 图片不超出正文宽度。
+ *
+ * 邮件自带的样式排在后面，可以覆盖这些基础样式，这一点不做处理。
+ * 纯函数，方便单元测试直接断言。
+ */
+fun wrapMailBodyHtml(html: String, bodyStyle: TextStyle): String {
+    val paper = cssHex(SwissPalette.Paper)
+    val ink = cssHex(SwissPalette.Ink)
+    val fontSize = "${bodyStyle.fontSize.value.roundToInt()}px"
+    val lineHeight = "${bodyStyle.lineHeight.value.roundToInt()}px"
+    return buildString(html.length + 512) {
+        append("<!DOCTYPE html><html><head><meta charset=\"utf-8\"><style>")
+        append("html, body { margin:0; padding:0; background:$paper; color:$ink; }")
+        append("body { font-size:$fontSize; line-height:$lineHeight; }")
+        append("img { max-width:100%; height:auto; }")
+        append("</style></head><body>")
+        append(html)
+        append("</body></html>")
+    }
+}
+
 /**
  * 正文 WebView 的客户端：
  * - 链接一律不在 WebView 里加载，只把地址交给页面层（风险邮件只提示）；
@@ -148,14 +197,42 @@ private class MailBodyClient(
 }
 
 /** 内容高度跟着 HTML 变，所以每次换内容/换配置都重新加载一次。 */
-private class MailBodyView(context: Context) : WebView(context) {
+internal class MailBodyView(context: Context) : WebView(context) {
     var appliedHtml: String? = null
     var appliedConfig: MailWebViewConfig? = null
 }
 
 /**
+ * 创建正文 WebView：纸面底色先设好，安全配置全部应用，正文不在这里加载。
+ * 底色和配置是「View 自带」的属性，与正文无关，所以放在工厂里；正文由调用方
+ * 在页面摆好位置之后再 load，见 [MailBodyWebView]。
+ */
+internal fun createMailBodyView(
+    context: Context,
+    config: MailWebViewConfig,
+    onLink: (String) -> Unit,
+): MailBodyView = MailBodyView(context).apply {
+    isVerticalScrollBarEnabled = false
+    isHorizontalScrollBarEnabled = false
+    // 纸面底色：WebView 默认是 #FFFFFF，不在三色体系里
+    setBackgroundColor(mailBodyBackgroundArgb())
+    settings.applyMailConfig(config)
+    appliedConfig = config
+    webViewClient = MailBodyClient(config, onLink)
+}
+
+/**
  * 正文 HTML 的渲染容器：不启用脚本、不调用 addJavascriptInterface，
  * 默认不加载任何外部资源；[onLink] 收到点击的链接，由页面层弹确认框。
+ *
+ * 底色固定是 Paper（深色模式下也不变），正文外面再包一层基础样式，
+ * 所以正文框里不会出现一块纯白，框内的上下留白也和纯文本正文一致。
+ *
+ * 首帧遮挡的原因与改法：WebView 默认是不透明白底，`AndroidView` 的工厂一创建它就会
+ * 渲染一次，而此时 Compose 还没给它量出位置和尺寸，那块白底就先按初始布局画了出来，
+ * 于是短暂盖住了上面的风险块和键值表。这里把第一次加载推迟到 [onGloballyPositioned]
+ * 之后（`placed` 为真才 loadDataWithBaseURL），再加上底色改成 Paper，
+ * 首帧就是一张空白的纸面，不会再盖住任何内容。
  */
 @Composable
 fun MailBodyWebView(
@@ -164,34 +241,33 @@ fun MailBodyWebView(
     onLink: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val bodyStyle = SwissType.body()
+    val document = remember(html, bodyStyle) { wrapMailBodyHtml(html, bodyStyle) }
+    // 摆上位置之后才允许加载正文，避免首帧按初始尺寸画一块白底。
+    // 这里在组合里读一次，保证状态翻转一定触发重组，update 才会带着新值重新跑一遍。
+    var placed by remember { mutableStateOf(false) }
+    val ready = placed
     AndroidView(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = SwissSpace.Xxxl * 3),
+            .heightIn(min = SwissSpace.Xxxl * 3)
+            .onGloballyPositioned { placed = true },
         factory = { context ->
-            MailBodyView(context).apply {
-                isVerticalScrollBarEnabled = false
-                isHorizontalScrollBarEnabled = false
-                settings.applyMailConfig(config)
-                appliedConfig = config
-                webViewClient = MailBodyClient(config, onLink)
-                loadDataWithBaseURL(NoBaseUrl, html, HtmlMime, Charset, null)
-                appliedHtml = html
-            }
+            createMailBodyView(context = context, config = config, onLink = onLink)
         },
         update = { view ->
             // 配置是否要求重新加载正文，必须在写回 appliedConfig 之前算出来
             val reloadForConfig = needsReload(view.appliedConfig, config)
-            val reloadForHtml = view.appliedHtml != html
+            val reloadForHtml = view.appliedHtml != document
             if (view.appliedConfig != config) {
                 view.settings.applyMailConfig(config)
                 view.webViewClient = MailBodyClient(config, onLink)
                 view.appliedConfig = config
             }
             // 放开 / 收回外部图片后必须重新加载正文，否则图片不会出现（也不会消失）
-            if (reloadForConfig || reloadForHtml) {
-                view.loadDataWithBaseURL(NoBaseUrl, html, HtmlMime, Charset, null)
-                view.appliedHtml = html
+            if (ready && (reloadForConfig || reloadForHtml)) {
+                view.loadDataWithBaseURL(NoBaseUrl, document, HtmlMime, Charset, null)
+                view.appliedHtml = document
             }
         },
     )

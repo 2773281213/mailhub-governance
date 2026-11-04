@@ -94,10 +94,14 @@ fun mailClockText(dateTs: Double, zoneId: String): String {
 /** 表里缺值时的占位符，不用破折号以外的字符。 */
 private const val EmptyValue = "—"
 
-private fun governanceStatusText(status: String): String = when (status) {
-    "done", "ok", "success" -> "已完成"
+/**
+ * 治理运行状态的中文说明。取值以后端 `governance_runs.status` 实际写入的为准：
+ * `completed`（governance.py 完成时写入）、`running`、`failed`。
+ * 其余任何取值（包括空串）一律显示「已结束」，**不把状态码原样显示出来**。
+ */
+fun governanceStatusText(status: String): String = when (status.trim()) {
+    "completed", "done", "ok", "success" -> "已完成"
     "running" -> "进行中"
     "failed", "error" -> "失败"
-    "" -> "已结束"
-    else -> status
+    else -> "已结束"
 }

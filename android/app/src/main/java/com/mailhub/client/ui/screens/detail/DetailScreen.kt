@@ -4,14 +4,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -31,17 +27,16 @@ import com.mailhub.client.ui.screens.shell.AppTabs
 import com.mailhub.client.ui.swiss.ConfirmPanel
 import com.mailhub.client.ui.swiss.ErrorState
 import com.mailhub.client.ui.swiss.GridRow
-import com.mailhub.client.ui.swiss.HairlineRule
-import com.mailhub.client.ui.swiss.HeavyRule
-import com.mailhub.client.ui.swiss.IndexLabel
 import com.mailhub.client.ui.swiss.LoadingRule
 import com.mailhub.client.ui.swiss.LocalGridSpec
 import com.mailhub.client.ui.swiss.LocalGridWidth
 import com.mailhub.client.ui.swiss.LocalSwissColors
+import com.mailhub.client.ui.swiss.PageTitle
 import com.mailhub.client.ui.swiss.SText
 import com.mailhub.client.ui.swiss.SwissButton
 import com.mailhub.client.ui.swiss.SwissButtonKind
 import com.mailhub.client.ui.swiss.SwissPalette
+import com.mailhub.client.ui.swiss.SwissScaffold
 import com.mailhub.client.ui.swiss.SwissSnackbar
 import com.mailhub.client.ui.swiss.SwissSpace
 import com.mailhub.client.ui.swiss.SwissTabBar
@@ -52,9 +47,13 @@ import com.mailhub.client.ui.swiss.cols
 /** 详情页页头的栏目名。 */
 private const val DetailSection = "邮件"
 
+/** 详情页页头操作入口的文字：点了和系统返回键一样，弹出页面栈。 */
+private const val DetailBackLabel = "← 收件"
+
 /**
- * 邮件详情（无状态）。页头沿用外壳的编号 + 细线结构，标题位置放邮件主题（headline，
- * 占第 1–11 栏，可以换行，不用 56sp 的大标题字号）。
+ * 邮件详情（无状态）。固定区只有一行页头：编号、栏目名、元信息，第 11–12 栏是
+ * 「← 收件」返回入口；下面一条 4dp 粗线。标题位置放邮件主题（headline，占第 1–11 栏，
+ * 可以换行，不用 56sp 的大标题字号），它是滚动内容的第一项，跟着内容一起滚走。
  *
  * 正文用 WebView 渲染 HTML、否则用 SText 显示纯文本；红色只出现在风险平涂块和
  * 唯一的红色主操作（删除）上。
@@ -67,26 +66,35 @@ fun DetailScreen(
     modifier: Modifier = Modifier,
     selectedTab: Int = 1,
     onSelectTab: (Int) -> Unit = {},
+    onBack: () -> Unit = {},
 ) {
-    val colors = LocalSwissColors.current
     val clipboard = rememberSensitiveClipboard()
     val message = state.message
     val title = message?.subject?.takeIf { it.isNotBlank() } ?: DetailSection
 
     Box(modifier = modifier) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(colors.background)
-                .windowInsetsPadding(WindowInsets.safeDrawing),
+        SwissScaffold(
+            index = "02",
+            section = DetailSection,
+            meta = meta.line,
+            actionLabel = DetailBackLabel,
+            onAction = onBack,
+            bottomBar = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    val notice = state.notice
+                    if (notice != null) {
+                        SwissSnackbar(message = notice)
+                    }
+                    SwissTabBar(items = AppTabs, selected = selectedTab, onSelect = onSelectTab)
+                }
+            },
         ) {
-            DetailHeader(title = title, meta = meta)
             Column(
                 modifier = Modifier
-                    .weight(1f)
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState()),
             ) {
+                PageTitle(text = title, style = SwissType.headline(), span = 11)
                 when {
                     state.error != null && message == null -> ErrorState(
                         message = state.error,
@@ -103,13 +111,6 @@ fun DetailScreen(
                         onEvent = onEvent,
                     )
                 }
-            }
-            Column(modifier = Modifier.fillMaxWidth()) {
-                val notice = state.notice
-                if (notice != null) {
-                    SwissSnackbar(message = notice)
-                }
-                SwissTabBar(items = AppTabs, selected = selectedTab, onSelect = onSelectTab)
             }
         }
         if (state.confirmingDelete) {
@@ -145,42 +146,6 @@ fun DetailScreen(
     }
 }
 
-/** 页头：编号、栏目名、元信息，一条 4dp 粗线，下面是主题（headline，可换行）。 */
-@Composable
-private fun DetailHeader(title: String, meta: PageMeta) {
-    val colors = LocalSwissColors.current
-    GridRow {
-        IndexLabel(index = "02", modifier = Modifier.cols(1, 2))
-        SText(
-            text = DetailSection,
-            style = SwissType.label(),
-            modifier = Modifier.cols(3, 6),
-            color = colors.foreground,
-            maxLines = 1,
-        )
-        SText(
-            text = meta.line,
-            style = SwissType.label(),
-            modifier = Modifier.cols(9, 4),
-            color = colors.foreground,
-            maxLines = 1,
-            softWrap = false,
-        )
-    }
-    Spacer(modifier = Modifier.height(SwissSpace.Xs))
-    HeavyRule(color = colors.foreground)
-    Spacer(modifier = Modifier.height(SwissSpace.Xs))
-    GridRow {
-        SText(
-            text = title,
-            style = SwissType.headline(),
-            modifier = Modifier.cols(1, 11),
-            color = colors.foreground,
-        )
-    }
-    Spacer(modifier = Modifier.height(SwissSpace.Xl))
-}
-
 /** 拿到详情之后的正文：风险块、键值表、验证码、正文、操作。 */
 @Composable
 private fun DetailBody(
@@ -195,7 +160,20 @@ private fun DetailBody(
         RiskBlock(reasons = message.riskReasons.ifBlank { RiskyLinkBlockedTextBadge })
         Spacer(modifier = Modifier.height(SwissSpace.S))
     }
-    TableRow(label = "发件人", value = senderText(message))
+    TableRow(label = "发件人", value = senderAddressText(message))
+    val senderName = senderNameLine(message)
+    if (senderName != null) {
+        // 显示名单独一行 caption：显示名可能是伪造成官方地址的假名字，只能作为补充说明
+        GridRow {
+            SText(
+                text = senderName,
+                style = SwissType.caption(),
+                modifier = Modifier.cols(4, 9),
+                color = colors.foreground,
+            )
+        }
+        Spacer(modifier = Modifier.height(SwissSpace.Xs))
+    }
     TableRow(label = "账户", value = accountText(message, state.accounts))
     TableRow(label = "时间", value = detailTimeText(message.dateTs, meta.zoneId))
     TableRow(label = "分类", value = detailCategoryText(message, state.categories))
@@ -408,6 +386,7 @@ fun DetailScreenHost(
     modifier: Modifier = Modifier,
     selectedTab: Int = 1,
     onSelectTab: (Int) -> Unit = {},
+    onBack: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -435,5 +414,6 @@ fun DetailScreenHost(
         modifier = modifier,
         selectedTab = selectedTab,
         onSelectTab = onSelectTab,
+        onBack = onBack,
     )
 }

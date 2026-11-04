@@ -90,15 +90,29 @@ fun confidenceText(confidence: Double): String {
     return "${(confidence * 100).roundToInt()}%"
 }
 
-/** 发件人一行：「名称 <地址>」。 */
-fun senderText(detail: MessageDetail): String {
+/**
+ * 发件人一行的主行：**真实地址**。
+ *
+ * 显示名可以随便伪造（一封钓鱼邮件的显示名就能写成 `service@paypal.com`），
+ * 所以详情页第一行永远给真实地址；显示名放到下一行的 caption 里补充说明。
+ * 地址缺失时才退回显示名。
+ */
+fun senderAddressText(detail: MessageDetail): String {
+    val addr = detail.senderAddr.trim()
+    if (addr.isNotEmpty()) return addr
+    return detail.senderName.trim().ifEmpty { DetailEmptyValue }
+}
+
+/**
+ * 发件人一行的第二行：「显示名：…」。显示名为空、或与真实地址相同（忽略大小写）时
+ * 不显示这一行，返回 null。
+ */
+fun senderNameLine(detail: MessageDetail): String? {
     val name = detail.senderName.trim()
     val addr = detail.senderAddr.trim()
-    return when {
-        addr.isEmpty() -> name.ifEmpty { DetailEmptyValue }
-        name.isEmpty() -> addr
-        else -> "$name <$addr>"
-    }
+    if (name.isEmpty()) return null
+    if (name.equals(addr, ignoreCase = true)) return null
+    return "显示名：$name"
 }
 
 /** 账户：「A1 工作邮箱」；账户列表还没到或对不上时退回服务端给的账户名。 */
