@@ -62,6 +62,21 @@ def forget_account(acc_id: int):
         _force_queue.discard(acc_id)
 
 
+def _is_syncing(acc_id: int) -> bool:
+    """账户当前是否有同步在跑：只读锁状态，不创建新锁。"""
+    lock = _sync_locks.get(acc_id)
+    return bool(lock is not None and lock.locked())
+
+
+def _account_exists(conn, acc_id: int) -> bool:
+    """账户是否仍然存在：同步期间用户可能已经把它删掉。"""
+    try:
+        row = conn.execute("SELECT 1 FROM accounts WHERE id=?", (acc_id,)).fetchone()
+    except Exception:
+        return False
+    return row is not None
+
+
 def _is_duplicate(conn, acc_id: int, msg_id: str) -> bool:
     """跨账户 Message-ID 判重。
 
@@ -182,6 +197,9 @@ def sync_account(acc_id: int) -> int:
     """同步单个账户，返回新邮件数；线程内调用"""
     lock = _sync_locks.setdefault(acc_id, threading.Lock())
     if not lock.acquire(blocking=False):
+        # 覆盖「检查后、spawn 前锁刚被占用」的竞态：把手动请求放回队列，下次心跳重试
+        with _force_lock:
+            _force_queue.add(acc_id)
         return 0
     conn = get_conn()
     try:
@@ -276,7 +294,12 @@ def sync_account(acc_id: int) -> int:
                     (uidvalidity, time.time(), acc_id),
                 )
             conn.commit()
-            _set_status(acc_id, "idle", "", new_count)
+            if _account_exists(conn, acc_id):
+                _set_status(acc_id, "idle", "", new_count)
+            else:
+                # 账户已在同步期间被删除：不要把它写回状态表
+                with _status_lock:
+                    STATUS.pop(acc_id, None)
             if fresh:
                 notify.notify_new_messages(fresh, acc["name"])
             return new_count
@@ -290,7 +313,11 @@ def sync_account(acc_id: int) -> int:
             conn.commit()
         except Exception:
             pass
-        _set_status(acc_id, "error", err)
+        if _account_exists(conn, acc_id):
+            _set_status(acc_id, "error", err)
+        else:
+            with _status_lock:
+                STATUS.pop(acc_id, None)
         return 0
     finally:
         lock.release()
@@ -466,6 +493,8 @@ class SyncEngine:
         self._stop = threading.Event()
         self._workers = 0
         self._workers_lock = threading.Lock()
+        self._gov_thread = None        # 当前治理线程：同一时间只允许一个
+        self._last_daily = ""          # 上一次执行每日任务的日期键
 
     def start(self):
         threading.Thread(target=self._loop, daemon=True, name="sync-loop").start()
@@ -489,13 +518,21 @@ class SyncEngine:
             pending = sorted(_force_queue)
             _force_queue.clear()
 
-        requeued = []
+        skipped: list[int] = []
+        requeued: list[int] = []
         for i, acc_id in enumerate(pending):
+            if _is_syncing(acc_id):
+                # 正在同步：本轮不 spawn，留在队列里等下一次心跳
+                skipped.append(acc_id)
+                continue
             if not self._spawn(acc_id):
-                requeued = pending[i:]
-                with _force_lock:
-                    _force_queue.update(requeued)
+                requeued = skipped + pending[i:]
                 break
+        else:
+            requeued = skipped
+        if requeued:
+            with _force_lock:
+                _force_queue.update(requeued)
         return requeued
 
     def _spawn(self, acc_id: int):
@@ -521,47 +558,65 @@ class SyncEngine:
 
     def _loop(self):
         time.sleep(5)  # 等应用完全启动
-        last_daily = ""
         while not self._stop.is_set():
             try:
-                conn = get_conn()
-                now = time.time()
-                # 手动触发优先
-                self._drain_force_queue()
-                for r in conn.execute(
-                    "SELECT id, poll_interval, last_sync FROM accounts WHERE enabled=1"
-                ).fetchall():
-                    if now - (r["last_sync"] or 0) >= max(60, r["poll_interval"] or 300):
-                        self._spawn(r["id"])
-                # 多账户并发同步时，先完成的治理任务可能看不到稍后入库的邮件；
-                # 心跳会自动捞起剩余待治理项，不要求用户逐封处理。
-                try:
-                    if governance.governance_status()["pending"]:
-                        ai_classify_pending(120)
-                except Exception:
-                    traceback.print_exc()
-                # 每日任务：晨报 + 清理（本地时区到点后执行一次）
-                local = datetime.now(TZ)
-                digest_hour = int(get_setting("digest_hour", "8") or 8)
-                day_key = local.strftime("%Y-%m-%d")
-                if local.hour >= digest_hour and last_daily != day_key:
-                    last_daily = day_key
-                    if ai.ai_config()["enabled"]:
-                        try:
-                            generate_digest()
-                        except Exception:
-                            traceback.print_exc()
-                    try:
-                        auto_clean()
-                    except Exception:
-                        traceback.print_exc()
-                    try:
-                        trim_old_bodies()
-                    except Exception:
-                        traceback.print_exc()
+                self._tick()
             except Exception:
                 traceback.print_exc()
             self._stop.wait(30)
+
+    def _tick(self):
+        """单次心跳：排空手动队列 → 按 poll_interval 调度 → 异步治理 → 每日任务。"""
+        conn = get_conn()
+        now = time.time()
+        # 手动触发优先
+        self._drain_force_queue()
+        for r in conn.execute(
+            "SELECT id, poll_interval, last_sync FROM accounts WHERE enabled=1"
+        ).fetchall():
+            if _is_syncing(r["id"]):
+                continue   # 同步进行中，本轮跳过，不再空占 worker 名额
+            if now - (r["last_sync"] or 0) >= max(60, r["poll_interval"] or 300):
+                self._spawn(r["id"])
+        # 治理会调用 AI，可能跑几分钟：放到独立守护线程，且同一时间只允许一个。
+        # governance.run_governance 自带 _RUN_LOCK，忙时返回 busy，这里不用再加锁。
+        gov = self._gov_thread
+        if gov is None or not gov.is_alive():
+            try:
+                pending = governance.governance_status()["pending"]
+            except Exception:
+                traceback.print_exc()
+                pending = False
+            if pending:
+                self._gov_thread = threading.Thread(
+                    target=self._governance_worker, daemon=True, name="sync-governance")
+                self._gov_thread.start()
+        # 每日任务：晨报 + 清理（本地时区到点后执行一次）
+        local = datetime.now(TZ)
+        digest_hour = int(get_setting("digest_hour", "8") or 8)
+        day_key = local.strftime("%Y-%m-%d")
+        if local.hour >= digest_hour and self._last_daily != day_key:
+            self._last_daily = day_key
+            if ai.ai_config()["enabled"]:
+                try:
+                    generate_digest()
+                except Exception:
+                    traceback.print_exc()
+            try:
+                auto_clean()
+            except Exception:
+                traceback.print_exc()
+            try:
+                trim_old_bodies()
+            except Exception:
+                traceback.print_exc()
+
+    def _governance_worker(self):
+        """治理线程体：异常只打印，绝不从线程里抛出去。"""
+        try:
+            ai_classify_pending(120)
+        except Exception:
+            traceback.print_exc()
 
 
 engine = SyncEngine()
