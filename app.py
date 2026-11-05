@@ -576,7 +576,10 @@ async def test_account(acc_id: int):
         await asyncio.to_thread(oauth_auth.probe_connection, acc, secret)
         return {"ok": True, "msg": "连接正常"}
     except Exception as e:
-        return {"ok": False, "msg": str(e)[:200]}
+        # 原始异常只写服务器日志，而且只记类型和账户 id：异常文本里可能带凭据，也会暴露服务器平台
+        logging.getLogger("mailhub").warning(
+            "测试连接失败：account=%s type=%s", acc_id, type(e).__name__)
+        return {"ok": False, "msg": mail_client.connection_error_text(e)}
 
 
 @app.post("/api/sync-all")

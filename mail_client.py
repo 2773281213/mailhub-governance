@@ -601,3 +601,34 @@ def _is_auth_failure(exc: Exception) -> bool:
     return any(token in text for token in (
         "auth", "login", "password", "credential", "invalid", "denied", "unsafe login",
     ))
+
+
+def connection_error_text(exc: Exception) -> str:
+    """把连接邮箱时的异常转成给用户看的中文说明。
+
+    用户看不懂 Python / 操作系统的原始异常文本，那里面还会暴露服务器平台，
+    所以「测试连接」和同步状态只用这里的文案。异常类型按从具体到一般的顺序判断：
+    ConnectionResetError 等都是 OSError 的子类，先认出来才不会落进「无法连接」。
+
+    项目自己抛的 RuntimeError / ValueError 原文已经是中文，原样返回（最多 200 字）。
+    """
+    import socket
+    import ssl
+
+    if isinstance(exc, (RuntimeError, ValueError)):
+        return str(exc)[:200]
+    if isinstance(exc, imaplib.IMAP4.error):
+        return "邮箱服务器拒绝登录，请检查授权码或密码"
+    if isinstance(exc, (socket.timeout, TimeoutError)):
+        return "连接邮箱服务器超时"
+    if isinstance(exc, ConnectionRefusedError):
+        return "邮箱服务器拒绝连接，请检查服务器地址和端口"
+    if isinstance(exc, (ConnectionResetError, ConnectionAbortedError)):
+        return "连接被邮箱服务器中断，请稍后重试"
+    if isinstance(exc, socket.gaierror):
+        return "找不到邮箱服务器，请检查服务器地址"
+    if isinstance(exc, ssl.SSLError):
+        return "与邮箱服务器建立加密连接失败"
+    if isinstance(exc, OSError):
+        return "无法连接邮箱服务器"
+    return "测试失败，请查看服务器日志"

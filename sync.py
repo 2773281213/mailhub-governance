@@ -437,7 +437,9 @@ def sync_account(acc_id: int) -> int:
         finally:
             sess.close()
     except Exception as e:
-        err = str(e)[:200]
+        # 状态里的说明只给用户看中文；原始异常只记类型，异常文本里可能带凭据，也会暴露服务器平台
+        print(f"[MailHub] 账户{acc_id} 同步失败：{type(e).__name__}", flush=True)
+        err = mail_client.connection_error_text(e)[:200]
         try:
             conn.execute("UPDATE accounts SET last_error=?, last_sync=? WHERE id=?",
                          (err, time.time(), acc_id))

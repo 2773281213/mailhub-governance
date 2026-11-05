@@ -82,4 +82,22 @@ class ShellViewModelTest {
         assertEquals(1, tabIndexFor(viewModel.stack.value))
         assertEquals("← 收件", backLabelFor(viewModel.stack.value))
     }
+
+    /**
+     * 旋转、切深色、改字号都会重建 Activity，重建后组合里会再调一次 start()。
+     * start() 只对一个实例生效一次：页面栈必须留在用户原来那一页，不能被重置回总览。
+     */
+    @Test
+    fun startOnlyResetsTheStackOncePerInstance() {
+        val viewModel = viewModel()
+
+        viewModel.start()
+        viewModel.openIndex()
+        viewModel.openSettings()
+        assertEquals(Route.Settings, viewModel.stack.value.last())
+
+        viewModel.start()
+
+        assertEquals(listOf<Route>(Route.Overview, Route.Settings), viewModel.stack.value)
+    }
 }

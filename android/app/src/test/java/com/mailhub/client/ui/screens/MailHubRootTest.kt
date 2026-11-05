@@ -1,15 +1,20 @@
 package com.mailhub.client.ui.screens
 
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.lifecycle.ViewModelProvider
 import com.mailhub.client.MainActivity
 import com.mailhub.client.MailHubApp
 import com.mailhub.client.data.session.SessionState
 import com.mailhub.client.data.testSession
+import com.mailhub.client.ui.screens.shell.IndexActionLabel
+import com.mailhub.client.ui.screens.shell.Route
 import com.mailhub.client.ui.screens.shell.ShellStoreHolder
 import com.mailhub.client.ui.screens.shell.ShellViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertSame
 import org.junit.Rule
@@ -142,5 +147,27 @@ class MailHubRootTest {
         composeRule.waitForIdle()
 
         assertSame("换令牌不能清掉页面状态", before, shellViewModelOrNull())
+    }
+
+    /**
+     * 在设置页切深色、旋转屏幕、改系统字号都会重建 Activity。
+     * 重建后组合会再调一次 ShellViewModel.start()，页面栈不能被重置回总览。
+     */
+    @Test
+    @Config(qualifiers = "w360dp-h800dp-xxhdpi")
+    fun currentPageSurvivesActivityRecreation() {
+        logIn()
+        awaitShellViewModel()
+
+        composeRule.onNodeWithText(IndexActionLabel).performClick()
+        composeRule.onNodeWithText("设置").performClick()
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            shellViewModelOrNull()?.stack?.value?.last() == Route.Settings
+        }
+
+        composeRule.activityRule.scenario.recreate()
+
+        val after = awaitShellViewModel()
+        assertEquals("重建后应该还停在设置页", Route.Settings, after.stack.value.last())
     }
 }

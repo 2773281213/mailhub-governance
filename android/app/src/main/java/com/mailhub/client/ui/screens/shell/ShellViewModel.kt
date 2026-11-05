@@ -42,12 +42,19 @@ class ShellViewModel(
 
     private var metaRequested = false
 
+    private var started = false
+
     /**
-     * 每次进入主界面调用一次：页面栈回到总览页，关掉索引层和退出确认，并重新读一次 meta。
-     * 外壳的 ViewModelStore 按登录代际分开（见 ShellHost），每次重新登录都是新实例；
-     * 这里仍然显式归位，保证同一个实例被再次组合时状态一致。
+     * 每次进入主界面调用一次：页面栈回到总览页，关掉索引层和退出确认，并读一次 meta。
+     *
+     * 同一个实例只生效一次（第二次及以后直接返回）。旋转、切深色、改系统字号都会重建
+     * Activity，重建后组合会再调一次，但页面栈和 ViewModel 一起被保留了下来，
+     * 不能再被清回总览。每次重新登录都是新的实例（见 ShellStoreHolder），
+     * 所以「进入主界面回到总览」的语义不变。
      */
     fun start() {
+        if (started) return
+        started = true
         _stack.value = listOf(Route.Overview)
         _indexOpen.value = false
         _confirmingLogout.value = false
