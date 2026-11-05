@@ -20,13 +20,38 @@ android {
         versionName = "0.1.0"
     }
 
+    signingConfigs {
+        // 发布签名只从环境变量读，仓库里不出现任何密码、别名或密钥库路径。
+        // 四项齐全才注册 release 签名配置；缺任意一项就不注册，release 包照常产出，只是不签名。
+        val keystoreFile = providers.environmentVariable("MAILHUB_KEYSTORE_FILE").orNull
+        val keystorePassword = providers.environmentVariable("MAILHUB_KEYSTORE_PASSWORD").orNull
+        val keyAlias = providers.environmentVariable("MAILHUB_KEY_ALIAS").orNull
+        val keyPassword = providers.environmentVariable("MAILHUB_KEY_PASSWORD").orNull
+        if (!keystoreFile.isNullOrBlank() &&
+            !keystorePassword.isNullOrBlank() &&
+            !keyAlias.isNullOrBlank() &&
+            !keyPassword.isNullOrBlank()
+        ) {
+            create("release") {
+                storeFile = file(keystoreFile)
+                storePassword = keystorePassword
+                this.keyAlias = keyAlias
+                this.keyPassword = keyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // 发布包开启 R8 代码压缩与资源压缩；AGP 8.0 起 R8 默认就是 full mode。
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            // 只有环境变量齐全、signingConfigs 里注册了 release 时才签名，否则保持未签名。
+            signingConfig = signingConfigs.findByName("release")
         }
     }
 

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    启动器图标（API 26+ 自适应图标）。
+    background：纯色米白 @color/paper，不带任何渐变或阴影；
+    foreground：黑色方块 + 红色竖条的 vector，图形落在 66dp 安全区内；
+    monochrome：与 foreground 同形，供 API 33 的主题图标着色。
+    圆形 / 圆角方形裁切由启动器完成，这里不画圆。
+-->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/paper" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+    <monochrome android:drawable="@drawable/ic_launcher_monochrome" />
+</adaptive-icon>
