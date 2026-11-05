@@ -1,4 +1,4 @@
-package com.mailhub.client.ui.screens.accounts
+package com.mailhub.client.ui.swiss
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -15,7 +15,7 @@ import androidx.compose.ui.unit.Dp
  * 测量必须用这一行真实的两段文字：中英文会回退到不同字体，行高和基线都不一样。
  */
 @Composable
-internal fun baselineTopPadding(
+fun baselineTopPadding(
     fromStyle: TextStyle,
     fromText: String,
     toStyle: TextStyle,
