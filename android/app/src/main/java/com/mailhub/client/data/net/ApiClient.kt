@@ -1,9 +1,6 @@
 package com.mailhub.client.data.net
 
-import com.mailhub.client.data.session.SessionStore
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
@@ -17,7 +14,10 @@ import retrofit2.HttpException
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import java.io.IOException
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
+
+private const val HTTP_UNAUTHORIZED = 401
 
 val ApiJson = Json {
     ignoreUnknownKeys = true
@@ -28,66 +28,122 @@ val ApiJson = Json {
 }
 
 /**
- * 一台服务器的 Retrofit 客户端。登录拿到令牌后由 [AuthInterceptor] 自动带上
- * Authorization；普通接口 401 时清空会话并发出 [sessionExpired]。
+ * 一台服务器 + 一个令牌的 Retrofit 客户端。
+ *
+ * 令牌在构造时绑定且不可变：未登录用的客户端传 null，切换服务器后旧客户端
+ * 仍然只带自己的令牌，不会把 A 服务器的令牌发给 B。
+ *
+ * 普通接口 401 时只回调 [onUnauthorized]，由会话管理方决定这个客户端是否
+ * 仍是当前客户端；拦截器里不读写会话存储，也不阻塞线程。
  */
 class ApiClient(
-    serverUrl: HttpUrl,
-    private val sessionStore: SessionStore,
-    private val sessionExpiredFlow: MutableSharedFlow<Unit>,
+    val serverUrl: HttpUrl,
+    private val token: String? = null,
+    private val onUnauthorized: (ApiClient) -> Unit = {},
 ) {
     private val baseUrl = serverUrl.toString().trimEnd('/') + "/"
 
-    private val okHttp = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(60, TimeUnit.SECONDS)
-        .addInterceptor(AuthInterceptor(sessionStore, sessionExpiredFlow))
-        .build()
+    private val okHttp: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .addInterceptor(AuthInterceptor(serverUrl, token, onUnauthorized) { this })
+            .build()
+    }
 
-    private val retrofit = Retrofit.Builder()
-        .baseUrl(baseUrl)
-        .client(okHttp)
-        .addConverterFactory(ApiJson.asConverterFactory("application/json".toMediaType()))
-        .build()
+    private val retrofit: Retrofit by lazy {
+        Retrofit.Builder()
+            .baseUrl(baseUrl)
+            .client(okHttp)
+            .addConverterFactory(ApiJson.asConverterFactory("application/json".toMediaType()))
+            .build()
+    }
 
-    val api: MailHubApi = retrofit.create(MailHubApi::class.java)
+    /** 已创建的接口实例，按接口类型缓存；同一个接口只走一次 Retrofit 创建。 */
+    private val services = ConcurrentHashMap<Class<*>, Any>()
 
-    val sessionExpired: SharedFlow<Unit> = sessionExpiredFlow
+    val api: MailHubApi by lazy { service(MailHubApi::class.java) }
 
-    suspend fun <T> call(block: suspend (MailHubApi) -> T): Result<T> = try {
-        Result.success(block(api))
+    /**
+     * 取任意功能声明的接口实例。
+     *
+     * 各功能在自己的目录里声明接口，用这里拿实例，就不必都往 [MailHubApi] 里加方法；
+     * 同一个客户端上同一个接口只会创建一次，重复调用返回同一个对象。
+     */
+    fun <S : Any> service(type: Class<S>): S {
+        services[type]?.let { cached ->
+            @Suppress("UNCHECKED_CAST")
+            return cached as S
+        }
+        val created = retrofit.create(type)
+        // 并发首次创建时只保留先放进去的那一个，保证同一个接口对外始终是同一个实例
+        val existing = services.putIfAbsent(type, created)
+        @Suppress("UNCHECKED_CAST")
+        return (existing ?: created) as S
+    }
+
+    /** 所有接口统一走这里：失败时 Result 里是 [ApiError]，不会把解码异常抛给调用方。 */
+    suspend fun <T> call(block: suspend (MailHubApi) -> T): Result<T> = mapErrors { block(api) }
+
+    /** 功能自有接口的统一入口：错误映射与 [call] 完全一致，401 也照常回调。 */
+    suspend fun <S : Any, T> callService(type: Class<S>, block: suspend (S) -> T): Result<T> =
+        mapErrors { block(service(type)) }
+
+    /** [call] 与 [callService] 共用的异常映射，避免两处各写一份 try/catch。 */
+    private suspend fun <T> mapErrors(block: suspend () -> T): Result<T> = try {
+        Result.success(block())
     } catch (e: HttpException) {
         Result.failure(e.toApiError())
     } catch (e: IOException) {
         Result.failure(ApiError.Network(e.message ?: "网络错误", e))
+    } catch (e: SerializationException) {
+        // 后端字段类型与 DTO 不一致（或返回了非法 JSON）
+        Result.failure(ApiError.Decode("服务器返回的数据格式不正确", e))
+    } catch (e: IllegalArgumentException) {
+        // kotlinx 的部分解码错误包装成 IllegalArgumentException 抛出
+        Result.failure(ApiError.Decode("服务器返回的数据格式不正确", e))
     }
 }
 
-private class AuthInterceptor(
-    private val sessionStore: SessionStore,
-    private val sessionExpired: MutableSharedFlow<Unit>,
+/**
+ * 只在请求与客户端绑定的服务器同源时附加 Bearer 令牌。
+ * 401 且不是登录/退出接口时回调 [onUnauthorized]，不在这里改动会话。
+ */
+internal class AuthInterceptor(
+    private val serverUrl: HttpUrl,
+    private val token: String?,
+    private val onUnauthorized: (ApiClient) -> Unit,
+    private val client: () -> ApiClient,
 ) : Interceptor {
 
     override fun intercept(chain: Interceptor.Chain): Response {
         val original = chain.request()
-        val token = sessionStore.cached?.token
-        val request = if (token != null) {
+        val sameOrigin = original.url.isSameOriginAs(serverUrl)
+        val request = if (token != null && sameOrigin) {
             original.newBuilder().header("Authorization", "Bearer $token").build()
         } else {
             original
         }
         val response = chain.proceed(request)
-        // 登录接口的 401 是密码错误，不是会话过期，不能清会话
-        if (response.code == 401 && !original.url.isLoginEndpoint()) {
-            runBlocking { sessionStore.clear() }
-            sessionExpired.tryEmit(Unit)
+        // 登录、退出接口的 401 是业务错误，不是会话过期；跨源响应也不影响本会话
+        if (response.code == HTTP_UNAUTHORIZED && sameOrigin && !original.url.isAuthEndpoint()) {
+            onUnauthorized(client())
         }
         return response
     }
 }
 
-private fun HttpUrl.isLoginEndpoint(): Boolean =
-    encodedPath.trimEnd('/').endsWith("/api/login")
+/** scheme、host、port 三者完全一致才算同源（scheme 与 host 不区分大小写）。 */
+internal fun HttpUrl.isSameOriginAs(other: HttpUrl): Boolean =
+    scheme.equals(other.scheme, ignoreCase = true) &&
+        host.equals(other.host, ignoreCase = true) &&
+        port == other.port
+
+/** 登录与退出接口：这里的 401 是业务错误，不能当成会话过期。 */
+internal fun HttpUrl.isAuthEndpoint(): Boolean {
+    val path = encodedPath.trimEnd('/')
+    return path.endsWith("/api/login") || path.endsWith("/api/logout")
+}
 
 private fun HttpException.toApiError(): ApiError {
     val detail = runCatching {

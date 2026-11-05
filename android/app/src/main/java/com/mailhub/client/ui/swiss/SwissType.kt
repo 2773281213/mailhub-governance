@@ -53,7 +53,7 @@ object SwissType {
         fontFamily = InterFamily,
         fontWeight = FontWeight.Bold,
         fontSize = clampedSp(80f),
-        lineHeight = clampedSp(76f),
+        lineHeight = clampedSp(80f),
         letterSpacing = (-0.02f).em,
         fontFeatureSettings = "tnum",
         textAlign = TextAlign.Start,
@@ -83,7 +83,7 @@ object SwissType {
         fontFamily = InterFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 13.sp,
-        lineHeight = 18.sp,
+        lineHeight = 20.sp,
         textAlign = TextAlign.Start,
     )
 
@@ -92,7 +92,7 @@ object SwissType {
         fontFamily = InterFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 11.sp,
-        lineHeight = 14.sp,
+        lineHeight = 16.sp,
         textAlign = TextAlign.Start,
     )
 

@@ -35,4 +35,23 @@ class ServerUrlTest {
     fun rejectsBlankInput() {
         assertTrue(ServerUrl.parse("   ", allowCleartextDebugHosts = false).isFailure)
     }
+
+    @Test
+    fun schemeIsCaseInsensitive() {
+        val url = ServerUrl.parse("HTTPS://Mail.Example.com", allowCleartextDebugHosts = false).getOrThrow()
+        assertEquals("https", url.scheme)
+        assertEquals("mail.example.com", url.host)
+    }
+
+    @Test
+    fun rejectsUserInfo() {
+        assertTrue(ServerUrl.parse("https://user:pw@host", allowCleartextDebugHosts = false).isFailure)
+        assertTrue(ServerUrl.parse("https://user@host", allowCleartextDebugHosts = false).isFailure)
+    }
+
+    @Test
+    fun rejectsQueryAndFragment() {
+        assertTrue(ServerUrl.parse("https://host/?a=1", allowCleartextDebugHosts = false).isFailure)
+        assertTrue(ServerUrl.parse("https://host/#frag", allowCleartextDebugHosts = false).isFailure)
+    }
 }

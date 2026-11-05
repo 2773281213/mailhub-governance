@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 
 /**
  * 确认面板的内容部分：顶部 4dp 前景色粗线，背景色底，Headline 标题、Body 正文，
@@ -37,7 +36,7 @@ fun ConfirmPanelContent(
             .background(colors.background),
     ) {
         HeavyRule(color = colors.foreground)
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(SwissSpace.M))
         GridRow {
             SText(
                 text = title,
@@ -46,7 +45,7 @@ fun ConfirmPanelContent(
                 color = colors.foreground,
             )
         }
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(SwissSpace.Xs))
         GridRow {
             SText(
                 text = message,
@@ -55,7 +54,7 @@ fun ConfirmPanelContent(
                 color = colors.foreground,
             )
         }
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(SwissSpace.M))
         GridRow {
             SwissButton(
                 text = cancelText,
@@ -70,7 +69,7 @@ fun ConfirmPanelContent(
                 modifier = Modifier.cols(7, 6),
             )
         }
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(SwissSpace.M))
     }
 }
 

@@ -127,6 +127,10 @@ class LoginThrottle:
         self._lock = threading.Lock()
         self._by_ip: dict[str, list[float]] = {}
         self._global: list[float] = []
+        # 正在进行中的尝试：同一 IP 并发登录时，未记录失败的请求也算一次尝试，
+        # 否则「先查后记」会让并发请求全部通过检查（免费猜测）
+        self._pending: dict[str, int] = {}
+        self._pending_total = 0
 
     def _prune(self, now: float):
         self._global = [t for t in self._global if now - t < self.GLOBAL_WINDOW]
@@ -137,19 +141,68 @@ class LoginThrottle:
             else:
                 del self._by_ip[ip]
 
+    def _wait_seconds(self, ip: str, now: float, pending_ip: int = 0,
+                      pending_global: int = 0) -> int:
+        """在锁内计算还需等待的秒数，retry_after 与 begin 共用。
+
+        pending_ip / pending_global 是「正在进行中、结果未知」的尝试数，
+        计算时一律当作已经发生的失败，这样并发请求无法抢在记录之前通过检查。
+        进行中的尝试按 now 时刻计入，所以在原始逻辑上不改变等待时间。
+        """
+        self._prune(now)
+        waits = [0.0]
+        if len(self._global) + pending_global >= self.GLOBAL_LIMIT:
+            # 窗口起点取最早的那条失败记录；只有进行中的尝试时按 now 起算
+            oldest = self._global[0] if self._global else now
+            waits.append(oldest + self.GLOBAL_WINDOW - now)
+        fails = self._by_ip.get(ip, [])
+        attempts = len(fails) + pending_ip
+        if attempts >= self.MAX_FREE:
+            # 指数上限在 MAX_DELAY 处饱和（60 * 2**6 已超过 3600），这里只防大整数
+            exponent = min(attempts - self.MAX_FREE, 32)
+            delay = min(self.MAX_DELAY, self.BASE_DELAY * 2 ** exponent)
+            last_ts = fails[-1] if fails else now
+            if pending_ip:
+                last_ts = max(last_ts, now)
+            waits.append(last_ts + delay - now)
+        return max(0, int(max(waits) + 0.999))
+
     def retry_after(self, ip: str, now: float | None = None) -> int:
         """返回还需等待的秒数；0 表示可以尝试登录。"""
         now = time.time() if now is None else now
         with self._lock:
-            self._prune(now)
-            waits = [0.0]
-            if len(self._global) >= self.GLOBAL_LIMIT:
-                waits.append(self._global[0] + self.GLOBAL_WINDOW - now)
-            fails = self._by_ip.get(ip, [])
-            if len(fails) >= self.MAX_FREE:
-                delay = min(self.MAX_DELAY, self.BASE_DELAY * 2 ** (len(fails) - self.MAX_FREE))
-                waits.append(fails[-1] + delay - now)
-            return max(0, int(max(waits) + 0.999))
+            return self._wait_seconds(ip, now)
+
+    def begin(self, ip: str, now: float | None = None) -> int:
+        """登录尝试前调用：判断能否开始，能则占用一个进行中名额。
+
+        与检查在同一把锁内完成，返回 0 表示放行（此时进行中计数已加 1，
+        调用方必须配一次 finish）；返回大于 0 表示应直接拒绝，不需 finish。
+        """
+        now = time.time() if now is None else now
+        with self._lock:
+            wait = self._wait_seconds(ip, now, self._pending.get(ip, 0), self._pending_total)
+            if wait == 0:
+                self._pending[ip] = self._pending.get(ip, 0) + 1
+                self._pending_total += 1
+            return wait
+
+    def finish(self, ip: str, ok: bool, now: float | None = None):
+        """登录尝试结束调用：释放进行中名额，并按结果成功清记录 / 失败记一次。"""
+        now = time.time() if now is None else now
+        with self._lock:
+            left = self._pending.get(ip, 0) - 1
+            if left > 0:
+                self._pending[ip] = left
+            else:
+                self._pending.pop(ip, None)
+            if self._pending_total > 0:
+                self._pending_total -= 1
+            if ok:
+                self._by_ip.pop(ip, None)
+            else:
+                self._by_ip.setdefault(ip, []).append(now)
+                self._global.append(now)
 
     def record_failure(self, ip: str, now: float | None = None):
         now = time.time() if now is None else now

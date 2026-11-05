@@ -537,3 +537,16 @@ def test_invalid_cursor_tokens_return_400(clean_db, client, token):
     assert response.status_code == 400
     assert "游标" in response.json()["detail"]
 
+
+def test_otp_list_returns_risk_level(clean_db, client):
+    """验证码看板要按风险等级处理条目，/api/otp 必须下发 risk_level。"""
+    acc = _mk_account(clean_db)
+    _insert(clean_db, acc, 1, category="验证码", otp_code="482913", risk_level="medium",
+            date_ts=1_700_000_100.0)
+    _insert(clean_db, acc, 2, category="验证码", otp_code="734156", risk_level="none",
+            date_ts=1_700_000_200.0)
+
+    body = client.get("/api/otp").json()
+
+    assert [item["otp_code"] for item in body] == ["734156", "482913"]
+    assert [item["risk_level"] for item in body] == ["none", "medium"]

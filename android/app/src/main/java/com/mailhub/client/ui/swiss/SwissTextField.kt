@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -15,11 +17,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 
 /**
  * 输入框：上方 Label 样式标签，下方 1dp 下划线；聚焦时 2dp；出错时下划线变 2dp 红色，
  * 错误说明用 Body 样式的前景色文字（不用红字，小字不用红色）。
+ * 占位文字用 Caption 样式，颜色只能是前景色，不用半透明。
  */
 @Composable
 fun SwissTextField(
@@ -29,6 +33,11 @@ fun SwissTextField(
     modifier: Modifier = Modifier,
     isError: Boolean = false,
     errorText: String? = null,
+    placeholder: String? = null,
+    enabled: Boolean = true,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
 ) {
     val colors = LocalSwissColors.current
     var focused by remember { mutableStateOf(false) }
@@ -41,18 +50,32 @@ fun SwissTextField(
             style = SwissType.label(),
             color = colors.foreground,
         )
-        Spacer(modifier = Modifier.height(6.dp))
-        BasicTextField(
-            value = value,
-            onValueChange = onValueChange,
-            modifier = Modifier
-                .fillMaxWidth()
-                .onFocusChanged { focused = it.isFocused },
-            textStyle = SwissType.body().copy(color = colors.foreground),
-            cursorBrush = SolidColor(colors.foreground),
-            singleLine = true,
-        )
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(SwissSpace.Xxs))
+        Box(modifier = Modifier.fillMaxWidth()) {
+            if (value.isEmpty() && placeholder != null) {
+                SText(
+                    text = placeholder,
+                    style = SwissType.caption(),
+                    color = colors.foreground,
+                    maxLines = 1,
+                )
+            }
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onFocusChanged { focused = it.isFocused },
+                textStyle = SwissType.body().copy(color = colors.foreground),
+                cursorBrush = SolidColor(colors.foreground),
+                singleLine = true,
+                enabled = enabled,
+                visualTransformation = visualTransformation,
+                keyboardOptions = keyboardOptions,
+                keyboardActions = keyboardActions,
+            )
+        }
+        Spacer(modifier = Modifier.height(SwissSpace.Xxs))
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -60,7 +83,7 @@ fun SwissTextField(
                 .background(underlineColor),
         )
         if (isError && errorText != null) {
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(SwissSpace.Xs))
             SText(
                 text = errorText,
                 style = SwissType.body(),

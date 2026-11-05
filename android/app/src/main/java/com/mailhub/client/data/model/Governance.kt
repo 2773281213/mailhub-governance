@@ -8,7 +8,8 @@ data class GovernanceRunRequest(val days: Int = 0)
 
 @Serializable
 data class GovernanceStatus(
-    val version: Int = 0,
+    // 后端返回治理版本字符串（例如 mailhub-three-six-v2），不是数字
+    val version: String = "",
     val running: Boolean = false,
     val pending: Int = 0,
     val ministries: List<String> = emptyList(),

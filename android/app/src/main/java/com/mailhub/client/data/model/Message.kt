@@ -21,9 +21,16 @@ data class MessageSummary(
     val unread: Int = 0,
     @SerialName("has_attach") val hasAttach: Int = 0,
     @SerialName("account_name") val accountName: String = "",
+    // 后端 messages.risk_level 是 TEXT，取值 none | medium | high
+    @SerialName("risk_level") val riskLevel: String = "none",
+    // 界面展示用的分类名：账单按等级展开成「重要账单」「一般账单」
+    @SerialName("display_category") val displayCategory: String = "",
 ) {
     val isUnread: Boolean get() = unread == 1
     val hasAttachment: Boolean get() = hasAttach == 1
+
+    /** 是否被安全扫描判定为需要提醒的邮件。 */
+    val isRisky: Boolean get() = riskLevelIsRisky(riskLevel)
 }
 
 @Serializable
@@ -61,16 +68,27 @@ data class MessageDetail(
     @SerialName("account_name") val accountName: String = "",
     @SerialName("body_text") val bodyText: String = "",
     @SerialName("body_html") val bodyHtml: String = "",
-    @SerialName("risk_level") val riskLevel: Int = 0,
+    // 后端 messages.risk_level 是 TEXT，取值 none | medium | high
+    @SerialName("risk_level") val riskLevel: String = "none",
     @SerialName("risk_reasons") val riskReasons: String = "",
     val confidence: Double = 0.0,
     @SerialName("ai_reason") val aiReason: String = "",
     @SerialName("governance_ministry") val governanceMinistry: String = "",
     @SerialName("governance_source") val governanceSource: String = "",
     @SerialName("governance_reason") val governanceReason: String = "",
+    // 界面展示用的分类名，与列表里的 display_category 同义
+    @SerialName("display_category") val displayCategory: String = "",
+    // 正文过大时后端只同步开头部分，1 表示被截断
+    @SerialName("body_truncated") val bodyTruncated: Int = 0,
 ) {
     val isUnread: Boolean get() = unread == 1
     val hasAttachment: Boolean get() = hasAttach == 1
+
+    /** 正文字段被截断，界面要注明只同步了开头。 */
+    val isBodyTruncated: Boolean get() = bodyTruncated == 1
+
+    /** 是否被安全扫描判定为需要提醒的邮件。 */
+    val isRisky: Boolean get() = riskLevelIsRisky(riskLevel)
 }
 
 @Serializable
@@ -108,8 +126,13 @@ data class OtpItem(
     @SerialName("date_ts") val dateTs: Double = 0.0,
     @SerialName("otp_code") val otpCode: String = "",
     val unread: Int = 0,
+    // 后端 messages.risk_level 是 TEXT，取值 none | medium | high
+    @SerialName("risk_level") val riskLevel: String = "none",
     @SerialName("account_name") val accountName: String = "",
     @SerialName("account_email") val accountEmail: String = "",
 ) {
     val isUnread: Boolean get() = unread == 1
+
+    /** 是否被安全扫描判定为需要提醒的邮件。 */
+    val isRisky: Boolean get() = riskLevelIsRisky(riskLevel)
 }

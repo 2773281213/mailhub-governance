@@ -1444,6 +1444,8 @@ async function renderSettings() {
             <input id="s-clean-days" type="number" min="0" value="${s.clean_otp_days}" style="max-width:90px"></div>
           <div class="set-row"><div class="l">同步删除服务器邮件<small>开启后自动清理会连同邮箱服务器一起删</small></div>
             <label class="switch"><input type="checkbox" id="s-clean-server" ${s.clean_server ? "checked" : ""}></label></div>
+          <div class="set-row"><div class="l">与邮箱服务器同步已读状态（双向）<small>开启后，在其他邮箱客户端读过的邮件会同步为已读；在 MailHub 里的已读和未读也会写回邮箱服务器。</small></div>
+            <label class="switch"><input type="checkbox" id="s-sync-read" ${s.sync_read_state ? "checked" : ""}></label></div>
           <div class="set-row"><div class="l">正文保留天数<small>超期只清正文、保留标题/摘要/验证码，给小硬盘瘦身</small></div>
             <input id="s-body-days" type="number" min="0" value="${s.body_keep_days}" style="max-width:90px"></div>
         </div></details>
@@ -1499,6 +1501,9 @@ async function renderSettings() {
       bill_refund: $("#s-bill-refund").value,
       clean_bill_minor_days: Math.max(0, +$("#s-bill-clean").value || 0),
     };
+    // 已读状态双向同步：只在用户真的改了开关时才提交这个字段
+    const syncRead = $("#s-sync-read");
+    if (syncRead && syncRead.checked !== !!s.sync_read_state) body.sync_read_state = syncRead.checked;
     const googleId = $("#s-google-id");
     if (googleId && !googleId.disabled) {
       body.google_oauth_client_id = googleId.value.trim();

@@ -23,6 +23,15 @@ NETEASE_LOGIN_HELP = (
     "并填写客户端授权密码（不是网页登录密码）"
 )
 
+# ---------- 大邮件保护 ----------
+# 服务以 MemoryMax=512M 运行，带大附件的邮件或一次积压的大量邮件会把内存撑爆：
+# 单封超过 LARGE_MESSAGE_BYTES 就只取头部和正文前 TRUNCATED_BODY_BYTES，
+# 其余邮件按累计字节数分批（每批不超过 BATCH_BYTES、BATCH_UIDS 封）抓取。
+LARGE_MESSAGE_BYTES = 2 * 1024 * 1024
+BATCH_BYTES = 8 * 1024 * 1024
+BATCH_UIDS = 20
+TRUNCATED_BODY_BYTES = 1024 * 1024
+
 
 # ---------- 邮件解析辅助 ----------
 
@@ -223,11 +232,69 @@ def _uid_chunks(uids: list[int], size: int = 100):
         yield ",".join(str(u) for u in uids[i:i + size])
 
 
+_SIZE_RE = re.compile(r"RFC822\.SIZE (\d+)", re.I)
+_UID_RE = re.compile(r"UID (\d+)")
+_FLAGS_RE = re.compile(r"FLAGS \(([^)]*)\)")
+
+
+def _head_text(raw) -> str:
+    return raw.decode(errors="replace") if isinstance(raw, bytes) else str(raw)
+
+
+def _uid_of(head: str) -> int:
+    m = _UID_RE.search(head)
+    return int(m.group(1)) if m else 0
+
+
+def _flags_of(head: str) -> str:
+    m = _FLAGS_RE.search(head)
+    return m.group(1) if m else ""
+
+
+def _iter_heads(data):
+    """把 imaplib 的 FETCH 响应拆成 (响应头, 正文字节或 None) 序列。
+
+    带 literal 的响应是元组 (头, 字节)；只取元数据（例如 UID FETCH ... RFC822.SIZE）
+    时 imaplib 只给一行字节，没有正文，正文位置为 None。
+    """
+    for item in data or []:
+        if isinstance(item, tuple):
+            if not item:
+                continue
+            payload = item[1] if len(item) > 1 and isinstance(item[1], bytes) else None
+            yield _head_text(item[0]), payload
+        elif isinstance(item, (bytes, str)):
+            yield _head_text(item), None
+
+
+def _iter_parts(data):
+    """按 UID 归并正文，产出 (UID, FLAGS, 正文字节) 序列。
+
+    一条响应可能被拆成多个元组——例如同时取 BODY.PEEK[HEADER] 和截断的
+    BODY.PEEK[TEXT]<0.1048576>，只有第一个元组带 UID：后续元组属于同一个 UID，
+    正文字节依次拼接，交给 parse_message 当作「头部 + 截断的正文」解析。
+    """
+    cur_uid, cur_flags, buf = 0, "", b""
+    for head, payload in _iter_heads(data):
+        uid = _uid_of(head)
+        if uid and uid != cur_uid:
+            if cur_uid:
+                yield cur_uid, cur_flags, buf
+            cur_uid, cur_flags, buf = uid, _flags_of(head), b""
+        elif uid:
+            cur_flags = _flags_of(head) or cur_flags
+        if payload:
+            buf += payload
+    if cur_uid:
+        yield cur_uid, cur_flags, buf
+
+
 class ImapSession:
     def __init__(self, host: str, port: int = 993, timeout: int = 30):
         # 超时只作用于本连接；不再用 socket.setdefaulttimeout 改动整个进程的默认值
         self.conn = imaplib.IMAP4_SSL(host, port, timeout=timeout)
         self.caps = frozenset(str(c).upper() for c in getattr(self.conn, "capabilities", ()))
+        self._probe_parts: dict[int, tuple[str, bytes]] = {}   # 大小查询意外带回的正文
 
     def _refresh_capabilities(self):
         """登录后重新读取能力列表：Gmail 等服务器在认证前不会通告 UIDPLUS。"""
@@ -283,45 +350,150 @@ class ImapSession:
             uids = uids[-first_limit:]
         return uids
 
-    def fetch_messages(self, uids: list[int]) -> tuple[list[dict], set[int]]:
-        """按 UID 批量抓取完整邮件（BODY.PEEK 不改变已读状态）。
+    def fetch_sizes(self, uids: list[int]) -> dict[int, int]:
+        """查询邮件大小：UID -> 字节数，只取元数据、不下载正文。
 
-        返回 (解析后的邮件, 抓取失败的 UID)。调用方只能把同步水位推进到第一个
-        失败 UID 之前，下一轮会重试。批次成功但缺少某个 UID 时，视为该邮件
-        已被服务器删除，不算失败。无法解析的邮件生成占位记录，而不是静默丢弃。
+        分块执行 UID FETCH <set> (RFC822.SIZE)。服务器没返回大小、响应失败或命令
+        抛异常的 UID 不会出现在结果里，调用方应把它们当作大邮件处理。
+        """
+        sizes: dict[int, int] = {}
+        # 大小查询响应里意外夹带的正文（非标准行为）留给 fetch_messages 复用
+        self._probe_parts = {}
+        for uidset in _uid_chunks([int(u) for u in uids]):
+            try:
+                typ, data = self.conn.uid("fetch", uidset, "(RFC822.SIZE)")
+            except Exception:
+                continue
+            if typ != "OK":
+                continue
+            for head, payload in _iter_heads(data):
+                uid = _uid_of(head)
+                if uid <= 0:
+                    continue
+                m_size = _SIZE_RE.search(head)
+                if m_size:
+                    sizes[uid] = int(m_size.group(1))
+                elif payload is not None:
+                    self._probe_parts[uid] = (head, payload)
+        return sizes
+
+    def fetch_flags(self, uids: list[int]) -> dict[int, set[str]]:
+        """查询邮件在服务器上的标记集合：UID -> {\\Seen, \\Flagged, ...}。
+
+        分块执行 UID FETCH <set> (FLAGS)。服务器没有返回、响应失败或命令抛异常的
+        UID 不会出现在结果里，调用方应按「状态未知」处理，不要据此改本地状态。
+        """
+        flags: dict[int, set[str]] = {}
+        for uidset in _uid_chunks([int(u) for u in uids]):
+            try:
+                typ, data = self.conn.uid("fetch", uidset, "(FLAGS)")
+            except Exception:
+                continue
+            if typ != "OK":
+                continue
+            for head, _payload in _iter_heads(data):
+                uid = _uid_of(head)
+                if uid <= 0:
+                    continue
+                flags[uid] = set(_flags_of(head).split())
+        return flags
+
+    def fetch_messages(self, uids: list[int]) -> tuple[list[dict], set[int]]:
+        """按 UID 抓取邮件（BODY.PEEK 不改变已读状态），返回 (解析后的邮件, 失败 UID)。
+
+        先查大小再决定怎么抓：
+          - 不超过 LARGE_MESSAGE_BYTES 的按累计字节数分批，每批不超过 BATCH_BYTES
+            且不超过 BATCH_UIDS 封，照旧整封抓取；
+          - 超过 LARGE_MESSAGE_BYTES 的逐封抓取，只取头部和正文前 1MB，结果标记
+            body_truncated=1；查不到大小的也按大邮件处理——宁可截断，也不整封下载。
+
+        调用方只能把同步水位推进到第一个失败 UID 之前，下一轮会重试。批次成功但
+        缺少某个 UID 时，视为该邮件已被服务器删除，不算失败。无法解析的邮件生成
+        占位记录，而不是静默丢弃。
         """
         out: list[dict] = []
         failed: set[int] = set()
-        for i in range(0, len(uids), 20):
-            batch = uids[i:i + 20]
-            uidset = ",".join(str(u) for u in batch)
-            try:
-                typ, data = self.conn.uid("fetch", uidset, "(UID FLAGS BODY.PEEK[])")
-            except Exception:
-                failed.update(batch)
+        wanted = [int(u) for u in uids]
+        if not wanted:
+            return out, failed
+
+        sizes = self.fetch_sizes(wanted)
+        leftovers = dict(getattr(self, "_probe_parts", None) or {})
+
+        pending: list[int] = []
+        for uid in wanted:
+            probe = leftovers.get(uid)
+            if probe is None:
+                pending.append(uid)
                 continue
-            if typ != "OK":
-                failed.update(batch)
-                continue
-            for item in data or []:
-                if not isinstance(item, tuple) or len(item) < 2:
-                    continue
-                head = item[0].decode(errors="replace") if isinstance(item[0], bytes) else str(item[0])
-                m_uid = re.search(r"UID (\d+)", head)
-                if not m_uid:
-                    continue
-                flags = ""
-                m_flags = re.search(r"FLAGS \(([^)]*)\)", head)
-                if m_flags:
-                    flags = m_flags.group(1)
-                try:
-                    parsed = parse_message(item[1])
-                except Exception:
-                    parsed = unparsable_message()
-                parsed["uid"] = int(m_uid.group(1))
-                parsed["unread"] = 0 if "\\Seen" in flags else 1
-                out.append(parsed)
+            # 大小查询里已经带回了正文，别再抓一次
+            self._collect(out, uid, _flags_of(probe[0]), probe[1], truncated=False)
+
+        small: list[int] = []
+        large: list[int] = []
+        for uid in pending:
+            size = sizes.get(uid)
+            if size is not None and size <= LARGE_MESSAGE_BYTES:
+                small.append(uid)
+            else:
+                large.append(uid)
+
+        batch: list[int] = []
+        batch_bytes = 0
+        for uid in small:
+            size = sizes[uid]
+            if batch and (len(batch) >= BATCH_UIDS or batch_bytes + size > BATCH_BYTES):
+                self._fetch_batch(out, failed, batch)
+                batch, batch_bytes = [], 0
+            batch.append(uid)
+            batch_bytes += size
+        if batch:
+            self._fetch_batch(out, failed, batch)
+
+        for uid in large:
+            self._fetch_truncated(out, failed, [uid])
         return out, failed
+
+    def _fetch_batch(self, out: list[dict], failed: set[int], batch: list[int]):
+        """整封抓取一小批邮件。"""
+        uidset = ",".join(str(u) for u in batch)
+        try:
+            typ, data = self.conn.uid("fetch", uidset, "(UID FLAGS BODY.PEEK[])")
+        except Exception:
+            failed.update(batch)
+            return
+        if typ != "OK":
+            failed.update(batch)
+            return
+        for uid, flags, payload in _iter_parts(data):
+            self._collect(out, uid, flags, payload, truncated=False)
+
+    def _fetch_truncated(self, out: list[dict], failed: set[int], batch: list[int]):
+        """只取头部和正文前 1MB：大附件邮件（或大小未知的邮件）不整封下载。"""
+        uidset = ",".join(str(u) for u in batch)
+        query = f"(UID FLAGS BODY.PEEK[HEADER] BODY.PEEK[TEXT]<0.{TRUNCATED_BODY_BYTES}>)"
+        try:
+            typ, data = self.conn.uid("fetch", uidset, query)
+        except Exception:
+            failed.update(batch)
+            return
+        if typ != "OK":
+            failed.update(batch)
+            return
+        for uid, flags, payload in _iter_parts(data):
+            self._collect(out, uid, flags, payload, truncated=True)
+
+    @staticmethod
+    def _collect(out: list[dict], uid: int, flags: str, payload: bytes, truncated: bool):
+        """解析一封邮件的原始字节，补上入库需要的 UID、未读标记与截断标记。"""
+        try:
+            parsed = parse_message(payload)
+        except Exception:
+            parsed = unparsable_message()
+        parsed["uid"] = int(uid)
+        parsed["unread"] = 0 if "\\Seen" in (flags or "") else 1
+        parsed["body_truncated"] = 1 if truncated else 0
+        out.append(parsed)
 
     def store_flags(self, uids: list[int], flag: str, add: bool = True):
         if not uids:
@@ -429,3 +601,35 @@ def _is_auth_failure(exc: Exception) -> bool:
     return any(token in text for token in (
         "auth", "login", "password", "credential", "invalid", "denied", "unsafe login",
     ))
+
+
+def connection_error_text(exc: Exception) -> str:
+    """把连接邮箱时的异常转成给用户看的中文说明。
+
+    用户看不懂 Python / 操作系统的原始异常文本，那里面还会暴露服务器平台，
+    所以「测试连接」和同步状态只用这里的文案。异常类型按从具体到一般的顺序判断：
+    ConnectionResetError 等都是 OSError 的子类，先认出来才不会落进「无法连接」。
+
+    项目自己抛的 RuntimeError / ValueError 原文已经是中文，原样返回（最多 200 字）。
+    """
+    import socket
+    import ssl
+
+    if isinstance(exc, (RuntimeError, ValueError)):
+        return str(exc)[:200]
+    if isinstance(exc, imaplib.IMAP4.error):
+        return "邮箱服务器拒绝登录，请检查授权码或密码"
+    if isinstance(exc, (socket.timeout, TimeoutError)):
+        return "连接邮箱服务器超时"
+    if isinstance(exc, ConnectionRefusedError):
+        return "邮箱服务器拒绝连接，请检查服务器地址和端口"
+    if isinstance(exc, (ConnectionResetError, ConnectionAbortedError)):
+        return "连接被邮箱服务器中断，请稍后重试"
+    if isinstance(exc, socket.gaierror):
+        return "找不到邮箱服务器，请检查服务器地址"
+    if isinstance(exc, ssl.SSLError):
+        return "与邮箱服务器建立加密连接失败"
+    if isinstance(exc, OSError):
+        return "无法连接邮箱服务器"
+    # 测试连接与同步都会用到，兜底文案不写「测试」
+    return "连接邮箱失败，请查看服务器日志"

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    API 33 主题图标（monochrome）用的单色版本：形状与 ic_launcher_foreground.xml 完全一致，
+    只保留纯黑填充，颜色由系统的主题图标着色规则决定。
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M32,32 H64 V76 H32 Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M70,38 H78 V70 H70 Z" />
+</vector>

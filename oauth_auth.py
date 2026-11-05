@@ -10,7 +10,7 @@ import secrets
 import sqlite3
 import threading
 import time
-from urllib.parse import urlencode, urlparse
+from urllib.parse import quote, urlencode, urlparse
 
 import httpx
 from fastapi import APIRouter, HTTPException
@@ -30,6 +30,8 @@ _COLOR_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
 # 否则 OAuth 回调会指向一个不属于部署者的域名。
 _PUBLIC_URL = "http://127.0.0.1:8018"
 _BROWSER_TTL = 600
+# 浏览器登录允许的客户端类型：web 为网页弹窗，android 为 Custom Tabs
+_OAUTH_CLIENTS = ("web", "android")
 _NETEASE_TOKEN_TTL = 3650 * 86400
 _OUTLOOK_NETEASE_APP_ID = "rjg1fubwqzie5unhx6"
 _OUTLOOK_GOOGLE_CLIENT_ID = (
@@ -76,6 +78,8 @@ class OAuthStartBody(BaseModel):
     color: str = "#38bdf8"
     poll_interval: int = 300
     account_id: int = 0
+    # 发起登录的客户端：android 时回调页要额外给出 mailhub:// 返回入口
+    client: str = "web"
 
 
 class DevicePollBody(BaseModel):
@@ -145,6 +149,19 @@ def init_oauth_db():
         except sqlite3.OperationalError as exc:
             if "duplicate column" not in str(exc).lower():
                 raise
+    # App 需要轮询登录结果，事务因此从「取出即删」改为保留到过期：
+    # status 记录消费与最终结果，client 区分网页弹窗和安卓 Custom Tabs。
+    for sql in (
+        "ALTER TABLE oauth_transactions ADD COLUMN status TEXT DEFAULT 'pending'",
+        "ALTER TABLE oauth_transactions ADD COLUMN result_account_id INTEGER DEFAULT 0",
+        "ALTER TABLE oauth_transactions ADD COLUMN result_message TEXT DEFAULT ''",
+        "ALTER TABLE oauth_transactions ADD COLUMN client TEXT DEFAULT 'web'",
+    ):
+        try:
+            conn.execute(sql)
+        except sqlite3.OperationalError as exc:
+            if "duplicate column" not in str(exc).lower():
+                raise
     _require_reauth_for_borrowed_identities(conn)
     conn.commit()
 
@@ -175,10 +192,24 @@ def _normalize_start(body: OAuthStartBody, expected_provider: str = "") -> dict:
         "provider": provider,
         "email": email_addr,
         "name": (body.name or email_addr).strip()[:100],
-        "color": body.color if _COLOR_RE.fullmatch(body.color or "") else "#38bdf8",
+        "color": normalize_color(body.color),
         "poll_interval": min(86400, max(60, int(body.poll_interval or 300))),
         "account_id": account_id,
+        "client": normalize_client(body.client),
     }
+
+
+def normalize_client(value: str) -> str:
+    """发起登录的客户端类型：只接受 web 与 android，其余值一律拒绝。"""
+    client = (value or "web").strip().lower()
+    if client not in _OAUTH_CLIENTS:
+        raise HTTPException(status_code=400, detail="不支持的客户端类型")
+    return client
+
+
+def normalize_color(value: str) -> str:
+    """把账户颜色规范成 #RRGGBB；不合法（含 CSS 注入尝试）时退回默认的浅蓝。"""
+    return value if _COLOR_RE.fullmatch(value or "") else "#38bdf8"
 
 
 def detect_provider(email_addr: str) -> str:
@@ -516,16 +547,17 @@ def _create_browser_transaction(data: dict, client_id: str, scope: str,
     _cleanup_transactions(conn)
     conn.execute("""INSERT INTO oauth_transactions(
         id, state_hash, provider, flow, email, display_name, color, sync_interval,
-        account_id, client_id, scope, redirect_uri, verifier_enc, expires_ts, created_ts)
-        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        account_id, client_id, scope, redirect_uri, verifier_enc, expires_ts, created_ts, client)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (tx_id, _state_hash(state), data["provider"], "browser", data["email"], data["name"],
          data["color"], data["poll_interval"], data["account_id"], client_id, scope,
-         redirect_uri, encrypt(verifier), now + _BROWSER_TTL, now))
+         redirect_uri, encrypt(verifier), now + _BROWSER_TTL, now, data.get("client", "web")))
     conn.commit()
     return tx_id, state
 
 
 def _take_browser_transaction(state: str, provider: str) -> dict:
+    """按 state 取出浏览器事务并原子地标记为已消费。"""
     conn = get_conn()
     row = conn.execute(
         "SELECT * FROM oauth_transactions WHERE state_hash=? AND provider=? AND flow='browser'",
@@ -534,11 +566,63 @@ def _take_browser_transaction(state: str, provider: str) -> dict:
     if not row:
         raise OAuthError("登录状态无效或已使用")
     tx = dict(row)
-    deleted = conn.execute("DELETE FROM oauth_transactions WHERE id=?", (tx["id"],)).rowcount
+    # 只有 status='pending' 的事务能被改写，rowcount 为 0 说明已经有人消费过这个 state，
+    # 因此同一个 state 并发或重复回调都只可能成功一次。
+    # 同时清空 verifier_enc：事务消费后 PKCE verifier 不再有用，没必要在库里留到过期；
+    # 调用方用的是上面更新前读出的 tx，换取令牌时仍能拿到 verifier。
+    consumed = conn.execute(
+        "UPDATE oauth_transactions SET status='consumed', verifier_enc=''"
+        " WHERE id=? AND status='pending'",
+        (tx["id"],),
+    ).rowcount
     conn.commit()
-    if not deleted or tx["expires_ts"] < time.time():
+    if not consumed:
+        raise OAuthError("登录状态无效或已使用")
+    if tx["expires_ts"] < time.time():
         raise OAuthError("登录状态已过期，请重新发起登录")
     return tx
+
+
+def _finish_browser_transaction(tx: dict | None, *, ok: bool, account_id: int = 0,
+                                message: str = ""):
+    """把登录结果写回事务，供 App 轮询。
+
+    tx 为 None 表示这次请求没能消费事务（state 无效/已使用），此时不写结果，
+    否则重放的回调会覆盖第一次的真实结果。写结果失败只影响 App 轮询，
+    不能影响返回给浏览器的页面。
+    """
+    if not tx:
+        return
+    try:
+        conn = get_conn()
+        if ok:
+            conn.execute(
+                "UPDATE oauth_transactions SET status='done', result_account_id=?,"
+                " result_message='' WHERE id=?",
+                (int(account_id or 0), tx["id"]),
+            )
+        else:
+            conn.execute(
+                "UPDATE oauth_transactions SET status='failed', result_message=? WHERE id=?",
+                (str(message)[:300], tx["id"]),
+            )
+        conn.commit()
+    except Exception:
+        # 结果没写进去时 App 只会看到事务停在 consumed，页面与外层返回不受影响
+        pass
+
+
+def _transaction_headers(tx: dict | None) -> dict[str, str]:
+    """把事务 id 和客户端类型放进错误响应头，回调页据此给 App 显示返回链接。
+
+    只有事务 id，不含任何令牌、verifier 或 state。
+    """
+    if not tx:
+        return {}
+    return {
+        "X-MailHub-OAuth-Tx": str(tx["id"]),
+        "X-MailHub-OAuth-Client": str(tx.get("client") or "web"),
+    }
 
 
 def _store_device_transaction(data: dict, device: dict, client_id: str, scope: str) -> str:
@@ -711,10 +795,22 @@ def _fragment_capture_page(provider: str, message: str = "") -> HTMLResponse:
         "  error_description: params.get('error_description') || ''\n"
         "};\n"
         "history.replaceState(null, '', location.pathname);\n"
+        "const backLink = (client, tx) => {\n"
+        "  if (client !== 'android' || !tx) return;\n"
+        "  const p = document.createElement('p');\n"
+        "  const a = document.createElement('a');\n"
+        "  a.href = 'mailhub://oauth/done?tx=' + encodeURIComponent(tx);\n"
+        "  a.textContent = '返回 MailHub';\n"
+        "  p.appendChild(a);\n"
+        "  document.body.appendChild(p);\n"
+        "};\n"
         "const done = (result) => {\n"
         "  document.getElementById('msg').textContent = result.ok\n"
         "    ? '登录成功，窗口可关闭' : (result.message || '邮箱登录失败');\n"
-        "  const out = Object.assign({type: 'mailhub-oauth'}, result);\n"
+        "  backLink(result.client, result.tx);\n"
+        "  // 网页弹窗只看 ok/message/account_id，tx 与 client 不往外传\n"
+        "  const out = {type: 'mailhub-oauth', ok: result.ok, message: result.message};\n"
+        "  if (result.account_id) out.account_id = result.account_id;\n"
         "  if (window.opener) window.opener.postMessage(out, location.origin);\n"
         "  setTimeout(() => window.close(), result.ok ? 300 : 2500);\n"
         "};\n"
@@ -727,7 +823,12 @@ def _fragment_capture_page(provider: str, message: str = "") -> HTMLResponse:
         "    body: JSON.stringify(payload)\n"
         "  }).then(async (response) => {\n"
         "    const data = await response.json().catch(() => ({}));\n"
-        "    if (!response.ok) return {ok: false, message: data.detail || '邮箱登录失败'};\n"
+        "    // 失败响应只有 detail，事务 id 与客户端类型放在响应头里\n"
+        "    const tx = data.tx || response.headers.get('X-MailHub-OAuth-Tx') || '';\n"
+        "    const client = data.client || response.headers.get('X-MailHub-OAuth-Client') || '';\n"
+        "    if (!response.ok) {\n"
+        "      return {ok: false, message: data.detail || '邮箱登录失败', tx, client};\n"
+        "    }\n"
         "    return data;\n"
         "  }).then(done).catch(() => done({ok: false, message: '网络错误，无法完成登录'}));\n"
         "}\n"
@@ -742,12 +843,26 @@ def _fragment_capture_page(provider: str, message: str = "") -> HTMLResponse:
     })
 
 
-def _callback_html(payload: dict) -> HTMLResponse:
+def _mailhub_return_link(client: str, tx_id: str) -> str:
+    """安卓客户端用 Custom Tabs 打开授权页，那里没有 window.opener，只能靠这个链接回 App。
+
+    链接里只有事务 id（App 拿它轮询结果），不带任何令牌；事务 id 先做 URL 编码，
+    再做 HTML 转义，避免拼进 href 时改变链接语义。
+    """
+    if client != "android" or not tx_id:
+        return ""
+    target = "mailhub://oauth/done?tx=" + quote(tx_id, safe="")
+    return f'<p><a href="{html.escape(target, quote=True)}">返回 MailHub</a></p>'
+
+
+def _callback_html(payload: dict, *, client: str = "", tx_id: str = "") -> HTMLResponse:
     safe_payload = json.dumps(payload, ensure_ascii=False).replace("<", "\\u003c")
     title = "登录成功" if payload.get("ok") else "登录失败"
     detail = html.escape(str(payload.get("message", "窗口可关闭")))
+    # CSP 的 default-src 不约束 <a> 的顶层导航，安卓返回链接无需额外放开策略
+    back_link = _mailhub_return_link(client, tx_id)
     body = f"""<!doctype html><html lang="zh-CN"><meta charset="utf-8">
-<title>{title}</title><body><p>{detail}</p><script>
+<title>{title}</title><body><p>{detail}</p>{back_link}<script>
 const payload={safe_payload};
 history.replaceState(null,"",location.pathname);
 if(window.opener) window.opener.postMessage(payload, window.location.origin);
@@ -848,6 +963,7 @@ async def oauth_callback(provider: str, state: str = "", code: str = "",
     provider = provider.strip().lower()
     # APK 读的是 accessToken（驼峰），这里同时接受两种写法，避免令牌被静默丢弃。
     netease_token = (access_token or accessToken or "").strip()
+    tx = None
     try:
         is_netease = provider in providers.netease_keys()
         if provider not in _OAUTH_SPECS and not is_netease:
@@ -876,18 +992,21 @@ async def oauth_callback(provider: str, state: str = "", code: str = "",
             probe = _oauth_probe_account(provider, tx["email"])
             await asyncio.to_thread(probe_connection, probe, token_data["access_token"])
             account_id = await asyncio.to_thread(_upsert_oauth_account, tx, token_data)
+        _finish_browser_transaction(tx, ok=True, account_id=account_id)
         return _callback_html({
             "type": "mailhub-oauth",
             "ok": True,
             "account_id": account_id,
             "message": "邮箱登录成功",
-        })
+        }, client=(tx.get("client") or "web"), tx_id=tx["id"])
     except Exception as exc:
+        message = str(exc)[:240]
+        _finish_browser_transaction(tx, ok=False, message=message)
         return _callback_html({
             "type": "mailhub-oauth",
             "ok": False,
-            "message": str(exc)[:240],
-        })
+            "message": message,
+        }, client=(tx or {}).get("client", ""), tx_id=(tx or {}).get("id", ""))
 
 
 class FragmentCallbackBody(BaseModel):
@@ -906,6 +1025,7 @@ async def oauth_fragment_callback(provider: str, body: FragmentCallbackBody):
     if provider not in providers.netease_keys():
         raise HTTPException(status_code=404, detail="该服务商不使用片段回调")
     token = (body.access_token or body.accessToken or "").strip()
+    tx = None
     try:
         if not body.state:
             raise OAuthError("登录状态无效或已使用")
@@ -916,15 +1036,54 @@ async def oauth_fragment_callback(provider: str, body: FragmentCallbackBody):
             _complete_netease_login, provider, tx, body.uid, token,
         )
     except OAuthError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)[:240]) from exc
+        message = str(exc)[:240]
+        _finish_browser_transaction(tx, ok=False, message=message)
+        raise HTTPException(status_code=400, detail=message,
+                            headers=_transaction_headers(tx)) from exc
     except HTTPException:
         raise
     except Exception as exc:
+        message = f"邮箱身份验证失败: {str(exc)[:180]}"
+        _finish_browser_transaction(tx, ok=False, message=message)
         raise HTTPException(
             status_code=400,
-            detail=f"邮箱身份验证失败: {str(exc)[:180]}",
+            detail=message,
+            headers=_transaction_headers(tx),
         ) from exc
-    return {"ok": True, "account_id": account_id, "message": "邮箱登录成功"}
+    _finish_browser_transaction(tx, ok=True, account_id=account_id)
+    return {
+        "ok": True,
+        "account_id": account_id,
+        "message": "邮箱登录成功",
+        # App 轮询与返回链接只需要事务 id 和客户端类型
+        "tx": tx["id"],
+        "client": tx.get("client") or "web",
+    }
+
+
+# App 用 Bearer 轮询登录结果：只返回状态与账户 id，绝不返回任何凭据字段。
+@router.get("/api/oauth/transactions/{tx_id}")
+async def oauth_transaction_status(tx_id: str):
+    conn = get_conn()
+    row = conn.execute(
+        """SELECT id, provider, status, result_account_id, result_message, expires_ts
+           FROM oauth_transactions WHERE id=?""",
+        (tx_id,),
+    ).fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="登录事务不存在或已过期")
+    status = str(row["status"] or "pending")
+    expires_ts = float(row["expires_ts"] or 0)
+    if status in ("pending", "consumed") and expires_ts < time.time():
+        status = "expired"
+    return {
+        "id": row["id"],
+        "provider": row["provider"],
+        "status": status,
+        "account_id": int(row["result_account_id"] or 0),
+        "message": row["result_message"] or "",
+        "expires_ts": expires_ts,
+    }
 
 
 @router.post("/api/oauth/outlook/device/start")

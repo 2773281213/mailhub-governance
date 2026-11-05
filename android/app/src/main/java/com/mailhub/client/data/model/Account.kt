@@ -9,7 +9,8 @@ data class Account(
     val name: String = "",
     val provider: String = "",
     val email: String = "",
-    val enabled: Boolean = true,
+    // 后端 accounts.enabled 是 SQLite INTEGER 0/1，用 [IntAsBooleanSerializer] 兼容两种写法
+    @Serializable(with = IntAsBooleanSerializer::class) val enabled: Boolean = true,
     @SerialName("last_sync") val lastSync: Double = 0.0,
     @SerialName("last_error") val lastError: String = "",
     val total: Int = 0,

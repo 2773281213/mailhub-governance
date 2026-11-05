@@ -6,9 +6,12 @@
 *.pem
 *.p12
 *.pfx
+# 发布签名密钥库：只从环境变量指向本机文件，永远不进仓库
+*.jks
+*.keystore
 
 # Runtime data
-data/
+/data/
 backups/
 *.db
 *.db-shm

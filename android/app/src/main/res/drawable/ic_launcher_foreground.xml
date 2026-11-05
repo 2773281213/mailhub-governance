@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    自适应图标前景：与通知图标 ic_notification.xml 同一构图（黑色方块 + 红色竖条，不对称摆放）。
+    108dp 画布，所有顶点都落在以 (54,54) 为圆心、半径 33 的安全区内，
+    启动器无论裁成圆形还是圆角方形都不会切到图形；图形本身没有圆、没有弧线和曲线，
+    只用 M/H/V/L/Z 直线命令。
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="@color/ink"
+        android:pathData="M32,32 H64 V76 H32 Z" />
+    <path
+        android:fillColor="@color/red"
+        android:pathData="M70,38 H78 V70 H70 Z" />
+</vector>

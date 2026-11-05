@@ -41,6 +41,14 @@
 
 回收站中的邮件仍保留在邮箱服务器上，恢复不丢内容。
 
+### 已读状态双向同步（可选，默认关闭）
+
+- 设置项 `sync_read_state` 控制「与邮箱服务器同步已读状态」，默认 `0`（关闭）。关闭时已读/未读只改本地，行为与旧版本完全一致。
+- 两个方向由同一个开关控制：只开「从服务器拉取」的话，用户在 MailHub 里手动标为未读（只改本地）的邮件会在下一次同步时被服务器的 `\Seen` 冲回已读。
+- **写回服务器**：打开邮件即标已读、批量已读/未读（不限服务器）、审计撤销恢复已读/未读时，本地记下待推送标记（`flag_push` = 1 标已读 / -1 标未读）；下一次同步用 IMAP `STORE` 设置或清除 `\Seen`，成功后清掉标记。设置/清除 `\Seen` 属于 A 类可逆动作，本身不另写审计；批量已读/未读仍按原有规则留痕。
+- **从服务器拉取**：每轮只看最近 200 封本地未读邮件，并且**只把服务器上已读的邮件改为本地已读**，不会把本地已读改回未读；待推送标记不为 0 的邮件不在拉取范围内，所以用户刚标的未读不会被冲掉。
+- 推送或拉取失败只记日志（不含凭据），不把账户置为 error、不影响本轮新邮件同步，待推送标记保留到下一轮同步重试。UIDVALIDITY 变化的那一轮（旧 UID 已作废）跳过双向同步。
+
 ## 四、提示词注入防御
 
 代码位置：`ai.py`。邮件的任何部分都视为不可信数据，三道防线：
@@ -117,6 +125,7 @@ medium/high 风险邮件强制归入「可疑」分类并进入只读风险观�
 
 - 授权码/OAuth Token 用 Fernet 加密落库，密钥由 `MAILHUB_SECRET` 经 HKDF-SHA256 派生，主密钥在 `/opt/mailhub/.env`（0600）。更换密钥时把旧值设为 `MAILHUB_SECRET_PREVIOUS` 重启一次，启动时会把所有凭据改用新密钥重新加密；解密失败会写警告日志（不含密文）
 - 会话保存在服务端（只存令牌的 SHA-256）：网页端 cookie 为 `httponly` + `secure` + `samesite=lax`，原生客户端使用 `Authorization: Bearer <token>` 认证。支持列出已登录设备与单独吊销；登出只吊销当前设备；修改密码或"退出所有设备"会吊销全部会话
+- 除登录（`/api/login`）与健康检查（`/api/health`）外，免会话的接口只有 OAuth 回调：`GET /api/oauth/{provider}/callback` 与 `POST /api/oauth/{provider}/fragment`（`provider` 只允许 `[a-z0-9_]+`，正则整段精确匹配，方法也必须是 GET / POST，不按 `/api/oauth/` 前缀放行）。安卓 App 用系统浏览器打开授权页（不引入 Custom Tabs），那里没有 MailHub 的 cookie，所以免会话；依据是这两个端点不读 cookie 也不读 Bearer，只按 `state` 定位事务：`state` 是 32 字节随机数，库里只存 SHA-256，10 分钟过期、只能消费一次，而 `/api/oauth/start` 本身要求登录。CSRF 的 Origin 校验对这些请求不变
 - 登录失败按来源 IP 指数退避：前 5 次不限，之后等待 60 秒并逐次翻倍，最长 1 小时；所有来源合计 10 分钟内失败 100 次时暂停登录
 - 首次启动生成的管理密码写入数据目录下的 `initial-admin-password.txt`（0600），日志里只有文件路径；改密码后该文件被删除
 - CSRF：会改变状态的 `/api` 请求必须来自本站（`Origin` 与 Host 或 `MAILHUB_PUBLIC_URL` 一致，或 `Sec-Fetch-Site: same-origin`）；跨站请求返回 403
@@ -129,6 +138,26 @@ medium/high 风险邮件强制归入「可疑」分类并进入只读风险观�
 - 附件永不自动下载或打开，仅读取文件名做静态风险判定
 - 服务仅监听 `127.0.0.1:8018`，外部经 nginx TLS 访问
 - systemd 加固：`NoNewPrivileges` `PrivateTmp` `ProtectSystem=strict` `MemoryMax=512M`（见 `deploy/mailhub.service`）
+
+### 安卓客户端
+
+- **令牌存储**：会话令牌用 Android Keystore 里不可导出的 AES-GCM 密钥加密后存进 DataStore；`allowBackup=false`，云备份与换机迁移规则排除全部本地数据
+- **令牌只发给登录的那台服务器**：拦截器只给同源请求加 `Authorization` 头；切换服务器后，旧客户端收到的 401 一律忽略，不会清掉新会话
+- **网络**：正式版只允许 HTTPS，信任系统 CA；debug 版只对 `10.0.2.2`、`127.0.0.1`、`localhost` 放行明文，便于本机联调
+- **改密码 / 退出其他所有设备**：后端吊销全部会话后给本机签发新令牌，App 原地换上；同一时刻在途的旧令牌请求收到 401 时，不会把本机踢下线
+- **App 不接收任何凭据**：AI Key、推送地址与令牌、Onepush 配置、OAuth 客户端在 App 里只显示「已配置 / 未配置」，只能在网页端修改；App 能改的只有管理密码
+- **邮箱 OAuth**：用系统浏览器打开授权页，通过 `mailhub://oauth/done?tx=<事务 id>` 返回；App 只接受与当前等待中事务相同的 id，其他值直接丢弃，深链里没有任何令牌
+- **正文 WebView**：
+  - 关闭脚本、文件访问和 content 访问，默认拦截全部网络加载；
+  - 用户单封放行外部图片后，只放行 https 的 GET 请求；
+  - 点击链接先弹确认面板并显示完整域名；
+  - 风险邮件禁用链接，也不显示验证码大字块
+- **发件人显示**：风险邮件，或显示名里嵌着另一个地址时，收件箱列表和后台通知显示真实地址；总览页、详情页主行与安全中心的风险观察一律显示真实地址；验证码看板：有风险的条目显示真实地址并标注，不作为最新验证码显示
+- **验证码复制**：API 33 起把剪贴板内容标为敏感，60 秒后清空
+- **后台通知**：
+  - JobScheduler 每 15 分钟拉一次 `/api/changes`；
+  - 通知一律 `VISIBILITY_PRIVATE`，锁屏只显示「收到新验证码」这类公开版本，不显示发件人、主题和验证码；
+  - 后台任务不写日志；收到 401 时不改动会话
 
 ## 九、明确未实现的项目
 
@@ -150,6 +179,8 @@ medium/high 风险邮件强制归入「可疑」分类并进入只读风险观�
 | 数据导出 | ❌ 未实现 | 可直接取 SQLite 文件，无导出 API |
 | 定时数据库备份 | ❌ 未实现 | 仓库内没有备份任务；可按 DEPLOY_OAUTH.md 第 7 节用 `sqlite3 .backup` 自行配置定时任务，数据库须与 `MAILHUB_SECRET` 成对备份 |
 | 密钥轮换 | ✅ 已实现 | 设置 `MAILHUB_SECRET_PREVIOUS` 为旧值后重启，凭据自动改用新密钥加密；之后可移除该变量 |
+| 安卓证书固定（pinning） | ❌ 未实现 | 信任系统 CA。自部署服务器的证书经常更换（例如 Let's Encrypt 自动续期），固定证书容易把自己锁在外面 |
+| 安卓 root / 调试器检测 | ❌ 未实现 | 设备被 root 后，Keystore 和应用沙箱都不再可信；本项目不做对抗，令牌风险靠服务端吊销兜底 |
 
 ## 十、测试
 
@@ -165,10 +196,15 @@ GitHub Actions 在每次推送和 PR 时运行全部测试（`.github/workflows/
 ## 邮箱 OAuth 登录
 
 - Microsoft 与 Google 网页登录采用授权码 + PKCE S256，并校验随机 `state`。
-- 临时 OAuth 事务十分钟过期且只能消费一次；设备码仅加密保存在服务器。
+- 回调免会话：只有 `GET /api/oauth/{provider}/callback` 与 `POST /api/oauth/{provider}/fragment` 两条路径（`provider` 只允许 `[a-z0-9_]+`，整段精确匹配，方法也必须是 GET / POST，不按 `/api/oauth/` 前缀放行）。依据是这两个端点不读 cookie 也不读 Bearer，只按 `/api/oauth/start` 生成的 `state` 定位事务：`state` 是 32 字节随机数，库里只存 SHA-256，10 分钟过期、只能消费一次，而 `start` 本身要求登录；CSRF 的 Origin 校验不变。安卓 App 用系统浏览器打开授权页时没有 MailHub 的 cookie，需要这条通道（另见第八节）。
+- 临时 OAuth 事务十分钟过期且只能消费一次：回调把事务原子地从 `pending` 更新为 `consumed`（`rowcount` 为 0 即视为"登录状态无效或已使用"），同一 `state` 的重放回调只会失败、不会覆盖第一次的结果。
+- 事务不再取出即删，而是保留到 `expires_ts` 过期后由清理逻辑删除：回调完成时写入 `status=done` 与账户 id，失败时写入 `status=failed` 与截断后的错误信息；结果写失败不影响返回给浏览器的页面。
+- 设备码仅加密保存在服务器。
 - access token 与 refresh token 使用 `MAILHUB_SECRET` 经 HKDF 派生的 Fernet 密钥加密。
 - OAuth 成功后必须先通过 IMAP XOAUTH2 打开目标账户的 `INBOX`，通过后才写入数据库。
 - 同一账户的令牌刷新使用进程内互斥锁串行执行；刷新失效会标记为需要重新登录。
+- App 用 `GET /api/oauth/transactions/{tx_id}`（需要登录，Bearer）轮询登录结果，响应只有 `id`、`provider`、`status`（`pending`/`consumed`/`done`/`failed`/`expired`）、`account_id`、`message`、`expires_ts`；不返回令牌、verifier、state、client_id 等任何凭据。
+- 安卓客户端（`client=android`）的回调页与网易 fragment 页额外显示 `mailhub://oauth/done?tx=<事务 id>` 链接（文字为"返回 MailHub"），事务 id 经 URL 编码和 HTML 转义；链接里只有事务 id，没有任何令牌。网页弹窗的 `window.opener.postMessage` 行为不变。
 - QQ、网易等未提供通用第三方 IMAP OAuth 的服务商仍要求其官方授权码，系统不会保存或尝试普通账户密码绕过限制。
 
 部署与服务商客户端配置见 `OAUTH_SETUP.md`。

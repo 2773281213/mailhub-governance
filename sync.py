@@ -62,6 +62,25 @@ def forget_account(acc_id: int):
         _force_queue.discard(acc_id)
 
 
+def _is_syncing(acc_id: int) -> bool:
+    """账户当前是否有同步在跑：只读锁状态，不创建新锁。"""
+    lock = _sync_locks.get(acc_id)
+    return bool(lock is not None and lock.locked())
+
+
+def _account_exists(conn, acc_id: int) -> bool:
+    """账户是否仍然存在：同步期间用户可能已经把它删掉。
+
+    查询本身失败（例如数据库忙、被锁）时返回 True：宁可保留状态，也不要把真实
+    存在的账户从 STATUS 里抹掉，否则用户看不到该账户的错误原因。
+    """
+    try:
+        row = conn.execute("SELECT 1 FROM accounts WHERE id=?", (acc_id,)).fetchone()
+    except Exception:
+        return True
+    return row is not None
+
+
 def _is_duplicate(conn, acc_id: int, msg_id: str) -> bool:
     """跨账户 Message-ID 判重。
 
@@ -149,6 +168,22 @@ def _advance_watermark(last_uid: int, requested: list[int], failed) -> int:
     return watermark
 
 
+# 每块抓取的邮件数：抓完一块就立刻入库，再去抓下一块，避免整轮邮件的正文同时驻留内存
+FETCH_CHUNK_UIDS = 10
+
+
+def _iter_fetched(sess, uids: list[int], failed: set):
+    """按 FETCH_CHUNK_UIDS 逐块抓取，边抓边把该块的邮件交给调用方入库。
+
+    生成器没有把当前块交完就不会去抓下一块，所以同一时间只有一块邮件的正文
+    在内存里。抓取失败的 UID 累积到 failed，由调用方在结束后统一推进水位。
+    """
+    for start in range(0, len(uids), FETCH_CHUNK_UIDS):
+        msgs, chunk_failed = sess.fetch_messages(uids[start:start + FETCH_CHUNK_UIDS])
+        failed.update(chunk_failed)
+        yield from msgs
+
+
 def _unbind_stale_uids(conn, acc_id: int, uidvalidity: int):
     """UIDVALIDITY 变化：旧记录保留在本地，但把 UID 改成负数让出唯一键。
 
@@ -178,10 +213,114 @@ def _rebind_by_message_id(conn, acc_id: int, message: dict) -> bool:
     return True
 
 
+# ---------- 已读状态双向同步（可选开关 sync_read_state，默认关闭） ----------
+
+# 拉取方向每轮只看最近这么多封本地未读邮件，避免每轮把整个收件箱的 FLAGS 都取一遍
+READ_STATE_PULL_LIMIT = 200
+
+
+def read_state_sync_enabled() -> bool:
+    """「与邮箱服务器同步已读状态」开关是否开启。
+
+    两个方向必须由同一个开关控制：只开拉取时，用户在 MailHub 里标的未读会被
+    服务器的 \\Seen 冲回已读。
+    """
+    return get_setting("sync_read_state", "0") == "1"
+
+
+def _has_seen(marks) -> bool:
+    """标记集合里是否有 \\Seen（兼容 bytes 与大小写差异）。"""
+    for mark in marks or ():
+        text = mark.decode(errors="replace") if isinstance(mark, bytes) else str(mark)
+        if text.strip().lower() == "\\seen":
+            return True
+    return False
+
+
+def _push_read_state(sess, conn, acc_id: int):
+    """把本地登记的已读/未读改动写回服务器，成功的邮件只清掉刚推送的那个待推送值。
+
+    只处理 uid > 0 的行：UIDVALIDITY 变化后解绑的旧记录在服务器上已经没有 UID。
+    失败保留 flag_push，下一轮同步再试。
+    """
+    rows = conn.execute(
+        """SELECT id, uid, flag_push FROM messages
+           WHERE account_id=? AND flag_push != 0 AND uid > 0 ORDER BY uid""",
+        (acc_id,),
+    ).fetchall()
+    if not rows:
+        return
+    groups: dict[int, list[tuple[int, int]]] = {}
+    for r in rows:
+        groups.setdefault(1 if int(r["flag_push"]) > 0 else -1, []).append(
+            (int(r["id"]), int(r["uid"])))
+    for flag_push in sorted(groups):
+        items = groups[flag_push]
+        try:
+            sess.mark_read([uid for _mid, uid in items], flag_push > 0)
+        except Exception as exc:
+            # 尽力而为：只记日志（不含凭据），标记保留到下一轮重试
+            print(f"[MailHub] 账户{acc_id} 推送已读状态失败：{str(exc)[:120]}", flush=True)
+            continue
+        # 只清除刚推送的那个值：推送期间用户若又把同一封邮件改成相反的意图
+        # （flag_push 从 1 变成 -1），那次新改动必须留着，下一轮再按新意图推送。
+        conn.executemany("UPDATE messages SET flag_push=0 WHERE id=? AND flag_push=?",
+                         [(mid, flag_push) for mid, _uid in items])
+        conn.commit()
+
+
+def _pull_read_state(sess, conn, acc_id: int):
+    """把服务器上已读的邮件同步为本地已读。
+
+    只做「服务器已读 → 本地已读」这一个方向：本地未读的邮件才会有变化，
+    flag_push != 0 的邮件不在候选里，写回时再用 unread=1 AND flag_push=0 复核一次，
+    所以查询与写回之间用户刚标的未读也不会被冲回已读。
+    """
+    rows = conn.execute(
+        """SELECT id, uid FROM messages
+           WHERE account_id=? AND unread=1 AND flag_push=0 AND deleted_ts=0 AND uid > 0
+           ORDER BY uid DESC LIMIT ?""",
+        (acc_id, READ_STATE_PULL_LIMIT),
+    ).fetchall()
+    if not rows:
+        return
+    by_uid = {int(r["uid"]): int(r["id"]) for r in rows}
+    server_flags = sess.fetch_flags(sorted(by_uid)) or {}
+    seen_ids = [by_uid[int(uid)] for uid, marks in server_flags.items()
+                if int(uid) in by_uid and _has_seen(marks)]
+    if not seen_ids:
+        return
+    # 写回时再校验一次「仍是未读且没有新的本地改动」：查询与写回之间用户可能刚
+    # 把这封邮件标成未读（unread=1、flag_push=-1），不能被服务器的 \Seen 冲回已读。
+    conn.executemany(
+        "UPDATE messages SET unread=0 WHERE id=? AND unread=1 AND flag_push=0",
+        [(mid,) for mid in seen_ids])
+    conn.commit()
+
+
+def _sync_read_state(sess, conn, acc_id: int):
+    """已读状态双向同步：先推送本地改动，再拉取服务器标记。
+
+    两个方向都是尽力而为：任何异常只记日志（不含凭据），不影响本轮新邮件的同步，
+    也不把账户状态置为 error。
+    """
+    try:
+        _push_read_state(sess, conn, acc_id)
+    except Exception as exc:
+        print(f"[MailHub] 账户{acc_id} 推送已读状态异常：{str(exc)[:120]}", flush=True)
+    try:
+        _pull_read_state(sess, conn, acc_id)
+    except Exception as exc:
+        print(f"[MailHub] 账户{acc_id} 拉取已读状态异常：{str(exc)[:120]}", flush=True)
+
+
 def sync_account(acc_id: int) -> int:
     """同步单个账户，返回新邮件数；线程内调用"""
     lock = _sync_locks.setdefault(acc_id, threading.Lock())
     if not lock.acquire(blocking=False):
+        # 覆盖「检查后、spawn 前锁刚被占用」的竞态：把手动请求放回队列，下次心跳重试
+        with _force_lock:
+            _force_queue.add(acc_id)
         return 0
     conn = get_conn()
     try:
@@ -195,19 +334,27 @@ def sync_account(acc_id: int) -> int:
         try:
             uidvalidity = sess.select_inbox()
             last_uid = acc["last_uid"]
+            uid_rebuilt = False
             if uidvalidity and acc["uidvalidity"] and uidvalidity != acc["uidvalidity"]:
                 # UIDVALIDITY 变化说明服务器重建了邮箱，旧 UID 全部作废
                 _unbind_stale_uids(conn, acc_id, uidvalidity)
                 last_uid = 0
+                uid_rebuilt = True
+            # 已读状态双向同步放在搜索新邮件之前：推送 + 拉取都是尽力而为，
+            # 失败只记日志，不影响本轮新邮件入库。UIDVALIDITY 刚变化的那一轮跳过，
+            # 因为旧 UID 已经作废，按旧 UID 读写只会误改服务器上的其他邮件。
+            if not uid_rebuilt and read_state_sync_enabled():
+                _sync_read_state(sess, conn, acc_id)
             uids = sess.search_uids(last_uid)
             new_count = 0
             fresh: list[dict] = []   # 本轮新入库的邮件，用于推送通知
             if uids:
                 _set_status(acc_id, "syncing", f"拉取 {len(uids)} 封")
                 custom = rules.load_custom_rules(conn)
-                msgs, failed = sess.fetch_messages(uids)
+                # 分块抓取、分块入库：失败的 UID 与入库错误跨块累计，最后统一推进水位
+                failed: set[int] = set()
                 insert_error = ""
-                for m in msgs:
+                for m in _iter_fetched(sess, uids, failed):
                     # —— UIDVALIDITY 变化后，同一封信按 Message-ID 认回原来的本地记录 ——
                     if _rebind_by_message_id(conn, acc_id, m):
                         continue
@@ -237,15 +384,17 @@ def sync_account(acc_id: int) -> int:
                                (account_id, uid, msg_id, subject, sender_name, sender_addr, to_addr,
                                 date_ts, snippet, body_text, body_html, category, otp_code, unread,
                                 has_attach, unsubscribe, created_ts, risk_level, risk_reasons,
-                                needs_review, confidence, header_signals, template_key)
-                               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                                needs_review, confidence, header_signals, template_key,
+                                body_truncated)
+                               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                             (acc_id, m["uid"], m["msg_id"], m["subject"], m["sender_name"],
                              m["sender_addr"], m.get("to_addr", ""), m["date_ts"], m["snippet"],
                              m["body_text"], m["body_html"], cat, otp, m["unread"], m["has_attach"],
                              m["unsubscribe"], time.time(), scan["risk"],
                              " · ".join(scan["reasons"])[:500], 0, confidence,
                              json.dumps(signals, sort_keys=True),
-                             billing.template_key(m["sender_addr"], m["subject"])),
+                             billing.template_key(m["sender_addr"], m["subject"]),
+                             m.get("body_truncated", 0)),
                         )
                         if cur.rowcount:
                             new_count += 1
@@ -276,21 +425,32 @@ def sync_account(acc_id: int) -> int:
                     (uidvalidity, time.time(), acc_id),
                 )
             conn.commit()
-            _set_status(acc_id, "idle", "", new_count)
+            if _account_exists(conn, acc_id):
+                _set_status(acc_id, "idle", "", new_count)
+            else:
+                # 账户已在同步期间被删除：不要把它写回状态表
+                with _status_lock:
+                    STATUS.pop(acc_id, None)
             if fresh:
                 notify.notify_new_messages(fresh, acc["name"])
             return new_count
         finally:
             sess.close()
     except Exception as e:
-        err = str(e)[:200]
+        # 状态里的说明只给用户看中文；原始异常只记类型，异常文本里可能带凭据，也会暴露服务器平台
+        print(f"[MailHub] 账户{acc_id} 同步失败：{type(e).__name__}", flush=True)
+        err = mail_client.connection_error_text(e)[:200]
         try:
             conn.execute("UPDATE accounts SET last_error=?, last_sync=? WHERE id=?",
                          (err, time.time(), acc_id))
             conn.commit()
         except Exception:
             pass
-        _set_status(acc_id, "error", err)
+        if _account_exists(conn, acc_id):
+            _set_status(acc_id, "error", err)
+        else:
+            with _status_lock:
+                STATUS.pop(acc_id, None)
         return 0
     finally:
         lock.release()
@@ -466,6 +626,8 @@ class SyncEngine:
         self._stop = threading.Event()
         self._workers = 0
         self._workers_lock = threading.Lock()
+        self._gov_thread = None        # 当前治理线程：同一时间只允许一个
+        self._last_daily = ""          # 上一次执行每日任务的日期键
 
     def start(self):
         threading.Thread(target=self._loop, daemon=True, name="sync-loop").start()
@@ -489,13 +651,21 @@ class SyncEngine:
             pending = sorted(_force_queue)
             _force_queue.clear()
 
-        requeued = []
+        skipped: list[int] = []
+        requeued: list[int] = []
         for i, acc_id in enumerate(pending):
+            if _is_syncing(acc_id):
+                # 正在同步：本轮不 spawn，留在队列里等下一次心跳
+                skipped.append(acc_id)
+                continue
             if not self._spawn(acc_id):
-                requeued = pending[i:]
-                with _force_lock:
-                    _force_queue.update(requeued)
+                requeued = skipped + pending[i:]
                 break
+        else:
+            requeued = skipped
+        if requeued:
+            with _force_lock:
+                _force_queue.update(requeued)
         return requeued
 
     def _spawn(self, acc_id: int):
@@ -521,47 +691,65 @@ class SyncEngine:
 
     def _loop(self):
         time.sleep(5)  # 等应用完全启动
-        last_daily = ""
         while not self._stop.is_set():
             try:
-                conn = get_conn()
-                now = time.time()
-                # 手动触发优先
-                self._drain_force_queue()
-                for r in conn.execute(
-                    "SELECT id, poll_interval, last_sync FROM accounts WHERE enabled=1"
-                ).fetchall():
-                    if now - (r["last_sync"] or 0) >= max(60, r["poll_interval"] or 300):
-                        self._spawn(r["id"])
-                # 多账户并发同步时，先完成的治理任务可能看不到稍后入库的邮件；
-                # 心跳会自动捞起剩余待治理项，不要求用户逐封处理。
-                try:
-                    if governance.governance_status()["pending"]:
-                        ai_classify_pending(120)
-                except Exception:
-                    traceback.print_exc()
-                # 每日任务：晨报 + 清理（本地时区到点后执行一次）
-                local = datetime.now(TZ)
-                digest_hour = int(get_setting("digest_hour", "8") or 8)
-                day_key = local.strftime("%Y-%m-%d")
-                if local.hour >= digest_hour and last_daily != day_key:
-                    last_daily = day_key
-                    if ai.ai_config()["enabled"]:
-                        try:
-                            generate_digest()
-                        except Exception:
-                            traceback.print_exc()
-                    try:
-                        auto_clean()
-                    except Exception:
-                        traceback.print_exc()
-                    try:
-                        trim_old_bodies()
-                    except Exception:
-                        traceback.print_exc()
+                self._tick()
             except Exception:
                 traceback.print_exc()
             self._stop.wait(30)
+
+    def _tick(self):
+        """单次心跳：排空手动队列 → 按 poll_interval 调度 → 异步治理 → 每日任务。"""
+        conn = get_conn()
+        now = time.time()
+        # 手动触发优先
+        self._drain_force_queue()
+        for r in conn.execute(
+            "SELECT id, poll_interval, last_sync FROM accounts WHERE enabled=1"
+        ).fetchall():
+            if _is_syncing(r["id"]):
+                continue   # 同步进行中，本轮跳过，不再空占 worker 名额
+            if now - (r["last_sync"] or 0) >= max(60, r["poll_interval"] or 300):
+                self._spawn(r["id"])
+        # 治理会调用 AI，可能跑几分钟：放到独立守护线程，且同一时间只允许一个。
+        # governance.run_governance 自带 _RUN_LOCK，忙时返回 busy，这里不用再加锁。
+        gov = self._gov_thread
+        if gov is None or not gov.is_alive():
+            try:
+                pending = governance.governance_status()["pending"]
+            except Exception:
+                traceback.print_exc()
+                pending = False
+            if pending:
+                self._gov_thread = threading.Thread(
+                    target=self._governance_worker, daemon=True, name="sync-governance")
+                self._gov_thread.start()
+        # 每日任务：晨报 + 清理（本地时区到点后执行一次）
+        local = datetime.now(TZ)
+        digest_hour = int(get_setting("digest_hour", "8") or 8)
+        day_key = local.strftime("%Y-%m-%d")
+        if local.hour >= digest_hour and self._last_daily != day_key:
+            self._last_daily = day_key
+            if ai.ai_config()["enabled"]:
+                try:
+                    generate_digest()
+                except Exception:
+                    traceback.print_exc()
+            try:
+                auto_clean()
+            except Exception:
+                traceback.print_exc()
+            try:
+                trim_old_bodies()
+            except Exception:
+                traceback.print_exc()
+
+    def _governance_worker(self):
+        """治理线程体：异常只打印，绝不从线程里抛出去。"""
+        try:
+            ai_classify_pending(120)
+        except Exception:
+            traceback.print_exc()
 
 
 engine = SyncEngine()

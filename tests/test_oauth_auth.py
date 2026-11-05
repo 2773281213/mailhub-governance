@@ -851,3 +851,230 @@ def test_netease_device_id_is_generated_once_and_persisted(isolated_db, monkeypa
     stored = isolated_db.execute(
         "SELECT v FROM settings WHERE k='netease_device_id'").fetchone()["v"]
     assert stored == first
+
+
+# ---------------- 安卓 App：免会话回调 + 事务结果轮询 ----------------
+
+from fastapi.testclient import TestClient  # noqa: E402
+
+import sessions  # noqa: E402
+
+
+def _anonymous_client():
+    """没有任何会话的客户端，模拟 Custom Tabs 里没有 MailHub cookie 的情况。"""
+    return TestClient(mailhub_app.app, base_url="https://testserver")
+
+
+def _bearer(token):
+    return {"Authorization": f"Bearer {token}"}
+
+
+def _start_gmail(monkeypatch, client="web"):
+    """按安卓/网页两种客户端各发起一次 Gmail 网页登录，返回 (事务 id, state)。"""
+    monkeypatch.setenv("GOOGLE_CLIENT_ID", "google-client")
+    monkeypatch.setenv("GOOGLE_CLIENT_SECRET", "google-secret")
+    started = asyncio.run(oauth_auth.oauth_start(oauth_auth.OAuthStartBody(
+        provider="gmail", email="user@gmail.com", client=client,
+    )))
+    state = parse_qs(urlparse(started["authorization_url"]).query)["state"][0]
+    return started["transaction_id"], state
+
+
+def _stub_gmail_login(monkeypatch, account_id):
+    monkeypatch.setattr(oauth_auth, "exchange_code", lambda *args, **kwargs: {
+        "access_token": f"secret-access-{account_id}",
+        "refresh_token": f"secret-refresh-{account_id}",
+        "expires_in": 3600,
+    })
+    monkeypatch.setattr(oauth_auth, "probe_connection", lambda *args, **kwargs: None)
+    monkeypatch.setattr(oauth_auth, "_upsert_oauth_account", lambda tx, token: account_id)
+
+
+def test_oauth_callback_works_without_a_session(isolated_db):
+    """S2：回调免会话；start 与事务轮询仍然要求登录。"""
+    anon = _anonymous_client()
+    callback = anon.get(
+        "/api/oauth/gmail/callback", params={"state": "bogus", "code": "code"},
+    )
+    assert callback.status_code == 200
+    assert b'"ok": false' in callback.content
+
+    fragment = anon.post("/api/oauth/163/fragment", json={"state": "bogus"})
+    assert fragment.status_code == 400
+    assert fragment.json()["detail"]
+
+    assert anon.post("/api/oauth/start", json={
+        "provider": "gmail", "email": "user@gmail.com",
+    }).status_code == 401
+    assert anon.get("/api/oauth/transactions/whatever").status_code == 401
+
+
+def test_replayed_callback_keeps_the_first_result(isolated_db, monkeypatch):
+    """同一个 state 只能用一次，重放的回调不能覆盖第一次写下的结果。"""
+    tx_id, state = _start_gmail(monkeypatch)
+    _stub_gmail_login(monkeypatch, 55)
+
+    first = asyncio.run(oauth_auth.oauth_callback("gmail", state=state, code="the-code"))
+    assert b'"ok": true' in first.body
+    second = asyncio.run(oauth_auth.oauth_callback("gmail", state=state, code="the-code"))
+    assert b'"ok": false' in second.body
+
+    row = isolated_db.execute(
+        "SELECT status, result_account_id FROM oauth_transactions WHERE id=?", (tx_id,),
+    ).fetchone()
+    assert row["status"] == "done"
+    assert row["result_account_id"] == 55
+
+
+def test_transaction_poll_reports_done_without_credentials(isolated_db, monkeypatch):
+    """成功回调后 App 能轮询到 done 与账户 id，响应里没有任何凭据。"""
+    tx_id, state = _start_gmail(monkeypatch, client="android")
+    _stub_gmail_login(monkeypatch, 77)
+    asyncio.run(oauth_auth.oauth_callback("gmail", state=state, code="the-code"))
+
+    client = _anonymous_client()
+    token = sessions.create_session(client="android", label="pytest")
+    response = client.get(f"/api/oauth/transactions/{tx_id}", headers=_bearer(token))
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == tx_id
+    assert data["provider"] == "gmail"
+    assert data["status"] == "done"
+    assert data["account_id"] == 77
+    assert set(data) == {"id", "provider", "status", "account_id", "message", "expires_ts"}
+    rendered = response.text
+    for leaked in ("secret-access-77", "secret-refresh-77", "verifier", "state", "client_id",
+                   "token", "code_"):
+        assert leaked not in rendered
+
+    missing = client.get("/api/oauth/transactions/no-such-tx", headers=_bearer(token))
+    assert missing.status_code == 404
+
+
+def test_expired_pending_transaction_polls_as_expired(isolated_db):
+    data = {
+        "provider": "gmail",
+        "email": "user@gmail.com",
+        "name": "User",
+        "color": "#38bdf8",
+        "poll_interval": 300,
+        "account_id": 0,
+    }
+    tx_id, _state = oauth_auth._create_browser_transaction(
+        data, "client-id", "scope", "https://example.test/callback", "verifier",
+    )
+    isolated_db.execute(
+        "UPDATE oauth_transactions SET expires_ts=? WHERE id=?", (time.time() - 1, tx_id),
+    )
+    isolated_db.commit()
+
+    client = _anonymous_client()
+    token = sessions.create_session(client="android", label="pytest")
+    response = client.get(f"/api/oauth/transactions/{tx_id}", headers=_bearer(token))
+    assert response.status_code == 200
+    assert response.json()["status"] == "expired"
+
+
+def test_android_callback_page_offers_mailhub_return_link(isolated_db, monkeypatch):
+    """Custom Tabs 里没有 opener，安卓回调页要给出只带事务 id 的返回链接。"""
+    _stub_gmail_login(monkeypatch, 9)
+
+    android_tx, android_state = _start_gmail(monkeypatch, client="android")
+    ok_page = asyncio.run(oauth_auth.oauth_callback(
+        "gmail", state=android_state, code="the-code"))
+    assert b'"ok": true' in ok_page.body
+    assert f"mailhub://oauth/done?tx={android_tx}".encode() in ok_page.body
+    assert "返回 MailHub".encode() in ok_page.body
+    assert b"secret-access-9" not in ok_page.body
+    assert b"secret-refresh-9" not in ok_page.body
+
+    failed_tx, failed_state = _start_gmail(monkeypatch, client="android")
+    failed_page = asyncio.run(oauth_auth.oauth_callback(
+        "gmail", state=failed_state, error="access_denied"))
+    assert b'"ok": false' in failed_page.body
+    assert f"mailhub://oauth/done?tx={failed_tx}".encode() in failed_page.body
+
+    _web_tx, web_state = _start_gmail(monkeypatch, client="web")
+    web_page = asyncio.run(oauth_auth.oauth_callback(
+        "gmail", state=web_state, code="the-code"))
+    assert b'"ok": true' in web_page.body
+    assert b"mailhub://oauth/done?tx=" not in web_page.body
+
+
+def test_netease_fragment_response_and_page_support_android_return(isolated_db, monkeypatch):
+    monkeypatch.setenv("NETEASE_CLIENT_ID", "approved-mailhub-client")
+    monkeypatch.setenv("NETEASE_DEVICE_ID", "mailhub-installation")
+    started = asyncio.run(oauth_auth.oauth_start(oauth_auth.OAuthStartBody(
+        provider="163", email="user@163.com", client="android",
+    )))
+    state = parse_qs(urlparse(started["authorization_url"]).query)["state"][0]
+    monkeypatch.setattr(oauth_auth, "probe_connection", lambda *args, **kwargs: None)
+    monkeypatch.setattr(oauth_auth, "_upsert_oauth_account", lambda tx, token: 3)
+
+    result = asyncio.run(oauth_auth.oauth_fragment_callback(
+        "163", oauth_auth.FragmentCallbackBody(
+            state=state, uid="user@163.com", access_token="netease-token",
+        ),
+    ))
+    assert result["tx"] == started["transaction_id"]
+    assert result["client"] == "android"
+    assert "netease-token" not in repr(result)
+
+    page = asyncio.run(oauth_auth.oauth_callback("163")).body.decode("utf-8")
+    assert "mailhub://oauth/done?tx=" in page
+    assert "createElement" in page
+    assert "返回 MailHub" in page
+    # 网页端 postMessage 的载荷仍然只有兜底字段，不透出 tx / client
+    assert "const out = {type: 'mailhub-oauth', ok: result.ok, message: result.message};" in page
+
+
+def test_unsupported_start_client_is_rejected(isolated_db):
+    with pytest.raises(mailhub_app.HTTPException, match="不支持的客户端类型"):
+        asyncio.run(oauth_auth.oauth_start(oauth_auth.OAuthStartBody(
+            provider="gmail", email="user@gmail.com", client="ios",
+        )))
+
+
+def test_session_exempt_paths_are_exact_matches():
+    """免会话只认两条回调路径，前缀、方法与其他 /api/oauth/ 接口一律不放行。"""
+    assert mailhub_app._is_session_exempt("GET", "/api/health") is True
+    assert mailhub_app._is_session_exempt("GET", "/api/oauth/gmail/callback") is True
+    assert mailhub_app._is_session_exempt("GET", "/api/oauth/163/callback") is True
+    assert mailhub_app._is_session_exempt("POST", "/api/oauth/163/fragment") is True
+    blocked = [
+        ("GET", "/api/oauth/start"),
+        ("POST", "/api/oauth/start"),
+        ("GET", "/api/oauth/providers"),
+        ("GET", "/api/oauth/status"),
+        ("GET", "/api/oauth/transactions/x"),
+        ("POST", "/api/oauth/gmail/callback"),
+        ("GET", "/api/oauth/gmail/fragment"),
+        ("GET", "/api/oauth/Gmail/callback"),
+        ("GET", "/api/oauth/gmail/callback/"),
+        ("POST", "/api/oauth/163/fragment/extra"),
+        ("GET", "/api/oauth/../accounts"),
+        ("POST", "/api/oauth/../fragment"),
+        ("GET", "/api/oauth//callback"),
+    ]
+    for method, path in blocked:
+        assert mailhub_app._is_session_exempt(method, path) is False, (method, path)
+
+
+def test_session_exempt_ignores_trailing_newline():
+    """免会话路径按整段匹配：末尾多一个换行符不能被判成免会话。"""
+    assert mailhub_app._is_session_exempt("GET", "/api/oauth/gmail/callback\n") is False
+    assert mailhub_app._is_session_exempt("GET", "/api/oauth/gmail/callback") is True
+
+
+def test_consumed_transaction_clears_the_encrypted_verifier(isolated_db, monkeypatch):
+    """成功回调消费事务后，库里该事务的 verifier_enc 被清空，不再保留到过期。"""
+    tx_id, state = _start_gmail(monkeypatch)
+    _stub_gmail_login(monkeypatch, 66)
+    page = asyncio.run(oauth_auth.oauth_callback("gmail", state=state, code="the-code"))
+    assert b'"ok": true' in page.body
+
+    row = isolated_db.execute(
+        "SELECT status, verifier_enc FROM oauth_transactions WHERE id=?", (tx_id,),
+    ).fetchone()
+    assert row["status"] == "done"
+    assert row["verifier_enc"] == ""

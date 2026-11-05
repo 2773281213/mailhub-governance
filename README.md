@@ -184,6 +184,33 @@ data:
 - 各服务商都可以加 `proxies` 参数，写法与 requests 相同。
 - 可以用「发送测试推送」验证配置；失败时会提示具体原因。
 
+## 安卓客户端
+
+`android/` 是原生客户端（Kotlin + Jetpack Compose，不依赖 Material 组件），界面采用瑞士国际主义风格：12 栏网格、只用黑 / 米白 / 红三色、两个字重。它通过移动端 API（Bearer 会话）连接你自己部署的 MailHub。
+
+**页面**
+
+- 总览、收件箱（筛选、搜索、多选批量操作）、邮件详情、验证码看板；
+- 安全中心：风险观察、回收站恢复、审计撤销、已登录设备的吊销与「退出其他所有设备」；
+- 账户：列表、同步、测试连接、删除；添加账户支持授权码 / 密码、浏览器 OAuth（系统浏览器打开授权页，经 `mailhub://oauth/done` 返回）和 Outlook 设备码；
+- 设置：AI 判定、推送开关、清理与晨报、已读状态同步、修改管理密码。
+
+**后台通知**：登录后每 15 分钟检查一次 `/api/changes`，按「重要邮件」「安全提醒」「验证码」三个渠道通知；锁屏上只显示「收到新验证码」这类公开版本。
+
+**登录**：填服务器地址和管理密码。正式版只接受 HTTPS；debug 版额外允许 `10.0.2.2`、`127.0.0.1`、`localhost` 的明文地址，便于本机联调。
+
+**凭据只在网页端修改**：AI Key、推送地址与令牌、Onepush 配置、OAuth 客户端在 App 里只显示「已配置 / 未配置」。安卓端的安全边界见 [SECURITY.md](SECURITY.md)「安卓客户端」一节。
+
+**构建**：需要 JDK 21 和 Android SDK（compileSdk 36）。在 `android/` 下：
+
+```bash
+./gradlew :app:assembleDebug
+# 与 CI 相同的完整检查：风格守卫、单元测试、截图比对、lint、打包
+./gradlew --no-daemon :app:swissGuard :app:swissGuardSelfTest :app:testDebugUnitTest :app:verifyRoborazziDebug :app:lintDebug :app:assembleDebug
+```
+
+截图基准在 `android/app/src/test/screenshots/`。改了界面需要用 `:app:recordRoborazziDebug` 重新录制，并逐张核对网格叠加版。
+
 ## 相关文档
 
 - [部署与登录通道流程](DEPLOY_OAUTH.md)

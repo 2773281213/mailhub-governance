@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 通知栏小图标：一个方块加一条竖条（与 App 图标同一构图），只用直角，不用圆形。系统只取透明度。 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M4,4h11v16h-11z" />
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M17,4h3v16h-3z" />
+</vector>
