@@ -64,16 +64,28 @@ class MailHubRootTest {
      * 这里只改内存里的状态，本用例验证的是 Activity 重建，与令牌怎么落盘无关。
      */
     @Suppress("UNCHECKED_CAST")
-    private fun logIn() {
+    private fun setState(state: SessionState) {
         val app = RuntimeEnvironment.getApplication() as MailHubApp
         val manager = app.container.sessionManager
         val field = manager.javaClass.getDeclaredField("_state").apply { isAccessible = true }
-        val state = field.get(manager) as MutableStateFlow<SessionState>
-        val session = testSession(serverUrl = serverUrl, token = "token-a")
-        state.value = SessionState.LoggedIn(
-            session = session,
-            client = manager.newClient(serverUrl.toHttpUrl(), "token-a"),
+        (field.get(manager) as MutableStateFlow<SessionState>).value = state
+    }
+
+    private fun logIn(token: String = "token-a", url: String = serverUrl) {
+        val app = RuntimeEnvironment.getApplication() as MailHubApp
+        val manager = app.container.sessionManager
+        setState(
+            SessionState.LoggedIn(
+                session = testSession(serverUrl = url, token = token),
+                client = manager.newClient(url.toHttpUrl(), token),
+            ),
         )
+    }
+
+    /** 等外壳把当前代际的页面 ViewModel 建出来。 */
+    private fun awaitShellViewModel(): ShellViewModel {
+        composeRule.waitUntil(timeoutMillis = 10_000) { shellViewModelOrNull() != null }
+        return requireNotNull(shellViewModelOrNull())
     }
 
     @Test
@@ -97,5 +109,38 @@ class MailHubRootTest {
         assertNotSame("recreate 必须真的重建 Activity", activityBefore, activityAfter)
         assertSame("重建后要沿用同一份 ViewModelStore", storeBefore, storeAfter)
         assertSame("重建后页面 ViewModel 必须是同一个实例", before, after)
+    }
+
+    /**
+     * 退出后再登录（这里换了一台服务器）是新的登录代际：页面 ViewModel 必须是新的，
+     * 不能沿用上一个会话留下的数据。
+     */
+    @Test
+    @Config(qualifiers = "w360dp-h800dp-xxhdpi")
+    fun loggingInAgainAfterLogoutStartsFreshViewModels() {
+        logIn()
+        val first = awaitShellViewModel()
+
+        setState(SessionState.LoggedOut(SessionState.Reason.UserLogout))
+        composeRule.waitForIdle()
+        logIn(token = "token-b", url = "http://127.0.0.2:1")
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            shellViewModelOrNull().let { it != null && it !== first }
+        }
+
+        assertNotSame("重新登录必须换一份页面 ViewModel", first, shellViewModelOrNull())
+    }
+
+    /** 已登录状态下换令牌（改密码、退出其他所有设备）不是新代际，页面 ViewModel 保持不变。 */
+    @Test
+    @Config(qualifiers = "w360dp-h800dp-xxhdpi")
+    fun swappingTheTokenKeepsViewModels() {
+        logIn()
+        val before = awaitShellViewModel()
+
+        logIn(token = "token-new")
+        composeRule.waitForIdle()
+
+        assertSame("换令牌不能清掉页面状态", before, shellViewModelOrNull())
     }
 }

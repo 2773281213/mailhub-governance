@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
@@ -32,6 +33,10 @@ fun MailHubRoot(
 ) {
     val session by container.sessionState.collectAsStateWithLifecycle()
     val storeHolder: ShellStoreHolder = viewModel()
+    // 每个会话状态都要交给持有者，包括「未登录」：它看到退出，下一次登录才会换一份新的 store。
+    // 只在已登录分支里调用的话，持有者只会看到 LoggedIn(A) → LoggedIn(B)，
+    // 会把换服务器重新登录当成同一代际，B 会话就沿用了 A 留下的页面数据。
+    val shellOwner = remember(session) { storeHolder.ownerFor(session) }
 
     LaunchedEffect(container) {
         container.sessionManager.restore()
@@ -47,7 +52,7 @@ fun MailHubRoot(
             )
 
             is SessionState.LoggedIn -> CompositionLocalProvider(
-                LocalViewModelStoreOwner provides storeHolder.ownerFor(current),
+                LocalViewModelStoreOwner provides shellOwner,
             ) {
                 ShellHost(container = container)
             }

@@ -210,7 +210,8 @@ private fun LatestCode(
 
 /**
  * 「更早」里的一行：验证码 headline 等宽数字占第 1–5 栏，
- * 来源占第 6–10 栏（有风险的条目前面标「有风险 · 」），时间占第 11–12 栏；
+ * 来源占第 6–10 栏，时间占第 11–12 栏；有风险的条目来源栏只写「有风险」，
+ * 真实地址在下一行第 6–12 栏完整显示，不截断；
  * 行间用 1dp 细线分隔，点击整行即复制。
  *
  * 三种字号的行高不同，按顶边摆放时小字的首行基线会浮在数字之上；
@@ -227,6 +228,7 @@ private fun EarlierRow(
     val interactionSource = remember { MutableInteractionSource() }
     val codeStyle = earlierCodeStyle()
     val senderText = otpEarlierSourceText(item)
+    val riskyAddress = otpEarlierAddressText(item)
     val clockText = otpClockText(item.dateTs, zoneId)
     val senderTop = firstBaselinePadding(
         largeText = item.otpCode,
@@ -267,7 +269,8 @@ private fun EarlierRow(
                     .cols(6, 5)
                     .padding(top = senderTop),
                 color = colors.foreground,
-                maxLines = 1,
+                // 没有显示名时来源就是地址，可能放不下一行：宁可折行也不截断
+                maxLines = 2,
             )
             SText(
                 text = clockText,
@@ -278,6 +281,17 @@ private fun EarlierRow(
                 color = colors.foreground,
                 maxLines = 1,
             )
+        }
+        if (riskyAddress != null) {
+            Spacer(modifier = Modifier.height(SwissSpace.Xxs))
+            GridRow {
+                SText(
+                    text = riskyAddress,
+                    style = SwissType.caption(),
+                    modifier = Modifier.cols(6, 7),
+                    color = colors.foreground,
+                )
+            }
         }
         Spacer(modifier = Modifier.height(SwissSpace.Xs))
     }

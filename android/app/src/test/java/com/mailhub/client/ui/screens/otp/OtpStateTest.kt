@@ -102,7 +102,7 @@ class OtpStateTest {
         assertEquals("notice@paypa1-secure.example", otpSenderText(item))
     }
 
-    /** 有风险的条目不进大字区，留在下面的列表里，来源前面标「有风险 · 」。 */
+    /** 有风险的条目不进大字区，留在下面的列表里：来源栏标「有风险」，真实地址单独一行。 */
     @Test
     fun riskyItemNeverBecomesTheLatest() {
         val risky = otpFixtureItem(
@@ -118,9 +118,11 @@ class OtpStateTest {
 
         assertEquals(safe.id, state.latest?.id)
         assertEquals(listOf(risky.id), state.earlier.map { it.id })
-        assertEquals("有风险 · alert@google-verify.example", otpEarlierSourceText(risky))
-        // 没有风险的条目不需要标注
+        assertEquals("有风险", otpEarlierSourceText(risky))
+        assertEquals("alert@google-verify.example", otpEarlierAddressText(risky))
+        // 没有风险的条目不需要标注，也没有单独的地址行
         assertEquals("GitHub", otpEarlierSourceText(safe))
+        assertNull(otpEarlierAddressText(safe))
     }
 
     /** 全部都有风险时大字区没有最新一条，风险条目仍然都留在列表里。 */

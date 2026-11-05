@@ -114,12 +114,20 @@ fun otpAgeText(dateTs: Double, nowTs: Double): String {
 fun otpSenderText(item: OtpItem): String =
     senderLabel(item.senderName, item.senderAddr, item.isRisky)
 
+/** 风险条目在来源栏里的标注。 */
+const val OtpRiskyMark: String = "有风险"
+
 /**
- * 「更早」里的来源：有风险的条目前面加「有风险 · 」，让人一眼看出这段验证码来自
- * 被判定为风险的邮件；发件人仍然按 [otpSenderText] 显示真实地址。
+ * 「更早」一行里来源栏（第 6–10 栏）的文字：有风险的条目只写「有风险」，
+ * 真实地址放到下一行（见 [otpEarlierAddressText]）。来源栏只有 5 栏宽，标注和长地址
+ * 挤在一起会把地址截掉，而地址恰恰是判断真假最要紧的部分。
  */
 fun otpEarlierSourceText(item: OtpItem): String =
-    if (item.isRisky) "有风险 · ${otpSenderText(item)}" else otpSenderText(item)
+    if (item.isRisky) OtpRiskyMark else otpSenderText(item)
+
+/** 有风险的条目在下一行完整显示的真实地址；没有风险时为 null，不占这一行。 */
+fun otpEarlierAddressText(item: OtpItem): String? =
+    if (item.isRisky) otpSenderText(item) else null
 
 /**
  * 账户编号 A1、A2 …：按账户列表顺序编号。

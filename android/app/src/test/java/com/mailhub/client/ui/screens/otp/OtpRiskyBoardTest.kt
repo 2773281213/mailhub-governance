@@ -1,6 +1,8 @@
 package com.mailhub.client.ui.screens.otp
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import com.mailhub.client.ui.swiss.SwissTheme
 import org.junit.Rule
@@ -12,7 +14,7 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * 验证码看板的风险处理：有风险的条目不进大字区，全部有风险时大字区显示空状态，
- * 风险条目仍然留在下面的列表里，来源显示真实地址并标注「有风险 · 」。
+ * 风险条目仍然留在下面的列表里：来源栏标注「有风险」，真实地址单独一行完整显示。
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -61,15 +63,10 @@ class OtpRiskyBoardTest {
 
         // 大字区没有最新验证码，沿用空状态写法
         composeRule.onNodeWithText(OtpEmptyTitle, useUnmergedTree = true).assertExists()
-        // 风险条目留在列表里：来源前面标注，并且显示真实地址而不是显示名
-        composeRule.onNodeWithText(
-            "有风险 · alert@google-verify.example",
-            useUnmergedTree = true,
-        ).assertExists()
-        composeRule.onNodeWithText(
-            "有风险 · notice@bank-verify.example",
-            useUnmergedTree = true,
-        ).assertExists()
+        // 风险条目留在列表里：每条都有「有风险」标注，并且完整显示真实地址而不是显示名
+        composeRule.onAllNodesWithText(OtpRiskyMark, useUnmergedTree = true).assertCountEquals(2)
+        composeRule.onNodeWithText("alert@google-verify.example", useUnmergedTree = true).assertExists()
+        composeRule.onNodeWithText("notice@bank-verify.example", useUnmergedTree = true).assertExists()
         // 显示名不再出现在看板上
         composeRule.onNodeWithText("Google", substring = true, useUnmergedTree = true).assertDoesNotExist()
     }
