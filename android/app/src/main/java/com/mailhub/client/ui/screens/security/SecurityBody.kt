@@ -41,6 +41,7 @@ import com.mailhub.client.ui.swiss.cols
  * 吊销单台设备与退出其他所有设备都先弹确认面板。
  *
  * @param categories /api/meta 的 display_categories，用来给分类编号，与收件箱一致。
+ * @param header 前置内容插槽：外壳放页面大标题，作为滚动内容的第一项跟着一起滚走。
  */
 @Composable
 fun SecurityBody(
@@ -49,6 +50,7 @@ fun SecurityBody(
     onEvent: (SecurityEvent) -> Unit,
     modifier: Modifier = Modifier,
     categories: List<String> = emptyList(),
+    header: @Composable () -> Unit = {},
 ) {
     Box(modifier = modifier.fillMaxSize()) {
         Column(
@@ -56,6 +58,7 @@ fun SecurityBody(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState()),
         ) {
+            header()
             SecuritySection.entries.forEachIndexed { position, section ->
                 if (position > 0) {
                     Spacer(modifier = Modifier.height(SwissSpace.Xl))

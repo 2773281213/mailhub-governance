@@ -58,12 +58,15 @@ private const val PasswordNote: String = "修改后其他设备全部退出，�
  * 05 管理密码。每块末尾有自己的「保存 →」，结果说明写在按钮下面。
  *
  * 凭据（AI Key、推送地址与令牌、Onepush 配置）只显示「已配置 / 未配置」，App 里不提供输入。
+ *
+ * @param header 前置内容插槽：外壳放页面大标题，作为滚动内容的第一项跟着一起滚走。
  */
 @Composable
 fun SettingsBody(
     state: SettingsUiState,
     onEvent: (SettingsEvent) -> Unit,
     modifier: Modifier = Modifier,
+    header: @Composable () -> Unit = {},
 ) {
     val saved = state.saved
     Box(modifier = modifier.fillMaxSize()) {
@@ -83,6 +86,7 @@ fun SettingsBody(
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState()),
             ) {
+                header()
                 state.sections.forEachIndexed { position, section ->
                     if (position > 0) {
                         Spacer(modifier = Modifier.height(SwissSpace.Xl))

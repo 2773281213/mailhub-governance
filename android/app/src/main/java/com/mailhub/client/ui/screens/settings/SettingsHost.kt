@@ -13,11 +13,13 @@ import com.mailhub.client.data.settings.SettingsRepository
 /**
  * 设置页的有状态外层：自己创建 [SettingsRepository] 与 ViewModel，
  * 路由与页头由外壳负责，这里只渲染主体。
+ * [header] 原样透传给主体，作为滚动内容的第一项。
  */
 @Composable
 fun SettingsScreenHost(
     sessionManager: SessionManager,
     modifier: Modifier = Modifier,
+    header: @Composable () -> Unit = {},
 ) {
     val repository = remember(sessionManager) { SettingsRepository(sessionManager) }
     val viewModel: SettingsViewModel = viewModel(
@@ -27,5 +29,5 @@ fun SettingsScreenHost(
     LaunchedEffect(viewModel) {
         viewModel.onEnter()
     }
-    SettingsBody(state = state, onEvent = viewModel::onEvent, modifier = modifier)
+    SettingsBody(state = state, onEvent = viewModel::onEvent, modifier = modifier, header = header)
 }

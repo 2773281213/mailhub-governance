@@ -20,6 +20,7 @@ import com.mailhub.client.ui.screens.common.rememberSensitiveClipboard
  * 路由与页头由外壳负责，这里只渲染主体。
  *
  * [onOpenAdd] 由外壳压栈打开添加流程。
+ * [header] 原样透传给主体，作为滚动内容的第一项。
  */
 @Composable
 fun AccountsScreenHost(
@@ -27,6 +28,7 @@ fun AccountsScreenHost(
     zoneId: String,
     modifier: Modifier = Modifier,
     onOpenAdd: () -> Unit = {},
+    header: @Composable () -> Unit = {},
 ) {
     val repository = remember(sessionManager) { AccountsRepository(sessionManager) }
     val viewModel: AccountsViewModel = viewModel(
@@ -43,6 +45,7 @@ fun AccountsScreenHost(
             if (event is AccountsEvent.OpenAdd) onOpenAdd() else viewModel.onEvent(event)
         },
         modifier = modifier,
+        header = header,
     )
 }
 
@@ -51,12 +54,14 @@ fun AccountsScreenHost(
  * 授权页 / 设备码登录页 / 授权码设置页一律交给系统浏览器打开（不引 Custom Tabs）。
  *
  * [onAdded] 在添加成功后调用，外壳用它刷新账户列表。
+ * [header] 原样透传给主体，作为滚动内容的第一项。
  */
 @Composable
 fun AddAccountScreenHost(
     sessionManager: SessionManager,
     modifier: Modifier = Modifier,
     onAdded: () -> Unit = {},
+    header: @Composable () -> Unit = {},
 ) {
     val context = LocalContext.current
     val clipboard = rememberSensitiveClipboard()
@@ -77,6 +82,7 @@ fun AddAccountScreenHost(
         state = state,
         onEvent = viewModel::onEvent,
         modifier = modifier,
+        header = header,
     )
 }
 

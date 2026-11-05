@@ -44,6 +44,8 @@ import com.mailhub.client.ui.swiss.cols
  *   同步状态在第 10–12 栏（同步中 / 空闲 · HH:mm / 出错）；出错时下面再补一行错误说明；
  * - 点一行展开「同步 →」「测试连接 →」「删除 →」三个文字按钮；
  * - 删除先弹确认面板，确认之后才发请求。
+ *
+ * @param header 前置内容插槽：外壳放页面大标题，作为滚动内容的第一项跟着一起滚走。
  */
 @Composable
 fun AccountsBody(
@@ -51,6 +53,7 @@ fun AccountsBody(
     zoneId: String,
     onEvent: (AccountsEvent) -> Unit,
     modifier: Modifier = Modifier,
+    header: @Composable () -> Unit = {},
 ) {
     val colors = LocalSwissColors.current
     Box(modifier = modifier.fillMaxSize()) {
@@ -59,6 +62,7 @@ fun AccountsBody(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState()),
         ) {
+            header()
             val notice = state.notice
             if (notice != null) {
                 DismissibleSnackbar(

@@ -61,12 +61,15 @@ private const val SecretSubmittingHint: String = "正在连接邮箱服务器，
  * 03 执行（授权码 / 浏览器 OAuth / 设备码）。
  *
  * 走到后面的步骤时，前面的步骤收成只读的键值行，整页始终按 01 → 02 → 03 的顺序读下来。
+ *
+ * @param header 前置内容插槽：外壳放页面大标题，作为滚动内容的第一项跟着一起滚走。
  */
 @Composable
 fun AddAccountBody(
     state: AddAccountUiState,
     onEvent: (AddAccountEvent) -> Unit,
     modifier: Modifier = Modifier,
+    header: @Composable () -> Unit = {},
 ) {
     val addedLine = state.addedLine
     Column(
@@ -74,6 +77,7 @@ fun AddAccountBody(
             .fillMaxWidth()
             .verticalScroll(rememberScrollState()),
     ) {
+        header()
         if (addedLine != null) {
             AddedSection(line = addedLine, onEvent = onEvent)
         } else {
@@ -430,7 +434,7 @@ private fun BrowserBody(state: AddAccountUiState, onEvent: (AddAccountEvent) -> 
     }
 }
 
-/** 设备码：user_code 用 displaySmall 的等宽数字，下面给「复制 →」和「打开登录页 →」。 */
+/** 设备码：user_code 用 title 的等宽数字排成一行，下面给「复制 →」和「打开登录页 →」。 */
 @Composable
 private fun DeviceBody(state: AddAccountUiState, onEvent: (AddAccountEvent) -> Unit) {
     val colors = LocalSwissColors.current
@@ -458,16 +462,13 @@ private fun DeviceBody(state: AddAccountUiState, onEvent: (AddAccountEvent) -> U
     }
     Spacer(modifier = Modifier.height(SwissSpace.Xs))
     GridRow {
-        Column(modifier = Modifier.cols(1, 12)) {
-            deviceCodeLines(device.code).forEach { line ->
-                SText(
-                    text = line,
-                    style = SwissType.displaySmall(),
-                    color = colors.foreground,
-                    maxLines = 1,
-                )
-            }
-        }
+        SText(
+            text = device.code,
+            style = SwissType.title(),
+            modifier = Modifier.cols(1, 12),
+            color = colors.foreground,
+            maxLines = 1,
+        )
     }
     Spacer(modifier = Modifier.height(SwissSpace.S))
     GridRow {

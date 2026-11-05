@@ -15,6 +15,7 @@ import com.mailhub.client.data.session.SessionManager
  * 路由与页头由外壳负责，这里只渲染主体。
  *
  * [onOpenMessage] 由外壳压栈打开详情。
+ * [header] 原样透传给主体，作为滚动内容的第一项。
  */
 @Composable
 fun SecurityScreenHost(
@@ -23,6 +24,7 @@ fun SecurityScreenHost(
     modifier: Modifier = Modifier,
     categories: List<String> = emptyList(),
     onOpenMessage: (Long) -> Unit = {},
+    header: @Composable () -> Unit = {},
 ) {
     val repository = remember(sessionManager) { SecurityRepository(sessionManager) }
     val viewModel: SecurityViewModel = viewModel(
@@ -40,5 +42,6 @@ fun SecurityScreenHost(
             if (event is SecurityEvent.OpenMessage) onOpenMessage(event.messageId) else viewModel.onEvent(event)
         },
         modifier = modifier,
+        header = header,
     )
 }

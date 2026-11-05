@@ -27,6 +27,8 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import com.mailhub.client.data.model.Account
 import com.mailhub.client.ui.swiss.GridRow
 import com.mailhub.client.ui.swiss.HairlineRule
+import com.mailhub.client.ui.swiss.LocalGridSpec
+import com.mailhub.client.ui.swiss.LocalGridWidth
 import com.mailhub.client.ui.swiss.LocalSwissColors
 import com.mailhub.client.ui.swiss.SText
 import com.mailhub.client.ui.swiss.SwissSpace
@@ -119,6 +121,10 @@ fun accountLabel(accounts: List<Account>, accountId: Int): String {
  * - 第 2–4 栏时间，与内容首行基线对齐。
  * - 第 5–12 栏内容：主题在第一行（未读加粗），发件人 + 分类在第二行，摘要最多两行。
  *
+ * 有分类时，发件人默认只占第 5–8 栏；地址太长放不下时（V1 之后风险邮件显示真实地址，
+ * 单行截断会把最要紧的域名藏起来），发件人独占第 5–12 栏一行、不截断，分类连同红色小方块
+ * 挪到下一行，仍在原来的栏位。
+ *
  * @param selected null 表示不在多选模式，true / false 表示多选模式下的勾选状态。
  */
 @Composable
@@ -139,8 +145,11 @@ fun MailRow(
         SwissType.body()
     }
     val categoryText = categoryLabel(data.categoryIndex, data.categoryName)
-    // 分类写满第 9–12 栏，发件人只能退到第 5–8 栏；没有分类时发件人独占第 5–12 栏
+    // 分类写满第 9–12 栏，发件人默认退到第 5–8 栏；没有分类时发件人独占第 5–12 栏
     val senderSpan = if (categoryText.isEmpty()) 8 else 4
+    // 有分类时先量一次：第 5–8 栏一行放不下就换成「发件人独占一行 + 分类下一行」
+    val senderFitsColumn = senderFitsInSpan(data.sender, span = 4)
+    val senderOnOwnRow = categoryText.isNotEmpty() && !senderFitsColumn
 
     Column(
         modifier = modifier
@@ -186,32 +195,26 @@ fun MailRow(
         }
         if (data.sender.isNotEmpty() || categoryText.isNotEmpty()) {
             Spacer(modifier = Modifier.height(SwissSpace.Xxs))
-            // 第二行：发件人 + 分类，分类的编号左缘落在第 10 栏栏线上
+            // 第二行：发件人 + 分类，分类的编号左缘落在第 10 栏栏线上；
+            // 地址放不下时发件人独占第 5–12 栏一行，分类挪到下一行，仍在原来的栏位
             GridRow {
                 SText(
                     text = data.sender,
                     style = SwissType.label(),
-                    modifier = Modifier.cols(5, senderSpan),
+                    modifier = Modifier.cols(5, if (senderOnOwnRow) 8 else senderSpan),
                     color = colors.foreground,
-                    maxLines = 1,
+                    maxLines = if (senderOnOwnRow) Int.MAX_VALUE else 1,
                 )
-                if (categoryText.isNotEmpty()) {
-                    if (categoryHasMark(data.categoryName)) {
-                        Box(modifier = Modifier.cols(9, 1)) {
-                            Box(
-                                modifier = Modifier
-                                    .size(SwissSpace.Xs)
-                                    .background(colors.accent),
-                            )
-                        }
-                    }
-                    SText(
-                        text = categoryText,
-                        style = SwissType.label(),
-                        modifier = Modifier.cols(10, 3),
-                        color = colors.foreground,
-                        maxLines = 1,
-                    )
+                if (categoryText.isNotEmpty() && !senderOnOwnRow) {
+                    CategoryMark(name = data.categoryName)
+                    CategoryText(text = categoryText)
+                }
+            }
+            if (senderOnOwnRow) {
+                Spacer(modifier = Modifier.height(SwissSpace.Xxs))
+                GridRow {
+                    CategoryMark(name = data.categoryName)
+                    CategoryText(text = categoryText)
                 }
             }
         }
@@ -229,6 +232,55 @@ fun MailRow(
         }
         Spacer(modifier = Modifier.height(SwissSpace.Xs))
     }
+}
+
+/**
+ * 发件人在第 [span] 栏里一行放不放得下：用 label 样式和真实文字量一次自然宽度，
+ * 放不下就让发件人独占第 5–12 栏，避免把域名截掉。
+ */
+@Composable
+private fun senderFitsInSpan(sender: String, span: Int): Boolean {
+    val measurer = rememberTextMeasurer()
+    val style = SwissType.label()
+    val spec = LocalGridSpec.current
+    val gridWidth = LocalGridWidth.current
+    val density = LocalDensity.current
+    return remember(measurer, sender, style, spec, gridWidth, density, span) {
+        val available = with(density) { spec.spanWidth(span, gridWidth).roundToPx() }
+        measurer.measure(
+            text = AnnotatedString(sender),
+            style = style,
+            maxLines = 1,
+            softWrap = false,
+        ).size.width <= available
+    }
+}
+
+/** 分类前面第 9 栏的红色小方块；不需要标记时仍占住栏位，行高不变。 */
+@Composable
+private fun CategoryMark(name: String) {
+    val colors = LocalSwissColors.current
+    Box(modifier = Modifier.cols(9, 1)) {
+        if (categoryHasMark(name)) {
+            Box(
+                modifier = Modifier
+                    .size(SwissSpace.Xs)
+                    .background(colors.accent),
+            )
+        }
+    }
+}
+
+/** 分类「编号 + 名称」，占第 10–12 栏。 */
+@Composable
+private fun CategoryText(text: String) {
+    SText(
+        text = text,
+        style = SwissType.label(),
+        modifier = Modifier.cols(10, 3),
+        color = LocalSwissColors.current.foreground,
+        maxLines = 1,
+    )
 }
 
 /**

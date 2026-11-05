@@ -7,7 +7,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.mailhub.client.ui.screens.MailHubRoot
 import com.mailhub.client.ui.screens.accounts.OAuthReturnBus
+import com.mailhub.client.ui.screens.shell.OpenMessageBus
 import com.mailhub.client.ui.swiss.SwissTheme
+import com.mailhub.client.work.MessageIdExtra
 
 /** 应用入口：先恢复会话，再按会话状态在恢复态 / 登录页 / 主界面之间切换。 */
 class MainActivity : ComponentActivity() {
@@ -18,6 +20,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         handleOauthReturn(intent)
+        handleMessageOpen(intent)
         val container = (application as MailHubApp).container
         setContent {
             SwissTheme {
@@ -31,6 +34,7 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         handleOauthReturn(intent)
+        handleMessageOpen(intent)
     }
 
     /**
@@ -47,6 +51,21 @@ class MainActivity : ComponentActivity() {
         val tx = data.getQueryParameter(OAuthReturnTxParam).orEmpty()
         if (tx.isBlank()) return
         OAuthReturnBus.shared.publish(tx)
+    }
+
+    /**
+     * 处理点通知打开 App：intent extra [MessageIdExtra] 里是邮件 id，
+     * 只有大于 0 才交给 [OpenMessageBus]（外壳在已登录时取走并跳到详情页）。
+     *
+     * 处理完就把 extra 摘掉：Activity 重建时不会拿同一个 id 再跳一次，
+     * 保证「取走即清空，同一个 id 只处理一次」。除 id 外不读取、不打印任何内容。
+     */
+    private fun handleMessageOpen(intent: Intent?) {
+        if (intent == null) return
+        val messageId = intent.getLongExtra(MessageIdExtra, 0L)
+        if (messageId <= 0L) return
+        OpenMessageBus.shared.publish(messageId)
+        intent.removeExtra(MessageIdExtra)
     }
 
     private companion object {

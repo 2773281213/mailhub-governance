@@ -32,12 +32,14 @@ class IndexLayerTest {
     fun indexLayerListsAccountSettingsAndLogout() {
         var closed = 0
         var logout = 0
-        var secondary: Pair<String, String>? = null
+        var accounts = 0
+        var settings = 0
 
         composeRule.setContent {
             SwissTheme {
                 IndexLayer(
-                    onOpenSecondary = { index, title -> secondary = index to title },
+                    onOpenAccounts = { accounts++ },
+                    onOpenSettings = { settings++ },
                     onLogout = { logout++ },
                     onClose = { closed++ },
                 )
@@ -50,10 +52,14 @@ class IndexLayerTest {
 
         composeRule.onNodeWithText("退出").performClick()
         assertEquals(1, logout)
-        assertEquals(null, secondary)
+        assertEquals(0, accounts)
+        assertEquals(0, settings)
 
         composeRule.onNodeWithText("账户").performClick()
-        assertEquals("05" to "账户", secondary)
+        assertEquals(1, accounts)
+
+        composeRule.onNodeWithText("设置").performClick()
+        assertEquals(1, settings)
 
         composeRule.onNodeWithText("关闭").performClick()
         assertEquals(1, closed)

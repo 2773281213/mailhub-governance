@@ -44,7 +44,8 @@ class ShellViewModel(
 
     /**
      * 每次进入主界面调用一次：页面栈回到总览页，关掉索引层和退出确认，并重新读一次 meta。
-     * ViewModel 挂在 Activity 上，退出再登录会复用同一个实例，所以这里要显式归位。
+     * 外壳的 ViewModelStore 按登录代际分开（见 ShellHost），每次重新登录都是新实例；
+     * 这里仍然显式归位，保证同一个实例被再次组合时状态一致。
      */
     fun start() {
         _stack.value = listOf(Route.Overview)
@@ -78,10 +79,26 @@ class ShellViewModel(
         _stack.value = listOf(routeForTab(tabIndex))
     }
 
-    /** 索引层里的二级页面：关掉索引层再压栈。 */
-    fun openSecondary(index: String, title: String) {
+    /** 索引层「05 账户」：关掉索引层再压栈。 */
+    fun openAccounts() {
         _indexOpen.value = false
-        push(Route.Secondary(index = index, title = title))
+        push(Route.Accounts)
+    }
+
+    /** 索引层「06 设置」：关掉索引层再压栈。 */
+    fun openSettings() {
+        _indexOpen.value = false
+        push(Route.Settings)
+    }
+
+    /** 账户页的「添加账户」：压栈打开添加流程，成功后由页面弹栈回到账户页。 */
+    fun openAddAccount() {
+        push(Route.AddAccount)
+    }
+
+    /** 点通知里的邮件：切到「02 收件」标签，再压栈详情。 */
+    fun openMessage(messageId: Long) {
+        _stack.value = stackForOpenMessage(messageId)
     }
 
     /** 压栈：详情等二级页面都用它打开，返回时由 [pop] 弹栈。 */

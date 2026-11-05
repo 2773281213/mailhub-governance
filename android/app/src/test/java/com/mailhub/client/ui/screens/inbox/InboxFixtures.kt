@@ -31,12 +31,14 @@ fun inboxSummary(
     dateTs: Double = InboxFixtureNowTs - id * 1800,
     snippet: String = "这是一段示例摘要，用来说明这封邮件的要点，最多显示两行。",
     hasAttach: Boolean = false,
+    senderAddr: String = "sender$id@example.com",
+    riskLevel: String = "none",
 ): MessageSummary = MessageSummary(
     id = id,
     accountId = 1,
     subject = subject,
     senderName = senderName,
-    senderAddr = "sender$id@example.com",
+    senderAddr = senderAddr,
     dateTs = dateTs,
     snippet = snippet,
     category = category,
@@ -47,7 +49,7 @@ fun inboxSummary(
     unread = if (unread) 1 else 0,
     hasAttach = if (hasAttach) 1 else 0,
     accountName = "工作邮箱",
-    riskLevel = "none",
+    riskLevel = riskLevel,
     displayCategory = category,
 )
 
@@ -67,6 +69,9 @@ fun inboxFixtureState(
             senderName = "PayPa1 安全中心",
             category = "可疑",
             unread = true,
+            // 高风险邮件显示真实地址：地址太长，走「发件人独占一行」的分支
+            senderAddr = "notice@paypa1-secure.example",
+            riskLevel = "high",
         ),
         inboxSummary(
             id = 2,
