@@ -631,4 +631,5 @@ def connection_error_text(exc: Exception) -> str:
         return "与邮箱服务器建立加密连接失败"
     if isinstance(exc, OSError):
         return "无法连接邮箱服务器"
-    return "测试失败，请查看服务器日志"
+    # 测试连接与同步都会用到，兜底文案不写「测试」
+    return "连接邮箱失败，请查看服务器日志"

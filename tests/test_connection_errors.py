@@ -82,7 +82,7 @@ def _mk_account(conn, name="acc", email="a@example.com"):
     # 文案取自本机 IMAP 客户端的系统提示原文，用来确认这类文本不会漏给用户。
     (OSError("由于连接方在一段时间后没有正确答复或连接的主机没有反应，连接尝试失败。"),
      "无法连接邮箱服务器"),
-    (KeyError("secret_enc"), "测试失败，请查看服务器日志"),
+    (KeyError("secret_enc"), "连接邮箱失败，请查看服务器日志"),
 ])
 def test_connection_error_text(exc, expected):
     assert mail_client.connection_error_text(exc) == expected
