@@ -11,6 +11,7 @@ import com.mailhub.client.data.accounts.OAuthTransaction
 import com.mailhub.client.data.accounts.TransactionDone
 import com.mailhub.client.data.accounts.TransactionExpired
 import com.mailhub.client.data.accounts.TransactionFailed
+import com.mailhub.client.ui.screens.common.apiErrorText
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -136,7 +137,7 @@ class AddAccountViewModel(
                 },
                 onFailure = { error ->
                     _state.update {
-                        it.copy(loadingProviders = false, error = accountsErrorText(error))
+                        it.copy(loadingProviders = false, error = apiErrorText(error))
                     }
                 },
             )
@@ -214,7 +215,7 @@ class AddAccountViewModel(
             gateway.addAccount(body).fold(
                 onSuccess = { accountId -> finishAdded(accountId, email) },
                 onFailure = { error ->
-                    _state.update { it.copy(submitting = false, error = accountsErrorText(error)) }
+                    _state.update { it.copy(submitting = false, error = apiErrorText(error)) }
                 },
             )
         }
@@ -241,7 +242,7 @@ class AddAccountViewModel(
                 },
                 onFailure = { error ->
                     _state.update {
-                        it.copy(submitting = false, waitingBrowser = false, error = accountsErrorText(error))
+                        it.copy(submitting = false, waitingBrowser = false, error = apiErrorText(error))
                     }
                 },
             )
@@ -264,7 +265,7 @@ class AddAccountViewModel(
             }
             outcome = gateway.oauthTransaction(transactionId).fold(
                 onSuccess = { transaction -> browserOutcome(transaction) },
-                onFailure = { error -> OAuthOutcome.Failed(accountsErrorText(error)) },
+                onFailure = { error -> OAuthOutcome.Failed(apiErrorText(error)) },
             )
             if (outcome != null) break
             val returned = withTimeoutOrNull(pollIntervalMillis) {
@@ -329,7 +330,7 @@ class AddAccountViewModel(
                     pollDevice(start, current.email.trim())
                 },
                 onFailure = { error ->
-                    _state.update { it.copy(submitting = false, error = accountsErrorText(error)) }
+                    _state.update { it.copy(submitting = false, error = apiErrorText(error)) }
                 },
             )
         }
@@ -354,7 +355,7 @@ class AddAccountViewModel(
                     }
                     if (poll.ok) OAuthOutcome.Done(poll.id) else null
                 },
-                onFailure = { error -> OAuthOutcome.Failed(accountsErrorText(error)) },
+                onFailure = { error -> OAuthOutcome.Failed(apiErrorText(error)) },
             )
             if (outcome != null) break
             delay(intervalSeconds * 1000L)

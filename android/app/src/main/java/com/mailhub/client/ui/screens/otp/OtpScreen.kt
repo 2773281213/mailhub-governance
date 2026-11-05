@@ -51,9 +51,13 @@ import kotlinx.coroutines.launch
 
 /**
  * 验证码看板（无状态）：大标题是滚动内容的第一项，跟着列表一起滚走；
- * 下面紧跟列表第一项的大号验证码，
+ * 下面紧跟列表里第一条没有风险的大号验证码，
  * 收到不到 5 分钟时数字用红，下面一行 caption 说明来源与时间，再下面一个黑色复制按钮；
  * 之后是「02 更早」区块，每行一个验证码，点一行即复制。
+ *
+ * 有风险的条目不会进入大字区（「有风险的条目不会成为最新一条」）：它们的验证码可能是
+ * 钓鱼邮件里伪造的，只留在下面的列表里，来源前面标「有风险 · 」并显示真实地址。
+ * 全部条目都有风险时，大字区退回空状态，列表照常显示。
  *
  * 整屏只有验证码数字会用到红色，其余文字一律前景色。
  */
@@ -95,11 +99,12 @@ fun OtpScreen(
             PageTitle(text = OtpTitle)
             val latest = state.latest
             when {
-                latest != null -> BoardBody(
-                    state = state,
-                    latest = latest,
+                latest != null -> LatestCode(
+                    item = latest,
+                    accounts = state.accounts,
                     zoneId = meta.zoneId,
-                    onEvent = onEvent,
+                    nowTs = state.nowTs,
+                    onCopy = { onEvent(OtpEvent.Copy(latest.otpCode)) },
                 )
 
                 state.loading -> {
@@ -116,6 +121,11 @@ fun OtpScreen(
                     )
                 }
             }
+            EarlierSection(
+                items = state.earlier,
+                zoneId = meta.zoneId,
+                onEvent = onEvent,
+            )
             if (state.refreshFailed) {
                 Spacer(modifier = Modifier.height(SwissSpace.Xs))
                 GridRow {
@@ -135,27 +145,18 @@ fun OtpScreen(
 /** 页面大标题的文字。 */
 private const val OtpTitle = "验证码"
 
-/** 最新一条 + 「02 更早」区块。 */
+/** 「02 更早」区块：每行一个验证码，风险条目也留在这一区。 */
 @Composable
-private fun BoardBody(
-    state: OtpUiState,
-    latest: OtpItem,
+private fun EarlierSection(
+    items: List<OtpItem>,
     zoneId: String,
     onEvent: (OtpEvent) -> Unit,
 ) {
-    LatestCode(
-        item = latest,
-        accounts = state.accounts,
-        zoneId = zoneId,
-        nowTs = state.nowTs,
-        onCopy = { onEvent(OtpEvent.Copy(latest.otpCode)) },
-    )
-    val earlier = state.earlier
-    if (earlier.isEmpty()) return
+    if (items.isEmpty()) return
     Spacer(modifier = Modifier.height(SwissSpace.Xl))
     SectionHeader(index = "02", title = "更早")
     Spacer(modifier = Modifier.height(SwissSpace.S))
-    earlier.forEach { item ->
+    items.forEach { item ->
         EarlierRow(
             item = item,
             zoneId = zoneId,
@@ -209,10 +210,11 @@ private fun LatestCode(
 
 /**
  * 「更早」里的一行：验证码 headline 等宽数字占第 1–5 栏，
- * 发件人占第 6–10 栏，时间占第 11–12 栏；行间用 1dp 细线分隔，点击整行即复制。
+ * 来源占第 6–10 栏（有风险的条目前面标「有风险 · 」），时间占第 11–12 栏；
+ * 行间用 1dp 细线分隔，点击整行即复制。
  *
  * 三种字号的行高不同，按顶边摆放时小字的首行基线会浮在数字之上；
- * 这里用 [firstBaselinePadding] 量出各自的首行基线差，给发件人和时间补顶部内边距，
+ * 这里用 [firstBaselinePadding] 量出各自的首行基线差，给来源和时间补顶部内边距，
  * 让三者的首行基线落在同一条线上（栏位不变）。
  */
 @Composable
@@ -224,7 +226,7 @@ private fun EarlierRow(
     val colors = LocalSwissColors.current
     val interactionSource = remember { MutableInteractionSource() }
     val codeStyle = earlierCodeStyle()
-    val senderText = otpSenderText(item)
+    val senderText = otpEarlierSourceText(item)
     val clockText = otpClockText(item.dateTs, zoneId)
     val senderTop = firstBaselinePadding(
         largeText = item.otpCode,

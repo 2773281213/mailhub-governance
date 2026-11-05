@@ -39,3 +39,27 @@ fun baselineTopPadding(
         }
     }
 }
+
+/**
+ * 同一行里多段同字号的文字（例如页头的编号、栏目名、元信息和操作入口）共用一条首行基线：
+ * 以整行最低的那条首行基线为目标，其它每段各自往下补多少。
+ *
+ * 与 [baselineTopPadding] 一样必须用真实文字测量：中文回退到系统字体后首行基线比数字低，
+ * 同一段文字换成另一段字，补出来的数值就可能不一样。只补不缩，栏位不变。
+ */
+@Composable
+fun baselineTopPaddings(style: TextStyle, texts: List<String>): List<Dp> {
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    return remember(measurer, density, style, texts) {
+        val baselines = texts.map { text ->
+            measurer.measure(
+                text = AnnotatedString(text),
+                style = style,
+                maxLines = 1,
+            ).firstBaseline
+        }
+        val target = baselines.maxOrNull() ?: 0f
+        with(density) { baselines.map { (target - it).coerceAtLeast(0f).toDp() } }
+    }
+}

@@ -88,11 +88,4 @@ class ProviderDetectionTest {
         assertEquals("", providerNotice(FixtureProviders["qq"]))
         assertEquals("", providerNotice(null))
     }
-
-    @Test
-    fun deviceCodeSplitsIntoTwoLines() {
-        assertEquals(listOf("QZ7XK", "4JN9"), deviceCodeLines("QZ7XK4JN9"))
-        assertEquals(listOf("ABCD"), deviceCodeLines(" ABCD "))
-        assertEquals(emptyList<String>(), deviceCodeLines("   "))
-    }
 }

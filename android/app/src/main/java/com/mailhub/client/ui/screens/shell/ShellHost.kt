@@ -18,18 +18,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
-import androidx.lifecycle.ViewModelStore
-import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mailhub.client.AppContainer
 import com.mailhub.client.ui.screens.accounts.AccountsScreenHost
@@ -61,7 +56,6 @@ import com.mailhub.client.ui.swiss.SwissTabBar
 import com.mailhub.client.ui.swiss.SwissTextButton
 import com.mailhub.client.ui.swiss.SwissType
 import com.mailhub.client.ui.swiss.cols
-import com.mailhub.client.work.ChangesScheduler
 import com.mailhub.client.work.NotificationPermission
 import java.time.Year
 import java.util.concurrent.atomic.AtomicBoolean
@@ -73,11 +67,12 @@ import java.util.concurrent.atomic.AtomicBoolean
  * 页头不再单独占一行：固定区只有页面自己的一行页头，索引入口就是这一行第 11–12 栏的
  * 「索引」（二级页面换成「← 返回」），所以这里只把回调下发，不再自己画一行。
  *
- * 外壳只在已登录时组合，因此这里同时管三件与登录周期绑定的事：
- * - 自己提供 [ViewModelStoreOwner]：一次登录代际一份 ViewModelStore，退出登录即整体清空，
- *   换一台服务器登录时不会先看到上一台的数据（同一代里换令牌沿用同一个，见 [isNewLoginGeneration]）；
- * - 进入即调度后台拉取、离开（退出登录）即取消；
- * - 进入后按需申请一次通知权限（同一进程最多一次，永久拒绝交给系统处理）。
+ * 外壳只在已登录时组合，但两件与登录周期绑定的事都不在这里：
+ * - 登录代际的 [androidx.lifecycle.ViewModelStore] 由 Activity 级的
+ *   [ShellStoreHolder] 持有（见 MailHubRoot），旋转不会丢页面状态；
+ * - 后台拉取的调度跟着会话状态走（见 AppContainer），退出组合不会取消周期任务。
+ *
+ * 这里只保留通知权限申请：进入后按需申请一次（同一进程最多一次，永久拒绝交给系统处理）。
  *
  * 安全区在这里一次性让出来（windowInsetsPadding 同时消费 insets），
  * 里面的 SwissScaffold 和标签栏因此不会重复留出状态栏和导航栏的高度。
@@ -87,17 +82,7 @@ fun ShellHost(
     container: AppContainer,
     modifier: Modifier = Modifier,
 ) {
-    // 登录代际：ShellHost 退出组合就是退出登录，下一次登录重新建一份，旧的一次性清空。
-    val storeOwner = remember { ShellViewModelStoreOwner() }
-    DisposableEffect(storeOwner) {
-        onDispose { storeOwner.viewModelStore.clear() }
-    }
-
     val context = LocalContext.current
-    DisposableEffect(context) {
-        ChangesScheduler.schedule(context)
-        onDispose { ChangesScheduler.cancel(context) }
-    }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -108,14 +93,7 @@ fun ShellHost(
         }
     }
 
-    CompositionLocalProvider(LocalViewModelStoreOwner provides storeOwner) {
-        ShellContent(container = container, modifier = modifier)
-    }
-}
-
-/** 外壳的 ViewModelStore 宿主：一次登录代际一份，宿主被丢弃时整体清空。 */
-private class ShellViewModelStoreOwner : ViewModelStoreOwner {
-    override val viewModelStore: ViewModelStore = ViewModelStore()
+    ShellContent(container = container, modifier = modifier)
 }
 
 /**
@@ -227,6 +205,8 @@ private fun ShellContent(
                     selectedTab = tabIndexFor(stack),
                     onSelectTab = viewModel::selectTab,
                     onBack = viewModel::pop,
+                    // 从安全中心打开写「← 安全」，从收件箱打开写「← 收件」
+                    backLabel = backLabelFor(stack) ?: "← 收件",
                 )
 
                 Route.Otp -> OtpScreenHost(

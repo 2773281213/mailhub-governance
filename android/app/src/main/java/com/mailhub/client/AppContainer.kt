@@ -11,6 +11,9 @@ import com.mailhub.client.data.session.SessionManager
 import com.mailhub.client.data.session.SessionState
 import com.mailhub.client.data.session.SessionStore
 import com.mailhub.client.data.session.TokenCipher
+import com.mailhub.client.work.ChangesAction
+import com.mailhub.client.work.ChangesScheduleBinding
+import com.mailhub.client.work.ChangesScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -41,4 +44,23 @@ class AppContainer(context: Context) {
     val authRepository = AuthRepository(sessionManager)
 
     val mailRepository = MailRepository(sessionManager)
+
+    /**
+     * 后台拉取的调度只跟会话走，与有没有界面无关：
+     * 登录进入 [SessionState.LoggedIn] 时调度，退出或过期进入 [SessionState.LoggedOut] 时取消。
+     * 放在容器的 scope 里，按返回键关掉 App、系统回收 Activity 都不会取消已经排好的周期任务。
+     */
+    init {
+        ChangesScheduleBinding(
+            states = sessionManager.state,
+            scope = scope,
+            onAction = { action ->
+                when (action) {
+                    ChangesAction.Schedule -> ChangesScheduler.schedule(appContext)
+                    ChangesAction.Cancel -> ChangesScheduler.cancel(appContext)
+                    ChangesAction.None -> Unit
+                }
+            },
+        ).start()
+    }
 }

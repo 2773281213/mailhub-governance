@@ -4,6 +4,7 @@ import com.mailhub.client.data.model.Account
 import com.mailhub.client.data.model.MessageDetail
 import com.mailhub.client.data.net.ApiError
 import com.mailhub.client.ui.screens.common.accountLabel
+import com.mailhub.client.ui.screens.common.apiErrorText
 import com.mailhub.client.ui.screens.common.categoryLabel
 import com.mailhub.client.ui.screens.common.displayCategoryNumber
 import java.time.Instant
@@ -151,14 +152,18 @@ fun judgeReasonText(detail: MessageDetail): String {
  */
 fun showsOtpBlock(isRisky: Boolean, otpCode: String): Boolean = !isRisky && otpCode.isNotBlank()
 
-/** 取详情的失败文案，一律用黑色正文说明。 */
+/**
+ * 取详情的失败文案，一律用黑色正文说明。
+ * 除兜底一句外都与 [apiErrorText] 相同，这里只保留不同的那一支。
+ */
 fun detailErrorText(error: Throwable): String = when (error) {
-    is ApiError.Network -> "无法连接服务器，请检查网络后重试"
-    is ApiError.Unauthorized -> "登录已过期，请重新登录"
-    is ApiError.Decode -> "服务器返回的数据格式不正确"
-    is ApiError.TooManyRequests -> "请求过于频繁，请稍后再试"
-    is ApiError.Forbidden -> error.detail ?: "操作被拒绝"
-    is ApiError.Conflict -> error.detail ?: "服务器状态冲突，请稍后再试"
-    is ApiError.Server -> error.detail ?: "服务器错误 ${error.code}"
+    is ApiError.Network,
+    is ApiError.Unauthorized,
+    is ApiError.Decode,
+    is ApiError.TooManyRequests,
+    is ApiError.Forbidden,
+    is ApiError.Conflict,
+    is ApiError.Server -> apiErrorText(error)
+
     else -> "加载失败，请重试"
 }

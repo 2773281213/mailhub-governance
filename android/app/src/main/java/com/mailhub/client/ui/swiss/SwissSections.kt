@@ -6,11 +6,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.rememberTextMeasurer
 
 /**
  * 区块标题：上方一条 1dp 细线，编号在第 1–2 栏，标题用 headline 在第 3–12 栏。
@@ -43,8 +39,8 @@ fun SectionHeader(
  * 每行上方一条 1dp 细线，连续多行就是行间分隔线。
  *
  * caption 行高 16sp、body 行高 20sp，两者按顶边对齐时首行基线会差几 dp。
- * 这里先量出两种样式各自的首行基线，再按差值给标签补一个顶部内边距，
- * 让标签和值的首行基线落在同一条线上（栏位不变）。
+ * 首行基线的测量统一交给 [baselineTopPadding]（真实文字，量出来的才对得上），
+ * 这里只把差值补成标签的顶部内边距（栏位不变）。
  */
 @Composable
 fun TableRow(
@@ -55,21 +51,12 @@ fun TableRow(
     val colors = LocalSwissColors.current
     val captionStyle = SwissType.caption()
     val bodyStyle = SwissType.body()
-    val measurer = rememberTextMeasurer()
-    val density = LocalDensity.current
-    val labelTop = remember(measurer, captionStyle, bodyStyle, label, value, density) {
-        val captionBaseline = measurer.measure(
-            text = AnnotatedString(label),
-            style = captionStyle,
-            maxLines = 1,
-        ).firstBaseline
-        val bodyBaseline = measurer.measure(
-            text = AnnotatedString(value),
-            style = bodyStyle,
-            maxLines = 1,
-        ).firstBaseline
-        with(density) { (bodyBaseline - captionBaseline).coerceAtLeast(0f).toDp() }
-    }
+    val labelTop = baselineTopPadding(
+        fromStyle = captionStyle,
+        fromText = label,
+        toStyle = bodyStyle,
+        toText = value,
+    )
     Column(modifier = modifier.fillMaxWidth()) {
         HairlineRule(color = colors.foreground)
         Spacer(modifier = Modifier.height(SwissSpace.Xs))

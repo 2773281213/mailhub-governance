@@ -1,17 +1,16 @@
 package com.mailhub.client.ui.screens.shell
 
+import com.mailhub.client.data.net.ApiClient
 import com.mailhub.client.data.session.SessionState
 import com.mailhub.client.data.testSession
-import com.mailhub.client.data.net.ApiClient
 import okhttp3.HttpUrl.Companion.toHttpUrl
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * 会话状态到外壳行为的两个纯函数：
- * 登录代际（换会话时重建 ViewModelStore）与后台任务的调度动作。
+ * 登录代际：换会话时重建 ViewModelStore，换令牌时沿用同一代。
+ * 后台任务的调度动作已经不在这里，见 work/ChangesSchedulePolicyTest。
  */
 class ShellSessionTest {
 
@@ -42,35 +41,5 @@ class ShellSessionTest {
     @Test
     fun leavingTheLoggedInStateIsNotANewGeneration() {
         assertFalse(isNewLoginGeneration(loggedIn(), SessionState.LoggedOut()))
-    }
-
-    @Test
-    fun enteringLoggedInSchedulesTheBackgroundJob() {
-        assertEquals(ChangesAction.Schedule, changesActionFor(SessionState.Restoring, loggedIn()))
-        assertEquals(ChangesAction.Schedule, changesActionFor(SessionState.LoggedOut(), loggedIn()))
-    }
-
-    @Test
-    fun enteringLoggedOutCancelsTheBackgroundJob() {
-        assertEquals(ChangesAction.Cancel, changesActionFor(loggedIn(), SessionState.LoggedOut()))
-        assertEquals(
-            ChangesAction.Cancel,
-            changesActionFor(loggedIn(), SessionState.LoggedOut(SessionState.Reason.Expired)),
-        )
-    }
-
-    @Test
-    fun restoringDoesNothing() {
-        assertEquals(ChangesAction.None, changesActionFor(SessionState.LoggedOut(), SessionState.Restoring))
-        assertEquals(ChangesAction.None, changesActionFor(loggedIn(), SessionState.Restoring))
-    }
-
-    @Test
-    fun stayingOnTheSameSideDoesNothing() {
-        assertEquals(ChangesAction.None, changesActionFor(loggedIn("a"), loggedIn("b")))
-        assertEquals(
-            ChangesAction.None,
-            changesActionFor(SessionState.LoggedOut(), SessionState.LoggedOut(SessionState.Reason.UserLogout)),
-        )
     }
 }

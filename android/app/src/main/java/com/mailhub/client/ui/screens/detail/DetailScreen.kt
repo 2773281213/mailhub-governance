@@ -47,16 +47,16 @@ import com.mailhub.client.ui.swiss.cols
 /** 详情页页头的栏目名。 */
 private const val DetailSection = "邮件"
 
-/** 详情页页头操作入口的文字：点了和系统返回键一样，弹出页面栈。 */
-private const val DetailBackLabel = "← 收件"
-
 /**
  * 邮件详情（无状态）。固定区只有一行页头：编号、栏目名、元信息，第 11–12 栏是
- * 「← 收件」返回入口；下面一条 4dp 粗线。标题位置放邮件主题（headline，占第 1–11 栏，
- * 可以换行，不用 56sp 的大标题字号），它是滚动内容的第一项，跟着内容一起滚走。
+ * 返回入口（默认「← 收件」，从安全中心打开时由外壳传「← 安全」）；下面一条 4dp 粗线。
+ * 标题位置放邮件主题（headline，占第 1–11 栏，可以换行，不用 56sp 的大标题字号），
+ * 它是滚动内容的第一项，跟着内容一起滚走。
  *
  * 正文用 WebView 渲染 HTML、否则用 SText 显示纯文本；红色只出现在风险平涂块和
  * 唯一的红色主操作（删除）上。
+ *
+ * @param backLabel 页头返回入口的文字，由外壳按页面栈给出，默认从收件箱打开时的写法。
  */
 @Composable
 fun DetailScreen(
@@ -67,6 +67,7 @@ fun DetailScreen(
     selectedTab: Int = 1,
     onSelectTab: (Int) -> Unit = {},
     onBack: () -> Unit = {},
+    backLabel: String = "← 收件",
 ) {
     val clipboard = rememberSensitiveClipboard()
     val message = state.message
@@ -77,7 +78,7 @@ fun DetailScreen(
             index = "02",
             section = DetailSection,
             meta = meta.line,
-            actionLabel = DetailBackLabel,
+            actionLabel = backLabel,
             onAction = onBack,
             bottomBar = {
                 Column(modifier = Modifier.fillMaxWidth()) {
@@ -374,6 +375,8 @@ private fun BodyFrame(
 /**
  * 详情页的有状态外层。ViewModel 由外壳持有，messageId 变化时重新加载；
  * 已读 / 未读 / 删除的结果通过回调写回收件箱那一行，然后由外壳弹栈。
+ *
+ * @param backLabel 页头返回入口的文字，默认从收件箱打开时的写法。
  */
 @Composable
 fun DetailScreenHost(
@@ -387,6 +390,7 @@ fun DetailScreenHost(
     selectedTab: Int = 1,
     onSelectTab: (Int) -> Unit = {},
     onBack: () -> Unit = {},
+    backLabel: String = "← 收件",
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -415,5 +419,6 @@ fun DetailScreenHost(
         selectedTab = selectedTab,
         onSelectTab = onSelectTab,
         onBack = onBack,
+        backLabel = backLabel,
     )
 }

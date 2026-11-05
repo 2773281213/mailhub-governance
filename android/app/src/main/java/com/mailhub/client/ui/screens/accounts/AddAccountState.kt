@@ -101,21 +101,6 @@ fun providerNotice(info: ProviderInfo?): String {
     return info.oauthHint
 }
 
-/** 设备码单行最多放几个字符：displaySmall 是 80sp，一行放得下 5 个字符。 */
-private const val DeviceCodeCharsPerLine: Int = 5
-
-/**
- * 设备码切行：不超过 5 个字符放一行，更长的均分成两行，
- * 这样 80sp 的大号等宽数字不会被行宽裁掉。
- */
-fun deviceCodeLines(code: String): List<String> {
-    val compact = code.trim()
-    if (compact.isEmpty()) return emptyList()
-    if (compact.length <= DeviceCodeCharsPerLine) return listOf(compact)
-    val head = compact.take((compact.length + 1) / 2)
-    return listOf(head, compact.drop(head.length))
-}
-
 /** 设备码页面的展示数据。 */
 data class DeviceCodeUi(
     val code: String = "",

@@ -21,7 +21,15 @@ data class Session(
     val sessionId: String,
     val expiresTs: Double,
     val deviceName: String,
-)
+) {
+    /** 令牌不进日志：data class 默认的 toString 会把 token 打出来，这里换成 ***。 */
+    override fun toString(): String =
+        "Session(serverUrl=$serverUrl, token=${maskedToken(token)}, sessionId=$sessionId, " +
+            "expiresTs=$expiresTs, deviceName=$deviceName)"
+}
+
+/** 令牌只显示 ***；没有令牌时显示空串。 */
+private fun maskedToken(token: String): String = if (token.isEmpty()) "" else "***"
 
 /**
  * DataStore Preferences 里的会话存储。server_url 明文，token 经 [Cipher] 加密后保存。

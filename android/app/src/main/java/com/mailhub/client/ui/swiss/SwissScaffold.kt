@@ -12,13 +12,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.unit.Dp
 
 /**
  * 页面骨架，下一阶段的页面全部用它开头。
@@ -47,7 +42,10 @@ fun SwissScaffold(
     val colors = LocalSwissColors.current
     // 编号是数字、栏目名和操作入口是中文，中文回退到系统字体后首行基线比数字低一两 dp，
     // 所以整行按测量结果各自补一点顶部内边距，让四个位置共用一条首行基线。
-    val tops = headerBaselineTops(listOfNotNull(index, section, meta, actionLabel))
+    val tops = baselineTopPaddings(
+        style = SwissType.label(),
+        texts = listOfNotNull(index, section, meta, actionLabel),
+    )
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -99,28 +97,6 @@ fun SwissScaffold(
             content = content,
         )
         bottomBar()
-    }
-}
-
-/**
- * 页头这一行各段文字的顶部内边距：以整行最低的那条首行基线为目标，
- * 其它文字各自往下补到同一条线上（只补不缩，栏位不变）。
- */
-@Composable
-private fun headerBaselineTops(texts: List<String>): List<Dp> {
-    val style = SwissType.label()
-    val measurer = rememberTextMeasurer()
-    val density = LocalDensity.current
-    return remember(measurer, density, style, texts) {
-        val baselines = texts.map { text ->
-            measurer.measure(
-                text = AnnotatedString(text),
-                style = style,
-                maxLines = 1,
-            ).firstBaseline
-        }
-        val target = baselines.maxOrNull() ?: 0f
-        with(density) { baselines.map { (target - it).coerceAtLeast(0f).toDp() } }
     }
 }
 

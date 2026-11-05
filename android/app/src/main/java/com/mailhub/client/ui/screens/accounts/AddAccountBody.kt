@@ -15,10 +15,14 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.rememberTextMeasurer
 import com.mailhub.client.data.accounts.AuthMethod
 import com.mailhub.client.data.accounts.MethodOAuthBrowser
 import com.mailhub.client.data.accounts.MethodOAuthDevice
@@ -26,6 +30,8 @@ import com.mailhub.client.ui.swiss.GridRow
 import com.mailhub.client.ui.swiss.HeavyRule
 import com.mailhub.client.ui.swiss.IndexLabel
 import com.mailhub.client.ui.swiss.LoadingRule
+import com.mailhub.client.ui.swiss.LocalGridSpec
+import com.mailhub.client.ui.swiss.LocalGridWidth
 import com.mailhub.client.ui.swiss.LocalSwissColors
 import com.mailhub.client.ui.swiss.SText
 import com.mailhub.client.ui.swiss.SectionHeader
@@ -37,7 +43,9 @@ import com.mailhub.client.ui.swiss.SwissTextField
 import com.mailhub.client.ui.swiss.SwissType
 import com.mailhub.client.ui.swiss.TableRow
 import com.mailhub.client.ui.swiss.baselineTopPadding
+import com.mailhub.client.ui.swiss.clampedSp
 import com.mailhub.client.ui.swiss.cols
+import kotlin.math.floor
 
 /** 服务商没有任何可用认证方式时的说明。 */
 private const val NoMethodsText: String = "当前部署没有可用的登录方式，请联系管理员在设置页配置。"
@@ -464,7 +472,7 @@ private fun DeviceBody(state: AddAccountUiState, onEvent: (AddAccountEvent) -> U
     GridRow {
         SText(
             text = device.code,
-            style = SwissType.title(),
+            style = deviceCodeStyle(device.code),
             modifier = Modifier.cols(1, 12),
             color = colors.foreground,
             maxLines = 1,
@@ -505,6 +513,51 @@ private fun DeviceBody(state: AddAccountUiState, onEvent: (AddAccountEvent) -> U
     }
     Spacer(modifier = Modifier.height(SwissSpace.M))
     LoadingRule()
+}
+
+/** 设备码缩小后的下限：再小就不缩了，避免为了塞进一行把号码缩得看不清。 */
+private const val DeviceCodeMinSp: Float = 40f
+
+/** 设备码占满第 1–12 栏，可用的宽度就是这 12 栏的总宽。 */
+private const val DeviceCodeSpan: Int = 12
+
+/**
+ * 设备码的字号：按 title（56sp）量出这段文字的自然宽度，放得下就原样用；
+ * 放不下就按「可用宽度 / 自然宽度」等比缩小，行高同步，取整到 sp，下限 [DeviceCodeMinSp]。
+ *
+ * 9 位设备码用 56sp 时宽 341dp，360dp 屏上第 1–12 栏只有 328dp，最后一位会被裁掉，
+ * 所以这里必须按真实文字测量，不能写死字号。仍然单行、不加省略号：缩到下限还放不下时
+ * 按原样排，由页面宽度决定，不做截断。
+ */
+@Composable
+private fun deviceCodeStyle(code: String): TextStyle {
+    val base = SwissType.title()
+    val measurer = rememberTextMeasurer()
+    val spec = LocalGridSpec.current
+    val gridWidth = LocalGridWidth.current
+    val density = LocalDensity.current
+    // 0 表示放得下，保持 title 原样；否则是按宽度算出的整数 sp
+    val fittedSp = remember(measurer, code, base, spec, gridWidth, density) {
+        with(density) {
+            val natural = measurer.measure(
+                text = AnnotatedString(code),
+                style = base,
+                maxLines = 1,
+                softWrap = false,
+            ).size.width
+            val available = spec.spanWidth(DeviceCodeSpan, gridWidth).roundToPx()
+            if (natural <= 0 || natural <= available) {
+                0f
+            } else {
+                floor(base.fontSize.value * available / natural).coerceAtLeast(DeviceCodeMinSp)
+            }
+        }
+    }
+    if (fittedSp <= 0f) return base
+    return base.copy(
+        fontSize = clampedSp(fittedSp),
+        lineHeight = clampedSp(fittedSp),
+    )
 }
 
 /** 成功之后的一屏：粗线 + 一行「已添加 A? 名称」，下面是重新开始。 */

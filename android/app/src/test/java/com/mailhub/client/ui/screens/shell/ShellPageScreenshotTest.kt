@@ -27,6 +27,7 @@ import com.mailhub.client.ui.screens.security.SecurityFixtureCategories
 import com.mailhub.client.ui.screens.security.SecurityFixtureZone
 import com.mailhub.client.ui.screens.security.securityFixtureState
 import com.mailhub.client.ui.screens.settings.SettingsBody
+import com.mailhub.client.ui.screens.settings.SettingsUiState
 import com.mailhub.client.ui.screens.settings.settingsFixtureState
 import com.mailhub.client.ui.swiss.PageTitle
 import com.mailhub.client.ui.swiss.SwissScaffold
@@ -125,6 +126,27 @@ class ShellPageScreenshotTest {
         ) {
             SettingsBody(
                 state = settingsFixtureState(),
+                onEvent = {},
+                modifier = Modifier.fillMaxSize(),
+                header = { PageTitle(text = title) },
+            )
+        }
+    }
+
+    /** 加载中也要有大标题：页头先渲染，下面是加载条。 */
+    @Test
+    @Config(qualifiers = "w360dp-h800dp-xxhdpi")
+    fun settingsPageLoadingLightW360() = capture("page_settings_loading_light_w360") {
+        val title = "设置"
+        SwissScaffold(
+            index = "06",
+            section = "设置",
+            meta = InboxFixtureMeta.line,
+            actionLabel = "← 返回",
+            onAction = {},
+        ) {
+            SettingsBody(
+                state = SettingsUiState(loading = true),
                 onEvent = {},
                 modifier = Modifier.fillMaxSize(),
                 header = { PageTitle(text = title) },

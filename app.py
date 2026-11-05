@@ -1218,7 +1218,7 @@ async def otp_list(limit: int = 24):
     conn = get_conn()
     rows = conn.execute(
         """SELECT m.id, m.subject, m.sender_addr, m.sender_name, m.date_ts, m.otp_code,
-                  m.unread, a.name AS account_name, a.color AS account_color, a.email AS account_email
+                  m.risk_level, m.unread, a.name AS account_name, a.color AS account_color, a.email AS account_email
            FROM messages m JOIN accounts a ON a.id=m.account_id
            WHERE m.category='验证码' AND m.otp_code != '' AND m.deleted_ts=0
            ORDER BY m.date_ts DESC LIMIT ?""",

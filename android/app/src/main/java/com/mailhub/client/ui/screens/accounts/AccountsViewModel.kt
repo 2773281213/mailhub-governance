@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.mailhub.client.ui.screens.common.accountLabel
+import com.mailhub.client.ui.screens.common.apiErrorText
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -72,7 +73,7 @@ class AccountsViewModel(
                 },
                 onFailure = { error ->
                     _state.update {
-                        it.copy(loading = false, error = accountsErrorText(error))
+                        it.copy(loading = false, error = apiErrorText(error))
                     }
                 },
             )
@@ -89,7 +90,7 @@ class AccountsViewModel(
                     load(showLoading = false)
                 },
                 onFailure = { error ->
-                    _state.update { it.copy(busy = false, notice = accountsErrorText(error)) }
+                    _state.update { it.copy(busy = false, notice = apiErrorText(error)) }
                 },
             )
         }
@@ -105,7 +106,7 @@ class AccountsViewModel(
                     load(showLoading = false)
                 },
                 onFailure = { error ->
-                    _state.update { it.copy(busy = false, notice = accountsErrorText(error)) }
+                    _state.update { it.copy(busy = false, notice = apiErrorText(error)) }
                 },
             )
         }
@@ -120,7 +121,7 @@ class AccountsViewModel(
                     _state.update { it.copy(busy = false, notice = testResultText(result)) }
                 },
                 onFailure = { error ->
-                    _state.update { it.copy(busy = false, notice = accountsErrorText(error)) }
+                    _state.update { it.copy(busy = false, notice = apiErrorText(error)) }
                 },
             )
         }
@@ -147,7 +148,7 @@ class AccountsViewModel(
                 },
                 onFailure = { error ->
                     _state.update {
-                        it.copy(busy = false, confirmingDeleteId = 0, notice = accountsErrorText(error))
+                        it.copy(busy = false, confirmingDeleteId = 0, notice = apiErrorText(error))
                     }
                 },
             )

@@ -59,6 +59,9 @@ private const val PasswordNote: String = "修改后其他设备全部退出，�
  *
  * 凭据（AI Key、推送地址与令牌、Onepush 配置）只显示「已配置 / 未配置」，App 里不提供输入。
  *
+ * 大标题在加载中、出错和加载完成三种状态下都先渲染，页面任何时候都有同一个页头；
+ * 三种状态只是大标题下面的内容不同。
+ *
  * @param header 前置内容插槽：外壳放页面大标题，作为滚动内容的第一项跟着一起滚走。
  */
 @Composable
@@ -70,24 +73,24 @@ fun SettingsBody(
 ) {
     val saved = state.saved
     Box(modifier = modifier.fillMaxSize()) {
-        when {
-            saved == null && state.error != null -> ErrorState(
-                message = state.error,
-                onRetry = { onEvent(SettingsEvent.Retry) },
-            )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+        ) {
+            header()
+            when {
+                saved == null && state.error != null -> ErrorState(
+                    message = state.error,
+                    onRetry = { onEvent(SettingsEvent.Retry) },
+                )
 
-            saved == null -> Column {
-                Spacer(modifier = Modifier.height(SwissSpace.S))
-                LoadingRule()
-            }
+                saved == null -> {
+                    Spacer(modifier = Modifier.height(SwissSpace.S))
+                    LoadingRule()
+                }
 
-            else -> Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState()),
-            ) {
-                header()
-                state.sections.forEachIndexed { position, section ->
+                else -> state.sections.forEachIndexed { position, section ->
                     if (position > 0) {
                         Spacer(modifier = Modifier.height(SwissSpace.Xl))
                     }
@@ -95,8 +98,8 @@ fun SettingsBody(
                     Spacer(modifier = Modifier.height(SwissSpace.S))
                     SectionContent(section = section, saved = saved, state = state, onEvent = onEvent)
                 }
-                Spacer(modifier = Modifier.height(SwissSpace.Xxl))
             }
+            Spacer(modifier = Modifier.height(SwissSpace.Xxl))
         }
         if (state.confirmingCleanServer) {
             ConfirmPanel(

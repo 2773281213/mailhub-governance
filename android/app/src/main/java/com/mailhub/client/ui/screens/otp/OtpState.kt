@@ -2,6 +2,7 @@ package com.mailhub.client.ui.screens.otp
 
 import com.mailhub.client.data.model.Account
 import com.mailhub.client.data.model.OtpItem
+import com.mailhub.client.data.model.senderLabel
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -52,11 +53,15 @@ data class OtpUiState(
     /** 一次性提示（复制成功），显示成 Snackbar。 */
     val notice: String? = null,
 ) {
-    /** 列表第一项就是最新的一条。 */
-    val latest: OtpItem? get() = items.firstOrNull()
+    /**
+     * 大字区显示的最新一条：只看没有风险的条目。
+     * 风险的「验证码」可能是钓鱼邮件里伪造的，不能当成最新验证码摆在最显眼的位置。
+     */
+    val latest: OtpItem? get() = items.firstOrNull { !it.isRisky }
 
-    /** 其余条目，最多 [OtpEarlierLimit] 条。 */
-    val earlier: List<OtpItem> get() = items.drop(1).take(OtpEarlierLimit)
+    /** 其余条目（最新一条除外，风险条目也在里面），最多 [OtpEarlierLimit] 条。 */
+    val earlier: List<OtpItem> get() =
+        items.filterNot { it === latest }.take(OtpEarlierLimit)
 }
 
 sealed interface OtpEvent {
@@ -102,9 +107,19 @@ fun otpAgeText(dateTs: Double, nowTs: Double): String {
     return if (minutes <= 0) "刚刚" else "$minutes 分钟前"
 }
 
-/** 发件人：优先显示名称，没有名称时退回地址。 */
+/**
+ * 发件人：与列表页共用 [senderLabel] 的规则——风险邮件，或显示名里嵌着另一个地址时，
+ * 一律显示真实地址，不能把攻击者写的显示名摆在发件人位置。
+ */
 fun otpSenderText(item: OtpItem): String =
-    item.senderName.ifBlank { item.senderAddr }
+    senderLabel(item.senderName, item.senderAddr, item.isRisky)
+
+/**
+ * 「更早」里的来源：有风险的条目前面加「有风险 · 」，让人一眼看出这段验证码来自
+ * 被判定为风险的邮件；发件人仍然按 [otpSenderText] 显示真实地址。
+ */
+fun otpEarlierSourceText(item: OtpItem): String =
+    if (item.isRisky) "有风险 · ${otpSenderText(item)}" else otpSenderText(item)
 
 /**
  * 账户编号 A1、A2 …：按账户列表顺序编号。

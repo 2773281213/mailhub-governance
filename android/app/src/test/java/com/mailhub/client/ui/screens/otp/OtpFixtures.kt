@@ -23,16 +23,19 @@ fun otpFixtureItem(
     senderName: String,
     ageSeconds: Double,
     accountIndex: Int = 0,
+    senderAddr: String = "noreply$id@example.com",
+    riskLevel: String = "none",
 ): OtpItem {
     val account = OtpFixtureAccounts[accountIndex]
     return OtpItem(
         id = id,
         subject = "登录验证码",
-        senderAddr = "noreply$id@example.com",
+        senderAddr = senderAddr,
         senderName = senderName,
         dateTs = OtpFixtureNowTs - ageSeconds,
         otpCode = code,
         unread = 1,
+        riskLevel = riskLevel,
         accountName = account.name,
         accountEmail = account.email,
     )
@@ -40,11 +43,20 @@ fun otpFixtureItem(
 
 /**
  * 截图用的看板状态：最新一条 2 分钟前（红色大数字），
- * 后面五条更早的条目，发件人、账户、位数各不相同。
+ * 后面六条更早的条目，发件人、账户、位数各不相同，其中一条是中风险的钓鱼邮件
+ * （显示名写着 Google，真实地址不是 Google 的域名）。
  */
 fun otpFixtureState(): OtpUiState = OtpUiState(
     items = listOf(
         otpFixtureItem(id = 1, code = "482913", senderName = "Cloudflare", ageSeconds = 120.0),
+        otpFixtureItem(
+            id = 7,
+            code = "551904",
+            senderName = "Google",
+            senderAddr = "alert@google-verify.example",
+            ageSeconds = 300.0,
+            riskLevel = "medium",
+        ),
         otpFixtureItem(id = 2, code = "734156", senderName = "GitHub", ageSeconds = 600.0),
         otpFixtureItem(id = 3, code = "92840147", senderName = "阿里云", ageSeconds = 1_500.0),
         otpFixtureItem(id = 4, code = "314059", senderName = "Steam", ageSeconds = 3_600.0, accountIndex = 1),

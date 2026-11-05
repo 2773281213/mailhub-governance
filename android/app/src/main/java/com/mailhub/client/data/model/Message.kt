@@ -126,8 +126,13 @@ data class OtpItem(
     @SerialName("date_ts") val dateTs: Double = 0.0,
     @SerialName("otp_code") val otpCode: String = "",
     val unread: Int = 0,
+    // 后端 messages.risk_level 是 TEXT，取值 none | medium | high
+    @SerialName("risk_level") val riskLevel: String = "none",
     @SerialName("account_name") val accountName: String = "",
     @SerialName("account_email") val accountEmail: String = "",
 ) {
     val isUnread: Boolean get() = unread == 1
+
+    /** 是否被安全扫描判定为需要提醒的邮件。 */
+    val isRisky: Boolean get() = riskLevelIsRisky(riskLevel)
 }

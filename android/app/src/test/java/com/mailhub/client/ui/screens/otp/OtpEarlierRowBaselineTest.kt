@@ -71,7 +71,8 @@ class OtpEarlierRowBaselineTest {
         earlierItems.forEach { item ->
             val texts = listOf(
                 "验证码" to item.otpCode,
-                "发件人" to otpSenderText(item),
+                // 有风险的条目在来源前面多一段「有风险 · 」，也是这一行里的真实文字
+                "来源" to otpEarlierSourceText(item),
                 "时间" to otpClockText(item.dateTs, OtpFixtureMeta.zoneId),
             )
             val baselines = texts.associate { (name, text) -> name to baselineInRoot(text) }

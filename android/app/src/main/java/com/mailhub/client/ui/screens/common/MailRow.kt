@@ -21,7 +21,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import com.mailhub.client.data.model.Account
@@ -33,6 +32,7 @@ import com.mailhub.client.ui.swiss.LocalSwissColors
 import com.mailhub.client.ui.swiss.SText
 import com.mailhub.client.ui.swiss.SwissSpace
 import com.mailhub.client.ui.swiss.SwissType
+import com.mailhub.client.ui.swiss.baselineTopPadding
 import com.mailhub.client.ui.swiss.cols
 import java.time.Instant
 import java.time.ZoneId
@@ -171,17 +171,26 @@ fun MailRow(
         HairlineRule(color = colors.foreground)
         Spacer(modifier = Modifier.height(SwissSpace.Xs))
         // 首行：标记 | 时间 | 主题
+        val stampText = mailStampText(data.dateTs, zoneId, nowTs)
         GridRow {
             Box(modifier = Modifier.cols(1, 1)) {
                 RowMark(isUnread = data.isUnread, selected = selected)
             }
             SText(
-                text = mailStampText(data.dateTs, zoneId, nowTs),
+                text = stampText,
                 style = SwissType.caption(),
-                // 时间用 caption、主题用 body，按首行基线对齐要给时间补一点顶部内边距
+                // 时间用 caption、主题用 body，按首行基线对齐要给时间补一点顶部内边距；
+                // 两边都传真实文字，中文回退字体下的基线差才量得对
                 modifier = Modifier
                     .cols(2, 3)
-                    .padding(top = baselineOffset(SwissType.caption(), subjectStyle)),
+                    .padding(
+                        top = baselineTopPadding(
+                            fromStyle = SwissType.caption(),
+                            fromText = stampText,
+                            toStyle = subjectStyle,
+                            toText = data.subject,
+                        ),
+                    ),
                 color = colors.foreground,
                 maxLines = 1,
             )
@@ -321,27 +330,4 @@ private fun RowMark(isUnread: Boolean, selected: Boolean?) {
             }
         }
     }
-}
-
-/**
- * 两种样式的首行基线之差：把后一种样式的首行基线减去前一种的首行基线，
- * 补成前者的顶部内边距后，两者的首行基线就落在同一条线上。
- */
-@Composable
-private fun baselineOffset(from: TextStyle, to: TextStyle) = with(LocalDensity.current) {
-    val measurer = rememberTextMeasurer()
-    val captions = remember(measurer, from, to) {
-        val fromBaseline = measurer.measure(
-            text = AnnotatedString("00:00"),
-            style = from,
-            maxLines = 1,
-        ).firstBaseline
-        val toBaseline = measurer.measure(
-            text = AnnotatedString("主题"),
-            style = to,
-            maxLines = 1,
-        ).firstBaseline
-        (toBaseline - fromBaseline).coerceAtLeast(0f).toDp()
-    }
-    captions
 }
