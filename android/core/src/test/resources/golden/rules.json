@@ -1,0 +1,2583 @@
+{
+ "cases": [
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "noreply@tencent.example",
+    "signals": null,
+    "subject": "【腾讯云】验证码 384756，5分钟内有效"
+   },
+   "expected": {
+    "category": "验证码",
+    "confidence": 0.95,
+    "hits": [
+     "otp"
+    ],
+    "otp": "384756"
+   },
+   "fn": "classify_detailed",
+   "id": "corpus-otp-cn-subject"
+  },
+  {
+   "args": {
+    "body": "",
+    "subject": "【腾讯云】验证码 384756，5分钟内有效"
+   },
+   "expected": "384756",
+   "fn": "extract_otp",
+   "id": "corpus-otp-otp-cn-subject"
+  },
+  {
+   "args": {
+    "body": "Your code is 921034. It expires in 10 minutes.",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "no-reply@github.example",
+    "signals": null,
+    "subject": "Your verification code"
+   },
+   "expected": {
+    "category": "验证码",
+    "confidence": 0.95,
+    "hits": [
+     "otp"
+    ],
+    "otp": "921034"
+   },
+   "fn": "classify_detailed",
+   "id": "corpus-otp-en-body"
+  },
+  {
+   "args": {
+    "body": "Your code is 921034. It expires in 10 minutes.",
+    "subject": "Your verification code"
+   },
+   "expected": "921034",
+   "fn": "extract_otp",
+   "id": "corpus-otp-otp-en-body"
+  },
+  {
+   "args": {
+    "body": "您的验证码为：552910，请勿泄露。",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "service@pay.example",
+    "signals": null,
+    "subject": "登录验证"
+   },
+   "expected": {
+    "category": "验证码",
+    "confidence": 0.95,
+    "hits": [
+     "otp"
+    ],
+    "otp": "552910"
+   },
+   "fn": "classify_detailed",
+   "id": "corpus-otp-cn-body"
+  },
+  {
+   "args": {
+    "body": "您的验证码为：552910，请勿泄露。",
+    "subject": "登录验证"
+   },
+   "expected": "552910",
+   "fn": "extract_otp",
+   "id": "corpus-otp-otp-cn-body"
+  },
+  {
+   "args": {
+    "body": "Use this one-time code to sign in: 739204",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "account@example.com",
+    "signals": null,
+    "subject": "Sign in to Example"
+   },
+   "expected": {
+    "category": "验证码",
+    "confidence": 0.95,
+    "hits": [
+     "otp"
+    ],
+    "otp": "739204"
+   },
+   "fn": "classify_detailed",
+   "id": "corpus-otp-one-time"
+  },
+  {
+   "args": {
+    "body": "Use this one-time code to sign in: 739204",
+    "subject": "Sign in to Example"
+   },
+   "expected": "739204",
+   "fn": "extract_otp",
+   "id": "corpus-otp-otp-one-time"
+  },
+  {
+   "args": {
+    "body": "取件码 8823，请凭码到驿站取件",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "noreply@express.example",
+    "signals": null,
+    "subject": "快递已到驿站"
+   },
+   "expected": {
+    "category": "验证码",
+    "confidence": 0.95,
+    "hits": [
+     "otp"
+    ],
+    "otp": "8823"
+   },
+   "fn": "classify_detailed",
+   "id": "corpus-otp-pickup"
+  },
+  {
+   "args": {
+    "body": "取件码 8823，请凭码到驿站取件",
+    "subject": "快递已到驿站"
+   },
+   "expected": "8823",
+   "fn": "extract_otp",
+   "id": "corpus-otp-otp-pickup"
+  },
+  {
+   "args": {
+    "body": "Your Steam Guard code: F7K2Q",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "noreply@game.example",
+    "signals": null,
+    "subject": "Steam Guard code"
+   },
+   "expected": {
+    "category": "验证码",
+    "confidence": 0.95,
+    "hits": [
+     "otp"
+    ],
+    "otp": "F7K2Q"
+   },
+   "fn": "classify_detailed",
+   "id": "corpus-otp-alnum"
+  },
+  {
+   "args": {
+    "body": "Your Steam Guard code: F7K2Q",
+    "subject": "Steam Guard code"
+   },
+   "expected": "F7K2Q",
+   "fn": "extract_otp",
+   "id": "corpus-otp-otp-alnum"
+  },
+  {
+   "args": {
+    "body": "全年营收 2024 万元",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "report@corp.example",
+    "signals": null,
+    "subject": "年度报告 2024"
+   },
+   "expected": {
+    "category": "其他",
+    "confidence": 0.5,
+    "hits": [
+     "none"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "corpus-trap-year"
+  },
+  {
+   "args": {
+    "body": "全年营收 2024 万元",
+    "subject": "年度报告 2024"
+   },
+   "expected": "",
+   "fn": "extract_otp",
+   "id": "corpus-otp-trap-year"
+  },
+  {
+   "args": {
+    "body": "Use code: SAVE20 for 20% off everything",
+    "custom_rules": [],
+    "has_unsubscribe": true,
+    "sender_addr": "promo@store.example",
+    "signals": null,
+    "subject": "Weekend sale is here"
+   },
+   "expected": {
+    "category": "订阅",
+    "confidence": 0.8,
+    "hits": [
+     "bulk_header"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "corpus-trap-promo-code"
+  },
+  {
+   "args": {
+    "body": "Use code: SAVE20 for 20% off everything",
+    "subject": "Weekend sale is here"
+   },
+   "expected": "",
+   "fn": "extract_otp",
+   "id": "corpus-otp-trap-promo-code"
+  },
+  {
+   "args": {
+    "body": "Order 4829173 confirmed. Please verify your email address.",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "orders@shop.example",
+    "signals": null,
+    "subject": "Order confirmed"
+   },
+   "expected": {
+    "category": "账单",
+    "confidence": 0.9,
+    "hits": [
+     "bill"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "corpus-trap-order-verify"
+  },
+  {
+   "args": {
+    "body": "Order 4829173 confirmed. Please verify your email address.",
+    "subject": "Order confirmed"
+   },
+   "expected": "",
+   "fn": "extract_otp",
+   "id": "corpus-otp-trap-order-verify"
+  },
+  {
+   "args": {
+    "body": "一次性付清立享优惠，验证码登录即可参与",
+    "custom_rules": [],
+    "has_unsubscribe": true,
+    "sender_addr": "market@shop.example",
+    "signals": null,
+    "subject": "限时秒杀，仅需 ¥4999"
+   },
+   "expected": {
+    "category": "订阅",
+    "confidence": 0.8,
+    "hits": [
+     "bulk_header"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "corpus-trap-price"
+  },
+  {
+   "args": {
+    "body": "一次性付清立享优惠，验证码登录即可参与",
+    "subject": "限时秒杀，仅需 ¥4999"
+   },
+   "expected": "",
+   "fn": "extract_otp",
+   "id": "corpus-otp-trap-price"
+  },
+  {
+   "args": {
+    "body": "尾号 6688 的信用卡本期应还 3200 元，验证码相关业务请勿泄露",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "bank@bank.example",
+    "signals": null,
+    "subject": "信用卡还款提醒"
+   },
+   "expected": {
+    "category": "账单",
+    "confidence": 0.9,
+    "hits": [
+     "bill"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "corpus-trap-card-tail"
+  },
+  {
+   "args": {
+    "body": "尾号 6688 的信用卡本期应还 3200 元，验证码相关业务请勿泄露",
+    "subject": "信用卡还款提醒"
+   },
+   "expected": "",
+   "fn": "extract_otp",
+   "id": "corpus-otp-trap-card-tail"
+  },
+  {
+   "args": {
+    "body": "请于周三下午两点参加面试",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "hr@company.example",
+    "signals": null,
+    "subject": "面试邀请：后端工程师"
+   },
+   "expected": {
+    "category": "重要",
+    "confidence": 0.9,
+    "hits": [
+     "important_strong"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "corpus-important-interview"
+  },
+  {
+   "args": {
+    "body": "请于周三下午两点参加面试",
+    "subject": "面试邀请：后端工程师"
+   },
+   "expected": "",
+   "fn": "extract_otp",
+   "id": "corpus-otp-important-interview"
+  },
+  {
+   "args": {
+    "body": "Please confirm you can attend.",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "ceo@corp.example",
+    "signals": null,
+    "subject": "Urgent: board meeting moved to 3pm"
+   },
+   "expected": {
+    "category": "重要",
+    "confidence": 0.6,
+    "hits": [
+     "important_weak"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "corpus-important-urgent-person"
+  },
+  {
+   "args": {
+    "body": "Please confirm you can attend.",
+    "subject": "Urgent: board meeting moved to 3pm"
+   },
+   "expected": "",
+   "fn": "extract_otp",
+   "id": "corpus-otp-important-urgent-person"
+  },
+  {
+   "args": {
+    "body": "请在附件中签署合同",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "hr@corp.example",
+    "signals": null,
+    "subject": "劳动合同续签确认"
+   },
+   "expected": {
+    "category": "重要",
+    "confidence": 0.9,
+    "hits": [
+     "important_strong"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "corpus-important-contract"
+  },
+  {
+   "args": {
+    "body": "请在附件中签署合同",
+    "subject": "劳动合同续签确认"
+   },
+   "expected": "",
+   "fn": "extract_otp",
+   "id": "corpus-otp-important-contract"
+  },
+  {
+   "args": {
+    "body": "Shop now and save",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "deals@shop.example",
+    "signals": null,
+    "subject": "Special offer just for you - 50% off"
+   },
+   "expected": {
+    "category": "订阅",
+    "confidence": 0.6,
+    "hits": [
+     "promo_keyword"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "corpus-trap-offer-promo"
+  },
+  {
+   "args": {
+    "body": "Shop now and save",
+    "subject": "Special offer just for you - 50% off"
+   },
+   "expected": "",
+   "fn": "extract_otp",
+   "id": "corpus-otp-trap-offer-promo"
+  },
+  {
+   "args": {
+    "body": "Register now",
+    "custom_rules": [],
+    "has_unsubscribe": true,
+    "sender_addr": "events@conf.example",
+    "signals": null,
+    "subject": "Deadline extended: early bird tickets"
+   },
+   "expected": {
+    "category": "订阅",
+    "confidence": 0.8,
+    "hits": [
+     "bulk_header"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "corpus-trap-deadline-bulk"
+  },
+  {
+   "args": {
+    "body": "Register now",
+    "subject": "Deadline extended: early bird tickets"
+   },
+   "expected": "",
+   "fn": "extract_otp",
+   "id": "corpus-otp-trap-deadline-bulk"
+  },
+  {
+   "args": {
+    "body": "大促最后一天",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "promo@mall.example",
+    "signals": null,
+    "subject": "限时特惠 offer 截止今晚"
+   },
+   "expected": {
+    "category": "订阅",
+    "confidence": 0.6,
+    "hits": [
+     "promo_keyword"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "corpus-trap-offer-cn"
+  },
+  {
+   "args": {
+    "body": "大促最后一天",
+    "subject": "限时特惠 offer 截止今晚"
+   },
+   "expected": "",
+   "fn": "extract_otp",
+   "id": "corpus-otp-trap-offer-cn"
+  },
+  {
+   "args": {
+    "body": "Join before Friday",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "club@brand.example",
+    "signals": {
+     "esp": true
+    },
+    "subject": "Exclusive deadline for members"
+   },
+   "expected": {
+    "category": "其他",
+    "confidence": 0.5,
+    "hits": [
+     "none"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "corpus-trap-deadline-esp"
+  },
+  {
+   "args": {
+    "body": "Join before Friday",
+    "subject": "Exclusive deadline for members"
+   },
+   "expected": "",
+   "fn": "extract_otp",
+   "id": "corpus-otp-trap-deadline-esp"
+  },
+  {
+   "args": {
+    "body": "检测到您的账号在新设备登录",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "security@mail.example",
+    "signals": null,
+    "subject": "异常登录提醒"
+   },
+   "expected": {
+    "category": "安全",
+    "confidence": 0.9,
+    "hits": [
+     "security_subject"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "corpus-security-cn"
+  },
+  {
+   "args": {
+    "body": "检测到您的账号在新设备登录",
+    "subject": "异常登录提醒"
+   },
+   "expected": "",
+   "fn": "extract_otp",
+   "id": "corpus-otp-security-cn"
+  },
+  {
+   "args": {
+    "body": "We noticed a new sign-in from Chrome on Windows.",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "no-reply@accounts.example",
+    "signals": null,
+    "subject": "New sign-in to your account"
+   },
+   "expected": {
+    "category": "安全",
+    "confidence": 0.9,
+    "hits": [
+     "security_subject"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "corpus-security-en"
+  },
+  {
+   "args": {
+    "body": "We noticed a new sign-in from Chrome on Windows.",
+    "subject": "New sign-in to your account"
+   },
+   "expected": "",
+   "fn": "extract_otp",
+   "id": "corpus-otp-security-en"
+  },
+  {
+   "args": {
+    "body": "我们检测到新设备登录",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "noreply@game.example",
+    "signals": null,
+    "subject": "你的游戏账户：通过新设备访问"
+   },
+   "expected": {
+    "category": "安全",
+    "confidence": 0.9,
+    "hits": [
+     "security_subject"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "corpus-security-new-device"
+  },
+  {
+   "args": {
+    "body": "我们检测到新设备登录",
+    "subject": "你的游戏账户：通过新设备访问"
+   },
+   "expected": "",
+   "fn": "extract_otp",
+   "id": "corpus-otp-security-new-device"
+  },
+  {
+   "args": {
+    "body": "Tips: enable 2FA on crates.io and reset your password regularly.",
+    "custom_rules": [],
+    "has_unsubscribe": true,
+    "sender_addr": "newsletter@rust.example",
+    "signals": null,
+    "subject": "This week in Rust"
+   },
+   "expected": {
+    "category": "订阅",
+    "confidence": 0.8,
+    "hits": [
+     "bulk_header"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "corpus-trap-newsletter-2fa"
+  },
+  {
+   "args": {
+    "body": "Tips: enable 2FA on crates.io and reset your password regularly.",
+    "subject": "This week in Rust"
+   },
+   "expected": "",
+   "fn": "extract_otp",
+   "id": "corpus-otp-trap-newsletter-2fa"
+  },
+  {
+   "args": {
+    "body": "本期话题：如何修改密码更安全",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "weekly@dev.example",
+    "signals": {
+     "list_id": true
+    },
+    "subject": "开发者周刊 第 42 期"
+   },
+   "expected": {
+    "category": "订阅",
+    "confidence": 0.8,
+    "hits": [
+     "bulk_header"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "corpus-trap-list-password"
+  },
+  {
+   "args": {
+    "body": "本期话题：如何修改密码更安全",
+    "subject": "开发者周刊 第 42 期"
+   },
+   "expected": "",
+   "fn": "extract_otp",
+   "id": "corpus-otp-trap-list-password"
+  },
+  {
+   "args": {
+    "body": "您 7 月账单金额为 12.50 USD",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "billing@cloud.example",
+    "signals": null,
+    "subject": "AWS 账单已出"
+   },
+   "expected": {
+    "category": "账单",
+    "confidence": 0.9,
+    "hits": [
+     "bill"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "corpus-bill-cn"
+  },
+  {
+   "args": {
+    "body": "您 7 月账单金额为 12.50 USD",
+    "subject": "AWS 账单已出"
+   },
+   "expected": "",
+   "fn": "extract_otp",
+   "id": "corpus-otp-bill-cn"
+  },
+  {
+   "args": {
+    "body": "Amount paid: $12.00",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "receipts@cloud.example",
+    "signals": null,
+    "subject": "Your receipt from Example Cloud"
+   },
+   "expected": {
+    "category": "账单",
+    "confidence": 0.9,
+    "hits": [
+     "bill"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "corpus-bill-receipt"
+  },
+  {
+   "args": {
+    "body": "Amount paid: $12.00",
+    "subject": "Your receipt from Example Cloud"
+   },
+   "expected": "",
+   "fn": "extract_otp",
+   "id": "corpus-otp-bill-receipt"
+  },
+  {
+   "args": {
+    "body": "您已成功支付 128.00 元",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "service@pay.example",
+    "signals": null,
+    "subject": "支付成功通知"
+   },
+   "expected": {
+    "category": "账单",
+    "confidence": 0.9,
+    "hits": [
+     "bill"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "corpus-bill-paid"
+  },
+  {
+   "args": {
+    "body": "您已成功支付 128.00 元",
+    "subject": "支付成功通知"
+   },
+   "expected": "",
+   "fn": "extract_otp",
+   "id": "corpus-otp-bill-paid"
+  },
+  {
+   "args": {
+    "body": "Track your package with tracking number 1Z999AA10123456784",
+    "custom_rules": [],
+    "has_unsubscribe": true,
+    "sender_addr": "ship@shop.example",
+    "signals": null,
+    "subject": "Your order #12345678 has shipped"
+   },
+   "expected": {
+    "category": "通知",
+    "confidence": 0.8,
+    "hits": [
+     "shipping"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "corpus-shipping-en"
+  },
+  {
+   "args": {
+    "body": "Track your package with tracking number 1Z999AA10123456784",
+    "subject": "Your order #12345678 has shipped"
+   },
+   "expected": "",
+   "fn": "extract_otp",
+   "id": "corpus-otp-shipping-en"
+  },
+  {
+   "args": {
+    "body": "快递单号 SF1234567890，预计明天送达",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "noreply@shop.example",
+    "signals": null,
+    "subject": "您的订单已发货"
+   },
+   "expected": {
+    "category": "通知",
+    "confidence": 0.8,
+    "hits": [
+     "shipping"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "corpus-shipping-cn"
+  },
+  {
+   "args": {
+    "body": "快递单号 SF1234567890，预计明天送达",
+    "subject": "您的订单已发货"
+   },
+   "expected": "",
+   "fn": "extract_otp",
+   "id": "corpus-otp-shipping-cn"
+  },
+  {
+   "args": {
+    "body": "reply",
+    "custom_rules": [],
+    "has_unsubscribe": true,
+    "sender_addr": "notifications@github.com",
+    "signals": {
+     "list_id": true
+    },
+    "subject": "[GitHub] A new comment on PR #123"
+   },
+   "expected": {
+    "category": "通知",
+    "confidence": 0.8,
+    "hits": [
+     "bulk_platform"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "corpus-notify-github"
+  },
+  {
+   "args": {
+    "body": "reply",
+    "subject": "[GitHub] A new comment on PR #123"
+   },
+   "expected": "",
+   "fn": "extract_otp",
+   "id": "corpus-otp-notify-github"
+  },
+  {
+   "args": {
+    "body": "assigned",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "jira@corp.atlassian.net",
+    "signals": null,
+    "subject": "[Jira] Ticket ABC-123 assigned to you"
+   },
+   "expected": {
+    "category": "通知",
+    "confidence": 0.7,
+    "hits": [
+     "notify_sender"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "corpus-notify-jira"
+  },
+  {
+   "args": {
+    "body": "assigned",
+    "subject": "[Jira] Ticket ABC-123 assigned to you"
+   },
+   "expected": "",
+   "fn": "extract_otp",
+   "id": "corpus-otp-notify-jira"
+  },
+  {
+   "args": {
+    "body": "我们将于周六凌晨进行系统维护",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "noreply@service.example",
+    "signals": null,
+    "subject": "系统维护公告"
+   },
+   "expected": {
+    "category": "通知",
+    "confidence": 0.7,
+    "hits": [
+     "notify_sender"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "corpus-notify-maintenance"
+  },
+  {
+   "args": {
+    "body": "我们将于周六凌晨进行系统维护",
+    "subject": "系统维护公告"
+   },
+   "expected": "",
+   "fn": "extract_otp",
+   "id": "corpus-otp-notify-maintenance"
+  },
+  {
+   "args": {
+    "body": "Your build #456 failed",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "builds@ci.example",
+    "signals": {
+     "auto_submitted": true
+    },
+    "subject": "Build failed: main"
+   },
+   "expected": {
+    "category": "通知",
+    "confidence": 0.8,
+    "hits": [
+     "notify_sender"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "corpus-notify-auto-submitted"
+  },
+  {
+   "args": {
+    "body": "Your build #456 failed",
+    "subject": "Build failed: main"
+   },
+   "expected": "",
+   "fn": "extract_otp",
+   "id": "corpus-otp-notify-auto-submitted"
+  },
+  {
+   "args": {
+    "body": "内容",
+    "custom_rules": [],
+    "has_unsubscribe": true,
+    "sender_addr": "news@example.com",
+    "signals": null,
+    "subject": "本周科技周刊"
+   },
+   "expected": {
+    "category": "订阅",
+    "confidence": 0.8,
+    "hits": [
+     "bulk_header"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "corpus-sub-weekly"
+  },
+  {
+   "args": {
+    "body": "内容",
+    "subject": "本周科技周刊"
+   },
+   "expected": "",
+   "fn": "extract_otp",
+   "id": "corpus-otp-sub-weekly"
+  },
+  {
+   "args": {
+    "body": "Top stories for you",
+    "custom_rules": [],
+    "has_unsubscribe": true,
+    "sender_addr": "noreply@medium.example",
+    "signals": null,
+    "subject": "Weekly digest from Medium"
+   },
+   "expected": {
+    "category": "订阅",
+    "confidence": 0.8,
+    "hits": [
+     "bulk_header"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "corpus-sub-digest"
+  },
+  {
+   "args": {
+    "body": "Top stories for you",
+    "subject": "Weekly digest from Medium"
+   },
+   "expected": "",
+   "fn": "extract_otp",
+   "id": "corpus-otp-sub-digest"
+  },
+  {
+   "args": {
+    "body": "领券满减",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "promo@shop.example",
+    "signals": null,
+    "subject": "双11 大促预告"
+   },
+   "expected": {
+    "category": "订阅",
+    "confidence": 0.6,
+    "hits": [
+     "promo_keyword"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "corpus-sub-promo-cn"
+  },
+  {
+   "args": {
+    "body": "领券满减",
+    "subject": "双11 大促预告"
+   },
+   "expected": "",
+   "fn": "extract_otp",
+   "id": "corpus-otp-sub-promo-cn"
+  },
+  {
+   "args": {
+    "body": "Monthly update from the club",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "list@club.example",
+    "signals": {
+     "precedence_bulk": true
+    },
+    "subject": "Team update"
+   },
+   "expected": {
+    "category": "订阅",
+    "confidence": 0.8,
+    "hits": [
+     "bulk_header"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "corpus-sub-precedence"
+  },
+  {
+   "args": {
+    "body": "Monthly update from the club",
+    "subject": "Team update"
+   },
+   "expected": "",
+   "fn": "extract_otp",
+   "id": "corpus-otp-sub-precedence"
+  },
+  {
+   "args": {
+    "body": "附件为本周会议纪要，请查收",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "colleague@corp.example",
+    "signals": null,
+    "subject": "会议纪要"
+   },
+   "expected": {
+    "category": "其他",
+    "confidence": 0.5,
+    "hits": [
+     "none"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "corpus-other-minutes"
+  },
+  {
+   "args": {
+    "body": "附件为本周会议纪要，请查收",
+    "subject": "会议纪要"
+   },
+   "expected": "",
+   "fn": "extract_otp",
+   "id": "corpus-otp-other-minutes"
+  },
+  {
+   "args": {
+    "body": "好久不见，周六有空吗",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "friend@mail.example",
+    "signals": null,
+    "subject": "周末一起吃饭吗"
+   },
+   "expected": {
+    "category": "其他",
+    "confidence": 0.5,
+    "hits": [
+     "none"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "corpus-other-friend"
+  },
+  {
+   "args": {
+    "body": "好久不见，周六有空吗",
+    "subject": "周末一起吃饭吗"
+   },
+   "expected": "",
+   "fn": "extract_otp",
+   "id": "corpus-otp-other-friend"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "a@b.com",
+    "signals": null,
+    "subject": "验证码 384756"
+   },
+   "expected": {
+    "category": "验证码",
+    "confidence": 0.95,
+    "hits": [
+     "otp"
+    ],
+    "otp": "384756"
+   },
+   "fn": "classify_detailed",
+   "id": "conf-otp"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "boss@corp.example",
+    "signals": null,
+    "subject": "Urgent: call me"
+   },
+   "expected": {
+    "category": "重要",
+    "confidence": 0.6,
+    "hits": [
+     "important_weak"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "conf-weak"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "friend@mail.example",
+    "signals": null,
+    "subject": "你好"
+   },
+   "expected": {
+    "category": "其他",
+    "confidence": 0.5,
+    "hits": [
+     "none"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "conf-default"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [
+     {
+      "category": "通知",
+      "field": "sender",
+      "pattern": "a@b"
+     }
+    ],
+    "has_unsubscribe": false,
+    "sender_addr": "a@b.com",
+    "signals": null,
+    "subject": "x"
+   },
+   "expected": {
+    "category": "通知",
+    "confidence": 0.95,
+    "hits": [
+     "custom"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "conf-custom"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "noreply@shop.example",
+    "signals": null,
+    "subject": "【腾讯云】验证码 384756，5分钟内有效"
+   },
+   "expected": [
+    "验证码",
+    "384756"
+   ],
+   "fn": "classify",
+   "id": "classify-otp"
+  },
+  {
+   "args": {
+    "body": "您 7 月账单金额为 12.50 USD",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "noreply@shop.example",
+    "signals": null,
+    "subject": "AWS 账单已出"
+   },
+   "expected": [
+    "账单",
+    ""
+   ],
+   "fn": "classify",
+   "id": "classify-bill"
+  },
+  {
+   "args": {
+    "body": "附件为本周会议纪要，请查收",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "noreply@shop.example",
+    "signals": null,
+    "subject": "会议纪要"
+   },
+   "expected": [
+    "通知",
+    ""
+   ],
+   "fn": "classify",
+   "id": "classify-other"
+  },
+  {
+   "args": {
+    "body": "快递单号 SF1234567890，预计明天送达",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "noreply@shop.example",
+    "signals": null,
+    "subject": "您的订单已发货"
+   },
+   "expected": [
+    "通知",
+    ""
+   ],
+   "fn": "classify",
+   "id": "classify-shipping"
+  },
+  {
+   "args": {
+    "category": "验证码"
+   },
+   "expected": false,
+   "fn": "allows_cloud_ai",
+   "id": "cloud-验证码"
+  },
+  {
+   "args": {
+    "category": "重要"
+   },
+   "expected": true,
+   "fn": "allows_cloud_ai",
+   "id": "cloud-重要"
+  },
+  {
+   "args": {
+    "category": "账单"
+   },
+   "expected": false,
+   "fn": "allows_cloud_ai",
+   "id": "cloud-账单"
+  },
+  {
+   "args": {
+    "category": "安全"
+   },
+   "expected": false,
+   "fn": "allows_cloud_ai",
+   "id": "cloud-安全"
+  },
+  {
+   "args": {
+    "category": "可疑"
+   },
+   "expected": false,
+   "fn": "allows_cloud_ai",
+   "id": "cloud-可疑"
+  },
+  {
+   "args": {
+    "category": "订阅"
+   },
+   "expected": true,
+   "fn": "allows_cloud_ai",
+   "id": "cloud-订阅"
+  },
+  {
+   "args": {
+    "category": "通知"
+   },
+   "expected": true,
+   "fn": "allows_cloud_ai",
+   "id": "cloud-通知"
+  },
+  {
+   "args": {
+    "category": "其他"
+   },
+   "expected": true,
+   "fn": "allows_cloud_ai",
+   "id": "cloud-其他"
+  },
+  {
+   "args": {
+    "category": "未知分类"
+   },
+   "expected": true,
+   "fn": "allows_cloud_ai",
+   "id": "cloud-unknown"
+  },
+  {
+   "args": {
+    "body": "",
+    "subject": "🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥 验证码 384756"
+   },
+   "expected": "384756",
+   "fn": "extract_otp",
+   "id": "emoji-before-keyword"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "noreply@tencent.example",
+    "signals": null,
+    "subject": "🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥 验证码 384756"
+   },
+   "expected": {
+    "category": "验证码",
+    "confidence": 0.95,
+    "hits": [
+     "otp"
+    ],
+    "otp": "384756"
+   },
+   "fn": "classify_detailed",
+   "id": "emoji-before-keyword-classify"
+  },
+  {
+   "args": {
+    "body": "",
+    "subject": "🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥优惠🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥验证码 384756"
+   },
+   "expected": "",
+   "fn": "extract_otp",
+   "id": "emoji-window-promo"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "promo@shop.example",
+    "signals": null,
+    "subject": "🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥优惠🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥验证码 384756"
+   },
+   "expected": {
+    "category": "订阅",
+    "confidence": 0.6,
+    "hits": [
+     "promo_keyword"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "emoji-window-promo-classify"
+  },
+  {
+   "args": {
+    "body": "",
+    "subject": "验证码🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥 384756"
+   },
+   "expected": "384756",
+   "fn": "extract_otp",
+   "id": "emoji-far-code"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "noreply@tencent.example",
+    "signals": null,
+    "subject": "验证码🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥 384756"
+   },
+   "expected": {
+    "category": "验证码",
+    "confidence": 0.95,
+    "hits": [
+     "otp"
+    ],
+    "otp": "384756"
+   },
+   "fn": "classify_detailed",
+   "id": "emoji-far-code-classify"
+  },
+  {
+   "args": {
+    "body": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀验证码 384756",
+    "subject": ""
+   },
+   "expected": "384756",
+   "fn": "extract_otp",
+   "id": "emoji-trunc2000-keeps-code"
+  },
+  {
+   "args": {
+    "body": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀验证码 384756",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "noreply@service.example",
+    "signals": null,
+    "subject": "系统维护公告"
+   },
+   "expected": {
+    "category": "验证码",
+    "confidence": 0.95,
+    "hits": [
+     "otp"
+    ],
+    "otp": "384756"
+   },
+   "fn": "classify_detailed",
+   "id": "emoji-trunc2000-keeps-code-classify"
+  },
+  {
+   "args": {
+    "body": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀验证码 384756",
+    "subject": ""
+   },
+   "expected": "",
+   "fn": "extract_otp",
+   "id": "emoji-trunc2000-cuts-code"
+  },
+  {
+   "args": {
+    "body": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀验证码 384756",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "noreply@service.example",
+    "signals": null,
+    "subject": "系统维护公告"
+   },
+   "expected": {
+    "category": "通知",
+    "confidence": 0.7,
+    "hits": [
+     "notify_sender"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "emoji-trunc2000-cuts-code-classify"
+  },
+  {
+   "args": {
+    "body": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx验证码 384756",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "noreply@service.example",
+    "signals": null,
+    "subject": "系统维护公告"
+   },
+   "expected": {
+    "category": "验证码",
+    "confidence": 0.95,
+    "hits": [
+     "otp"
+    ],
+    "otp": "384756"
+   },
+   "fn": "classify_detailed",
+   "id": "emoji-trunc3000-otp"
+  },
+  {
+   "args": {
+    "body": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx异常登录",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "colleague@corp.example",
+    "signals": null,
+    "subject": "Weekly note"
+   },
+   "expected": {
+    "category": "安全",
+    "confidence": 0.6,
+    "hits": [
+     "security_body"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "emoji-trunc3000-security-body"
+  },
+  {
+   "args": {
+    "body": "",
+    "subject": "验证码 ３８４７５６"
+   },
+   "expected": "３８４７５６",
+   "fn": "extract_otp",
+   "id": "fw-six-digits"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "noreply@tencent.example",
+    "signals": null,
+    "subject": "验证码 ３８４７５６"
+   },
+   "expected": {
+    "category": "验证码",
+    "confidence": 0.95,
+    "hits": [
+     "otp"
+    ],
+    "otp": "３８４７５６"
+   },
+   "fn": "classify_detailed",
+   "id": "fw-six-digits-classify"
+  },
+  {
+   "args": {
+    "body": "您的取件码 ９９２１，请凭码到驿站取件",
+    "subject": ""
+   },
+   "expected": "９９２１",
+   "fn": "extract_otp",
+   "id": "fw-four-digits"
+  },
+  {
+   "args": {
+    "body": "Your verification code: ５５２９１０",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "service@pay.example",
+    "signals": null,
+    "subject": ""
+   },
+   "expected": {
+    "category": "验证码",
+    "confidence": 0.95,
+    "hits": [
+     "otp"
+    ],
+    "otp": "５５２９１０"
+   },
+   "fn": "classify_detailed",
+   "id": "fw-mixed-digits"
+  },
+  {
+   "args": {
+    "body": "",
+    "subject": "VERIFICATION CODE 384756"
+   },
+   "expected": "384756",
+   "fn": "extract_otp",
+   "id": "case-upper-keyword"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "no-reply@github.example",
+    "signals": null,
+    "subject": "VERIFICATION CODE 384756"
+   },
+   "expected": {
+    "category": "验证码",
+    "confidence": 0.95,
+    "hits": [
+     "otp"
+    ],
+    "otp": "384756"
+   },
+   "fn": "classify_detailed",
+   "id": "case-upper-keyword-classify"
+  },
+  {
+   "args": {
+    "body": "",
+    "subject": "ſecurity code 552910"
+   },
+   "expected": "552910",
+   "fn": "extract_otp",
+   "id": "case-long-s-code"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "security@mail.example",
+    "signals": null,
+    "subject": "ſecurity alert"
+   },
+   "expected": {
+    "category": "安全",
+    "confidence": 0.9,
+    "hits": [
+     "security_subject"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "case-long-s-alert"
+  },
+  {
+   "args": {
+    "body": "Top stories for you",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "noreply@medium.example",
+    "signals": null,
+    "subject": "WeeKly digest"
+   },
+   "expected": {
+    "category": "订阅",
+    "confidence": 0.6,
+    "hits": [
+     "promo_keyword"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "case-kelvin-weekly"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [
+     {
+      "category": "账单",
+      "field": "subject",
+      "pattern": "发票"
+     }
+    ],
+    "has_unsubscribe": false,
+    "sender_addr": "someone@corp.example",
+    "signals": null,
+    "subject": "您的发票已开具"
+   },
+   "expected": {
+    "category": "账单",
+    "confidence": 0.95,
+    "hits": [
+     "custom"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "custom-field-subject"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [
+     {
+      "category": "重要",
+      "field": "sender",
+      "pattern": "hr@company"
+     }
+    ],
+    "has_unsubscribe": false,
+    "sender_addr": "hr@company.example",
+    "signals": null,
+    "subject": "随便一个标题"
+   },
+   "expected": {
+    "category": "重要",
+    "confidence": 0.95,
+    "hits": [
+     "custom"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "custom-field-sender"
+  },
+  {
+   "args": {
+    "body": "请签署合同",
+    "custom_rules": [
+     {
+      "category": "重要",
+      "field": "body",
+      "pattern": "合同"
+     }
+    ],
+    "has_unsubscribe": false,
+    "sender_addr": "someone@corp.example",
+    "signals": null,
+    "subject": "随便一个标题"
+   },
+   "expected": {
+    "category": "重要",
+    "confidence": 0.95,
+    "hits": [
+     "custom"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "custom-field-body"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [
+     {
+      "category": "订阅",
+      "field": "subject",
+      "pattern": "BIGOFFER"
+     }
+    ],
+    "has_unsubscribe": false,
+    "sender_addr": "someone@corp.example",
+    "signals": null,
+    "subject": "BigOffer daily digest"
+   },
+   "expected": {
+    "category": "订阅",
+    "confidence": 0.95,
+    "hits": [
+     "custom"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "custom-ignore-case"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [
+     {
+      "category": "订阅",
+      "field": "subject",
+      "pattern": "([a-"
+     }
+    ],
+    "has_unsubscribe": false,
+    "sender_addr": "security@mail.example",
+    "signals": null,
+    "subject": "异常登录提醒"
+   },
+   "expected": {
+    "category": "安全",
+    "confidence": 0.9,
+    "hits": [
+     "security_subject"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "custom-bad-regex"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [
+     {
+      "category": "安全",
+      "field": "subject",
+      "pattern": "([a-"
+     },
+     {
+      "category": "通知",
+      "field": "subject",
+      "pattern": "hello"
+     }
+    ],
+    "has_unsubscribe": false,
+    "sender_addr": "someone@corp.example",
+    "signals": null,
+    "subject": "hello"
+   },
+   "expected": {
+    "category": "通知",
+    "confidence": 0.95,
+    "hits": [
+     "custom"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "custom-bad-then-good"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [
+     {
+      "category": "账单",
+      "field": "subject",
+      "pattern": "订单(?P<num>\\d+)"
+     }
+    ],
+    "has_unsubscribe": false,
+    "sender_addr": "someone@corp.example",
+    "signals": null,
+    "subject": "订单12345"
+   },
+   "expected": {
+    "category": "账单",
+    "confidence": 0.95,
+    "hits": [
+     "custom"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "custom-named-group"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [
+     {
+      "category": "账单",
+      "field": "subject",
+      "pattern": "invoice total\\Z"
+     }
+    ],
+    "has_unsubscribe": false,
+    "sender_addr": "someone@corp.example",
+    "signals": null,
+    "subject": "invoice total"
+   },
+   "expected": {
+    "category": "账单",
+    "confidence": 0.95,
+    "hits": [
+     "custom"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "custom-z-anchor-hit"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [
+     {
+      "category": "账单",
+      "field": "subject",
+      "pattern": "invoice total\\Z"
+     }
+    ],
+    "has_unsubscribe": false,
+    "sender_addr": "someone@corp.example",
+    "signals": null,
+    "subject": "invoice total 12"
+   },
+   "expected": {
+    "category": "账单",
+    "confidence": 0.9,
+    "hits": [
+     "bill"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "custom-z-anchor-miss"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [
+     {
+      "category": "订阅",
+      "field": "subject",
+      "pattern": "优惠{,2}码"
+     }
+    ],
+    "has_unsubscribe": false,
+    "sender_addr": "someone@corp.example",
+    "signals": null,
+    "subject": "优惠码 ABC123"
+   },
+   "expected": {
+    "category": "订阅",
+    "confidence": 0.95,
+    "hits": [
+     "custom"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "custom-brace-quantifier"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [
+     {
+      "category": "验证码",
+      "field": "subject",
+      "pattern": "\\[ALERT\\]"
+     }
+    ],
+    "has_unsubscribe": false,
+    "sender_addr": "someone@corp.example",
+    "signals": null,
+    "subject": "[ALERT] 验证码 394857"
+   },
+   "expected": {
+    "category": "验证码",
+    "confidence": 0.95,
+    "hits": [
+     "custom"
+    ],
+    "otp": "394857"
+   },
+   "fn": "classify_detailed",
+   "id": "custom-otp-category"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [
+     {
+      "category": "验证码",
+      "field": "subject",
+      "pattern": "\\[ALERT\\]"
+     }
+    ],
+    "has_unsubscribe": false,
+    "sender_addr": "someone@corp.example",
+    "signals": null,
+    "subject": "[ALERT] 394857"
+   },
+   "expected": {
+    "category": "验证码",
+    "confidence": 0.95,
+    "hits": [
+     "custom"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "custom-otp-no-code"
+  },
+  {
+   "args": {
+    "has_unsubscribe": false,
+    "signals": {
+     "list_id": true
+    }
+   },
+   "expected": true,
+   "fn": "is_bulk",
+   "id": "isbulk-list_id-unsub0"
+  },
+  {
+   "args": {
+    "body": "Monthly update from the club",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "list@club.example",
+    "signals": {
+     "list_id": true
+    },
+    "subject": "Team update"
+   },
+   "expected": {
+    "category": "订阅",
+    "confidence": 0.8,
+    "hits": [
+     "bulk_header"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "bulk-list_id-unsub0"
+  },
+  {
+   "args": {
+    "has_unsubscribe": true,
+    "signals": {
+     "list_id": true
+    }
+   },
+   "expected": true,
+   "fn": "is_bulk",
+   "id": "isbulk-list_id-unsub1"
+  },
+  {
+   "args": {
+    "body": "Monthly update from the club",
+    "custom_rules": [],
+    "has_unsubscribe": true,
+    "sender_addr": "list@club.example",
+    "signals": {
+     "list_id": true
+    },
+    "subject": "Team update"
+   },
+   "expected": {
+    "category": "订阅",
+    "confidence": 0.8,
+    "hits": [
+     "bulk_header"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "bulk-list_id-unsub1"
+  },
+  {
+   "args": {
+    "has_unsubscribe": false,
+    "signals": {
+     "precedence_bulk": true
+    }
+   },
+   "expected": true,
+   "fn": "is_bulk",
+   "id": "isbulk-precedence_bulk-unsub0"
+  },
+  {
+   "args": {
+    "body": "Monthly update from the club",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "list@club.example",
+    "signals": {
+     "precedence_bulk": true
+    },
+    "subject": "Team update"
+   },
+   "expected": {
+    "category": "订阅",
+    "confidence": 0.8,
+    "hits": [
+     "bulk_header"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "bulk-precedence_bulk-unsub0"
+  },
+  {
+   "args": {
+    "has_unsubscribe": true,
+    "signals": {
+     "precedence_bulk": true
+    }
+   },
+   "expected": true,
+   "fn": "is_bulk",
+   "id": "isbulk-precedence_bulk-unsub1"
+  },
+  {
+   "args": {
+    "body": "Monthly update from the club",
+    "custom_rules": [],
+    "has_unsubscribe": true,
+    "sender_addr": "list@club.example",
+    "signals": {
+     "precedence_bulk": true
+    },
+    "subject": "Team update"
+   },
+   "expected": {
+    "category": "订阅",
+    "confidence": 0.8,
+    "hits": [
+     "bulk_header"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "bulk-precedence_bulk-unsub1"
+  },
+  {
+   "args": {
+    "has_unsubscribe": false,
+    "signals": {
+     "feedback_id": true
+    }
+   },
+   "expected": true,
+   "fn": "is_bulk",
+   "id": "isbulk-feedback_id-unsub0"
+  },
+  {
+   "args": {
+    "body": "Monthly update from the club",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "list@club.example",
+    "signals": {
+     "feedback_id": true
+    },
+    "subject": "Team update"
+   },
+   "expected": {
+    "category": "其他",
+    "confidence": 0.5,
+    "hits": [
+     "none"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "bulk-feedback_id-unsub0"
+  },
+  {
+   "args": {
+    "has_unsubscribe": true,
+    "signals": {
+     "feedback_id": true
+    }
+   },
+   "expected": true,
+   "fn": "is_bulk",
+   "id": "isbulk-feedback_id-unsub1"
+  },
+  {
+   "args": {
+    "body": "Monthly update from the club",
+    "custom_rules": [],
+    "has_unsubscribe": true,
+    "sender_addr": "list@club.example",
+    "signals": {
+     "feedback_id": true
+    },
+    "subject": "Team update"
+   },
+   "expected": {
+    "category": "订阅",
+    "confidence": 0.8,
+    "hits": [
+     "bulk_header"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "bulk-feedback_id-unsub1"
+  },
+  {
+   "args": {
+    "has_unsubscribe": false,
+    "signals": {
+     "esp": true
+    }
+   },
+   "expected": true,
+   "fn": "is_bulk",
+   "id": "isbulk-esp-unsub0"
+  },
+  {
+   "args": {
+    "body": "Monthly update from the club",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "list@club.example",
+    "signals": {
+     "esp": true
+    },
+    "subject": "Team update"
+   },
+   "expected": {
+    "category": "其他",
+    "confidence": 0.5,
+    "hits": [
+     "none"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "bulk-esp-unsub0"
+  },
+  {
+   "args": {
+    "has_unsubscribe": true,
+    "signals": {
+     "esp": true
+    }
+   },
+   "expected": true,
+   "fn": "is_bulk",
+   "id": "isbulk-esp-unsub1"
+  },
+  {
+   "args": {
+    "body": "Monthly update from the club",
+    "custom_rules": [],
+    "has_unsubscribe": true,
+    "sender_addr": "list@club.example",
+    "signals": {
+     "esp": true
+    },
+    "subject": "Team update"
+   },
+   "expected": {
+    "category": "订阅",
+    "confidence": 0.8,
+    "hits": [
+     "bulk_header"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "bulk-esp-unsub1"
+  },
+  {
+   "args": {
+    "has_unsubscribe": false,
+    "signals": {
+     "auto_submitted": true
+    }
+   },
+   "expected": false,
+   "fn": "is_bulk",
+   "id": "isbulk-auto_submitted-unsub0"
+  },
+  {
+   "args": {
+    "body": "Monthly update from the club",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "list@club.example",
+    "signals": {
+     "auto_submitted": true
+    },
+    "subject": "Team update"
+   },
+   "expected": {
+    "category": "通知",
+    "confidence": 0.8,
+    "hits": [
+     "notify_sender"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "bulk-auto_submitted-unsub0"
+  },
+  {
+   "args": {
+    "has_unsubscribe": true,
+    "signals": {
+     "auto_submitted": true
+    }
+   },
+   "expected": true,
+   "fn": "is_bulk",
+   "id": "isbulk-auto_submitted-unsub1"
+  },
+  {
+   "args": {
+    "body": "Monthly update from the club",
+    "custom_rules": [],
+    "has_unsubscribe": true,
+    "sender_addr": "list@club.example",
+    "signals": {
+     "auto_submitted": true
+    },
+    "subject": "Team update"
+   },
+   "expected": {
+    "category": "订阅",
+    "confidence": 0.8,
+    "hits": [
+     "bulk_header"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "bulk-auto_submitted-unsub1"
+  },
+  {
+   "args": {
+    "has_unsubscribe": false,
+    "signals": null
+   },
+   "expected": false,
+   "fn": "is_bulk",
+   "id": "isbulk-none"
+  },
+  {
+   "args": {
+    "has_unsubscribe": false,
+    "signals": {}
+   },
+   "expected": false,
+   "fn": "is_bulk",
+   "id": "isbulk-empty"
+  },
+  {
+   "args": {
+    "has_unsubscribe": false,
+    "signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    }
+   },
+   "expected": false,
+   "fn": "is_bulk",
+   "id": "isbulk-all-false"
+  },
+  {
+   "args": {
+    "has_unsubscribe": false,
+    "signals": {
+     "auto_submitted": true,
+     "esp": true,
+     "feedback_id": true,
+     "list_id": true,
+     "precedence_bulk": true
+    }
+   },
+   "expected": true,
+   "fn": "is_bulk",
+   "id": "isbulk-all-true"
+  },
+  {
+   "args": {
+    "has_unsubscribe": false,
+    "signals": {
+     "auto_submitted": false,
+     "esp": true,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    }
+   },
+   "expected": true,
+   "fn": "is_bulk",
+   "id": "isbulk-esp-only-false-others"
+  },
+  {
+   "args": {
+    "body": "Monthly update from the club",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "list@club.example",
+    "signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "subject": "Team update"
+   },
+   "expected": {
+    "category": "其他",
+    "confidence": 0.5,
+    "hits": [
+     "none"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "bulk-all-false-signals"
+  },
+  {
+   "args": {
+    "body": "reply",
+    "custom_rules": [],
+    "has_unsubscribe": true,
+    "sender_addr": "notifications@github.com",
+    "signals": {
+     "list_id": true
+    },
+    "subject": "[GitHub] A new comment on PR #123"
+   },
+   "expected": {
+    "category": "通知",
+    "confidence": 0.8,
+    "hits": [
+     "bulk_platform"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "bulk-platform-plain"
+  },
+  {
+   "args": {
+    "body": "reply",
+    "custom_rules": [],
+    "has_unsubscribe": true,
+    "sender_addr": "notifications@github.com",
+    "signals": {
+     "list_id": true
+    },
+    "subject": "[GitHub] Weekly digest with 20% off"
+   },
+   "expected": {
+    "category": "订阅",
+    "confidence": 0.8,
+    "hits": [
+     "bulk_header"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "bulk-platform-with-promo"
+  },
+  {
+   "args": {
+    "body": "Your build #456 failed",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "builds@ci.example",
+    "signals": {
+     "auto_submitted": true
+    },
+    "subject": "Build failed: main"
+   },
+   "expected": {
+    "category": "通知",
+    "confidence": 0.8,
+    "hits": [
+     "notify_sender"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "bulk-auto-submitted-only"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "orders@shop.example",
+    "signals": null,
+    "subject": "订单\r确认"
+   },
+   "expected": {
+    "category": "账单",
+    "confidence": 0.9,
+    "hits": [
+     "bill"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "nl-bill-cr"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "orders@shop.example",
+    "signals": null,
+    "subject": "订单\r\n确认"
+   },
+   "expected": {
+    "category": "其他",
+    "confidence": 0.5,
+    "hits": [
+     "none"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "nl-bill-crlf"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "orders@shop.example",
+    "signals": null,
+    "subject": "订单 确认"
+   },
+   "expected": {
+    "category": "账单",
+    "confidence": 0.9,
+    "hits": [
+     "bill"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "nl-bill-u2028"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "orders@shop.example",
+    "signals": null,
+    "subject": "订单\n确认"
+   },
+   "expected": {
+    "category": "其他",
+    "confidence": 0.5,
+    "hits": [
+     "none"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "nl-bill-lf-no-match"
+  },
+  {
+   "args": {
+    "body": "您的账号异常\r\n请立即修改密码",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "colleague@corp.example",
+    "signals": null,
+    "subject": "Weekly note"
+   },
+   "expected": {
+    "category": "安全",
+    "confidence": 0.6,
+    "hits": [
+     "security_body"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "nl-security-body-crlf"
+  },
+  {
+   "args": {
+    "body": "异常\n登录",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "colleague@corp.example",
+    "signals": null,
+    "subject": "Weekly note"
+   },
+   "expected": {
+    "category": "其他",
+    "confidence": 0.5,
+    "hits": [
+     "none"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "nl-security-body-lf-no-match"
+  }
+ ],
+ "generator": "scripts/golden/rules.py",
+ "module": "rules"
+}

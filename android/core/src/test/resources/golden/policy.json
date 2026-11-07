@@ -1,0 +1,10883 @@
+{
+ "cases": [
+  {
+   "args": {
+    "action": "purge",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「purge」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "sec-purge-unconfirmed"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "订阅"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "C",
+    "用户已确认"
+   ],
+   "fn": "evaluate",
+   "id": "sec-purge-confirmed"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "sec-protected-soft-delete-账单"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "安全"
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「安全」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "sec-protected-soft-delete-安全"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "重要"
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「重要」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "sec-protected-soft-delete-重要"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "邮件含附件，可能是发票或合同，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "sec-attachment-blocks-delete"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 5
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "AI 判定重要度 ≥4，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "sec-importance-blocks-delete"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "sec-confirm-does-not-skip-soft_delete-0"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "验证码",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "邮件含附件，可能是发票或合同，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "sec-confirm-does-not-skip-soft_delete-1"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "通知",
+     "importance": 5
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "AI 判定重要度 ≥4，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "sec-confirm-does-not-skip-soft_delete-2"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "sec-confirm-does-not-skip-purge-0"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "验证码",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "邮件含附件，可能是发票或合同，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "sec-confirm-does-not-skip-purge-1"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "通知",
+     "importance": 5
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "AI 判定重要度 ≥4，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "sec-confirm-does-not-skip-purge-2"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "B",
+    "用户已确认"
+   ],
+   "fn": "evaluate",
+   "id": "sec-single-override-soft_delete"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "C",
+    "用户已确认"
+   ],
+   "fn": "evaluate",
+   "id": "sec-single-override-purge"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": true,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "sec-override-needs-user-confirm-user"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": true,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "sec-override-needs-user-confirm-system"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "验证码",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "邮件含附件，可能是发票或合同，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "sec-auto-clean-soft_delete"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "验证码",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "C",
+    "邮件含附件，可能是发票或合同，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "sec-auto-clean-purge"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "验证码"
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    true,
+    "C",
+    "用户在设置中开启的长期规则"
+   ],
+   "fn": "evaluate",
+   "id": "sec-auto-clean-plain-otp-purge"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "验证码"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「purge」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "sec-system-confirm-without-rule"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "ai",
+    "confidence": 0.3,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "AI 置信度 0.30 低于阈值 0.75，转人工审核"
+   ],
+   "fn": "evaluate",
+   "id": "sec-ai-low-confidence-archive"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "ai",
+    "confidence": 0.95,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "B",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "sec-ai-high-confidence-archive"
+  },
+  {
+   "args": {
+    "action": "label",
+    "actor": "ai",
+    "confidence": 0.1,
+    "confirmed": false,
+    "msg": {
+     "category": "其他"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "sec-label-always-allowed"
+  },
+  {
+   "args": {
+    "action": "some_new_action",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「some_new_action」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "sec-unknown-action"
+  },
+  {
+   "args": {
+    "category": "账单"
+   },
+   "expected": [
+    false,
+    "分类「账单」不在可清理白名单内（仅允许 订阅、通知、验证码），请在收件箱中逐封确认删除"
+   ],
+   "fn": "filter_cleanable",
+   "id": "sec-cleanable-账单"
+  },
+  {
+   "args": {
+    "category": "安全"
+   },
+   "expected": [
+    false,
+    "分类「安全」不在可清理白名单内（仅允许 订阅、通知、验证码），请在收件箱中逐封确认删除"
+   ],
+   "fn": "filter_cleanable",
+   "id": "sec-cleanable-安全"
+  },
+  {
+   "args": {
+    "category": "重要"
+   },
+   "expected": [
+    false,
+    "分类「重要」不在可清理白名单内（仅允许 订阅、通知、验证码），请在收件箱中逐封确认删除"
+   ],
+   "fn": "filter_cleanable",
+   "id": "sec-cleanable-重要"
+  },
+  {
+   "args": {
+    "category": "可疑"
+   },
+   "expected": [
+    false,
+    "分类「可疑」不在可清理白名单内（仅允许 订阅、通知、验证码），请在收件箱中逐封确认删除"
+   ],
+   "fn": "filter_cleanable",
+   "id": "sec-cleanable-可疑"
+  },
+  {
+   "args": {
+    "category": "其他"
+   },
+   "expected": [
+    false,
+    "分类「其他」不在可清理白名单内（仅允许 订阅、通知、验证码），请在收件箱中逐封确认删除"
+   ],
+   "fn": "filter_cleanable",
+   "id": "sec-cleanable-其他"
+  },
+  {
+   "args": {
+    "category": "验证码"
+   },
+   "expected": [
+    true,
+    ""
+   ],
+   "fn": "filter_cleanable",
+   "id": "sec-cleanable-验证码"
+  },
+  {
+   "args": {
+    "category": "订阅"
+   },
+   "expected": [
+    true,
+    ""
+   ],
+   "fn": "filter_cleanable",
+   "id": "sec-cleanable-订阅"
+  },
+  {
+   "args": {
+    "category": "通知"
+   },
+   "expected": [
+    true,
+    ""
+   ],
+   "fn": "filter_cleanable",
+   "id": "sec-cleanable-通知"
+  },
+  {
+   "args": {
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    }
+   },
+   "expected": [
+    false,
+    ""
+   ],
+   "fn": "is_protected",
+   "id": "bill-minor"
+  },
+  {
+   "args": {
+    "msg": {
+     "bill_tier": "重要",
+     "category": "账单"
+    }
+   },
+   "expected": [
+    true,
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "is_protected",
+   "id": "bill-tier-important"
+  },
+  {
+   "args": {
+    "msg": {
+     "category": "账单"
+    }
+   },
+   "expected": [
+    true,
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "is_protected",
+   "id": "bill-no-tier"
+  },
+  {
+   "args": {
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单",
+     "has_attach": 1
+    }
+   },
+   "expected": [
+    true,
+    "邮件含附件，可能是发票或合同，禁止自动删除"
+   ],
+   "fn": "is_protected",
+   "id": "bill-minor-with-attachment"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-archive-user-0"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "B",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-archive-user-1"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "邮件含附件，可能是发票或合同，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-archive-user-2"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "AI 判定重要度 ≥4，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-archive-user-3"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-archive-rule-0"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "B",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-archive-rule-1"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "邮件含附件，可能是发票或合同，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-archive-rule-2"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "AI 判定重要度 ≥4，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-archive-rule-3"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-archive-ai-0"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "B",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-archive-ai-1"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "邮件含附件，可能是发票或合同，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-archive-ai-2"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "AI 判定重要度 ≥4，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-archive-ai-3"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-archive-system-0"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "B",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-archive-system-1"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "邮件含附件，可能是发票或合同，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-archive-system-2"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "AI 判定重要度 ≥4，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-archive-system-3"
+  },
+  {
+   "args": {
+    "action": "classify",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-classify-user-0"
+  },
+  {
+   "args": {
+    "action": "classify",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-classify-user-1"
+  },
+  {
+   "args": {
+    "action": "classify",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-classify-user-2"
+  },
+  {
+   "args": {
+    "action": "classify",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-classify-user-3"
+  },
+  {
+   "args": {
+    "action": "classify",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-classify-rule-0"
+  },
+  {
+   "args": {
+    "action": "classify",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-classify-rule-1"
+  },
+  {
+   "args": {
+    "action": "classify",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-classify-rule-2"
+  },
+  {
+   "args": {
+    "action": "classify",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-classify-rule-3"
+  },
+  {
+   "args": {
+    "action": "classify",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-classify-ai-0"
+  },
+  {
+   "args": {
+    "action": "classify",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-classify-ai-1"
+  },
+  {
+   "args": {
+    "action": "classify",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-classify-ai-2"
+  },
+  {
+   "args": {
+    "action": "classify",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-classify-ai-3"
+  },
+  {
+   "args": {
+    "action": "classify",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-classify-system-0"
+  },
+  {
+   "args": {
+    "action": "classify",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-classify-system-1"
+  },
+  {
+   "args": {
+    "action": "classify",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-classify-system-2"
+  },
+  {
+   "args": {
+    "action": "classify",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-classify-system-3"
+  },
+  {
+   "args": {
+    "action": "digest",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-digest-user-0"
+  },
+  {
+   "args": {
+    "action": "digest",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-digest-user-1"
+  },
+  {
+   "args": {
+    "action": "digest",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-digest-user-2"
+  },
+  {
+   "args": {
+    "action": "digest",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-digest-user-3"
+  },
+  {
+   "args": {
+    "action": "digest",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-digest-rule-0"
+  },
+  {
+   "args": {
+    "action": "digest",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-digest-rule-1"
+  },
+  {
+   "args": {
+    "action": "digest",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-digest-rule-2"
+  },
+  {
+   "args": {
+    "action": "digest",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-digest-rule-3"
+  },
+  {
+   "args": {
+    "action": "digest",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-digest-ai-0"
+  },
+  {
+   "args": {
+    "action": "digest",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-digest-ai-1"
+  },
+  {
+   "args": {
+    "action": "digest",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-digest-ai-2"
+  },
+  {
+   "args": {
+    "action": "digest",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-digest-ai-3"
+  },
+  {
+   "args": {
+    "action": "digest",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-digest-system-0"
+  },
+  {
+   "args": {
+    "action": "digest",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-digest-system-1"
+  },
+  {
+   "args": {
+    "action": "digest",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-digest-system-2"
+  },
+  {
+   "args": {
+    "action": "digest",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-digest-system-3"
+  },
+  {
+   "args": {
+    "action": "download_attachment",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「download_attachment」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-download_attachment-user-0"
+  },
+  {
+   "args": {
+    "action": "download_attachment",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「download_attachment」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-download_attachment-user-1"
+  },
+  {
+   "args": {
+    "action": "download_attachment",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「download_attachment」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-download_attachment-user-2"
+  },
+  {
+   "args": {
+    "action": "download_attachment",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「download_attachment」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-download_attachment-user-3"
+  },
+  {
+   "args": {
+    "action": "download_attachment",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「download_attachment」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-download_attachment-rule-0"
+  },
+  {
+   "args": {
+    "action": "download_attachment",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「download_attachment」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-download_attachment-rule-1"
+  },
+  {
+   "args": {
+    "action": "download_attachment",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「download_attachment」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-download_attachment-rule-2"
+  },
+  {
+   "args": {
+    "action": "download_attachment",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「download_attachment」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-download_attachment-rule-3"
+  },
+  {
+   "args": {
+    "action": "download_attachment",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「download_attachment」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-download_attachment-ai-0"
+  },
+  {
+   "args": {
+    "action": "download_attachment",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「download_attachment」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-download_attachment-ai-1"
+  },
+  {
+   "args": {
+    "action": "download_attachment",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「download_attachment」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-download_attachment-ai-2"
+  },
+  {
+   "args": {
+    "action": "download_attachment",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「download_attachment」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-download_attachment-ai-3"
+  },
+  {
+   "args": {
+    "action": "download_attachment",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「download_attachment」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-download_attachment-system-0"
+  },
+  {
+   "args": {
+    "action": "download_attachment",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「download_attachment」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-download_attachment-system-1"
+  },
+  {
+   "args": {
+    "action": "download_attachment",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「download_attachment」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-download_attachment-system-2"
+  },
+  {
+   "args": {
+    "action": "download_attachment",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「download_attachment」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-download_attachment-system-3"
+  },
+  {
+   "args": {
+    "action": "empty_folder",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「empty_folder」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-empty_folder-user-0"
+  },
+  {
+   "args": {
+    "action": "empty_folder",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「empty_folder」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-empty_folder-user-1"
+  },
+  {
+   "args": {
+    "action": "empty_folder",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「empty_folder」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-empty_folder-user-2"
+  },
+  {
+   "args": {
+    "action": "empty_folder",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「empty_folder」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-empty_folder-user-3"
+  },
+  {
+   "args": {
+    "action": "empty_folder",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「empty_folder」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-empty_folder-rule-0"
+  },
+  {
+   "args": {
+    "action": "empty_folder",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「empty_folder」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-empty_folder-rule-1"
+  },
+  {
+   "args": {
+    "action": "empty_folder",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「empty_folder」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-empty_folder-rule-2"
+  },
+  {
+   "args": {
+    "action": "empty_folder",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「empty_folder」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-empty_folder-rule-3"
+  },
+  {
+   "args": {
+    "action": "empty_folder",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「empty_folder」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-empty_folder-ai-0"
+  },
+  {
+   "args": {
+    "action": "empty_folder",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「empty_folder」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-empty_folder-ai-1"
+  },
+  {
+   "args": {
+    "action": "empty_folder",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「empty_folder」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-empty_folder-ai-2"
+  },
+  {
+   "args": {
+    "action": "empty_folder",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「empty_folder」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-empty_folder-ai-3"
+  },
+  {
+   "args": {
+    "action": "empty_folder",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「empty_folder」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-empty_folder-system-0"
+  },
+  {
+   "args": {
+    "action": "empty_folder",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「empty_folder」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-empty_folder-system-1"
+  },
+  {
+   "args": {
+    "action": "empty_folder",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「empty_folder」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-empty_folder-system-2"
+  },
+  {
+   "args": {
+    "action": "empty_folder",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「empty_folder」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-empty_folder-system-3"
+  },
+  {
+   "args": {
+    "action": "forward",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「forward」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-forward-user-0"
+  },
+  {
+   "args": {
+    "action": "forward",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「forward」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-forward-user-1"
+  },
+  {
+   "args": {
+    "action": "forward",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「forward」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-forward-user-2"
+  },
+  {
+   "args": {
+    "action": "forward",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「forward」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-forward-user-3"
+  },
+  {
+   "args": {
+    "action": "forward",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「forward」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-forward-rule-0"
+  },
+  {
+   "args": {
+    "action": "forward",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「forward」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-forward-rule-1"
+  },
+  {
+   "args": {
+    "action": "forward",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「forward」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-forward-rule-2"
+  },
+  {
+   "args": {
+    "action": "forward",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「forward」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-forward-rule-3"
+  },
+  {
+   "args": {
+    "action": "forward",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「forward」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-forward-ai-0"
+  },
+  {
+   "args": {
+    "action": "forward",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「forward」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-forward-ai-1"
+  },
+  {
+   "args": {
+    "action": "forward",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「forward」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-forward-ai-2"
+  },
+  {
+   "args": {
+    "action": "forward",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「forward」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-forward-ai-3"
+  },
+  {
+   "args": {
+    "action": "forward",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「forward」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-forward-system-0"
+  },
+  {
+   "args": {
+    "action": "forward",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「forward」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-forward-system-1"
+  },
+  {
+   "args": {
+    "action": "forward",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「forward」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-forward-system-2"
+  },
+  {
+   "args": {
+    "action": "forward",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「forward」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-forward-system-3"
+  },
+  {
+   "args": {
+    "action": "label",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-label-user-0"
+  },
+  {
+   "args": {
+    "action": "label",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-label-user-1"
+  },
+  {
+   "args": {
+    "action": "label",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-label-user-2"
+  },
+  {
+   "args": {
+    "action": "label",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-label-user-3"
+  },
+  {
+   "args": {
+    "action": "label",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-label-rule-0"
+  },
+  {
+   "args": {
+    "action": "label",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-label-rule-1"
+  },
+  {
+   "args": {
+    "action": "label",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-label-rule-2"
+  },
+  {
+   "args": {
+    "action": "label",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-label-rule-3"
+  },
+  {
+   "args": {
+    "action": "label",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-label-ai-0"
+  },
+  {
+   "args": {
+    "action": "label",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-label-ai-1"
+  },
+  {
+   "args": {
+    "action": "label",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-label-ai-2"
+  },
+  {
+   "args": {
+    "action": "label",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-label-ai-3"
+  },
+  {
+   "args": {
+    "action": "label",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-label-system-0"
+  },
+  {
+   "args": {
+    "action": "label",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-label-system-1"
+  },
+  {
+   "args": {
+    "action": "label",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-label-system-2"
+  },
+  {
+   "args": {
+    "action": "label",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-label-system-3"
+  },
+  {
+   "args": {
+    "action": "move",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-move-user-0"
+  },
+  {
+   "args": {
+    "action": "move",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "B",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-move-user-1"
+  },
+  {
+   "args": {
+    "action": "move",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "邮件含附件，可能是发票或合同，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-move-user-2"
+  },
+  {
+   "args": {
+    "action": "move",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "AI 判定重要度 ≥4，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-move-user-3"
+  },
+  {
+   "args": {
+    "action": "move",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-move-rule-0"
+  },
+  {
+   "args": {
+    "action": "move",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "B",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-move-rule-1"
+  },
+  {
+   "args": {
+    "action": "move",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "邮件含附件，可能是发票或合同，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-move-rule-2"
+  },
+  {
+   "args": {
+    "action": "move",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "AI 判定重要度 ≥4，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-move-rule-3"
+  },
+  {
+   "args": {
+    "action": "move",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-move-ai-0"
+  },
+  {
+   "args": {
+    "action": "move",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "B",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-move-ai-1"
+  },
+  {
+   "args": {
+    "action": "move",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "邮件含附件，可能是发票或合同，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-move-ai-2"
+  },
+  {
+   "args": {
+    "action": "move",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "AI 判定重要度 ≥4，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-move-ai-3"
+  },
+  {
+   "args": {
+    "action": "move",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-move-system-0"
+  },
+  {
+   "args": {
+    "action": "move",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "B",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-move-system-1"
+  },
+  {
+   "args": {
+    "action": "move",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "邮件含附件，可能是发票或合同，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-move-system-2"
+  },
+  {
+   "args": {
+    "action": "move",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "AI 判定重要度 ≥4，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-move-system-3"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-purge-user-0"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「purge」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-purge-user-1"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "邮件含附件，可能是发票或合同，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-purge-user-2"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "AI 判定重要度 ≥4，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-purge-user-3"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-purge-rule-0"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「purge」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-purge-rule-1"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "邮件含附件，可能是发票或合同，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-purge-rule-2"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "AI 判定重要度 ≥4，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-purge-rule-3"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-purge-ai-0"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「purge」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-purge-ai-1"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "邮件含附件，可能是发票或合同，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-purge-ai-2"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "AI 判定重要度 ≥4，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-purge-ai-3"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-purge-system-0"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「purge」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-purge-system-1"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "邮件含附件，可能是发票或合同，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-purge-system-2"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "AI 判定重要度 ≥4，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-purge-system-3"
+  },
+  {
+   "args": {
+    "action": "quarantine",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-quarantine-user-0"
+  },
+  {
+   "args": {
+    "action": "quarantine",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "B",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-quarantine-user-1"
+  },
+  {
+   "args": {
+    "action": "quarantine",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "邮件含附件，可能是发票或合同，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-quarantine-user-2"
+  },
+  {
+   "args": {
+    "action": "quarantine",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "AI 判定重要度 ≥4，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-quarantine-user-3"
+  },
+  {
+   "args": {
+    "action": "quarantine",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-quarantine-rule-0"
+  },
+  {
+   "args": {
+    "action": "quarantine",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "B",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-quarantine-rule-1"
+  },
+  {
+   "args": {
+    "action": "quarantine",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "邮件含附件，可能是发票或合同，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-quarantine-rule-2"
+  },
+  {
+   "args": {
+    "action": "quarantine",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "AI 判定重要度 ≥4，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-quarantine-rule-3"
+  },
+  {
+   "args": {
+    "action": "quarantine",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-quarantine-ai-0"
+  },
+  {
+   "args": {
+    "action": "quarantine",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "B",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-quarantine-ai-1"
+  },
+  {
+   "args": {
+    "action": "quarantine",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "邮件含附件，可能是发票或合同，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-quarantine-ai-2"
+  },
+  {
+   "args": {
+    "action": "quarantine",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "AI 判定重要度 ≥4，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-quarantine-ai-3"
+  },
+  {
+   "args": {
+    "action": "quarantine",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-quarantine-system-0"
+  },
+  {
+   "args": {
+    "action": "quarantine",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "B",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-quarantine-system-1"
+  },
+  {
+   "args": {
+    "action": "quarantine",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "邮件含附件，可能是发票或合同，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-quarantine-system-2"
+  },
+  {
+   "args": {
+    "action": "quarantine",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "AI 判定重要度 ≥4，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-quarantine-system-3"
+  },
+  {
+   "args": {
+    "action": "read",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-read-user-0"
+  },
+  {
+   "args": {
+    "action": "read",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-read-user-1"
+  },
+  {
+   "args": {
+    "action": "read",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-read-user-2"
+  },
+  {
+   "args": {
+    "action": "read",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-read-user-3"
+  },
+  {
+   "args": {
+    "action": "read",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-read-rule-0"
+  },
+  {
+   "args": {
+    "action": "read",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-read-rule-1"
+  },
+  {
+   "args": {
+    "action": "read",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-read-rule-2"
+  },
+  {
+   "args": {
+    "action": "read",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-read-rule-3"
+  },
+  {
+   "args": {
+    "action": "read",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-read-ai-0"
+  },
+  {
+   "args": {
+    "action": "read",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-read-ai-1"
+  },
+  {
+   "args": {
+    "action": "read",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-read-ai-2"
+  },
+  {
+   "args": {
+    "action": "read",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-read-ai-3"
+  },
+  {
+   "args": {
+    "action": "read",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-read-system-0"
+  },
+  {
+   "args": {
+    "action": "read",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-read-system-1"
+  },
+  {
+   "args": {
+    "action": "read",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-read-system-2"
+  },
+  {
+   "args": {
+    "action": "read",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-read-system-3"
+  },
+  {
+   "args": {
+    "action": "remind",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-remind-user-0"
+  },
+  {
+   "args": {
+    "action": "remind",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-remind-user-1"
+  },
+  {
+   "args": {
+    "action": "remind",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-remind-user-2"
+  },
+  {
+   "args": {
+    "action": "remind",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-remind-user-3"
+  },
+  {
+   "args": {
+    "action": "remind",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-remind-rule-0"
+  },
+  {
+   "args": {
+    "action": "remind",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-remind-rule-1"
+  },
+  {
+   "args": {
+    "action": "remind",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-remind-rule-2"
+  },
+  {
+   "args": {
+    "action": "remind",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-remind-rule-3"
+  },
+  {
+   "args": {
+    "action": "remind",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-remind-ai-0"
+  },
+  {
+   "args": {
+    "action": "remind",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-remind-ai-1"
+  },
+  {
+   "args": {
+    "action": "remind",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-remind-ai-2"
+  },
+  {
+   "args": {
+    "action": "remind",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-remind-ai-3"
+  },
+  {
+   "args": {
+    "action": "remind",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-remind-system-0"
+  },
+  {
+   "args": {
+    "action": "remind",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-remind-system-1"
+  },
+  {
+   "args": {
+    "action": "remind",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-remind-system-2"
+  },
+  {
+   "args": {
+    "action": "remind",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-remind-system-3"
+  },
+  {
+   "args": {
+    "action": "reply",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「reply」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-reply-user-0"
+  },
+  {
+   "args": {
+    "action": "reply",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「reply」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-reply-user-1"
+  },
+  {
+   "args": {
+    "action": "reply",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「reply」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-reply-user-2"
+  },
+  {
+   "args": {
+    "action": "reply",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「reply」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-reply-user-3"
+  },
+  {
+   "args": {
+    "action": "reply",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「reply」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-reply-rule-0"
+  },
+  {
+   "args": {
+    "action": "reply",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「reply」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-reply-rule-1"
+  },
+  {
+   "args": {
+    "action": "reply",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「reply」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-reply-rule-2"
+  },
+  {
+   "args": {
+    "action": "reply",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「reply」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-reply-rule-3"
+  },
+  {
+   "args": {
+    "action": "reply",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「reply」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-reply-ai-0"
+  },
+  {
+   "args": {
+    "action": "reply",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「reply」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-reply-ai-1"
+  },
+  {
+   "args": {
+    "action": "reply",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「reply」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-reply-ai-2"
+  },
+  {
+   "args": {
+    "action": "reply",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「reply」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-reply-ai-3"
+  },
+  {
+   "args": {
+    "action": "reply",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「reply」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-reply-system-0"
+  },
+  {
+   "args": {
+    "action": "reply",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「reply」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-reply-system-1"
+  },
+  {
+   "args": {
+    "action": "reply",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「reply」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-reply-system-2"
+  },
+  {
+   "args": {
+    "action": "reply",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「reply」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-reply-system-3"
+  },
+  {
+   "args": {
+    "action": "send",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「send」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-send-user-0"
+  },
+  {
+   "args": {
+    "action": "send",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「send」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-send-user-1"
+  },
+  {
+   "args": {
+    "action": "send",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「send」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-send-user-2"
+  },
+  {
+   "args": {
+    "action": "send",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「send」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-send-user-3"
+  },
+  {
+   "args": {
+    "action": "send",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「send」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-send-rule-0"
+  },
+  {
+   "args": {
+    "action": "send",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「send」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-send-rule-1"
+  },
+  {
+   "args": {
+    "action": "send",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「send」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-send-rule-2"
+  },
+  {
+   "args": {
+    "action": "send",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「send」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-send-rule-3"
+  },
+  {
+   "args": {
+    "action": "send",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「send」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-send-ai-0"
+  },
+  {
+   "args": {
+    "action": "send",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「send」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-send-ai-1"
+  },
+  {
+   "args": {
+    "action": "send",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「send」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-send-ai-2"
+  },
+  {
+   "args": {
+    "action": "send",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「send」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-send-ai-3"
+  },
+  {
+   "args": {
+    "action": "send",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「send」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-send-system-0"
+  },
+  {
+   "args": {
+    "action": "send",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「send」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-send-system-1"
+  },
+  {
+   "args": {
+    "action": "send",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「send」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-send-system-2"
+  },
+  {
+   "args": {
+    "action": "send",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「send」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-send-system-3"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-soft_delete-user-0"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "B",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-soft_delete-user-1"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "邮件含附件，可能是发票或合同，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-soft_delete-user-2"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "AI 判定重要度 ≥4，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-soft_delete-user-3"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-soft_delete-rule-0"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "B",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-soft_delete-rule-1"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "邮件含附件，可能是发票或合同，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-soft_delete-rule-2"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "AI 判定重要度 ≥4，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-soft_delete-rule-3"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-soft_delete-ai-0"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "B",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-soft_delete-ai-1"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "邮件含附件，可能是发票或合同，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-soft_delete-ai-2"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "AI 判定重要度 ≥4，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-soft_delete-ai-3"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-soft_delete-system-0"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "B",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-soft_delete-system-1"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "邮件含附件，可能是发票或合同，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-soft_delete-system-2"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "AI 判定重要度 ≥4，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-soft_delete-system-3"
+  },
+  {
+   "args": {
+    "action": "star",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-star-user-0"
+  },
+  {
+   "args": {
+    "action": "star",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-star-user-1"
+  },
+  {
+   "args": {
+    "action": "star",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-star-user-2"
+  },
+  {
+   "args": {
+    "action": "star",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-star-user-3"
+  },
+  {
+   "args": {
+    "action": "star",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-star-rule-0"
+  },
+  {
+   "args": {
+    "action": "star",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-star-rule-1"
+  },
+  {
+   "args": {
+    "action": "star",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-star-rule-2"
+  },
+  {
+   "args": {
+    "action": "star",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-star-rule-3"
+  },
+  {
+   "args": {
+    "action": "star",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-star-ai-0"
+  },
+  {
+   "args": {
+    "action": "star",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-star-ai-1"
+  },
+  {
+   "args": {
+    "action": "star",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-star-ai-2"
+  },
+  {
+   "args": {
+    "action": "star",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-star-ai-3"
+  },
+  {
+   "args": {
+    "action": "star",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-star-system-0"
+  },
+  {
+   "args": {
+    "action": "star",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-star-system-1"
+  },
+  {
+   "args": {
+    "action": "star",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-star-system-2"
+  },
+  {
+   "args": {
+    "action": "star",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-star-system-3"
+  },
+  {
+   "args": {
+    "action": "unread",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-unread-user-0"
+  },
+  {
+   "args": {
+    "action": "unread",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-unread-user-1"
+  },
+  {
+   "args": {
+    "action": "unread",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-unread-user-2"
+  },
+  {
+   "args": {
+    "action": "unread",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-unread-user-3"
+  },
+  {
+   "args": {
+    "action": "unread",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-unread-rule-0"
+  },
+  {
+   "args": {
+    "action": "unread",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-unread-rule-1"
+  },
+  {
+   "args": {
+    "action": "unread",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-unread-rule-2"
+  },
+  {
+   "args": {
+    "action": "unread",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-unread-rule-3"
+  },
+  {
+   "args": {
+    "action": "unread",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-unread-ai-0"
+  },
+  {
+   "args": {
+    "action": "unread",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-unread-ai-1"
+  },
+  {
+   "args": {
+    "action": "unread",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-unread-ai-2"
+  },
+  {
+   "args": {
+    "action": "unread",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-unread-ai-3"
+  },
+  {
+   "args": {
+    "action": "unread",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-unread-system-0"
+  },
+  {
+   "args": {
+    "action": "unread",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-unread-system-1"
+  },
+  {
+   "args": {
+    "action": "unread",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-unread-system-2"
+  },
+  {
+   "args": {
+    "action": "unread",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-unread-system-3"
+  },
+  {
+   "args": {
+    "action": "unsubscribe",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「unsubscribe」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-unsubscribe-user-0"
+  },
+  {
+   "args": {
+    "action": "unsubscribe",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「unsubscribe」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-unsubscribe-user-1"
+  },
+  {
+   "args": {
+    "action": "unsubscribe",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「unsubscribe」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-unsubscribe-user-2"
+  },
+  {
+   "args": {
+    "action": "unsubscribe",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「unsubscribe」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-unsubscribe-user-3"
+  },
+  {
+   "args": {
+    "action": "unsubscribe",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「unsubscribe」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-unsubscribe-rule-0"
+  },
+  {
+   "args": {
+    "action": "unsubscribe",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「unsubscribe」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-unsubscribe-rule-1"
+  },
+  {
+   "args": {
+    "action": "unsubscribe",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「unsubscribe」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-unsubscribe-rule-2"
+  },
+  {
+   "args": {
+    "action": "unsubscribe",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「unsubscribe」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-unsubscribe-rule-3"
+  },
+  {
+   "args": {
+    "action": "unsubscribe",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「unsubscribe」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-unsubscribe-ai-0"
+  },
+  {
+   "args": {
+    "action": "unsubscribe",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「unsubscribe」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-unsubscribe-ai-1"
+  },
+  {
+   "args": {
+    "action": "unsubscribe",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「unsubscribe」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-unsubscribe-ai-2"
+  },
+  {
+   "args": {
+    "action": "unsubscribe",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「unsubscribe」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-unsubscribe-ai-3"
+  },
+  {
+   "args": {
+    "action": "unsubscribe",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「unsubscribe」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-unsubscribe-system-0"
+  },
+  {
+   "args": {
+    "action": "unsubscribe",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「unsubscribe」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-unsubscribe-system-1"
+  },
+  {
+   "args": {
+    "action": "unsubscribe",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「unsubscribe」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-unsubscribe-system-2"
+  },
+  {
+   "args": {
+    "action": "unsubscribe",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「unsubscribe」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-unsubscribe-system-3"
+  },
+  {
+   "args": {
+    "action": "some_new_action",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「some_new_action」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-some_new_action-user-0"
+  },
+  {
+   "args": {
+    "action": "some_new_action",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「some_new_action」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-some_new_action-user-1"
+  },
+  {
+   "args": {
+    "action": "some_new_action",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「some_new_action」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-some_new_action-user-2"
+  },
+  {
+   "args": {
+    "action": "some_new_action",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「some_new_action」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-some_new_action-user-3"
+  },
+  {
+   "args": {
+    "action": "some_new_action",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「some_new_action」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-some_new_action-rule-0"
+  },
+  {
+   "args": {
+    "action": "some_new_action",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「some_new_action」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-some_new_action-rule-1"
+  },
+  {
+   "args": {
+    "action": "some_new_action",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「some_new_action」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-some_new_action-rule-2"
+  },
+  {
+   "args": {
+    "action": "some_new_action",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「some_new_action」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-some_new_action-rule-3"
+  },
+  {
+   "args": {
+    "action": "some_new_action",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「some_new_action」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-some_new_action-ai-0"
+  },
+  {
+   "args": {
+    "action": "some_new_action",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「some_new_action」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-some_new_action-ai-1"
+  },
+  {
+   "args": {
+    "action": "some_new_action",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「some_new_action」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-some_new_action-ai-2"
+  },
+  {
+   "args": {
+    "action": "some_new_action",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「some_new_action」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-some_new_action-ai-3"
+  },
+  {
+   "args": {
+    "action": "some_new_action",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「some_new_action」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-some_new_action-system-0"
+  },
+  {
+   "args": {
+    "action": "some_new_action",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「some_new_action」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-some_new_action-system-1"
+  },
+  {
+   "args": {
+    "action": "some_new_action",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「some_new_action」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-some_new_action-system-2"
+  },
+  {
+   "args": {
+    "action": "some_new_action",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「some_new_action」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-some_new_action-system-3"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-purge-user-c0-r0-o0"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-purge-user-c0-r0-o1"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "C",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-purge-user-c0-r1-o0"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "C",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-purge-user-c0-r1-o1"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-purge-user-c1-r0-o0"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "C",
+    "用户已确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-purge-user-c1-r0-o1"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "C",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-purge-user-c1-r1-o0"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": true
+   },
+   "expected": [
+    true,
+    "C",
+    "用户已确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-purge-user-c1-r1-o1"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-purge-rule-c0-r0-o0"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-purge-rule-c0-r0-o1"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "C",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-purge-rule-c0-r1-o0"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "C",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-purge-rule-c0-r1-o1"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-purge-rule-c1-r0-o0"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-purge-rule-c1-r0-o1"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "C",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-purge-rule-c1-r1-o0"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "C",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-purge-rule-c1-r1-o1"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-purge-ai-c0-r0-o0"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-purge-ai-c0-r0-o1"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "C",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-purge-ai-c0-r1-o0"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "C",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-purge-ai-c0-r1-o1"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-purge-ai-c1-r0-o0"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-purge-ai-c1-r0-o1"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "C",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-purge-ai-c1-r1-o0"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "C",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-purge-ai-c1-r1-o1"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-purge-system-c0-r0-o0"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-purge-system-c0-r0-o1"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "C",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-purge-system-c0-r1-o0"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "C",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-purge-system-c0-r1-o1"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-purge-system-c1-r0-o0"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-purge-system-c1-r0-o1"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "C",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-purge-system-c1-r1-o0"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "C",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-purge-system-c1-r1-o1"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-soft_delete-user-c0-r0-o0"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-soft_delete-user-c0-r0-o1"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-soft_delete-user-c0-r1-o0"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-soft_delete-user-c0-r1-o1"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-soft_delete-user-c1-r0-o0"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "B",
+    "用户已确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-soft_delete-user-c1-r0-o1"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-soft_delete-user-c1-r1-o0"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": true
+   },
+   "expected": [
+    true,
+    "B",
+    "用户已确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-soft_delete-user-c1-r1-o1"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-soft_delete-rule-c0-r0-o0"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-soft_delete-rule-c0-r0-o1"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-soft_delete-rule-c0-r1-o0"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-soft_delete-rule-c0-r1-o1"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-soft_delete-rule-c1-r0-o0"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-soft_delete-rule-c1-r0-o1"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-soft_delete-rule-c1-r1-o0"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-soft_delete-rule-c1-r1-o1"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-soft_delete-ai-c0-r0-o0"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-soft_delete-ai-c0-r0-o1"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-soft_delete-ai-c0-r1-o0"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-soft_delete-ai-c0-r1-o1"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-soft_delete-ai-c1-r0-o0"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-soft_delete-ai-c1-r0-o1"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-soft_delete-ai-c1-r1-o0"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-soft_delete-ai-c1-r1-o1"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-soft_delete-system-c0-r0-o0"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-soft_delete-system-c0-r0-o1"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-soft_delete-system-c0-r1-o0"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-soft_delete-system-c0-r1-o1"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-soft_delete-system-c1-r0-o0"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-soft_delete-system-c1-r0-o1"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-soft_delete-system-c1-r1-o0"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-soft_delete-system-c1-r1-o1"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-archive-user-c0-r0-o0"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-archive-user-c0-r0-o1"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-archive-user-c0-r1-o0"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-archive-user-c0-r1-o1"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-archive-user-c1-r0-o0"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "B",
+    "用户已确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-archive-user-c1-r0-o1"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-archive-user-c1-r1-o0"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": true
+   },
+   "expected": [
+    true,
+    "B",
+    "用户已确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-archive-user-c1-r1-o1"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-archive-rule-c0-r0-o0"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-archive-rule-c0-r0-o1"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-archive-rule-c0-r1-o0"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-archive-rule-c0-r1-o1"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-archive-rule-c1-r0-o0"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-archive-rule-c1-r0-o1"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-archive-rule-c1-r1-o0"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "rule",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-archive-rule-c1-r1-o1"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-archive-ai-c0-r0-o0"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-archive-ai-c0-r0-o1"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-archive-ai-c0-r1-o0"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-archive-ai-c0-r1-o1"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-archive-ai-c1-r0-o0"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-archive-ai-c1-r0-o1"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-archive-ai-c1-r1-o0"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-archive-ai-c1-r1-o1"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-archive-system-c0-r0-o0"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-archive-system-c0-r0-o1"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-archive-system-c0-r1-o0"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-archive-system-c0-r1-o1"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-archive-system-c1-r0-o0"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-archive-system-c1-r0-o1"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-archive-system-c1-r1-o0"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单",
+     "has_attach": 1
+    },
+    "override_protection": true,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-flags-archive-system-c1-r1-o1"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg0-soft_delete-user-c0"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg0-soft_delete-user-c1"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg0-soft_delete-system-c0"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg0-soft_delete-system-c1"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg0-archive-user-c0"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg0-archive-user-c1"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg0-archive-system-c0"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg0-archive-system-c1"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "B",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg1-soft_delete-user-c0"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "B",
+    "用户已确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg1-soft_delete-user-c1"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    true,
+    "B",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg1-soft_delete-system-c0"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    true,
+    "B",
+    "用户在设置中开启的长期规则"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg1-soft_delete-system-c1"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "B",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg1-archive-user-c0"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "B",
+    "用户已确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg1-archive-user-c1"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    true,
+    "B",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg1-archive-system-c0"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    true,
+    "B",
+    "用户在设置中开启的长期规则"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg1-archive-system-c1"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "邮件含附件，可能是发票或合同，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg2-soft_delete-user-c0"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "邮件含附件，可能是发票或合同，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg2-soft_delete-user-c1"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "邮件含附件，可能是发票或合同，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg2-soft_delete-system-c0"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "邮件含附件，可能是发票或合同，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg2-soft_delete-system-c1"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "邮件含附件，可能是发票或合同，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg2-archive-user-c0"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "邮件含附件，可能是发票或合同，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg2-archive-user-c1"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "邮件含附件，可能是发票或合同，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg2-archive-system-c0"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "订阅",
+     "has_attach": 1
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "邮件含附件，可能是发票或合同，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg2-archive-system-c1"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "AI 判定重要度 ≥4，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg3-soft_delete-user-c0"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "AI 判定重要度 ≥4，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg3-soft_delete-user-c1"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "AI 判定重要度 ≥4，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg3-soft_delete-system-c0"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "AI 判定重要度 ≥4，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg3-soft_delete-system-c1"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "AI 判定重要度 ≥4，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg3-archive-user-c0"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "AI 判定重要度 ≥4，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg3-archive-user-c1"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "AI 判定重要度 ≥4，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg3-archive-system-c0"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "AI 判定重要度 ≥4，禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg3-archive-system-c1"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "验证码",
+     "vip": true
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "发件人在 VIP 名单中"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg4-soft_delete-user-c0"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "验证码",
+     "vip": true
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "发件人在 VIP 名单中"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg4-soft_delete-user-c1"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "验证码",
+     "vip": true
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "发件人在 VIP 名单中"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg4-soft_delete-system-c0"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "验证码",
+     "vip": true
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "发件人在 VIP 名单中"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg4-soft_delete-system-c1"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "验证码",
+     "vip": true
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "发件人在 VIP 名单中"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg4-archive-user-c0"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "验证码",
+     "vip": true
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "发件人在 VIP 名单中"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg4-archive-user-c1"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "验证码",
+     "vip": true
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "发件人在 VIP 名单中"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg4-archive-system-c0"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "验证码",
+     "vip": true
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "发件人在 VIP 名单中"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg4-archive-system-c1"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "replied": true
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "该会话用户已回复过"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg5-soft_delete-user-c0"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "通知",
+     "replied": true
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "该会话用户已回复过"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg5-soft_delete-user-c1"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "replied": true
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "该会话用户已回复过"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg5-soft_delete-system-c0"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "通知",
+     "replied": true
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "该会话用户已回复过"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg5-soft_delete-system-c1"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "replied": true
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "该会话用户已回复过"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg5-archive-user-c0"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "通知",
+     "replied": true
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "该会话用户已回复过"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg5-archive-user-c1"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "replied": true
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "该会话用户已回复过"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg5-archive-system-c0"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "通知",
+     "replied": true
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "该会话用户已回复过"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg5-archive-system-c1"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "其他"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "B",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg6-soft_delete-user-c0"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "其他"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "B",
+    "用户已确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg6-soft_delete-user-c1"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "其他"
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    true,
+    "B",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg6-soft_delete-system-c0"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "其他"
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    true,
+    "B",
+    "用户在设置中开启的长期规则"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg6-soft_delete-system-c1"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "其他"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "B",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg6-archive-user-c0"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "其他"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "B",
+    "用户已确认"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg6-archive-user-c1"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "其他"
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    true,
+    "B",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg6-archive-system-c0"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "其他"
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    true,
+    "B",
+    "用户在设置中开启的长期规则"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg6-archive-system-c1"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "重要",
+     "importance": 5
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「重要」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg7-soft_delete-user-c0"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "重要",
+     "importance": 5
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「重要」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg7-soft_delete-user-c1"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "重要",
+     "importance": 5
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「重要」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg7-soft_delete-system-c0"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "重要",
+     "importance": 5
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「重要」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg7-soft_delete-system-c1"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "重要",
+     "importance": 5
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「重要」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg7-archive-user-c0"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "重要",
+     "importance": 5
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「重要」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg7-archive-user-c1"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "重要",
+     "importance": 5
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「重要」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg7-archive-system-c0"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "重要",
+     "importance": 5
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    false,
+    "B",
+    "分类「重要」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "evaluate",
+   "id": "x-msg7-archive-system-c1"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "ai",
+    "confidence": 0.749,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "AI 置信度 0.75 低于阈值 0.75，转人工审核"
+   ],
+   "fn": "evaluate",
+   "id": "conf-ai-archive-0_7490"
+  },
+  {
+   "args": {
+    "action": "move",
+    "actor": "ai",
+    "confidence": 0.749,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "AI 置信度 0.75 低于阈值 0.75，转人工审核"
+   ],
+   "fn": "evaluate",
+   "id": "conf-ai-move-0_7490"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "ai",
+    "confidence": 0.75,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "B",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "conf-ai-archive-0_7500"
+  },
+  {
+   "args": {
+    "action": "move",
+    "actor": "ai",
+    "confidence": 0.75,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "B",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "conf-ai-move-0_7500"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "ai",
+    "confidence": 0.745,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "AI 置信度 0.74 低于阈值 0.75，转人工审核"
+   ],
+   "fn": "evaluate",
+   "id": "conf-ai-archive-0_7450"
+  },
+  {
+   "args": {
+    "action": "move",
+    "actor": "ai",
+    "confidence": 0.745,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "AI 置信度 0.74 低于阈值 0.75，转人工审核"
+   ],
+   "fn": "evaluate",
+   "id": "conf-ai-move-0_7450"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "ai",
+    "confidence": 0.125,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "AI 置信度 0.12 低于阈值 0.75，转人工审核"
+   ],
+   "fn": "evaluate",
+   "id": "conf-ai-archive-0_1250"
+  },
+  {
+   "args": {
+    "action": "move",
+    "actor": "ai",
+    "confidence": 0.125,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "AI 置信度 0.12 低于阈值 0.75，转人工审核"
+   ],
+   "fn": "evaluate",
+   "id": "conf-ai-move-0_1250"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "ai",
+    "confidence": 0.7449,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "AI 置信度 0.74 低于阈值 0.75，转人工审核"
+   ],
+   "fn": "evaluate",
+   "id": "conf-ai-archive-0_7449"
+  },
+  {
+   "args": {
+    "action": "move",
+    "actor": "ai",
+    "confidence": 0.7449,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "AI 置信度 0.74 低于阈值 0.75，转人工审核"
+   ],
+   "fn": "evaluate",
+   "id": "conf-ai-move-0_7449"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "ai",
+    "confidence": 0.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "AI 置信度 0.00 低于阈值 0.75，转人工审核"
+   ],
+   "fn": "evaluate",
+   "id": "conf-ai-archive-0_0000"
+  },
+  {
+   "args": {
+    "action": "move",
+    "actor": "ai",
+    "confidence": 0.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "AI 置信度 0.00 低于阈值 0.75，转人工审核"
+   ],
+   "fn": "evaluate",
+   "id": "conf-ai-move-0_0000"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "ai",
+    "confidence": 0.999,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "B",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "conf-ai-archive-0_9990"
+  },
+  {
+   "args": {
+    "action": "move",
+    "actor": "ai",
+    "confidence": 0.999,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "B",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "conf-ai-move-0_9990"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "B",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "conf-ai-archive-1_0000"
+  },
+  {
+   "args": {
+    "action": "move",
+    "actor": "ai",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "B",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "conf-ai-move-1_0000"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "system",
+    "confidence": 0.7,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "B",
+    "缺少用户规则且置信度不足，转人工审核"
+   ],
+   "fn": "evaluate",
+   "id": "conf-system-archive-low"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "ai",
+    "confidence": 0.1,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅"
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": [
+    true,
+    "B",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "conf-ai-archive-with-rule"
+  },
+  {
+   "args": {
+    "action": "purge",
+    "actor": "ai",
+    "confidence": 0.1,
+    "confirmed": false,
+    "msg": {
+     "category": "订阅"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    false,
+    "C",
+    "动作「purge」属 C 类（不可逆/对外），必须人工确认"
+   ],
+   "fn": "evaluate",
+   "id": "conf-ai-purge"
+  },
+  {
+   "args": {
+    "msg": {
+     "category": "账单"
+    }
+   },
+   "expected": [
+    true,
+    "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "is_protected",
+   "id": "prot-00"
+  },
+  {
+   "args": {
+    "msg": {
+     "category": "安全"
+    }
+   },
+   "expected": [
+    true,
+    "分类「安全」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "is_protected",
+   "id": "prot-01"
+  },
+  {
+   "args": {
+    "msg": {
+     "category": "重要"
+    }
+   },
+   "expected": [
+    true,
+    "分类「重要」属于受保护类别（交易/安全/重要），禁止自动删除"
+   ],
+   "fn": "is_protected",
+   "id": "prot-02"
+  },
+  {
+   "args": {
+    "msg": {
+     "category": "可疑"
+    }
+   },
+   "expected": [
+    false,
+    ""
+   ],
+   "fn": "is_protected",
+   "id": "prot-03"
+  },
+  {
+   "args": {
+    "msg": {
+     "category": "订阅"
+    }
+   },
+   "expected": [
+    false,
+    ""
+   ],
+   "fn": "is_protected",
+   "id": "prot-04"
+  },
+  {
+   "args": {
+    "msg": {
+     "bill_tier": "一般",
+     "category": "账单"
+    }
+   },
+   "expected": [
+    false,
+    ""
+   ],
+   "fn": "is_protected",
+   "id": "prot-05"
+  },
+  {
+   "args": {
+    "msg": {
+     "category": "",
+     "has_attach": true
+    }
+   },
+   "expected": [
+    true,
+    "邮件含附件，可能是发票或合同，禁止自动删除"
+   ],
+   "fn": "is_protected",
+   "id": "prot-06"
+  },
+  {
+   "args": {
+    "msg": {}
+   },
+   "expected": [
+    false,
+    ""
+   ],
+   "fn": "is_protected",
+   "id": "prot-07"
+  },
+  {
+   "args": {
+    "msg": {
+     "category": "通知",
+     "has_attach": 1
+    }
+   },
+   "expected": [
+    true,
+    "邮件含附件，可能是发票或合同，禁止自动删除"
+   ],
+   "fn": "is_protected",
+   "id": "prot-08"
+  },
+  {
+   "args": {
+    "msg": {
+     "category": "通知",
+     "importance": 3
+    }
+   },
+   "expected": [
+    false,
+    ""
+   ],
+   "fn": "is_protected",
+   "id": "prot-09"
+  },
+  {
+   "args": {
+    "msg": {
+     "category": "通知",
+     "importance": 4
+    }
+   },
+   "expected": [
+    true,
+    "AI 判定重要度 ≥4，禁止自动删除"
+   ],
+   "fn": "is_protected",
+   "id": "prot-10"
+  },
+  {
+   "args": {
+    "msg": {
+     "category": "通知",
+     "vip": true
+    }
+   },
+   "expected": [
+    true,
+    "发件人在 VIP 名单中"
+   ],
+   "fn": "is_protected",
+   "id": "prot-11"
+  },
+  {
+   "args": {
+    "msg": {
+     "category": "通知",
+     "replied": true
+    }
+   },
+   "expected": [
+    true,
+    "该会话用户已回复过"
+   ],
+   "fn": "is_protected",
+   "id": "prot-12"
+  },
+  {
+   "args": {
+    "msg": {
+     "category": "通知",
+     "has_attach": 0,
+     "importance": 0,
+     "replied": false,
+     "vip": false
+    }
+   },
+   "expected": [
+    false,
+    ""
+   ],
+   "fn": "is_protected",
+   "id": "prot-13"
+  }
+ ],
+ "generator": "scripts/golden/policy.py",
+ "module": "policy"
+}
