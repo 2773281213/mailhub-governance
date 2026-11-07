@@ -1,0 +1,2009 @@
+{
+ "cases": [
+  {
+   "args": {},
+   "expected": [
+    {
+     "name": "idx_audit_ts",
+     "sql": "CREATE INDEX idx_audit_ts ON audit_log(ts DESC)",
+     "tbl_name": "audit_log",
+     "type": "index"
+    },
+    {
+     "name": "idx_governance_decisions_message",
+     "sql": "CREATE INDEX idx_governance_decisions_message\n  ON governance_decisions(message_id, ts DESC)",
+     "tbl_name": "governance_decisions",
+     "type": "index"
+    },
+    {
+     "name": "idx_governance_runs_ts",
+     "sql": "CREATE INDEX idx_governance_runs_ts ON governance_runs(started_ts DESC)",
+     "tbl_name": "governance_runs",
+     "type": "index"
+    },
+    {
+     "name": "idx_msg_acc",
+     "sql": "CREATE INDEX idx_msg_acc ON messages(account_id)",
+     "tbl_name": "messages",
+     "type": "index"
+    },
+    {
+     "name": "idx_msg_cat",
+     "sql": "CREATE INDEX idx_msg_cat ON messages(category)",
+     "tbl_name": "messages",
+     "type": "index"
+    },
+    {
+     "name": "idx_msg_date",
+     "sql": "CREATE INDEX idx_msg_date ON messages(date_ts DESC)",
+     "tbl_name": "messages",
+     "type": "index"
+    },
+    {
+     "name": "idx_msg_deleted",
+     "sql": "CREATE INDEX idx_msg_deleted ON messages(deleted_ts)",
+     "tbl_name": "messages",
+     "type": "index"
+    },
+    {
+     "name": "idx_msg_deleted_date",
+     "sql": "CREATE INDEX idx_msg_deleted_date ON messages(deleted_ts, date_ts DESC, id DESC)",
+     "tbl_name": "messages",
+     "type": "index"
+    },
+    {
+     "name": "idx_msg_governance",
+     "sql": "CREATE INDEX idx_msg_governance ON messages(governance_version, deleted_ts)",
+     "tbl_name": "messages",
+     "type": "index"
+    },
+    {
+     "name": "idx_msg_msgid",
+     "sql": "CREATE INDEX idx_msg_msgid ON messages(msg_id)",
+     "tbl_name": "messages",
+     "type": "index"
+    },
+    {
+     "name": "idx_msg_template",
+     "sql": "CREATE INDEX idx_msg_template ON messages(template_key, date_ts)",
+     "tbl_name": "messages",
+     "type": "index"
+    },
+    {
+     "name": "idx_sessions_expiry",
+     "sql": "CREATE INDEX idx_sessions_expiry ON sessions(expires_ts)",
+     "tbl_name": "sessions",
+     "type": "index"
+    },
+    {
+     "name": "sqlite_autoindex_aliases_1",
+     "sql": null,
+     "tbl_name": "aliases",
+     "type": "index"
+    },
+    {
+     "name": "sqlite_autoindex_bill_prefs_1",
+     "sql": null,
+     "tbl_name": "bill_prefs",
+     "type": "index"
+    },
+    {
+     "name": "sqlite_autoindex_digests_1",
+     "sql": null,
+     "tbl_name": "digests",
+     "type": "index"
+    },
+    {
+     "name": "sqlite_autoindex_governance_decisions_1",
+     "sql": null,
+     "tbl_name": "governance_decisions",
+     "type": "index"
+    },
+    {
+     "name": "sqlite_autoindex_messages_1",
+     "sql": null,
+     "tbl_name": "messages",
+     "type": "index"
+    },
+    {
+     "name": "sqlite_autoindex_sessions_1",
+     "sql": null,
+     "tbl_name": "sessions",
+     "type": "index"
+    },
+    {
+     "name": "sqlite_autoindex_settings_1",
+     "sql": null,
+     "tbl_name": "settings",
+     "type": "index"
+    },
+    {
+     "name": "accounts",
+     "sql": "CREATE TABLE accounts(\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  name TEXT NOT NULL,\n  provider TEXT NOT NULL,\n  email TEXT NOT NULL,\n  imap_host TEXT NOT NULL,\n  imap_port INTEGER NOT NULL DEFAULT 993,\n  auth_type TEXT NOT NULL DEFAULT 'password',\n  secret_enc TEXT DEFAULT '',\n  oauth_refresh_enc TEXT DEFAULT '',\n  oauth_access_enc TEXT DEFAULT '',\n  oauth_expires REAL DEFAULT 0,\n  enabled INTEGER DEFAULT 1,\n  poll_interval INTEGER DEFAULT 300,\n  last_uid INTEGER DEFAULT 0,\n  uidvalidity INTEGER DEFAULT 0,\n  last_sync REAL DEFAULT 0,\n  last_error TEXT DEFAULT '',\n  color TEXT DEFAULT '#38bdf8',\n  created_ts REAL DEFAULT 0\n)",
+     "tbl_name": "accounts",
+     "type": "table"
+    },
+    {
+     "name": "aliases",
+     "sql": "CREATE TABLE aliases(\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  alias TEXT UNIQUE NOT NULL,\n  account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,\n  name TEXT DEFAULT '',\n  created_ts REAL DEFAULT 0,\n  last_query_ts REAL DEFAULT 0\n)",
+     "tbl_name": "aliases",
+     "type": "table"
+    },
+    {
+     "name": "audit_log",
+     "sql": "CREATE TABLE audit_log(\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  ts REAL NOT NULL,\n  actor TEXT NOT NULL,          -- user | rule | ai | system\n  action TEXT NOT NULL,         -- soft_delete | purge | read | archive ...\n  tier TEXT DEFAULT '',         -- A | B | C\n  target_count INTEGER DEFAULT 0,\n  target_ids TEXT DEFAULT '',   -- JSON 数组\n  reason TEXT DEFAULT '',\n  allowed INTEGER DEFAULT 1,    -- 0 = 被策略引擎拦截\n  reversible INTEGER DEFAULT 0,\n  undone INTEGER DEFAULT 0,\n  undo_payload TEXT DEFAULT ''  -- JSON，撤销所需的原始状态\n)",
+     "tbl_name": "audit_log",
+     "type": "table"
+    },
+    {
+     "name": "bill_prefs",
+     "sql": "CREATE TABLE bill_prefs(\n         template_key TEXT PRIMARY KEY,\n         tier TEXT NOT NULL,\n         created_ts REAL NOT NULL\n       )",
+     "tbl_name": "bill_prefs",
+     "type": "table"
+    },
+    {
+     "name": "digests",
+     "sql": "CREATE TABLE digests(\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  day TEXT UNIQUE,\n  content TEXT DEFAULT '',\n  created_ts REAL DEFAULT 0\n)",
+     "tbl_name": "digests",
+     "type": "table"
+    },
+    {
+     "name": "governance_decisions",
+     "sql": "CREATE TABLE governance_decisions(\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  run_id INTEGER NOT NULL REFERENCES governance_runs(id) ON DELETE CASCADE,\n  message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,\n  ts REAL NOT NULL,\n  version TEXT NOT NULL,\n  ministry TEXT NOT NULL,\n  category_before TEXT DEFAULT '',\n  category_after TEXT NOT NULL,\n  confidence REAL DEFAULT 0,\n  source TEXT DEFAULT '',\n  fallback INTEGER DEFAULT 0,\n  reason TEXT DEFAULT '',\n  evidence TEXT DEFAULT '{}',\n  UNIQUE(run_id, message_id)\n)",
+     "tbl_name": "governance_decisions",
+     "type": "table"
+    },
+    {
+     "name": "governance_runs",
+     "sql": "CREATE TABLE governance_runs(\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  version TEXT NOT NULL,\n  trigger TEXT NOT NULL DEFAULT 'system',\n  status TEXT NOT NULL DEFAULT 'running',\n  started_ts REAL NOT NULL,\n  finished_ts REAL DEFAULT 0,\n  selected_count INTEGER DEFAULT 0,\n  processed_count INTEGER DEFAULT 0,\n  ai_count INTEGER DEFAULT 0,\n  fallback_count INTEGER DEFAULT 0,\n  suspicious_count INTEGER DEFAULT 0,\n  error_count INTEGER DEFAULT 0,\n  ministry_counts TEXT DEFAULT '{}',\n  category_counts TEXT DEFAULT '{}',\n  error TEXT DEFAULT ''\n)",
+     "tbl_name": "governance_runs",
+     "type": "table"
+    },
+    {
+     "name": "messages",
+     "sql": "CREATE TABLE messages(\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,\n  uid INTEGER NOT NULL,\n  msg_id TEXT DEFAULT '',\n  subject TEXT DEFAULT '',\n  sender_name TEXT DEFAULT '',\n  sender_addr TEXT DEFAULT '',\n  date_ts REAL DEFAULT 0,\n  snippet TEXT DEFAULT '',\n  body_text TEXT DEFAULT '',\n  body_html TEXT DEFAULT '',\n  category TEXT DEFAULT '未分类',\n  otp_code TEXT DEFAULT '',\n  importance INTEGER DEFAULT 0,\n  summary TEXT DEFAULT '',\n  ai_done INTEGER DEFAULT 0,\n  unread INTEGER DEFAULT 1,\n  has_attach INTEGER DEFAULT 0,\n  unsubscribe INTEGER DEFAULT 0,\n  created_ts REAL DEFAULT 0,\n  governance_version TEXT DEFAULT '',\n  governance_ministry TEXT DEFAULT '',\n  governance_action TEXT DEFAULT '',\n  governance_source TEXT DEFAULT '',\n  governance_reason TEXT DEFAULT '',\n  governance_ts REAL DEFAULT 0, to_addr TEXT DEFAULT '', deleted_ts REAL DEFAULT 0, risk_level TEXT DEFAULT 'none', risk_reasons TEXT DEFAULT '', confidence REAL DEFAULT 0, needs_review INTEGER DEFAULT 0, ai_reason TEXT DEFAULT '', ai_retry_count INTEGER DEFAULT 0, ai_retry_ts REAL DEFAULT 0, header_signals TEXT DEFAULT '{}', alert_ts REAL DEFAULT 0, template_key TEXT DEFAULT '', bill_tier TEXT DEFAULT '', bill_facets TEXT DEFAULT '{}', bill_tier_locked INTEGER DEFAULT 0, body_truncated INTEGER DEFAULT 0, flag_push INTEGER DEFAULT 0,\n  UNIQUE(account_id, uid)\n)",
+     "tbl_name": "messages",
+     "type": "table"
+    },
+    {
+     "name": "messages_fts",
+     "sql": "CREATE VIRTUAL TABLE messages_fts USING fts5(\n             subject, sender_name, sender_addr, snippet,\n             content='messages', content_rowid='id', tokenize='trigram'\n           )",
+     "tbl_name": "messages_fts",
+     "type": "table"
+    },
+    {
+     "name": "messages_fts_config",
+     "sql": "CREATE TABLE 'messages_fts_config'(k PRIMARY KEY, v) WITHOUT ROWID",
+     "tbl_name": "messages_fts_config",
+     "type": "table"
+    },
+    {
+     "name": "messages_fts_data",
+     "sql": "CREATE TABLE 'messages_fts_data'(id INTEGER PRIMARY KEY, block BLOB)",
+     "tbl_name": "messages_fts_data",
+     "type": "table"
+    },
+    {
+     "name": "messages_fts_docsize",
+     "sql": "CREATE TABLE 'messages_fts_docsize'(id INTEGER PRIMARY KEY, sz BLOB)",
+     "tbl_name": "messages_fts_docsize",
+     "type": "table"
+    },
+    {
+     "name": "messages_fts_idx",
+     "sql": "CREATE TABLE 'messages_fts_idx'(segid, term, pgno, PRIMARY KEY(segid, term)) WITHOUT ROWID",
+     "tbl_name": "messages_fts_idx",
+     "type": "table"
+    },
+    {
+     "name": "rules",
+     "sql": "CREATE TABLE rules(\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  name TEXT DEFAULT '',\n  field TEXT NOT NULL,\n  pattern TEXT NOT NULL,\n  category TEXT NOT NULL,\n  priority INTEGER DEFAULT 100,\n  enabled INTEGER DEFAULT 1\n)",
+     "tbl_name": "rules",
+     "type": "table"
+    },
+    {
+     "name": "sessions",
+     "sql": "CREATE TABLE sessions(\n  id_hash TEXT PRIMARY KEY,\n  created_ts REAL NOT NULL,\n  expires_ts REAL NOT NULL\n, label TEXT DEFAULT '', client TEXT DEFAULT 'web', last_seen_ts REAL DEFAULT 0)",
+     "tbl_name": "sessions",
+     "type": "table"
+    },
+    {
+     "name": "settings",
+     "sql": "CREATE TABLE settings(\n  k TEXT PRIMARY KEY,\n  v TEXT\n)",
+     "tbl_name": "settings",
+     "type": "table"
+    },
+    {
+     "name": "sqlite_sequence",
+     "sql": "CREATE TABLE sqlite_sequence(name,seq)",
+     "tbl_name": "sqlite_sequence",
+     "type": "table"
+    },
+    {
+     "name": "messages_fts_ad",
+     "sql": "CREATE TRIGGER messages_fts_ad AFTER DELETE ON messages BEGIN\n             INSERT INTO messages_fts(messages_fts, rowid, subject, sender_name, sender_addr, snippet)\n             VALUES('delete', old.id, old.subject, old.sender_name, old.sender_addr, old.snippet);\n           END",
+     "tbl_name": "messages",
+     "type": "trigger"
+    },
+    {
+     "name": "messages_fts_ai",
+     "sql": "CREATE TRIGGER messages_fts_ai AFTER INSERT ON messages BEGIN\n             INSERT INTO messages_fts(rowid, subject, sender_name, sender_addr, snippet)\n             VALUES(new.id, new.subject, new.sender_name, new.sender_addr, new.snippet);\n           END",
+     "tbl_name": "messages",
+     "type": "trigger"
+    },
+    {
+     "name": "messages_fts_au",
+     "sql": "CREATE TRIGGER messages_fts_au\n           AFTER UPDATE OF subject, sender_name, sender_addr, snippet ON messages BEGIN\n             INSERT INTO messages_fts(messages_fts, rowid, subject, sender_name, sender_addr, snippet)\n             VALUES('delete', old.id, old.subject, old.sender_name, old.sender_addr, old.snippet);\n             INSERT INTO messages_fts(rowid, subject, sender_name, sender_addr, snippet)\n             VALUES(new.id, new.subject, new.sender_name, new.sender_addr, new.snippet);\n           END",
+     "tbl_name": "messages",
+     "type": "trigger"
+    }
+   ],
+   "fn": "sqlite_master",
+   "id": "sqlite_master"
+  },
+  {
+   "args": {
+    "name": "idx_audit_ts",
+    "type": "index"
+   },
+   "expected": {
+    "name": "idx_audit_ts",
+    "sql": "CREATE INDEX idx_audit_ts ON audit_log(ts DESC)",
+    "table_info": [],
+    "tbl_name": "audit_log",
+    "type": "index"
+   },
+   "fn": "object",
+   "id": "index/idx_audit_ts"
+  },
+  {
+   "args": {
+    "name": "idx_governance_decisions_message",
+    "type": "index"
+   },
+   "expected": {
+    "name": "idx_governance_decisions_message",
+    "sql": "CREATE INDEX idx_governance_decisions_message\n  ON governance_decisions(message_id, ts DESC)",
+    "table_info": [],
+    "tbl_name": "governance_decisions",
+    "type": "index"
+   },
+   "fn": "object",
+   "id": "index/idx_governance_decisions_message"
+  },
+  {
+   "args": {
+    "name": "idx_governance_runs_ts",
+    "type": "index"
+   },
+   "expected": {
+    "name": "idx_governance_runs_ts",
+    "sql": "CREATE INDEX idx_governance_runs_ts ON governance_runs(started_ts DESC)",
+    "table_info": [],
+    "tbl_name": "governance_runs",
+    "type": "index"
+   },
+   "fn": "object",
+   "id": "index/idx_governance_runs_ts"
+  },
+  {
+   "args": {
+    "name": "idx_msg_acc",
+    "type": "index"
+   },
+   "expected": {
+    "name": "idx_msg_acc",
+    "sql": "CREATE INDEX idx_msg_acc ON messages(account_id)",
+    "table_info": [],
+    "tbl_name": "messages",
+    "type": "index"
+   },
+   "fn": "object",
+   "id": "index/idx_msg_acc"
+  },
+  {
+   "args": {
+    "name": "idx_msg_cat",
+    "type": "index"
+   },
+   "expected": {
+    "name": "idx_msg_cat",
+    "sql": "CREATE INDEX idx_msg_cat ON messages(category)",
+    "table_info": [],
+    "tbl_name": "messages",
+    "type": "index"
+   },
+   "fn": "object",
+   "id": "index/idx_msg_cat"
+  },
+  {
+   "args": {
+    "name": "idx_msg_date",
+    "type": "index"
+   },
+   "expected": {
+    "name": "idx_msg_date",
+    "sql": "CREATE INDEX idx_msg_date ON messages(date_ts DESC)",
+    "table_info": [],
+    "tbl_name": "messages",
+    "type": "index"
+   },
+   "fn": "object",
+   "id": "index/idx_msg_date"
+  },
+  {
+   "args": {
+    "name": "idx_msg_deleted",
+    "type": "index"
+   },
+   "expected": {
+    "name": "idx_msg_deleted",
+    "sql": "CREATE INDEX idx_msg_deleted ON messages(deleted_ts)",
+    "table_info": [],
+    "tbl_name": "messages",
+    "type": "index"
+   },
+   "fn": "object",
+   "id": "index/idx_msg_deleted"
+  },
+  {
+   "args": {
+    "name": "idx_msg_deleted_date",
+    "type": "index"
+   },
+   "expected": {
+    "name": "idx_msg_deleted_date",
+    "sql": "CREATE INDEX idx_msg_deleted_date ON messages(deleted_ts, date_ts DESC, id DESC)",
+    "table_info": [],
+    "tbl_name": "messages",
+    "type": "index"
+   },
+   "fn": "object",
+   "id": "index/idx_msg_deleted_date"
+  },
+  {
+   "args": {
+    "name": "idx_msg_governance",
+    "type": "index"
+   },
+   "expected": {
+    "name": "idx_msg_governance",
+    "sql": "CREATE INDEX idx_msg_governance ON messages(governance_version, deleted_ts)",
+    "table_info": [],
+    "tbl_name": "messages",
+    "type": "index"
+   },
+   "fn": "object",
+   "id": "index/idx_msg_governance"
+  },
+  {
+   "args": {
+    "name": "idx_msg_msgid",
+    "type": "index"
+   },
+   "expected": {
+    "name": "idx_msg_msgid",
+    "sql": "CREATE INDEX idx_msg_msgid ON messages(msg_id)",
+    "table_info": [],
+    "tbl_name": "messages",
+    "type": "index"
+   },
+   "fn": "object",
+   "id": "index/idx_msg_msgid"
+  },
+  {
+   "args": {
+    "name": "idx_msg_template",
+    "type": "index"
+   },
+   "expected": {
+    "name": "idx_msg_template",
+    "sql": "CREATE INDEX idx_msg_template ON messages(template_key, date_ts)",
+    "table_info": [],
+    "tbl_name": "messages",
+    "type": "index"
+   },
+   "fn": "object",
+   "id": "index/idx_msg_template"
+  },
+  {
+   "args": {
+    "name": "idx_sessions_expiry",
+    "type": "index"
+   },
+   "expected": {
+    "name": "idx_sessions_expiry",
+    "sql": "CREATE INDEX idx_sessions_expiry ON sessions(expires_ts)",
+    "table_info": [],
+    "tbl_name": "sessions",
+    "type": "index"
+   },
+   "fn": "object",
+   "id": "index/idx_sessions_expiry"
+  },
+  {
+   "args": {
+    "name": "sqlite_autoindex_aliases_1",
+    "type": "index"
+   },
+   "expected": {
+    "name": "sqlite_autoindex_aliases_1",
+    "sql": null,
+    "table_info": [],
+    "tbl_name": "aliases",
+    "type": "index"
+   },
+   "fn": "object",
+   "id": "index/sqlite_autoindex_aliases_1"
+  },
+  {
+   "args": {
+    "name": "sqlite_autoindex_bill_prefs_1",
+    "type": "index"
+   },
+   "expected": {
+    "name": "sqlite_autoindex_bill_prefs_1",
+    "sql": null,
+    "table_info": [],
+    "tbl_name": "bill_prefs",
+    "type": "index"
+   },
+   "fn": "object",
+   "id": "index/sqlite_autoindex_bill_prefs_1"
+  },
+  {
+   "args": {
+    "name": "sqlite_autoindex_digests_1",
+    "type": "index"
+   },
+   "expected": {
+    "name": "sqlite_autoindex_digests_1",
+    "sql": null,
+    "table_info": [],
+    "tbl_name": "digests",
+    "type": "index"
+   },
+   "fn": "object",
+   "id": "index/sqlite_autoindex_digests_1"
+  },
+  {
+   "args": {
+    "name": "sqlite_autoindex_governance_decisions_1",
+    "type": "index"
+   },
+   "expected": {
+    "name": "sqlite_autoindex_governance_decisions_1",
+    "sql": null,
+    "table_info": [],
+    "tbl_name": "governance_decisions",
+    "type": "index"
+   },
+   "fn": "object",
+   "id": "index/sqlite_autoindex_governance_decisions_1"
+  },
+  {
+   "args": {
+    "name": "sqlite_autoindex_messages_1",
+    "type": "index"
+   },
+   "expected": {
+    "name": "sqlite_autoindex_messages_1",
+    "sql": null,
+    "table_info": [],
+    "tbl_name": "messages",
+    "type": "index"
+   },
+   "fn": "object",
+   "id": "index/sqlite_autoindex_messages_1"
+  },
+  {
+   "args": {
+    "name": "sqlite_autoindex_sessions_1",
+    "type": "index"
+   },
+   "expected": {
+    "name": "sqlite_autoindex_sessions_1",
+    "sql": null,
+    "table_info": [],
+    "tbl_name": "sessions",
+    "type": "index"
+   },
+   "fn": "object",
+   "id": "index/sqlite_autoindex_sessions_1"
+  },
+  {
+   "args": {
+    "name": "sqlite_autoindex_settings_1",
+    "type": "index"
+   },
+   "expected": {
+    "name": "sqlite_autoindex_settings_1",
+    "sql": null,
+    "table_info": [],
+    "tbl_name": "settings",
+    "type": "index"
+   },
+   "fn": "object",
+   "id": "index/sqlite_autoindex_settings_1"
+  },
+  {
+   "args": {
+    "name": "accounts",
+    "type": "table"
+   },
+   "expected": {
+    "name": "accounts",
+    "sql": "CREATE TABLE accounts(\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  name TEXT NOT NULL,\n  provider TEXT NOT NULL,\n  email TEXT NOT NULL,\n  imap_host TEXT NOT NULL,\n  imap_port INTEGER NOT NULL DEFAULT 993,\n  auth_type TEXT NOT NULL DEFAULT 'password',\n  secret_enc TEXT DEFAULT '',\n  oauth_refresh_enc TEXT DEFAULT '',\n  oauth_access_enc TEXT DEFAULT '',\n  oauth_expires REAL DEFAULT 0,\n  enabled INTEGER DEFAULT 1,\n  poll_interval INTEGER DEFAULT 300,\n  last_uid INTEGER DEFAULT 0,\n  uidvalidity INTEGER DEFAULT 0,\n  last_sync REAL DEFAULT 0,\n  last_error TEXT DEFAULT '',\n  color TEXT DEFAULT '#38bdf8',\n  created_ts REAL DEFAULT 0\n)",
+    "table_info": [
+     {
+      "cid": 0,
+      "dflt_value": null,
+      "name": "id",
+      "notnull": 0,
+      "pk": 1,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 1,
+      "dflt_value": null,
+      "name": "name",
+      "notnull": 1,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 2,
+      "dflt_value": null,
+      "name": "provider",
+      "notnull": 1,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 3,
+      "dflt_value": null,
+      "name": "email",
+      "notnull": 1,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 4,
+      "dflt_value": null,
+      "name": "imap_host",
+      "notnull": 1,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 5,
+      "dflt_value": "993",
+      "name": "imap_port",
+      "notnull": 1,
+      "pk": 0,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 6,
+      "dflt_value": "'password'",
+      "name": "auth_type",
+      "notnull": 1,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 7,
+      "dflt_value": "''",
+      "name": "secret_enc",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 8,
+      "dflt_value": "''",
+      "name": "oauth_refresh_enc",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 9,
+      "dflt_value": "''",
+      "name": "oauth_access_enc",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 10,
+      "dflt_value": "0",
+      "name": "oauth_expires",
+      "notnull": 0,
+      "pk": 0,
+      "type": "REAL"
+     },
+     {
+      "cid": 11,
+      "dflt_value": "1",
+      "name": "enabled",
+      "notnull": 0,
+      "pk": 0,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 12,
+      "dflt_value": "300",
+      "name": "poll_interval",
+      "notnull": 0,
+      "pk": 0,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 13,
+      "dflt_value": "0",
+      "name": "last_uid",
+      "notnull": 0,
+      "pk": 0,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 14,
+      "dflt_value": "0",
+      "name": "uidvalidity",
+      "notnull": 0,
+      "pk": 0,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 15,
+      "dflt_value": "0",
+      "name": "last_sync",
+      "notnull": 0,
+      "pk": 0,
+      "type": "REAL"
+     },
+     {
+      "cid": 16,
+      "dflt_value": "''",
+      "name": "last_error",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 17,
+      "dflt_value": "'#38bdf8'",
+      "name": "color",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 18,
+      "dflt_value": "0",
+      "name": "created_ts",
+      "notnull": 0,
+      "pk": 0,
+      "type": "REAL"
+     }
+    ],
+    "tbl_name": "accounts",
+    "type": "table"
+   },
+   "fn": "object",
+   "id": "table/accounts"
+  },
+  {
+   "args": {
+    "name": "aliases",
+    "type": "table"
+   },
+   "expected": {
+    "name": "aliases",
+    "sql": "CREATE TABLE aliases(\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  alias TEXT UNIQUE NOT NULL,\n  account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,\n  name TEXT DEFAULT '',\n  created_ts REAL DEFAULT 0,\n  last_query_ts REAL DEFAULT 0\n)",
+    "table_info": [
+     {
+      "cid": 0,
+      "dflt_value": null,
+      "name": "id",
+      "notnull": 0,
+      "pk": 1,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 1,
+      "dflt_value": null,
+      "name": "alias",
+      "notnull": 1,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 2,
+      "dflt_value": null,
+      "name": "account_id",
+      "notnull": 1,
+      "pk": 0,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 3,
+      "dflt_value": "''",
+      "name": "name",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 4,
+      "dflt_value": "0",
+      "name": "created_ts",
+      "notnull": 0,
+      "pk": 0,
+      "type": "REAL"
+     },
+     {
+      "cid": 5,
+      "dflt_value": "0",
+      "name": "last_query_ts",
+      "notnull": 0,
+      "pk": 0,
+      "type": "REAL"
+     }
+    ],
+    "tbl_name": "aliases",
+    "type": "table"
+   },
+   "fn": "object",
+   "id": "table/aliases"
+  },
+  {
+   "args": {
+    "name": "audit_log",
+    "type": "table"
+   },
+   "expected": {
+    "name": "audit_log",
+    "sql": "CREATE TABLE audit_log(\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  ts REAL NOT NULL,\n  actor TEXT NOT NULL,          -- user | rule | ai | system\n  action TEXT NOT NULL,         -- soft_delete | purge | read | archive ...\n  tier TEXT DEFAULT '',         -- A | B | C\n  target_count INTEGER DEFAULT 0,\n  target_ids TEXT DEFAULT '',   -- JSON 数组\n  reason TEXT DEFAULT '',\n  allowed INTEGER DEFAULT 1,    -- 0 = 被策略引擎拦截\n  reversible INTEGER DEFAULT 0,\n  undone INTEGER DEFAULT 0,\n  undo_payload TEXT DEFAULT ''  -- JSON，撤销所需的原始状态\n)",
+    "table_info": [
+     {
+      "cid": 0,
+      "dflt_value": null,
+      "name": "id",
+      "notnull": 0,
+      "pk": 1,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 1,
+      "dflt_value": null,
+      "name": "ts",
+      "notnull": 1,
+      "pk": 0,
+      "type": "REAL"
+     },
+     {
+      "cid": 2,
+      "dflt_value": null,
+      "name": "actor",
+      "notnull": 1,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 3,
+      "dflt_value": null,
+      "name": "action",
+      "notnull": 1,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 4,
+      "dflt_value": "''",
+      "name": "tier",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 5,
+      "dflt_value": "0",
+      "name": "target_count",
+      "notnull": 0,
+      "pk": 0,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 6,
+      "dflt_value": "''",
+      "name": "target_ids",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 7,
+      "dflt_value": "''",
+      "name": "reason",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 8,
+      "dflt_value": "1",
+      "name": "allowed",
+      "notnull": 0,
+      "pk": 0,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 9,
+      "dflt_value": "0",
+      "name": "reversible",
+      "notnull": 0,
+      "pk": 0,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 10,
+      "dflt_value": "0",
+      "name": "undone",
+      "notnull": 0,
+      "pk": 0,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 11,
+      "dflt_value": "''",
+      "name": "undo_payload",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     }
+    ],
+    "tbl_name": "audit_log",
+    "type": "table"
+   },
+   "fn": "object",
+   "id": "table/audit_log"
+  },
+  {
+   "args": {
+    "name": "bill_prefs",
+    "type": "table"
+   },
+   "expected": {
+    "name": "bill_prefs",
+    "sql": "CREATE TABLE bill_prefs(\n         template_key TEXT PRIMARY KEY,\n         tier TEXT NOT NULL,\n         created_ts REAL NOT NULL\n       )",
+    "table_info": [
+     {
+      "cid": 0,
+      "dflt_value": null,
+      "name": "template_key",
+      "notnull": 0,
+      "pk": 1,
+      "type": "TEXT"
+     },
+     {
+      "cid": 1,
+      "dflt_value": null,
+      "name": "tier",
+      "notnull": 1,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 2,
+      "dflt_value": null,
+      "name": "created_ts",
+      "notnull": 1,
+      "pk": 0,
+      "type": "REAL"
+     }
+    ],
+    "tbl_name": "bill_prefs",
+    "type": "table"
+   },
+   "fn": "object",
+   "id": "table/bill_prefs"
+  },
+  {
+   "args": {
+    "name": "digests",
+    "type": "table"
+   },
+   "expected": {
+    "name": "digests",
+    "sql": "CREATE TABLE digests(\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  day TEXT UNIQUE,\n  content TEXT DEFAULT '',\n  created_ts REAL DEFAULT 0\n)",
+    "table_info": [
+     {
+      "cid": 0,
+      "dflt_value": null,
+      "name": "id",
+      "notnull": 0,
+      "pk": 1,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 1,
+      "dflt_value": null,
+      "name": "day",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 2,
+      "dflt_value": "''",
+      "name": "content",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 3,
+      "dflt_value": "0",
+      "name": "created_ts",
+      "notnull": 0,
+      "pk": 0,
+      "type": "REAL"
+     }
+    ],
+    "tbl_name": "digests",
+    "type": "table"
+   },
+   "fn": "object",
+   "id": "table/digests"
+  },
+  {
+   "args": {
+    "name": "governance_decisions",
+    "type": "table"
+   },
+   "expected": {
+    "name": "governance_decisions",
+    "sql": "CREATE TABLE governance_decisions(\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  run_id INTEGER NOT NULL REFERENCES governance_runs(id) ON DELETE CASCADE,\n  message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,\n  ts REAL NOT NULL,\n  version TEXT NOT NULL,\n  ministry TEXT NOT NULL,\n  category_before TEXT DEFAULT '',\n  category_after TEXT NOT NULL,\n  confidence REAL DEFAULT 0,\n  source TEXT DEFAULT '',\n  fallback INTEGER DEFAULT 0,\n  reason TEXT DEFAULT '',\n  evidence TEXT DEFAULT '{}',\n  UNIQUE(run_id, message_id)\n)",
+    "table_info": [
+     {
+      "cid": 0,
+      "dflt_value": null,
+      "name": "id",
+      "notnull": 0,
+      "pk": 1,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 1,
+      "dflt_value": null,
+      "name": "run_id",
+      "notnull": 1,
+      "pk": 0,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 2,
+      "dflt_value": null,
+      "name": "message_id",
+      "notnull": 1,
+      "pk": 0,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 3,
+      "dflt_value": null,
+      "name": "ts",
+      "notnull": 1,
+      "pk": 0,
+      "type": "REAL"
+     },
+     {
+      "cid": 4,
+      "dflt_value": null,
+      "name": "version",
+      "notnull": 1,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 5,
+      "dflt_value": null,
+      "name": "ministry",
+      "notnull": 1,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 6,
+      "dflt_value": "''",
+      "name": "category_before",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 7,
+      "dflt_value": null,
+      "name": "category_after",
+      "notnull": 1,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 8,
+      "dflt_value": "0",
+      "name": "confidence",
+      "notnull": 0,
+      "pk": 0,
+      "type": "REAL"
+     },
+     {
+      "cid": 9,
+      "dflt_value": "''",
+      "name": "source",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 10,
+      "dflt_value": "0",
+      "name": "fallback",
+      "notnull": 0,
+      "pk": 0,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 11,
+      "dflt_value": "''",
+      "name": "reason",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 12,
+      "dflt_value": "'{}'",
+      "name": "evidence",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     }
+    ],
+    "tbl_name": "governance_decisions",
+    "type": "table"
+   },
+   "fn": "object",
+   "id": "table/governance_decisions"
+  },
+  {
+   "args": {
+    "name": "governance_runs",
+    "type": "table"
+   },
+   "expected": {
+    "name": "governance_runs",
+    "sql": "CREATE TABLE governance_runs(\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  version TEXT NOT NULL,\n  trigger TEXT NOT NULL DEFAULT 'system',\n  status TEXT NOT NULL DEFAULT 'running',\n  started_ts REAL NOT NULL,\n  finished_ts REAL DEFAULT 0,\n  selected_count INTEGER DEFAULT 0,\n  processed_count INTEGER DEFAULT 0,\n  ai_count INTEGER DEFAULT 0,\n  fallback_count INTEGER DEFAULT 0,\n  suspicious_count INTEGER DEFAULT 0,\n  error_count INTEGER DEFAULT 0,\n  ministry_counts TEXT DEFAULT '{}',\n  category_counts TEXT DEFAULT '{}',\n  error TEXT DEFAULT ''\n)",
+    "table_info": [
+     {
+      "cid": 0,
+      "dflt_value": null,
+      "name": "id",
+      "notnull": 0,
+      "pk": 1,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 1,
+      "dflt_value": null,
+      "name": "version",
+      "notnull": 1,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 2,
+      "dflt_value": "'system'",
+      "name": "trigger",
+      "notnull": 1,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 3,
+      "dflt_value": "'running'",
+      "name": "status",
+      "notnull": 1,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 4,
+      "dflt_value": null,
+      "name": "started_ts",
+      "notnull": 1,
+      "pk": 0,
+      "type": "REAL"
+     },
+     {
+      "cid": 5,
+      "dflt_value": "0",
+      "name": "finished_ts",
+      "notnull": 0,
+      "pk": 0,
+      "type": "REAL"
+     },
+     {
+      "cid": 6,
+      "dflt_value": "0",
+      "name": "selected_count",
+      "notnull": 0,
+      "pk": 0,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 7,
+      "dflt_value": "0",
+      "name": "processed_count",
+      "notnull": 0,
+      "pk": 0,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 8,
+      "dflt_value": "0",
+      "name": "ai_count",
+      "notnull": 0,
+      "pk": 0,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 9,
+      "dflt_value": "0",
+      "name": "fallback_count",
+      "notnull": 0,
+      "pk": 0,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 10,
+      "dflt_value": "0",
+      "name": "suspicious_count",
+      "notnull": 0,
+      "pk": 0,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 11,
+      "dflt_value": "0",
+      "name": "error_count",
+      "notnull": 0,
+      "pk": 0,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 12,
+      "dflt_value": "'{}'",
+      "name": "ministry_counts",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 13,
+      "dflt_value": "'{}'",
+      "name": "category_counts",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 14,
+      "dflt_value": "''",
+      "name": "error",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     }
+    ],
+    "tbl_name": "governance_runs",
+    "type": "table"
+   },
+   "fn": "object",
+   "id": "table/governance_runs"
+  },
+  {
+   "args": {
+    "name": "messages",
+    "type": "table"
+   },
+   "expected": {
+    "name": "messages",
+    "sql": "CREATE TABLE messages(\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,\n  uid INTEGER NOT NULL,\n  msg_id TEXT DEFAULT '',\n  subject TEXT DEFAULT '',\n  sender_name TEXT DEFAULT '',\n  sender_addr TEXT DEFAULT '',\n  date_ts REAL DEFAULT 0,\n  snippet TEXT DEFAULT '',\n  body_text TEXT DEFAULT '',\n  body_html TEXT DEFAULT '',\n  category TEXT DEFAULT '未分类',\n  otp_code TEXT DEFAULT '',\n  importance INTEGER DEFAULT 0,\n  summary TEXT DEFAULT '',\n  ai_done INTEGER DEFAULT 0,\n  unread INTEGER DEFAULT 1,\n  has_attach INTEGER DEFAULT 0,\n  unsubscribe INTEGER DEFAULT 0,\n  created_ts REAL DEFAULT 0,\n  governance_version TEXT DEFAULT '',\n  governance_ministry TEXT DEFAULT '',\n  governance_action TEXT DEFAULT '',\n  governance_source TEXT DEFAULT '',\n  governance_reason TEXT DEFAULT '',\n  governance_ts REAL DEFAULT 0, to_addr TEXT DEFAULT '', deleted_ts REAL DEFAULT 0, risk_level TEXT DEFAULT 'none', risk_reasons TEXT DEFAULT '', confidence REAL DEFAULT 0, needs_review INTEGER DEFAULT 0, ai_reason TEXT DEFAULT '', ai_retry_count INTEGER DEFAULT 0, ai_retry_ts REAL DEFAULT 0, header_signals TEXT DEFAULT '{}', alert_ts REAL DEFAULT 0, template_key TEXT DEFAULT '', bill_tier TEXT DEFAULT '', bill_facets TEXT DEFAULT '{}', bill_tier_locked INTEGER DEFAULT 0, body_truncated INTEGER DEFAULT 0, flag_push INTEGER DEFAULT 0,\n  UNIQUE(account_id, uid)\n)",
+    "table_info": [
+     {
+      "cid": 0,
+      "dflt_value": null,
+      "name": "id",
+      "notnull": 0,
+      "pk": 1,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 1,
+      "dflt_value": null,
+      "name": "account_id",
+      "notnull": 1,
+      "pk": 0,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 2,
+      "dflt_value": null,
+      "name": "uid",
+      "notnull": 1,
+      "pk": 0,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 3,
+      "dflt_value": "''",
+      "name": "msg_id",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 4,
+      "dflt_value": "''",
+      "name": "subject",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 5,
+      "dflt_value": "''",
+      "name": "sender_name",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 6,
+      "dflt_value": "''",
+      "name": "sender_addr",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 7,
+      "dflt_value": "0",
+      "name": "date_ts",
+      "notnull": 0,
+      "pk": 0,
+      "type": "REAL"
+     },
+     {
+      "cid": 8,
+      "dflt_value": "''",
+      "name": "snippet",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 9,
+      "dflt_value": "''",
+      "name": "body_text",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 10,
+      "dflt_value": "''",
+      "name": "body_html",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 11,
+      "dflt_value": "'未分类'",
+      "name": "category",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 12,
+      "dflt_value": "''",
+      "name": "otp_code",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 13,
+      "dflt_value": "0",
+      "name": "importance",
+      "notnull": 0,
+      "pk": 0,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 14,
+      "dflt_value": "''",
+      "name": "summary",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 15,
+      "dflt_value": "0",
+      "name": "ai_done",
+      "notnull": 0,
+      "pk": 0,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 16,
+      "dflt_value": "1",
+      "name": "unread",
+      "notnull": 0,
+      "pk": 0,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 17,
+      "dflt_value": "0",
+      "name": "has_attach",
+      "notnull": 0,
+      "pk": 0,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 18,
+      "dflt_value": "0",
+      "name": "unsubscribe",
+      "notnull": 0,
+      "pk": 0,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 19,
+      "dflt_value": "0",
+      "name": "created_ts",
+      "notnull": 0,
+      "pk": 0,
+      "type": "REAL"
+     },
+     {
+      "cid": 20,
+      "dflt_value": "''",
+      "name": "governance_version",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 21,
+      "dflt_value": "''",
+      "name": "governance_ministry",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 22,
+      "dflt_value": "''",
+      "name": "governance_action",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 23,
+      "dflt_value": "''",
+      "name": "governance_source",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 24,
+      "dflt_value": "''",
+      "name": "governance_reason",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 25,
+      "dflt_value": "0",
+      "name": "governance_ts",
+      "notnull": 0,
+      "pk": 0,
+      "type": "REAL"
+     },
+     {
+      "cid": 26,
+      "dflt_value": "''",
+      "name": "to_addr",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 27,
+      "dflt_value": "0",
+      "name": "deleted_ts",
+      "notnull": 0,
+      "pk": 0,
+      "type": "REAL"
+     },
+     {
+      "cid": 28,
+      "dflt_value": "'none'",
+      "name": "risk_level",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 29,
+      "dflt_value": "''",
+      "name": "risk_reasons",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 30,
+      "dflt_value": "0",
+      "name": "confidence",
+      "notnull": 0,
+      "pk": 0,
+      "type": "REAL"
+     },
+     {
+      "cid": 31,
+      "dflt_value": "0",
+      "name": "needs_review",
+      "notnull": 0,
+      "pk": 0,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 32,
+      "dflt_value": "''",
+      "name": "ai_reason",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 33,
+      "dflt_value": "0",
+      "name": "ai_retry_count",
+      "notnull": 0,
+      "pk": 0,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 34,
+      "dflt_value": "0",
+      "name": "ai_retry_ts",
+      "notnull": 0,
+      "pk": 0,
+      "type": "REAL"
+     },
+     {
+      "cid": 35,
+      "dflt_value": "'{}'",
+      "name": "header_signals",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 36,
+      "dflt_value": "0",
+      "name": "alert_ts",
+      "notnull": 0,
+      "pk": 0,
+      "type": "REAL"
+     },
+     {
+      "cid": 37,
+      "dflt_value": "''",
+      "name": "template_key",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 38,
+      "dflt_value": "''",
+      "name": "bill_tier",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 39,
+      "dflt_value": "'{}'",
+      "name": "bill_facets",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 40,
+      "dflt_value": "0",
+      "name": "bill_tier_locked",
+      "notnull": 0,
+      "pk": 0,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 41,
+      "dflt_value": "0",
+      "name": "body_truncated",
+      "notnull": 0,
+      "pk": 0,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 42,
+      "dflt_value": "0",
+      "name": "flag_push",
+      "notnull": 0,
+      "pk": 0,
+      "type": "INTEGER"
+     }
+    ],
+    "tbl_name": "messages",
+    "type": "table"
+   },
+   "fn": "object",
+   "id": "table/messages"
+  },
+  {
+   "args": {
+    "name": "messages_fts",
+    "type": "table"
+   },
+   "expected": {
+    "name": "messages_fts",
+    "sql": "CREATE VIRTUAL TABLE messages_fts USING fts5(\n             subject, sender_name, sender_addr, snippet,\n             content='messages', content_rowid='id', tokenize='trigram'\n           )",
+    "table_info": [
+     {
+      "cid": 0,
+      "dflt_value": null,
+      "name": "subject",
+      "notnull": 0,
+      "pk": 0,
+      "type": ""
+     },
+     {
+      "cid": 1,
+      "dflt_value": null,
+      "name": "sender_name",
+      "notnull": 0,
+      "pk": 0,
+      "type": ""
+     },
+     {
+      "cid": 2,
+      "dflt_value": null,
+      "name": "sender_addr",
+      "notnull": 0,
+      "pk": 0,
+      "type": ""
+     },
+     {
+      "cid": 3,
+      "dflt_value": null,
+      "name": "snippet",
+      "notnull": 0,
+      "pk": 0,
+      "type": ""
+     }
+    ],
+    "tbl_name": "messages_fts",
+    "type": "table"
+   },
+   "fn": "object",
+   "id": "table/messages_fts"
+  },
+  {
+   "args": {
+    "name": "messages_fts_config",
+    "type": "table"
+   },
+   "expected": {
+    "name": "messages_fts_config",
+    "sql": "CREATE TABLE 'messages_fts_config'(k PRIMARY KEY, v) WITHOUT ROWID",
+    "table_info": [
+     {
+      "cid": 0,
+      "dflt_value": null,
+      "name": "k",
+      "notnull": 1,
+      "pk": 1,
+      "type": ""
+     },
+     {
+      "cid": 1,
+      "dflt_value": null,
+      "name": "v",
+      "notnull": 0,
+      "pk": 0,
+      "type": ""
+     }
+    ],
+    "tbl_name": "messages_fts_config",
+    "type": "table"
+   },
+   "fn": "object",
+   "id": "table/messages_fts_config"
+  },
+  {
+   "args": {
+    "name": "messages_fts_data",
+    "type": "table"
+   },
+   "expected": {
+    "name": "messages_fts_data",
+    "sql": "CREATE TABLE 'messages_fts_data'(id INTEGER PRIMARY KEY, block BLOB)",
+    "table_info": [
+     {
+      "cid": 0,
+      "dflt_value": null,
+      "name": "id",
+      "notnull": 0,
+      "pk": 1,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 1,
+      "dflt_value": null,
+      "name": "block",
+      "notnull": 0,
+      "pk": 0,
+      "type": "BLOB"
+     }
+    ],
+    "tbl_name": "messages_fts_data",
+    "type": "table"
+   },
+   "fn": "object",
+   "id": "table/messages_fts_data"
+  },
+  {
+   "args": {
+    "name": "messages_fts_docsize",
+    "type": "table"
+   },
+   "expected": {
+    "name": "messages_fts_docsize",
+    "sql": "CREATE TABLE 'messages_fts_docsize'(id INTEGER PRIMARY KEY, sz BLOB)",
+    "table_info": [
+     {
+      "cid": 0,
+      "dflt_value": null,
+      "name": "id",
+      "notnull": 0,
+      "pk": 1,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 1,
+      "dflt_value": null,
+      "name": "sz",
+      "notnull": 0,
+      "pk": 0,
+      "type": "BLOB"
+     }
+    ],
+    "tbl_name": "messages_fts_docsize",
+    "type": "table"
+   },
+   "fn": "object",
+   "id": "table/messages_fts_docsize"
+  },
+  {
+   "args": {
+    "name": "messages_fts_idx",
+    "type": "table"
+   },
+   "expected": {
+    "name": "messages_fts_idx",
+    "sql": "CREATE TABLE 'messages_fts_idx'(segid, term, pgno, PRIMARY KEY(segid, term)) WITHOUT ROWID",
+    "table_info": [
+     {
+      "cid": 0,
+      "dflt_value": null,
+      "name": "segid",
+      "notnull": 1,
+      "pk": 1,
+      "type": ""
+     },
+     {
+      "cid": 1,
+      "dflt_value": null,
+      "name": "term",
+      "notnull": 1,
+      "pk": 2,
+      "type": ""
+     },
+     {
+      "cid": 2,
+      "dflt_value": null,
+      "name": "pgno",
+      "notnull": 0,
+      "pk": 0,
+      "type": ""
+     }
+    ],
+    "tbl_name": "messages_fts_idx",
+    "type": "table"
+   },
+   "fn": "object",
+   "id": "table/messages_fts_idx"
+  },
+  {
+   "args": {
+    "name": "rules",
+    "type": "table"
+   },
+   "expected": {
+    "name": "rules",
+    "sql": "CREATE TABLE rules(\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  name TEXT DEFAULT '',\n  field TEXT NOT NULL,\n  pattern TEXT NOT NULL,\n  category TEXT NOT NULL,\n  priority INTEGER DEFAULT 100,\n  enabled INTEGER DEFAULT 1\n)",
+    "table_info": [
+     {
+      "cid": 0,
+      "dflt_value": null,
+      "name": "id",
+      "notnull": 0,
+      "pk": 1,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 1,
+      "dflt_value": "''",
+      "name": "name",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 2,
+      "dflt_value": null,
+      "name": "field",
+      "notnull": 1,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 3,
+      "dflt_value": null,
+      "name": "pattern",
+      "notnull": 1,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 4,
+      "dflt_value": null,
+      "name": "category",
+      "notnull": 1,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 5,
+      "dflt_value": "100",
+      "name": "priority",
+      "notnull": 0,
+      "pk": 0,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 6,
+      "dflt_value": "1",
+      "name": "enabled",
+      "notnull": 0,
+      "pk": 0,
+      "type": "INTEGER"
+     }
+    ],
+    "tbl_name": "rules",
+    "type": "table"
+   },
+   "fn": "object",
+   "id": "table/rules"
+  },
+  {
+   "args": {
+    "name": "sessions",
+    "type": "table"
+   },
+   "expected": {
+    "name": "sessions",
+    "sql": "CREATE TABLE sessions(\n  id_hash TEXT PRIMARY KEY,\n  created_ts REAL NOT NULL,\n  expires_ts REAL NOT NULL\n, label TEXT DEFAULT '', client TEXT DEFAULT 'web', last_seen_ts REAL DEFAULT 0)",
+    "table_info": [
+     {
+      "cid": 0,
+      "dflt_value": null,
+      "name": "id_hash",
+      "notnull": 0,
+      "pk": 1,
+      "type": "TEXT"
+     },
+     {
+      "cid": 1,
+      "dflt_value": null,
+      "name": "created_ts",
+      "notnull": 1,
+      "pk": 0,
+      "type": "REAL"
+     },
+     {
+      "cid": 2,
+      "dflt_value": null,
+      "name": "expires_ts",
+      "notnull": 1,
+      "pk": 0,
+      "type": "REAL"
+     },
+     {
+      "cid": 3,
+      "dflt_value": "''",
+      "name": "label",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 4,
+      "dflt_value": "'web'",
+      "name": "client",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 5,
+      "dflt_value": "0",
+      "name": "last_seen_ts",
+      "notnull": 0,
+      "pk": 0,
+      "type": "REAL"
+     }
+    ],
+    "tbl_name": "sessions",
+    "type": "table"
+   },
+   "fn": "object",
+   "id": "table/sessions"
+  },
+  {
+   "args": {
+    "name": "settings",
+    "type": "table"
+   },
+   "expected": {
+    "name": "settings",
+    "sql": "CREATE TABLE settings(\n  k TEXT PRIMARY KEY,\n  v TEXT\n)",
+    "table_info": [
+     {
+      "cid": 0,
+      "dflt_value": null,
+      "name": "k",
+      "notnull": 0,
+      "pk": 1,
+      "type": "TEXT"
+     },
+     {
+      "cid": 1,
+      "dflt_value": null,
+      "name": "v",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     }
+    ],
+    "tbl_name": "settings",
+    "type": "table"
+   },
+   "fn": "object",
+   "id": "table/settings"
+  },
+  {
+   "args": {
+    "name": "sqlite_sequence",
+    "type": "table"
+   },
+   "expected": {
+    "name": "sqlite_sequence",
+    "sql": "CREATE TABLE sqlite_sequence(name,seq)",
+    "table_info": [
+     {
+      "cid": 0,
+      "dflt_value": null,
+      "name": "name",
+      "notnull": 0,
+      "pk": 0,
+      "type": ""
+     },
+     {
+      "cid": 1,
+      "dflt_value": null,
+      "name": "seq",
+      "notnull": 0,
+      "pk": 0,
+      "type": ""
+     }
+    ],
+    "tbl_name": "sqlite_sequence",
+    "type": "table"
+   },
+   "fn": "object",
+   "id": "table/sqlite_sequence"
+  },
+  {
+   "args": {
+    "name": "messages_fts_ad",
+    "type": "trigger"
+   },
+   "expected": {
+    "name": "messages_fts_ad",
+    "sql": "CREATE TRIGGER messages_fts_ad AFTER DELETE ON messages BEGIN\n             INSERT INTO messages_fts(messages_fts, rowid, subject, sender_name, sender_addr, snippet)\n             VALUES('delete', old.id, old.subject, old.sender_name, old.sender_addr, old.snippet);\n           END",
+    "table_info": [],
+    "tbl_name": "messages",
+    "type": "trigger"
+   },
+   "fn": "object",
+   "id": "trigger/messages_fts_ad"
+  },
+  {
+   "args": {
+    "name": "messages_fts_ai",
+    "type": "trigger"
+   },
+   "expected": {
+    "name": "messages_fts_ai",
+    "sql": "CREATE TRIGGER messages_fts_ai AFTER INSERT ON messages BEGIN\n             INSERT INTO messages_fts(rowid, subject, sender_name, sender_addr, snippet)\n             VALUES(new.id, new.subject, new.sender_name, new.sender_addr, new.snippet);\n           END",
+    "table_info": [],
+    "tbl_name": "messages",
+    "type": "trigger"
+   },
+   "fn": "object",
+   "id": "trigger/messages_fts_ai"
+  },
+  {
+   "args": {
+    "name": "messages_fts_au",
+    "type": "trigger"
+   },
+   "expected": {
+    "name": "messages_fts_au",
+    "sql": "CREATE TRIGGER messages_fts_au\n           AFTER UPDATE OF subject, sender_name, sender_addr, snippet ON messages BEGIN\n             INSERT INTO messages_fts(messages_fts, rowid, subject, sender_name, sender_addr, snippet)\n             VALUES('delete', old.id, old.subject, old.sender_name, old.sender_addr, old.snippet);\n             INSERT INTO messages_fts(rowid, subject, sender_name, sender_addr, snippet)\n             VALUES(new.id, new.subject, new.sender_name, new.sender_addr, new.snippet);\n           END",
+    "table_info": [],
+    "tbl_name": "messages",
+    "type": "trigger"
+   },
+   "fn": "object",
+   "id": "trigger/messages_fts_au"
+  }
+ ],
+ "generator": "scripts/golden/db_schema.py",
+ "module": "db_schema"
+}
