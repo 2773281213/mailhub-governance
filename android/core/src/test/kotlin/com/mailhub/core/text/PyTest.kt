@@ -44,6 +44,20 @@ class PyTest {
     }
 
     @Test
+    fun turkishAndGreekFoldingMatchesPython313() {
+        // Python 3.13 re.I 实测：以下全部为 True（ß 不等于 SS）。Java 的结果相同，这里固定下来防止回归。
+        val pairs = listOf(
+            "i" to "İ", "i" to "ı", "I" to "ı", "I" to "İ", "İ" to "i", "ı" to "i",
+            "ẞ" to "ß", "σ" to "ς", "Σ" to "ς", "Ω" to "ω", "µ" to "μ",
+        )
+        pairs.forEach { (p, s) ->
+            assertTrue("$p ~ $s", PyRegex.compile(PyRegex.escape(p), ignoreCase = true).matcher(s).matches())
+        }
+        assertFalse(PyRegex.compile("ß", ignoreCase = true).matcher("SS").matches())
+        assertTrue(PyRegex.compile("[a-z]", ignoreCase = true).matcher("İ").matches())
+    }
+
+    @Test
     fun ignoreCaseFoldsUnicode() {
         assertTrue(find("s", "ſ", ignoreCase = true))
         assertTrue(find("k", "K", ignoreCase = true))
