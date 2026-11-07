@@ -46,3 +46,7 @@
     public static ** INSTANCE;
     public <methods>;
 }
+
+# L1 先整体保留，让 R8 现在就追踪 :core 用到的 Angus Mail 与 SQLite 类，提前暴露缺类问题；
+# L10 接入后再收窄。
+-keep class com.mailhub.core.** { *; }

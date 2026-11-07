@@ -76,6 +76,16 @@ android {
         abortOnError = true
         warningsAsErrors = false
     }
+
+    // angus-mail / jakarta.mail-api / angus-activation / jakarta.activation-api 四个 jar
+    // 各自带一份 META-INF/LICENSE.md 和 META-INF/NOTICE.md，合并 Java 资源时按重名冲突处理。
+    // 它们内容都是同一批 EPL/GPL+CPE 许可声明，保留其中一份即可，所以用 pickFirsts
+    // 而不是整份丢掉（其余 META-INF 条目四个 jar 之间不重名）。
+    packaging {
+        resources {
+            pickFirsts += setOf("META-INF/LICENSE.md", "META-INF/NOTICE.md")
+        }
+    }
 }
 
 dependencies {
@@ -93,6 +103,7 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(project(":core"))
 
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)

@@ -1,0 +1,31 @@
+From: =?UTF-8?B?6LSm5Y2V5Lit5b+D?= <billing@shop.example>
+To: user@mail.example
+Subject: =?UTF-8?B?5pys5pyI6LSm5Y2V5LiO5a+56LSm5Y2V?=
+Date: Wed, 04 Nov 2026 08:05:00 +0800
+Message-ID: <l1-mix-0003@mail.example>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="l1-mix-0003"
+
+--l1-mix-0003
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: base64
+
+5oKo5aW977yaDQrpmYTku7bmmK/mnKzmnIjnmoTotKbljZXkuI7lr7notKbljZXvvIzor7fmn6Xm
+lLbjgIINCg==
+--l1-mix-0003
+Content-Type: application/pdf; name*=UTF-8''%E8%B4%A6%E5%8D%95.pdf
+Content-Disposition: attachment; filename*=UTF-8''%E8%B4%A6%E5%8D%95.pdf
+Content-Transfer-Encoding: base64
+
+JVBERi0xLjQNCiUgc3ludGhldGljIGZpeHR1cmUgZm9yIG1haWxodWIgTDENCjEgMCBvYmoNCjw8
+IC9UeXBlIC9DYXRhbG9nID4+DQplbmRvYmoNCnRyYWlsZXINCjw8IC9Sb290IDEgMCBSID4+DQol
+JUVPRg0K
+--l1-mix-0003
+Content-Type: application/pdf; name="=?UTF-8?B?5a+56LSm5Y2VXzIwMjYucGRm?="
+Content-Disposition: attachment; filename="=?UTF-8?B?5a+56LSm5Y2VXzIwMjYucGRm?="
+Content-Transfer-Encoding: base64
+
+JVBERi0xLjQNCiUgc2Vjb25kIHN5bnRoZXRpYyBmaXh0dXJlIGZvciBtYWlsaHViIEwxDQoxIDAg
+b2JqDQo8PCAvVHlwZSAvQ2F0YWxvZyA+Pg0KZW5kb2JqDQp0cmFpbGVyDQo8PCAvUm9vdCAxIDAg
+UiA+Pg0KJSVFT0YNCg==
+--l1-mix-0003--
