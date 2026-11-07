@@ -19,6 +19,71 @@ class PyTest {
         return out
     }
 
+    private fun full(pattern: String, input: String): Boolean = PyRegex.compile(pattern).matcher(input).matches()
+
+    private fun pythonRejects(pattern: String): Boolean = PyRegex.compileUser(pattern) == null
+
+    @Test
+    fun noEngineSpecificFlags() {
+        // Android 的 ICU 正则不支持 UNICODE_CHARACTER_CLASS；编译结果里不能带它
+        val flags = PyRegex.compile("\\w+\\d", ignoreCase = true).flags()
+        assertEquals(0, flags and java.util.regex.Pattern.UNICODE_CHARACTER_CLASS)
+        assertFalse(PyRegex.translate("\\d\\w\\s\\b").contains("\\d"))
+    }
+
+    @Test
+    fun patternsPythonAcceptsCompileAndMatchLikePython() {
+        assertTrue(full("x{a}", "x{a}"))
+        assertTrue(full("{\"code\":\\s*\\d+}", "{\"code\": 42}"))
+        assertTrue(full("a{\uff12}", "a{\uff12}"))
+        assertTrue(full("\\v", "\u000b"))
+        assertFalse(full("\\v", "\n"))
+        assertTrue(full("\\0", "\u0000"))
+        assertTrue(full("[\\0]", "\u0000"))
+        assertTrue(full("[\\7]", "\u0007"))
+        assertTrue(full("\\141", "a"))
+        assertTrue(full("[\\141]", "a"))
+        assertTrue(full("\\U0001f600", "\uD83D\uDE00"))
+        assertTrue(full("a(?#[comment])b", "ab"))
+        assertTrue(full("(a)\\1", "aa"))
+        assertTrue(full("(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)(k)(l)\\12", "abcdefghijkll"))
+        assertTrue(full("[ a]", " "))
+        assertTrue(full("[a b]", " "))
+        assertTrue(full("[a&b]", "&"))
+        val named = PyRegex.compile("(?P<pyg2>a)(?P<x_1>b)").matcher("ab")
+        assertTrue(named.matches())
+        assertEquals("a", named.group("pyg2"))
+        assertTrue(full("(?P<名字>a)(?P=名字)", "aa"))
+    }
+
+    @Test
+    fun patternsPythonRejectsAreRejected() {
+        listOf(
+            "\\b+", "\\B*", "[\\w-~]", "[\\x00-\\s]", "\\p{L}", "\\e", "[\\A]", "(?P<123>a)", "(?P<>a)",
+            "(?P<a-b>a)", "(?<foo>a)", "(?P<x>a)(?P<x>b)", "a(?#unterminated", "[\\8]", "\\x4", "\\u12", "a\\",
+        ).forEach { assertTrue(it, pythonRejects(it)) }
+    }
+
+    @Test
+    fun boundariesMatchPython313() {
+        assertFalse(find("\\B", "\uD840\uDC00"))
+        assertEquals("-\uD83D\uDE00-", PyRegex.compile("\\B").matcher("\uD83D\uDE00").replaceAll("-"))
+        assertFalse(find("\\B", ""))
+        assertFalse(find("\\b", ""))
+    }
+
+    @Test
+    fun negatedShorthandsInsideClassesMatchPython() {
+        assertFalse(full("[\\W]", "\u2460"))
+        assertTrue(full("[\\W]", "\ufe0f"))
+        assertFalse(full("[\\S]", "\u001c"))
+        assertTrue(full("[^a\\W]", "b"))
+        assertFalse(full("[^a\\W]", "a"))
+        assertFalse(full("[^a\\W]", "-"))
+        assertFalse(full("[\\D]", "\uff13"))
+        assertTrue(full("[\\d]", "\uff13"))
+    }
+
     @Test
     fun digitsAndWordsAreUnicode() {
         assertTrue(find("\\d", "３"))
@@ -68,7 +133,7 @@ class PyTest {
     @Test
     fun onlyNewlineEndsALine() {
         assertTrue(find("a.b", "a\rb"))
-        assertTrue(find("a.b", "a b"))
+        assertTrue(find("a.b", "a\u2028b"))
         assertFalse(find("a.b", "a\nb"))
         assertTrue(find("abc$", "abc\n"))
     }
@@ -119,12 +184,12 @@ class PyTest {
 
     @Test
     fun whitespaceFollowsPythonIsspace() {
-        assertEquals(listOf("a", "b", "c", "d"), " a b　c\u001cd ".pySplit())
-        assertEquals("x", "  x 　".pyStrip())
-        assertEquals("", "   ".pyStrip())
+        assertEquals(listOf("a", "b", "c", "d"), " a\u00a0b\u3000c\u001cd ".pySplit())
+        assertEquals("x", "\u00a0 x \u3000".pyStrip())
+        assertEquals("", " \u2007 ".pyStrip())
         assertEquals(emptyList<String>(), "".pySplit())
-        assertFalse(isPySpace('​'.code))
-        assertEquals(">q", " >q".pyLstrip())
+        assertFalse(isPySpace('\u200b'.code))
+        assertEquals(">q", "\u00a0>q".pyLstrip())
     }
 
     @Test
@@ -133,7 +198,7 @@ class PyTest {
         assertEquals(emptyList<String>(), "".pySplitLines())
         assertEquals(listOf("x", "y"), "x\u000by".pySplitLines())
         assertEquals(listOf(""), "\n".pySplitLines())
-        assertEquals(listOf("a", "b"), "a b".pySplitLines())
+        assertEquals(listOf("a", "b"), "a\u2028b".pySplitLines())
     }
 
     @Test
@@ -150,7 +215,7 @@ class PyTest {
     fun floatAndIntParseLikePython() {
         val inputs = listOf(
             "１２３", "12.50", " 7 ", "1_000", "1__0", "_1", "1e3", "-.5", "+3.", "inf", "-Infinity", "nan",
-            "1 3", "　 42 ", "١٢٣", "", ".", "1.2.3", "0x10", "12e",
+            "1\u20093", "\u3000 42\u00a0", "١٢٣", "", ".", "1.2.3", "0x10", "12e",
         )
         val python = listOf(
             "123.0", "12.5", "7.0", "1000.0", "ERR", "ERR", "1000.0", "-0.5", "3.0", "inf", "-inf", "nan",
@@ -167,6 +232,26 @@ class PyTest {
         assertEquals(python, actual)
         val ints = listOf("１２３", " 7 ", "1_000", "-5", "+0", "3.0", "", "٣").map { Py.int(it)?.toString() ?: "ERR" }
         assertEquals(listOf("123", "7", "1000", "-5", "0", "ERR", "ERR", "3"), ints)
+    }
+
+    @Test
+    fun floatAcceptsAtMostOneSign() {
+        listOf("+-inf", "+-nan", "-+inf", "--1").forEach { assertNull(it, Py.float(it)) }
+        assertEquals(1.0, Py.float("+1")!!, 0.0)
+    }
+
+    @Test
+    fun truthyHandlesBigNumbers() {
+        assertTrue(Py.truthy(Py.int("18446744073709551616")))
+        assertTrue(Py.truthy(java.math.BigDecimal("0.5")))
+        assertFalse(Py.truthy(java.math.BigInteger.ZERO))
+    }
+
+    @Test
+    fun roundKeepsNegativeZero() {
+        assertEquals("-0.0", Py.round(-0.001, 2).toString())
+        assertEquals("-0.0", Py.round(-0.0, 2).toString())
+        assertEquals("0.0", Py.round(0.0, 2).toString())
     }
 
     @Test

@@ -68,7 +68,7 @@ def run(module: str, build_cases) -> None:
     text = render(module, build_cases())
     out = OUT_DIR / f"{module}.json"
     if args.check:
-        current = out.read_text(encoding="utf-8") if out.exists() else ""
+        current = out.read_bytes().decode("utf-8") if out.exists() else ""
         if current != text:
             print(f"{out.relative_to(REPO_ROOT)} 与 Python 实现不一致，"
                   f"请运行 python scripts/golden/{module}.py 重新生成并检查差异", file=sys.stderr)

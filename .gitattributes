@@ -2,3 +2,4 @@
 android/gradlew text eol=lf
 *.bat text eol=crlf
 *.eml binary
+*.json text eol=lf

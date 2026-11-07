@@ -59,7 +59,7 @@ def build_cases() -> list[dict]:
 def main() -> None:
     table = render_table()
     if "--check" in sys.argv:
-        current = TABLE.read_text(encoding="utf-8") if TABLE.exists() else ""
+        current = TABLE.read_bytes().decode("utf-8") if TABLE.exists() else ""
         if current != table:
             print(f"{TABLE.relative_to(_common.REPO_ROOT)} 与 Python 不一致，请重新生成", file=sys.stderr)
             sys.exit(1)

@@ -59,9 +59,24 @@ object Golden {
         }
     }
 
-    /** 期望与实际不同时生成统一格式的说明。 */
+    /**
+     * 期望与实际不同时生成统一格式的说明。比较前递归归一化数字类型：Int/Short/Byte 当 Long，Float 当 Double，
+     * 否则 [toPlain] 读出的 3L 和实现返回的 3 会被判成不等。
+     */
     fun diff(expected: Any?, actual: Any?): String? =
-        if (expected == actual) null else "期望 $expected，实际 $actual"
+        if (normalize(expected) == normalize(actual)) null else "期望 $expected，实际 $actual"
+
+    private fun normalize(value: Any?): Any? = when (value) {
+        is Int -> value.toLong()
+        is Short -> value.toLong()
+        is Byte -> value.toLong()
+        is Float -> value.toDouble()
+        is List<*> -> value.map { normalize(it) }
+        is Set<*> -> value.map { normalize(it) }.toSet()
+        is Map<*, *> -> value.entries.associate { (k, v) -> normalize(k) to normalize(v) }
+        is Array<*> -> value.map { normalize(it) }
+        else -> value
+    }
 }
 
 fun JsonObject.str(key: String): String = getValue(key).jsonPrimitive.content

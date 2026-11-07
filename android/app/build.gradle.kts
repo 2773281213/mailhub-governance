@@ -79,11 +79,11 @@ android {
 
     // angus-mail / jakarta.mail-api / angus-activation / jakarta.activation-api 四个 jar
     // 各自带一份 META-INF/LICENSE.md 和 META-INF/NOTICE.md，合并 Java 资源时按重名冲突处理。
-    // 它们内容都是同一批 EPL/GPL+CPE 许可声明，保留其中一份即可，所以用 pickFirsts
-    // 而不是整份丢掉（其余 META-INF 条目四个 jar 之间不重名）。
+    // 许可证并不相同：前两个是 EPL-2.0 或 GPL-2.0 加类路径例外，后两个是 EDL-1.0（BSD-3-Clause），
+    // 后者要求二进制分发保留版权与免责声明，所以用 merges 把几份拼在一起，不能只留一份（R1 审核）。
     packaging {
         resources {
-            pickFirsts += setOf("META-INF/LICENSE.md", "META-INF/NOTICE.md")
+            merges += setOf("META-INF/LICENSE.md", "META-INF/NOTICE.md")
         }
     }
 }
