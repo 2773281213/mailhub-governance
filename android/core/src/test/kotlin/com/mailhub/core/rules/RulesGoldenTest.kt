@@ -70,10 +70,29 @@ class RulesGoldenTest {
                 Rules.allowsCloudAi(args.str("category")),
             )
 
+            // 分类固定集合：逐项比较，顺序也要一致
+            "categories" -> Golden.diff(case.expected.toPlain(), Rules.CATEGORIES)
+
+            // 整张策略表：每个分类的 6 列逐字段比较
+            "category_policy" -> Golden.diff(
+                case.expected.toPlain(),
+                Rules.CATEGORY_POLICY.mapValues { (_, policy) -> policy.toPlain() },
+            )
+
             else -> "未知的函数名 ${case.fn}"
         }
     }
 }
+
+/** 把一条 [CategoryPolicy] 摊成与 Python `CATEGORY_POLICY` 逐字对应的 6 列字典。 */
+private fun CategoryPolicy.toPlain(): Map<String, Any> = linkedMapOf(
+    "risk" to risk,
+    "action" to action,
+    "keep" to keep,
+    "auto_del" to autoDel,
+    "cloud_ai" to cloudAi,
+    "alert" to alert,
+)
 
 /** 金标里的布尔参数；字段缺失时取默认值（Python 的默认参数）。 */
 private fun JsonObject.boolOr(key: String, default: Boolean): Boolean =

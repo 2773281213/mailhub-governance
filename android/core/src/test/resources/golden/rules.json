@@ -1974,6 +1974,570 @@
   },
   {
    "args": {
+    "body": "",
+    "custom_rules": [
+     {
+      "category": "订阅",
+      "field": "attachment",
+      "pattern": "发票"
+     }
+    ],
+    "has_unsubscribe": false,
+    "sender_addr": "someone@corp.example",
+    "signals": null,
+    "subject": "您的发票已开具"
+   },
+   "expected": {
+    "category": "账单",
+    "confidence": 0.9,
+    "hits": [
+     "bill"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "custom-unknown-field-no-match"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [
+     {
+      "category": "订阅",
+      "field": "attachment",
+      "pattern": "^$"
+     }
+    ],
+    "has_unsubscribe": false,
+    "sender_addr": "someone@corp.example",
+    "signals": null,
+    "subject": "您的发票已开具"
+   },
+   "expected": {
+    "category": "订阅",
+    "confidence": 0.95,
+    "hits": [
+     "custom"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "custom-unknown-field-empty-match"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [
+     {
+      "category": "订阅",
+      "field": "subject",
+      "pattern": ""
+     }
+    ],
+    "has_unsubscribe": false,
+    "sender_addr": "someone@corp.example",
+    "signals": null,
+    "subject": "随便一个标题"
+   },
+   "expected": {
+    "category": "订阅",
+    "confidence": 0.95,
+    "hits": [
+     "custom"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "custom-empty-pattern-subject"
+  },
+  {
+   "args": {
+    "body": "随便一段正文",
+    "custom_rules": [
+     {
+      "category": "通知",
+      "field": "body",
+      "pattern": ""
+     }
+    ],
+    "has_unsubscribe": false,
+    "sender_addr": "someone@corp.example",
+    "signals": null,
+    "subject": "随便一个标题"
+   },
+   "expected": {
+    "category": "通知",
+    "confidence": 0.95,
+    "hits": [
+     "custom"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "custom-empty-pattern-body"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [
+     {
+      "category": "账单",
+      "field": "subject",
+      "pattern": "发票"
+     },
+     {
+      "category": "订阅",
+      "field": "subject",
+      "pattern": "优惠"
+     }
+    ],
+    "has_unsubscribe": false,
+    "sender_addr": "someone@corp.example",
+    "signals": null,
+    "subject": "发票已开具，限时优惠"
+   },
+   "expected": {
+    "category": "账单",
+    "confidence": 0.95,
+    "hits": [
+     "custom"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "custom-first-wins"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [
+     {
+      "category": "订阅",
+      "field": "subject",
+      "pattern": "优惠"
+     },
+     {
+      "category": "账单",
+      "field": "subject",
+      "pattern": "发票"
+     }
+    ],
+    "has_unsubscribe": false,
+    "sender_addr": "someone@corp.example",
+    "signals": null,
+    "subject": "发票已开具，限时优惠"
+   },
+   "expected": {
+    "category": "订阅",
+    "confidence": 0.95,
+    "hits": [
+     "custom"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "custom-first-wins-reversed"
+  },
+  {
+   "args": {
+    "body": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx发票yyyyyyyyyy",
+    "custom_rules": [
+     {
+      "category": "账单",
+      "field": "body",
+      "pattern": "发票"
+     }
+    ],
+    "has_unsubscribe": false,
+    "sender_addr": "someone@corp.example",
+    "signals": null,
+    "subject": "随手一写"
+   },
+   "expected": {
+    "category": "账单",
+    "confidence": 0.95,
+    "hits": [
+     "custom"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "custom-body-boundary-inside"
+  },
+  {
+   "args": {
+    "body": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx发票yyyyyyyyyy",
+    "custom_rules": [
+     {
+      "category": "账单",
+      "field": "body",
+      "pattern": "发票"
+     }
+    ],
+    "has_unsubscribe": false,
+    "sender_addr": "someone@corp.example",
+    "signals": null,
+    "subject": "随手一写"
+   },
+   "expected": {
+    "category": "其他",
+    "confidence": 0.5,
+    "hits": [
+     "none"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "custom-body-boundary-straddle"
+  },
+  {
+   "args": {
+    "body": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx发票",
+    "custom_rules": [
+     {
+      "category": "账单",
+      "field": "body",
+      "pattern": "发票"
+     }
+    ],
+    "has_unsubscribe": false,
+    "sender_addr": "someone@corp.example",
+    "signals": null,
+    "subject": "随手一写"
+   },
+   "expected": {
+    "category": "其他",
+    "confidence": 0.5,
+    "hits": [
+     "none"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "custom-body-boundary-outside"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [
+     {
+      "category": "通知",
+      "field": "subject",
+      "pattern": "\\U0001F525"
+     }
+    ],
+    "has_unsubscribe": false,
+    "sender_addr": "someone@corp.example",
+    "signals": null,
+    "subject": "🔥 会议改期"
+   },
+   "expected": {
+    "category": "通知",
+    "confidence": 0.95,
+    "hits": [
+     "custom"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "custom-regex-uppercase-u8"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [
+     {
+      "category": "通知",
+      "field": "subject",
+      "pattern": "\\141bc"
+     }
+    ],
+    "has_unsubscribe": false,
+    "sender_addr": "someone@corp.example",
+    "signals": null,
+    "subject": "abc 会议改期"
+   },
+   "expected": {
+    "category": "通知",
+    "confidence": 0.95,
+    "hits": [
+     "custom"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "custom-regex-octal-escape"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [
+     {
+      "category": "通知",
+      "field": "subject",
+      "pattern": "(?#note)abc"
+     }
+    ],
+    "has_unsubscribe": false,
+    "sender_addr": "someone@corp.example",
+    "signals": null,
+    "subject": "xabc 会议改期"
+   },
+   "expected": {
+    "category": "通知",
+    "confidence": 0.95,
+    "hits": [
+     "custom"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "custom-regex-comment-group"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [
+     {
+      "category": "通知",
+      "field": "subject",
+      "pattern": "a\\vb"
+     }
+    ],
+    "has_unsubscribe": false,
+    "sender_addr": "someone@corp.example",
+    "signals": null,
+    "subject": "a\u000bb 会议改期"
+   },
+   "expected": {
+    "category": "通知",
+    "confidence": 0.95,
+    "hits": [
+     "custom"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "custom-regex-vertical-tab"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [
+     {
+      "category": "通知",
+      "field": "subject",
+      "pattern": "(?P<a_b>x)(?P<pyg1>y)"
+     }
+    ],
+    "has_unsubscribe": false,
+    "sender_addr": "someone@corp.example",
+    "signals": null,
+    "subject": "xy 会议改期"
+   },
+   "expected": {
+    "category": "通知",
+    "confidence": 0.95,
+    "hits": [
+     "custom"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "custom-regex-two-group-names"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [
+     {
+      "category": "订阅",
+      "field": "subject",
+      "pattern": "\\p{L}+"
+     }
+    ],
+    "has_unsubscribe": false,
+    "sender_addr": "someone@corp.example",
+    "signals": null,
+    "subject": "面试邀请：后端工程师"
+   },
+   "expected": {
+    "category": "重要",
+    "confidence": 0.9,
+    "hits": [
+     "important_strong"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "custom-reject-unknown-escape"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [
+     {
+      "category": "订阅",
+      "field": "subject",
+      "pattern": "(?P<1a>x)"
+     }
+    ],
+    "has_unsubscribe": false,
+    "sender_addr": "someone@corp.example",
+    "signals": null,
+    "subject": "面试邀请：后端工程师"
+   },
+   "expected": {
+    "category": "重要",
+    "confidence": 0.9,
+    "hits": [
+     "important_strong"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "custom-reject-bad-group-name"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [
+     {
+      "category": "订阅",
+      "field": "subject",
+      "pattern": "(a)\\12"
+     }
+    ],
+    "has_unsubscribe": false,
+    "sender_addr": "someone@corp.example",
+    "signals": null,
+    "subject": "面试邀请：后端工程师"
+   },
+   "expected": {
+    "category": "重要",
+    "confidence": 0.9,
+    "hits": [
+     "important_strong"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "custom-reject-bad-group-ref"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [
+     {
+      "category": "订阅",
+      "field": "subject",
+      "pattern": "[\\s-\\u4000]"
+     }
+    ],
+    "has_unsubscribe": false,
+    "sender_addr": "someone@corp.example",
+    "signals": null,
+    "subject": "面试邀请：后端工程师"
+   },
+   "expected": {
+    "category": "重要",
+    "confidence": 0.9,
+    "hits": [
+     "important_strong"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "custom-reject-bad-class-range"
+  },
+  {
+   "args": {},
+   "expected": [
+    "验证码",
+    "重要",
+    "账单",
+    "安全",
+    "可疑",
+    "订阅",
+    "通知",
+    "其他"
+   ],
+   "fn": "categories",
+   "id": "categories-order"
+  },
+  {
+   "args": {},
+   "expected": {
+    "其他": {
+     "action": "none",
+     "alert": false,
+     "auto_del": false,
+     "cloud_ai": true,
+     "keep": 0,
+     "risk": "low"
+    },
+    "可疑": {
+     "action": "quarantine",
+     "alert": true,
+     "auto_del": false,
+     "cloud_ai": false,
+     "keep": 0,
+     "risk": "high"
+    },
+    "安全": {
+     "action": "notify",
+     "alert": true,
+     "auto_del": false,
+     "cloud_ai": false,
+     "keep": 0,
+     "risk": "high"
+    },
+    "订阅": {
+     "action": "archive",
+     "alert": false,
+     "auto_del": true,
+     "cloud_ai": true,
+     "keep": 30,
+     "risk": "low"
+    },
+    "账单": {
+     "action": "remind",
+     "alert": false,
+     "auto_del": false,
+     "cloud_ai": false,
+     "keep": 0,
+     "risk": "low"
+    },
+    "通知": {
+     "action": "digest",
+     "alert": false,
+     "auto_del": true,
+     "cloud_ai": true,
+     "keep": 30,
+     "risk": "low"
+    },
+    "重要": {
+     "action": "notify",
+     "alert": true,
+     "auto_del": false,
+     "cloud_ai": true,
+     "keep": 0,
+     "risk": "low"
+    },
+    "验证码": {
+     "action": "label",
+     "alert": false,
+     "auto_del": true,
+     "cloud_ai": false,
+     "keep": 7,
+     "risk": "low"
+    }
+   },
+   "fn": "category_policy",
+   "id": "category-policy-table"
+  },
+  {
+   "args": {
     "has_unsubscribe": false,
     "signals": {
      "list_id": true
@@ -2456,6 +3020,262 @@
    },
    "fn": "classify_detailed",
    "id": "bulk-auto-submitted-only"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [],
+    "has_unsubscribe": true,
+    "sender_addr": "someone@corp.example",
+    "signals": null,
+    "subject": "面试邀请：后端工程师"
+   },
+   "expected": {
+    "category": "重要",
+    "confidence": 0.75,
+    "hits": [
+     "important_strong"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "important-strong-bulk-header"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "someone@corp.example",
+    "signals": {
+     "list_id": true
+    },
+    "subject": "面试邀请：后端工程师"
+   },
+   "expected": {
+    "category": "重要",
+    "confidence": 0.75,
+    "hits": [
+     "important_strong"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "important-strong-bulk-list"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [],
+    "has_unsubscribe": true,
+    "sender_addr": "promo@shop.example",
+    "signals": null,
+    "subject": "签证办理限时优惠"
+   },
+   "expected": {
+    "category": "订阅",
+    "confidence": 0.8,
+    "hits": [
+     "bulk_header"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "important-strong-bulk-promo"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "someone@corp.example",
+    "signals": null,
+    "subject": "签证办理限时优惠"
+   },
+   "expected": {
+    "category": "重要",
+    "confidence": 0.9,
+    "hits": [
+     "important_strong"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "important-strong-plain"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [],
+    "has_unsubscribe": true,
+    "sender_addr": "someone@corp.example",
+    "signals": null,
+    "subject": "AWS 账单已出"
+   },
+   "expected": {
+    "category": "账单",
+    "confidence": 0.8,
+    "hits": [
+     "bill"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "bill-bulk-header"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "someone@corp.example",
+    "signals": {
+     "list_id": true
+    },
+    "subject": "AWS 账单已出"
+   },
+   "expected": {
+    "category": "账单",
+    "confidence": 0.8,
+    "hits": [
+     "bill"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "bill-bulk-list"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "someone@corp.example",
+    "signals": null,
+    "subject": "AWS 账单已出"
+   },
+   "expected": {
+    "category": "账单",
+    "confidence": 0.9,
+    "hits": [
+     "bill"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "bill-plain"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "someone@corp.example",
+    "signals": null,
+    "subject": "包裹已签收，退款处理中"
+   },
+   "expected": {
+    "category": "其他",
+    "confidence": 0.5,
+    "hits": [
+     "none"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "shipping-with-payment-word"
+  },
+  {
+   "args": {
+    "body": "",
+    "custom_rules": [],
+    "has_unsubscribe": false,
+    "sender_addr": "someone@corp.example",
+    "signals": null,
+    "subject": "您的包裹已签收"
+   },
+   "expected": {
+    "category": "通知",
+    "confidence": 0.8,
+    "hits": [
+     "shipping"
+    ],
+    "otp": ""
+   },
+   "fn": "classify_detailed",
+   "id": "shipping-plain"
+  },
+  {
+   "args": {
+    "body": "",
+    "subject": "验证码🔥🔥🔥🔥384756"
+   },
+   "expected": "384756",
+   "fn": "extract_otp",
+   "id": "otp-context-before-emoji-ok"
+  },
+  {
+   "args": {
+    "body": "",
+    "subject": "验证码🔥🔥🔥🔥尾号 384756"
+   },
+   "expected": "",
+   "fn": "extract_otp",
+   "id": "otp-context-before-emoji-tail"
+  },
+  {
+   "args": {
+    "body": "",
+    "subject": "验证码 384756🔥🔥🔥 元"
+   },
+   "expected": "384756",
+   "fn": "extract_otp",
+   "id": "otp-context-after-emoji"
+  },
+  {
+   "args": {
+    "body": "",
+    "subject": "验证码 384756 元"
+   },
+   "expected": "",
+   "fn": "extract_otp",
+   "id": "otp-context-after-unit"
+  },
+  {
+   "args": {
+    "body": "",
+    "subject": "验证码 1234 AB12CD 987654"
+   },
+   "expected": "987654",
+   "fn": "extract_otp",
+   "id": "otp-priority-six-digit"
+  },
+  {
+   "args": {
+    "body": "",
+    "subject": "验证码 1234 AB12CD"
+   },
+   "expected": "1234",
+   "fn": "extract_otp",
+   "id": "otp-priority-four-digit"
+  },
+  {
+   "args": {
+    "body": "",
+    "subject": "验证码 AB12CD"
+   },
+   "expected": "AB12CD",
+   "fn": "extract_otp",
+   "id": "otp-priority-alnum"
+  },
+  {
+   "args": {
+    "body": "",
+    "subject": "验证码 2024 AB12CD"
+   },
+   "expected": "AB12CD",
+   "fn": "extract_otp",
+   "id": "otp-priority-year-skipped"
   },
   {
    "args": {

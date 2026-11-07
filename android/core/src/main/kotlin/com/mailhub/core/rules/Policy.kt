@@ -176,7 +176,22 @@ object Policy {
         return CleanableResult(true, "")
     }
 
-    /** 对应 Python `(msg.get("importance") or 0)`：缺失、0 都按 0 处理。 */
-    private fun importanceOrZero(value: Any?): Double =
-        if (Py.truthy(value)) (value as? Number)?.toDouble() ?: 0.0 else 0.0
+    /**
+     * 对应 Python `(msg.get("importance") or 0) >= 4`。
+     *
+     * 取值类型必须与 Python 一致：`None` 按 0 处理，`Number` 按其数值，`Boolean` 按 Python
+     * 里 `True == 1` / `False == 0` 处理。值是「真值但不是数字」（例如字符串 `"5"`）时，
+     * Python 的 `>= 4` 会抛 **TypeError**，异常一路冒到调用方，裁决拿不到结果、删除动作因此被阻断
+     * ——这是安全侧的结果。Kotlin 没有隐式比较，所以这里对应地抛 [IllegalArgumentException]：
+     * 调用方同样拿不到「允许」的结论，而不是把非数字当成 0 悄悄放行。
+     */
+    private fun importanceOrZero(value: Any?): Double = when (value) {
+        null -> 0.0
+        is Boolean -> if (value) 1.0 else 0.0
+        is Number -> value.toDouble()
+        else -> throw IllegalArgumentException(
+            "importance 必须是数字，实际是 ${value::class.simpleName}：「$value」。" +
+                "对应 Python 的 TypeError，删除动作被阻断",
+        )
+    }
 }

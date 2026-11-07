@@ -9,7 +9,9 @@ Kotlin 端在 com.mailhub.core.rules.Rules 里重写，必须与这里的每条�
 - tests/classification_corpus.py 的每条样本（参数取法与 tests/test_classification.py::_classify 相同）；
 - tests/test_classification.py 里其他用到 rules.* 的断言的输入；
 - 针对移植差异手写的合成用例：emoji 造成的码点/UTF-16 下标错开、全角数字、
-  Unicode 大小写折叠、用户自定义规则、群发信号的组合、换行符。
+  Unicode 大小写折叠、用户自定义规则（含各种正则写法与 3000 码点截断边界）、
+  群发信号的组合、群发降级与群发 + 营销抑制、验证码候选的上下文窗口与优先级、换行符；
+- 模块级常量 CATEGORIES 与 CATEGORY_POLICY 的整表（expected 是整张表，Kotlin 侧逐字段比较）。
 """
 from __future__ import annotations
 
@@ -31,6 +33,9 @@ FN = {
     "is_bulk": rules.is_bulk,
     "classify_detailed": rules.classify_detailed,
     "classify": rules.classify,
+    # 模块级常量：整张表一次导出，Kotlin 侧逐字段比较
+    "categories": lambda: rules.CATEGORIES,
+    "category_policy": lambda: rules.CATEGORY_POLICY,
 }
 
 FIRE = "\U0001F525"  # 🔥，U+1F525 在 UTF-16 里占两个码元
@@ -228,6 +233,66 @@ def custom_rule_cases() -> None:
     detailed("custom-otp-no-code", subject="[ALERT] 394857",
              rules_=[rule("subject", "\\[ALERT\\]", "验证码")])
 
+    # ---- 边界：field 不是 subject / sender / body ----
+    # 原实现是 {"subject": …, "sender": …, "body": …}.get(field, "")，未知 field 的目标是空串：
+    # 不能匹配空串的模式不命中，「^$」这类能匹配空串的模式命中
+    detailed("custom-unknown-field-no-match", subject="您的发票已开具",
+             rules_=[rule("attachment", "发票", "订阅")])
+    detailed("custom-unknown-field-empty-match", subject="您的发票已开具",
+             rules_=[rule("attachment", "^$", "订阅")])
+    # pattern 是空串：re.search("", target) 恒命中，等于命中全部邮件
+    detailed("custom-empty-pattern-subject", subject="随便一个标题",
+             rules_=[rule("subject", "", "订阅")])
+    detailed("custom-empty-pattern-body", subject="随便一个标题", body="随便一段正文",
+             rules_=[rule("body", "", "通知")])
+    # 两条合法规则同时命中：列表里靠前的那条胜出
+    detailed("custom-first-wins", subject="发票已开具，限时优惠",
+             rules_=[rule("subject", "发票", "账单"), rule("subject", "优惠", "订阅")])
+    detailed("custom-first-wins-reversed", subject="发票已开具，限时优惠",
+             rules_=[rule("subject", "优惠", "订阅"), rule("subject", "发票", "账单")])
+
+    # ---- field = "body"：匹配内容正好落在 3000 码点截断边界上 ----
+    # 「发票」起始于第 2995 个码点：整词在 body_head 内，命中
+    detailed("custom-body-boundary-inside", subject="随手一写",
+             body="x" * 2995 + "发票" + "y" * 10,
+             rules_=[rule("body", "发票", "账单")])
+    # 「发」是第 3000 个码点、「票」被截掉：整词不命中
+    detailed("custom-body-boundary-straddle", subject="随手一写",
+             body="x" * 2999 + "发票" + "y" * 10,
+             rules_=[rule("body", "发票", "账单")])
+    # 整词都在截断点之后
+    detailed("custom-body-boundary-outside", subject="随手一写",
+             body="x" * 3000 + "发票",
+             rules_=[rule("body", "发票", "账单")])
+
+    # ---- Python 能编译、旧版 Kotlin 会拒绝的写法 ----
+    detailed("custom-regex-uppercase-u8", subject=FIRE + " 会议改期",
+             rules_=[rule("subject", "\\U0001F525", "通知")])
+    # \141 是八进制转义（'a'），后面跟字面量 bc
+    detailed("custom-regex-octal-escape", subject="abc 会议改期",
+             rules_=[rule("subject", "\\141bc", "通知")])
+    # (?#…) 是注释，不占位置
+    detailed("custom-regex-comment-group", subject="xabc 会议改期",
+             rules_=[rule("subject", "(?#note)abc", "通知")])
+    # \v 是垂直制表符 U+000B
+    detailed("custom-regex-vertical-tab", subject="a\u000bb 会议改期",
+             rules_=[rule("subject", "a\\vb", "通知")])
+    # 两个不同的合法组名：a_b 不是合法 Java 组名（会被改名），pyg1 是合法组名，改名时不能撞上它
+    detailed("custom-regex-two-group-names", subject="xy 会议改期",
+             rules_=[rule("subject", "(?P<a_b>x)(?P<pyg1>y)", "通知")])
+
+    # ---- Python 拒绝的写法：re.error → 规则被跳过，落到后面的普通规则 ----
+    # 主题里含「面试」：规则只要没被跳过就会先命中（category=订阅），
+    # 所以期望的「重要 / important_strong」证明这条规则确实被跳过了
+    for cid, bad_pattern in (
+        ("custom-reject-unknown-escape", "\\p{L}+"),
+        ("custom-reject-bad-group-name", "(?P<1a>x)"),
+        ("custom-reject-bad-group-ref", "(a)\\12"),
+        ("custom-reject-bad-class-range", "[\\s-\\u4000]"),
+    ):
+        detailed(cid, subject="面试邀请：后端工程师",
+                 rules_=[rule("subject", bad_pattern, "订阅")])
+
 
 # ---------------- 5. 群发信号的组合 ----------------
 
@@ -300,6 +365,73 @@ def newline_cases() -> None:
         has_unsubscribe=False, custom_rules=[], signals=None)
 
 
+# ---------------- 7. 分类策略整表 ----------------
+
+def category_table_cases() -> None:
+    """CATEGORIES 的顺序与整张 CATEGORY_POLICY（6 列），Kotlin 侧逐字段比较。
+
+    这两个是模块级常量，不是函数：expected 是整张表，所以 fn 用 FN 里的零参数取值器。
+    """
+    add("categories", "categories-order")
+    add("category_policy", "category-policy-table")
+
+
+# ---------------- 8. 分支组合：群发降级、群发 + 营销抑制、物流与付款同现 ----------------
+
+def branch_combination_cases() -> None:
+    def detailed(cid: str, subject: str, *, sender_addr: str = "someone@corp.example",
+                 unsubscribe: bool = False, body: str = "",
+                 signals: dict | None = None) -> None:
+        add("classify_detailed", cid, subject=subject, body=body, sender_addr=sender_addr,
+            has_unsubscribe=unsubscribe, custom_rules=[], signals=signals)
+
+    # 强重要信号 + 群发（没有营销词）：置信度降为 CONF_BULK_STRONG
+    detailed("important-strong-bulk-header", "面试邀请：后端工程师", unsubscribe=True)
+    detailed("important-strong-bulk-list", "面试邀请：后端工程师",
+             signals={"list_id": True})
+    # 强重要信号 + 群发 + 营销词：整个分支被抑制，落到群发分支（订阅）
+    detailed("important-strong-bulk-promo", "签证办理限时优惠", unsubscribe=True,
+             sender_addr="promo@shop.example")
+    # 同一主题、非群发：强重要信号照常命中 CONF_STRONG
+    detailed("important-strong-plain", "签证办理限时优惠")
+
+    # 账单 + 群发：置信度降为 CONF_MEDIUM
+    detailed("bill-bulk-header", "AWS 账单已出", unsubscribe=True)
+    detailed("bill-bulk-list", "AWS 账单已出", signals={"list_id": True})
+    detailed("bill-plain", "AWS 账单已出")
+
+    # 物流词与付款词同时出现：跳过 shipping 分支（不是账单，也不是物流通知）
+    detailed("shipping-with-payment-word", "包裹已签收，退款处理中")
+    # 只有物流词：正常走 shipping 分支
+    detailed("shipping-plain", "您的包裹已签收")
+
+
+# ---------------- 9. 验证码候选：12 / 6 码点上下文窗口与优先级 ----------------
+
+def code_context_cases() -> None:
+    # 候选码前面 12 个码点的窗口里有 emoji（窗口按码点算，emoji 占 2 个 UTF-16 码元）
+    add("extract_otp", "otp-context-before-emoji-ok",
+        subject="验证码" + FIRE * 4 + "384756", body="")
+    # 同一条前面隔着 emoji 的「尾号 」：候选码是尾号而不是验证码
+    add("extract_otp", "otp-context-before-emoji-tail",
+        subject="验证码" + FIRE * 4 + "尾号 384756", body="")
+    # 候选码后面 6 个码点的窗口里有 emoji：「元」不再紧跟在候选码后 → 仍然取得到
+    add("extract_otp", "otp-context-after-emoji",
+        subject="验证码 384756" + FIRE * 3 + " 元", body="")
+    # 对照：没有 emoji 时「元」落在窗口开头 → 是金额，不是验证码
+    add("extract_otp", "otp-context-after-unit", subject="验证码 384756 元", body="")
+
+    # 同一窗口里的候选优先级：6 位数字 > 4-8 位数字 > 字母数字混合码
+    add("extract_otp", "otp-priority-six-digit",
+        subject="验证码 1234 AB12CD 987654", body="")
+    add("extract_otp", "otp-priority-four-digit",
+        subject="验证码 1234 AB12CD", body="")
+    add("extract_otp", "otp-priority-alnum", subject="验证码 AB12CD", body="")
+    # 年份被 _BAD_NUMS 排除，「AB12CD」成为唯一候选
+    add("extract_otp", "otp-priority-year-skipped",
+        subject="验证码 2024 AB12CD", body="")
+
+
 def build_cases() -> list[dict]:
     corpus_cases()
     confidence_cases()
@@ -309,7 +441,10 @@ def build_cases() -> list[dict]:
     fullwidth_cases()
     case_cases()
     custom_rule_cases()
+    category_table_cases()
     bulk_cases()
+    branch_combination_cases()
+    code_context_cases()
     newline_cases()
     return CASES
 

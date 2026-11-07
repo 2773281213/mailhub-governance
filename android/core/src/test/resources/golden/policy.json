@@ -10876,6 +10876,106 @@
    ],
    "fn": "is_protected",
    "id": "prot-13"
+  },
+  {
+   "args": {
+    "msg": {
+     "category": "通知",
+     "importance": "5"
+    }
+   },
+   "expected": {
+    "raised": "TypeError"
+   },
+   "fn": "is_protected",
+   "id": "importance-str-is-protected"
+  },
+  {
+   "args": {
+    "action": "soft_delete",
+    "actor": "user",
+    "confidence": 1.0,
+    "confirmed": true,
+    "msg": {
+     "category": "通知",
+     "importance": "5"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": {
+    "raised": "TypeError"
+   },
+   "fn": "evaluate",
+   "id": "importance-str-soft-delete"
+  },
+  {
+   "args": {
+    "action": "archive",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": "5"
+    },
+    "override_protection": false,
+    "user_rule": true
+   },
+   "expected": {
+    "raised": "TypeError"
+   },
+   "fn": "evaluate",
+   "id": "importance-str-archive"
+  },
+  {
+   "args": {
+    "msg": {
+     "category": "通知",
+     "importance": true
+    }
+   },
+   "expected": [
+    false,
+    ""
+   ],
+   "fn": "is_protected",
+   "id": "importance-bool-true"
+  },
+  {
+   "args": {
+    "msg": {
+     "category": "通知",
+     "importance": false
+    }
+   },
+   "expected": [
+    false,
+    ""
+   ],
+   "fn": "is_protected",
+   "id": "importance-bool-false"
+  },
+  {
+   "args": {
+    "action": "label",
+    "actor": "system",
+    "confidence": 1.0,
+    "confirmed": false,
+    "msg": {
+     "category": "通知",
+     "importance": "5"
+    },
+    "override_protection": false,
+    "user_rule": false
+   },
+   "expected": [
+    true,
+    "A",
+    "允许"
+   ],
+   "fn": "evaluate",
+   "id": "importance-str-label"
   }
  ],
  "generator": "scripts/golden/policy.py",

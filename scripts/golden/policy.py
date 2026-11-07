@@ -10,7 +10,8 @@ Kotlin 端在 com.mailhub.core.rules.Policy 里重写，必须与这里的每条
 - tests/test_security.py、tests/test_billing.py 里所有 policy.* 调用的输入；
 - 穷举 ACTION_TIER 的每个动作 + 一个未知动作 × actor × confirmed × user_rule ×
   override_protection × 若干典型 msg（控制在 600 条以内）；
-- 置信度边界值（含 f"{x:.2f}" 的进位）、全部分类的 filter_cleanable。
+- 置信度边界值（含 f"{x:.2f}" 的进位）、全部分类的 filter_cleanable；
+- importance 不是数字时 Python 抛 TypeError 的用例（expected 写成 {"raised": "TypeError"}）。
 """
 from __future__ import annotations
 
@@ -54,12 +55,36 @@ def add(fn: str, cid: str, **args) -> None:
     CASES.append({"id": cid, "fn": fn, "args": args, "expected": FN[fn](**args)})
 
 
+def add_raises(fn: str, cid: str, **args) -> None:
+    """记录「Python 抛 TypeError」这个结果：expected 写成 {"raised": "TypeError"}。
+
+    Kotlin 侧看到这种 expected 就必须抛 IllegalArgumentException（对应 Python 的 TypeError），
+    见 android/core/src/main/kotlin/com/mailhub/core/rules/Policy.kt 的 KDoc。
+    Python 没抛说明用例前提不成立，导出时直接失败，免得金标悄悄记下一个错误的前提。
+    """
+    try:
+        FN[fn](**args)
+    except TypeError:
+        CASES.append({"id": cid, "fn": fn, "args": args, "expected": {"raised": "TypeError"}})
+        return
+    raise AssertionError(f"{cid}：Python 没有抛 TypeError，用例前提不成立")
+
+
 def evaluate(cid: str, action: str, msg: dict, *, actor: str = "system",
              confidence: float = 1.0, user_rule: bool = False,
              confirmed: bool = False, override_protection: bool = False) -> None:
     """参数按 Python evaluate 的签名铺平，缺失的用默认值补齐（金标里不省略字段）。"""
     add("evaluate", cid, action=action, msg=msg, actor=actor, confidence=confidence,
         user_rule=user_rule, confirmed=confirmed, override_protection=override_protection)
+
+
+def evaluate_raises(cid: str, action: str, msg: dict, *, actor: str = "system",
+                    confidence: float = 1.0, user_rule: bool = False,
+                    confirmed: bool = False, override_protection: bool = False) -> None:
+    """同 evaluate，但期望 Python 抛 TypeError（见 add_raises）。"""
+    add_raises("evaluate", cid, action=action, msg=msg, actor=actor,
+               confidence=confidence, user_rule=user_rule, confirmed=confirmed,
+               override_protection=override_protection)
 
 
 # ---------------- tests/test_security.py ----------------
@@ -198,12 +223,39 @@ def protected_cases() -> None:
         add("is_protected", f"prot-{i:02d}", msg=msg)
 
 
+# ---------------- importance 的类型：非数字时 Python 抛 TypeError ----------------
+
+def importance_type_cases() -> None:
+    """`(msg.get("importance") or 0) >= 4` 的取值类型。
+
+    importance 是「真值但不是数字」（例如字符串 "5"）时，Python 的 `>= 4` 抛 TypeError，
+    异常一路冒到调用方，裁决拿不到结果，删除动作因此被阻断——这是安全侧的结果。
+    Kotlin 侧对应抛 IllegalArgumentException（见 Policy.kt 的 KDoc），所以这里导出「抛错」这个结果。
+    """
+    broken = {"category": "通知", "importance": "5"}
+    # is_protected 直接抛
+    add_raises("is_protected", "importance-str-is-protected", msg=broken)
+    # 破坏性动作先过受保护判定，所以 evaluate 也抛（即使调用方已经确认）
+    evaluate_raises("importance-str-soft-delete", "soft_delete", broken,
+                    actor="user", confirmed=True)
+    evaluate_raises("importance-str-archive", "archive", broken,
+                    actor="system", user_rule=True)
+    # 布尔值是 int 的子类（True == 1），不抛错：不构成「≥4」，不算受保护
+    add("is_protected", "importance-bool-true",
+        msg={"category": "通知", "importance": True})
+    add("is_protected", "importance-bool-false",
+        msg={"category": "通知", "importance": False})
+    # 不是破坏性动作就不经过受保护判定，非数字的 importance 不抛错
+    evaluate("importance-str-label", "label", broken, actor="system")
+
+
 def build_cases() -> list[dict]:
     security_test_cases()
     billing_test_cases()
     exhaustive_cases()
     confidence_cases()
     protected_cases()
+    importance_type_cases()
     return CASES
 
 

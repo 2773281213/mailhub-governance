@@ -2,6 +2,7 @@ package com.mailhub.core.rules
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -64,5 +65,23 @@ class PolicyTest {
         )
         assertEquals(Rules.CATEGORIES.toSet(), Policy.CLEANABLE_CATEGORIES + Policy.PROTECTED_CATEGORIES +
             setOf("可疑", "其他"))
+    }
+
+    @Test
+    fun nonNumericImportanceIsRejectedLikePythonsTypeError() {
+        // Python：`(msg.get("importance") or 0) >= 4` 遇到字符串 "5" 抛 TypeError，
+        // 裁决拿不到结果，删除动作因此被阻断。Kotlin 对应抛 IllegalArgumentException。
+        val broken: Map<String, Any?> = mapOf("category" to "通知", "importance" to "5")
+        assertThrows(IllegalArgumentException::class.java) { Policy.isProtected(broken) }
+        assertThrows(IllegalArgumentException::class.java) {
+            Policy.evaluate("soft_delete", broken, actor = "user", confirmed = true)
+        }
+        // 非破坏性动作不经过受保护判定，不抛错
+        assertTrue(Policy.evaluate("label", broken, actor = "system").allowed)
+        // 布尔值是 int 的子类（True == 1）：不抛错，也不构成「≥ 4」
+        assertEquals(ProtectionResult(false, ""),
+            Policy.isProtected(mapOf("category" to "通知", "importance" to true)))
+        assertEquals(ProtectionResult(false, ""),
+            Policy.isProtected(mapOf("category" to "通知", "importance" to false)))
     }
 }
