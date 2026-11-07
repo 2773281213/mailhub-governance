@@ -27,6 +27,9 @@ dependencies {
     implementation(libs.jakarta.mail.api)
     implementation(libs.angus.mail)
     implementation(libs.angus.activation)
+    // 读取 Python 导出的数据表（html.unescape 的实体表等）；金标测试也用它解析 JSON。
+    // 只用 JsonElement API，不需要序列化编译器插件。
+    implementation(libs.kotlinx.serialization.json)
 
     testImplementation(libs.junit)
 }
