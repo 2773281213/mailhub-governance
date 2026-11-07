@@ -1,0 +1,176 @@
+package com.mailhub.core.billing
+
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+/**
+ * 手写的可读用例：挑几条最能说明契约的输入，逐条写清期望。
+ * 与 Python 的逐字一致性由 [BillingGoldenTest] 保证，这里只保证实现意图没跑偏。
+ */
+class BillingTest {
+
+    @Test
+    fun amountPrefersTheOneNearTotalHint() {
+        // 「赠送 500 元代金券」离「总计」很远，不能被当成账单金额
+        val amount = Billing.extractAmount("小计 10 元，总计 12 元，赠送 500 元代金券")
+        assertEquals(12.0, amount.value!!, 0.0)
+        assertEquals("CNY", amount.currency)
+
+        // $ 后面跟着明确的币种代码时以代码为准
+        assertEquals(Amount(25.0, "USD"), Billing.extractAmount("Total: $25.00 USD"))
+    }
+
+    @Test
+    fun amountAcceptsFullWidthDigitsAndEuropeanStyle() {
+        assertEquals(Amount(99.0, "CNY"), Billing.extractAmount("￥９９"))
+        assertEquals(Amount(1299.0, "EUR"), Billing.extractAmount("Order total: €1.299,00"))
+        assertEquals(Amount(12.5, "EUR"), Billing.extractAmount("Total: 12,5 €"))
+    }
+
+    @Test
+    fun amountSkipsHugeAndUnknownCurrency() {
+        assertEquals(Amount(null, null), Billing.extractAmount("Total: ¥12,000,000.00"))
+        assertEquals(Amount(null, null), Billing.extractAmount("Total: 100 XYZ"))
+    }
+
+    @Test
+    fun toCnyRoundsToTwoDecimals() {
+        assertEquals(720.0, Billing.toCny(100.0, "USD")!!, 0.0)
+        assertEquals(8.33, Billing.toCny(49.0, "UAH")!!, 0.0)
+        assertNull(Billing.toCny(null, "USD"))
+        assertNull(Billing.toCny(100.0, "XYZ"))
+        assertNull(Billing.toCny(100.0, ""))
+    }
+
+    @Test
+    fun templateKeyGroupsSameKindOfMail() {
+        val a = Billing.templateKey("noreply@shop.example", "Your Order Receipt from Oct 23, 2026")
+        val b = Billing.templateKey("NoReply@SHOP.EXAMPLE", "Your Order Receipt from Sep 3, 2026")
+        val other = Billing.templateKey("other@mail.example", "Your Order Receipt from Oct 23, 2026")
+        assertEquals(a, b)
+        assertEquals("mail.example|your order receipt from <m> # #", other)
+        assertTrue(a.startsWith("shop.example|"))
+    }
+
+    @Test
+    fun facetsCoverDirectionAndAcquired() {
+        val sale = Billing.extractFacets(
+            "您在社区市场上售出了一件物品",
+            "物品已售出。您的钱包已获得 4.07 UAH。总计： 4.07 UAH",
+        )
+        assertEquals("in", sale["direction"])
+        assertEquals("other", sale["initiator"])
+        assertEquals(4.07, sale["amount"])
+        assertEquals("UAH", sale["currency"])
+
+        val purchase = Billing.extractFacets(
+            "感谢您在商店的购买！",
+            "以下物品已添加到您的游戏库。共计花费： 49₴",
+        )
+        assertEquals("out", purchase["direction"])
+        assertEquals("self", purchase["initiator"])
+        assertEquals("entitlement", purchase["acquired"])
+    }
+
+    @Test
+    fun actionRequiredBillIsImportant() {
+        val facets = Billing.extractFacets(
+            "Payment failed for your subscription",
+            "We were unable to charge your card ending in 4242.",
+        )
+        assertEquals(true, facets["action"])
+        assertEquals(Billing.TIER_IMPORTANT, Billing.decideTier(facets).tier)
+    }
+
+    @Test
+    fun tierPolicyCanBeOverriddenByConfig() {
+        val expense = mapOf<String, Any?>("direction" to "out", "initiator" to "self", "cny" to 10)
+        // 用户偏好优先于一切
+        assertEquals(Billing.TIER_MINOR, Billing.decideTier(expense, preference = "一般").tier)
+        // 金额阈值：字符串、整数都能覆盖，非法值回退默认 200
+        val big = mapOf<String, Any?>("direction" to "in", "cny" to 500)
+        assertEquals(Billing.TIER_IMPORTANT, Billing.decideTier(big).tier)
+        assertEquals(
+            Billing.TIER_MINOR,
+            Billing.decideTier(big, cfg = mapOf("amount_threshold" to 0)).tier,
+        )
+        assertEquals(
+            Billing.TIER_MINOR,
+            Billing.decideTier(big, cfg = mapOf("amount_threshold" to "900")).tier,
+        )
+        assertEquals(
+            Billing.TIER_IMPORTANT,
+            Billing.decideTier(big, cfg = mapOf("amount_threshold" to "abc")).tier,
+        )
+        // 自动续费与退款按设置
+        val renew = mapOf<String, Any?>("direction" to "out", "initiator" to "auto", "cny" to 10)
+        assertEquals(
+            Billing.TIER_MINOR,
+            Billing.decideTier(renew, cfg = mapOf("auto_renew" to "一般")).tier,
+        )
+    }
+
+    @Test
+    fun routineCountBoundary() {
+        val unknown = mapOf<String, Any?>("direction" to "unknown")
+        assertEquals(Billing.TIER_IMPORTANT, Billing.decideTier(unknown, routineCount = 9).tier)
+        assertEquals(Billing.TIER_MINOR, Billing.decideTier(unknown, routineCount = 10).tier)
+        assertEquals(Billing.TIER_IMPORTANT, Billing.decideTier(unknown, routineCount = 0).tier)
+        // routine_count 设成 0 等于关闭「例行流水」降级
+        assertEquals(
+            Billing.TIER_IMPORTANT,
+            Billing.decideTier(unknown, routineCount = 99, cfg = mapOf("routine_count" to 0)).tier,
+        )
+    }
+
+    @Test
+    fun tierReasonMentionsAmountAndThresholdWithPythonGFormat() {
+        val big = mapOf<String, Any?>("direction" to "out", "cny" to 9216.0)
+        assertEquals("金额约 ¥9216，不低于阈值 ¥200", Billing.decideTier(big).reason)
+        val huge = mapOf<String, Any?>("direction" to "out", "cny" to 12345678.0)
+        assertEquals("金额约 ¥1.23457e+07，不低于阈值 ¥200", Billing.decideTier(huge).reason)
+    }
+
+    @Test
+    fun aiOnlyFillsUnknownDimensions() {
+        val local = mapOf<String, Any?>(
+            "direction" to "out",
+            "initiator" to "unknown",
+            "acquired" to "unknown",
+            "action" to false,
+        )
+        val merged = Billing.mergeAiFacets(
+            local,
+            mapOf("direction" to "in", "initiator" to "self", "acquired" to "bogus", "action" to true),
+        )
+        assertEquals("out", merged["direction"])
+        assertEquals("self", merged["initiator"])
+        assertEquals("unknown", merged["acquired"])
+        assertEquals(true, merged["action"])
+        assertEquals(listOf("initiator", "action"), merged["ai_filled"])
+    }
+
+    @Test
+    fun storedFacetsContainNoRawText() {
+        val facets = Billing.extractFacets("您的订单收据", "已支付 39 元，支付方式：银行卡")
+        val stored = Billing.storedFacets(facets)
+        assertEquals(
+            setOf("direction", "initiator", "acquired", "action", "channel", "amount", "currency", "cny"),
+            stored.keys,
+        )
+        assertFalse(stored.toString().contains("银行卡"))
+        assertEquals("real", stored["channel"])
+    }
+
+    @Test
+    fun importanceFollowsTierAndAction() {
+        assertEquals(2, Billing.tierImportance(Billing.TIER_MINOR, emptyMap(), 0))
+        assertEquals(2, Billing.tierImportance(Billing.TIER_MINOR, emptyMap(), 5))
+        assertEquals(3, Billing.tierImportance(Billing.TIER_IMPORTANT, emptyMap(), 0))
+        assertEquals(4, Billing.tierImportance(Billing.TIER_IMPORTANT, mapOf("action" to true), 0))
+        assertEquals(5, Billing.tierImportance(Billing.TIER_IMPORTANT, mapOf("action" to true), 5))
+    }
+}
