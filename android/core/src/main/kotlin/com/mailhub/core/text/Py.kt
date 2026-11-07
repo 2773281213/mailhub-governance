@@ -691,4 +691,42 @@ object Py {
         val text = BigDecimal(value).setScale(digits, RoundingMode.HALF_EVEN).abs().toPlainString()
         return if (negative) "-$text" else text
     }
+
+    /**
+     * Python 的 `f"{value:.{digits}%}"`：先按 double 乘以 100，再按 [formatFixed] 格式化，加百分号。
+     * 例如 0.755 是 "76%"、0.745 是 "74%"（乘完恰好是 .5，按五成双舍入）。`governance.py` 用 `:.0%`。
+     */
+    fun formatPercent(value: Double, digits: Int = 0): String = formatFixed(value * 100.0, digits) + "%"
+
+    /**
+     * Python 的 `f"{value:g}"` / `f"{value:.{precision}g}"`（默认 6 位有效数字）。规则：
+     * - 先对二进制精确值按有效数字四舍六入五成双，得到舍入后的指数 exp；
+     * - -4 ≤ exp < precision 用定点写法，否则用科学计数法（指数至少两位，带正负号）；
+     * - 都去掉小数部分末尾的 0 和多余的小数点，**整数部分的 0 不动**（100000.0 是 "100000"）；
+     * - 0 是 "0"，负零是 "-0"，nan / inf / -inf 照写。
+     * `billing.py`、`app.py` 用到它。
+     */
+    fun formatG(value: Double, precision: Int = 6): String {
+        if (value.isNaN()) return "nan"
+        if (value.isInfinite()) return if (value > 0) "inf" else "-inf"
+        val p = if (precision <= 0) 1 else precision
+        val negative = value < 0 || (value == 0.0 && 1.0 / value < 0)
+        val sign = if (negative) "-" else ""
+        if (value == 0.0) return sign + "0"
+        val rounded = BigDecimal(value).abs().round(java.math.MathContext(p, RoundingMode.HALF_EVEN))
+        val exponent = rounded.precision() - rounded.scale() - 1
+        if (exponent < -4 || exponent >= p) {
+            val digits = rounded.unscaledValue().toString().padEnd(p, '0').substring(0, p).trimEnd('0').ifEmpty { "0" }
+            val mantissa = if (digits.length > 1) digits.substring(0, 1) + "." + digits.substring(1) else digits
+            val expSign = if (exponent < 0) "-" else "+"
+            return sign + mantissa + "e" + expSign + Math.abs(exponent).toString().padStart(2, '0')
+        }
+        val fractionDigits = p - 1 - exponent
+        var text = rounded.setScale(fractionDigits, RoundingMode.HALF_EVEN).toPlainString()
+        if (fractionDigits > 0) {
+            text = text.trimEnd('0')
+            if (text.endsWith('.')) text = text.dropLast(1)
+        }
+        return sign + text
+    }
 }

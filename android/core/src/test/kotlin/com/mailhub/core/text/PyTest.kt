@@ -250,6 +250,32 @@ class PyTest {
     }
 
     @Test
+    fun formatGMatchesPython() {
+        // 期望值来自 Python 3.13 的 format(x, "g")
+        val cases = listOf(
+            100000.0 to "100000", 180000.0 to "180000", 99999.99 to "100000", 123450.5 to "123450",
+            1234565.0 to "1.23456e+06", 1e-05 to "1e-05", 0.0000125 to "1.25e-05", 1e16 to "1e+16",
+            12345678.0 to "1.23457e+07", 0.0001 to "0.0001", 0.00001234 to "1.234e-05", -0.0 to "-0",
+            0.0 to "0", 1.5 to "1.5", 9216.0 to "9216", 250.5 to "250.5", 200.0 to "200", 1299.5 to "1299.5",
+            7.2 to "7.2", 0.1 to "0.1", 1e100 to "1e+100", 123456.5 to "123456", 999999.5 to "1e+06",
+            -1234.5 to "-1234.5", 5e-324 to "4.94066e-324", 1.7976931348623157e308 to "1.79769e+308",
+            Double.NaN to "nan", Double.POSITIVE_INFINITY to "inf", Double.NEGATIVE_INFINITY to "-inf",
+        )
+        cases.forEach { (value, python) -> assertEquals("$value", python, Py.formatG(value)) }
+    }
+
+    @Test
+    fun formatPercentMatchesPython() {
+        val cases = listOf(
+            0.755 to "76%", 0.745 to "74%", 0.5 to "50%", 0.85 to "85%", 0.75 to "75%", 0.0 to "0%",
+            1.0 to "100%", 0.123 to "12%", 0.005 to "0%", 0.015 to "2%", 0.025 to "2%",
+        )
+        cases.forEach { (value, python) -> assertEquals("$value", python, Py.formatPercent(value)) }
+        assertEquals("75.5%", Py.formatPercent(0.755, 1))
+        assertEquals("74.5%", Py.formatPercent(0.745, 1))
+    }
+
+    @Test
     fun floatAcceptsAtMostOneSign() {
         listOf("+-inf", "+-nan", "-+inf", "--1").forEach { assertNull(it, Py.float(it)) }
         assertEquals(1.0, Py.float("+1")!!, 0.0)
