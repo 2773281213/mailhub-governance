@@ -104,6 +104,9 @@ object PyRegex {
 
     private val PY_GROUP_DEF: Pattern = Pattern.compile("\\(\\?P<([^>]*)>")
 
+    /** 单独的内联标志，例如 `(?i)`、`(?im)`；带冒号的 `(?i:…)` 是非捕获组，不在此列。 */
+    private val INLINE_FLAGS: Pattern = Pattern.compile("\\(\\?([aiLmsux]+)\\)")
+
     /**
      * Python 的 `\w`：`str.isalnum()` 或下划线，即字母（L*）和带数值的字符（N*，含 ½、①）。
      * Java 和 ICU 的 `\w` 还把组合附加符（Mn/Mc/Me，例如 emoji 后面的 U+FE0F）、连接标点和 ZWJ 算进去，
@@ -156,6 +159,16 @@ object PyRegex {
         private val usedJavaNames = HashSet<String>()
         private var nextPyg = 1
 
+        /**
+         * 捕获组的编号与闭合状态。Python 的反向引用（`\1`、`(?P=name)`）只能指向已经闭合的组，
+         * 否则报错；Java 对不存在的组号会拆成「`\1` 加字面量 2」继续匹配，所以要在这里拦下（R2 审核）。
+         */
+        private var groupCount = 0
+        private val openGroups = ArrayDeque<Int>()
+        private val closedGroups = HashSet<Int>()
+        private val nameOfGroup = HashMap<Int, String>()
+        private val closedNames = HashSet<String>()
+
         init {
             // 先收集所有合法 Java 组名，自动取名时避开它们
             val m = PY_GROUP_DEF.matcher(p)
@@ -196,11 +209,46 @@ object PyRegex {
                 c == '(' && p.startsWith("(?P=", i) -> groupReference()
                 c == '(' && p.startsWith("(?<", i) && !p.startsWith("(?<=", i) && !p.startsWith("(?<!", i) ->
                     fail("Python 不支持 (?<name>…)")
+                c == '(' -> openParen()
+                c == ')' -> {
+                    val number = openGroups.removeLastOrNull() ?: fail("括号不配对")
+                    if (number > 0) {
+                        closedGroups += number
+                        nameOfGroup[number]?.let { closedNames += it }
+                    }
+                    out.append(')')
+                    i++
+                }
                 c == '{' -> brace()
                 c == '}' -> { out.append("\\}"); i++ }
                 c == ']' -> { out.append("\\]"); i++ }
                 else -> { out.append(c); i++ }
             }
+        }
+
+        /** 普通括号：不带 `?` 的是捕获组；`(?i)` 这类单独的内联标志不开组；其余 `(?…` 开非捕获组。 */
+        private fun openParen() {
+            if (!p.startsWith("(?", i)) {
+                groupCount++
+                openGroups.addLast(groupCount)
+                out.append('(')
+                i++
+                return
+            }
+            val flags = INLINE_FLAGS.matcher(p).region(i, p.length)
+            if (flags.lookingAt()) {
+                val letters = flags.group(1)
+                // (?a)、(?L) 改变 \w 等的含义，这里的显式集合表达不了，宁可让规则失效也不要匹配错
+                if ('a' in letters || 'L' in letters) fail("不支持 (?a) / (?L)")
+                // Java 的 (?i) 只折叠 ASCII 大小写，Python 的是 Unicode，所以补上 u
+                val javaFlags = letters.replace("u", "") + if ('i' in letters) "u" else ""
+                if (javaFlags.isNotEmpty()) out.append("(?").append(javaFlags).append(')')
+                i = flags.end()
+                return
+            }
+            openGroups.addLast(0)
+            out.append('(')
+            i++
         }
 
         private fun brace() {
@@ -274,6 +322,7 @@ object PyRegex {
                 digits.append(p[i])
                 i++
             }
+            if (digits.toString().toInt() !in closedGroups) fail("反向引用指向不存在或未闭合的组")
             out.append("(?:\\").append(digits).append(')')
         }
 
@@ -330,6 +379,9 @@ object PyRegex {
                 candidate
             }
             groupNames[name] = javaName
+            groupCount++
+            openGroups.addLast(groupCount)
+            nameOfGroup[groupCount] = name
             out.append("(?<").append(javaName).append('>')
             i = close + 1
         }
@@ -338,7 +390,8 @@ object PyRegex {
             val close = p.indexOf(')', i + 4)
             if (close < 0) fail("组引用没有结束")
             val name = p.substring(i + 4, close)
-            val javaName = groupNames[name] ?: fail("引用了未定义的组名")
+            if (name !in closedNames) fail("引用了未定义或未闭合的组名")
+            val javaName = groupNames.getValue(name)
             out.append("\\k<").append(javaName).append('>')
             i = close + 1
         }

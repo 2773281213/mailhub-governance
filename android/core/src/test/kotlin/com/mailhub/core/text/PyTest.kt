@@ -65,6 +65,21 @@ class PyTest {
     }
 
     @Test
+    fun backReferencesMustPointToClosedGroups() {
+        listOf("(a)\\2", "(a\\1)", "(?P<x>a(?P=x))", "(a)\\12", "a)").forEach { assertTrue(it, pythonRejects(it)) }
+        assertTrue(full("(a)\\1", "aa"))
+        assertTrue(full("(?P<x>a)(?P=x)", "aa"))
+        assertFalse(pythonRejects("(?u)a"))
+    }
+
+    @Test
+    fun inlineIgnoreCaseIsUnicode() {
+        assertTrue(full("(?i)abc", "ABC"))
+        assertTrue(full("(?i)s", "ſ"))
+        assertTrue(full("(?s)a.b", "a\nb"))
+    }
+
+    @Test
     fun boundariesMatchPython313() {
         assertFalse(find("\\B", "\uD840\uDC00"))
         assertEquals("-\uD83D\uDE00-", PyRegex.compile("\\B").matcher("\uD83D\uDE00").replaceAll("-"))
