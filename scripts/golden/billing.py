@@ -13,10 +13,13 @@ Kotlin 端在 com.mailhub.core.billing.Billing 里重写，必须与这里的每
   多个金额与「总计」提示词的距离；每个direction / initiator / acquired / channel
   的中英文样例；退款只出现在正文；免费物品；他人购买；自动续费；需要处理；
   template_key 的括号编号、月份星期、数字、中文标点、超长主题截断、大写域名、
-  没有 @ 的发件人；decide_tier 的每条策略分支与阈值边界、cfg 的字符串/整数/浮点/非法值。
+  没有 @ 的发件人；decide_tier 的每条策略分支与阈值边界、cfg 的字符串/整数/浮点/非法值、
+  超出 Long 范围的大整数与非有限值（nan / inf 字符串）、定级理由里 100000 这类整数的 %g 写法；
+  merge_ai_facets 在已有 ai_filled 列表上追加。
 """
 from __future__ import annotations
 
+import copy
 import sys
 from pathlib import Path
 
@@ -47,8 +50,13 @@ def _plain(value):
 
 
 def add(fn: str, cid: str, **args) -> None:
-    """按 fn 的名字调用 Python 原实现，把输入和实际输出都记下来。"""
-    CASES.append({"id": cid, "fn": fn, "args": args, "expected": _plain(FN[fn](**args))})
+    """按 fn 的名字调用 Python 原实现，把输入和实际输出都记下来。
+
+    参数先深拷贝再记下来：`merge_ai_facets` 会原地修改传入的画像（往 ai_filled 里追加），
+    不拷贝的话金标里的 args 会记成被改过之后的样子。
+    """
+    snapshot = copy.deepcopy(args)
+    CASES.append({"id": cid, "fn": fn, "args": snapshot, "expected": _plain(FN[fn](**args))})
 
 
 # ---------------- tests/test_billing.py：BILL_CORPUS ----------------
@@ -294,6 +302,11 @@ def merge_cases() -> None:
     # 本地 direction 已识别时不被覆盖，但 action 仍可补
     add("merge_ai_facets", "merge-keep-local", local={"direction": "refund", "action": False},
         ai_facets={"direction": "in", "action": True})
+    # 已存在的 ai_filled 是列表：Python 追加到原列表末尾（Kotlin 不能原地改只读 List，要复制再写回）
+    add("merge_ai_facets", "merge-existing-ai-filled",
+        local={"direction": "unknown", "initiator": "unknown", "acquired": "unknown",
+               "ai_filled": ["acquired"]},
+        ai_facets={"direction": "in", "initiator": "auto", "acquired": "service"})
 
 
 # ---------------- template_key ----------------
@@ -412,6 +425,18 @@ def decide_tier_cases() -> None:
     tier("amount-exponent", {"direction": "out", "cny": 12345678.0})
     tier("amount-int", {"direction": "out", "cny": 9216})
 
+    # 定级理由里的金额用 Python 的 %g：整数末尾的 0 不能删（100000 是 "100000"，不是 "1"）
+    for cid, cny in [
+        ("100000", 100000),
+        ("180000", 180000),
+        ("99999-99", 99999.99),
+        ("123450-5", 123450.5),
+        ("1234565", 1234565),
+        ("0-0000125", 0.0000125),
+    ]:
+        tier(f"reason-g-cny-{cid}", {"direction": "out", "initiator": "self", "cny": cny},
+             cfg={"amount_threshold": 100000})
+
     # cfg：字符串 / 整数 / 浮点 / 非法值
     tier("cfg-threshold-str", {"direction": "out", "cny": 260}, cfg={"amount_threshold": "250"})
     tier("cfg-threshold-int", {"direction": "out", "cny": 260}, cfg={"amount_threshold": 250})
@@ -425,6 +450,9 @@ def decide_tier_cases() -> None:
          cfg={"amount_threshold": ""})
     tier("cfg-threshold-list", {"direction": "out", "cny": 260},
          cfg={"amount_threshold": [1, 2]})
+    # float("nan") / float("inf") 是合法值，与任何金额都比不出来，于是继续走后面的策略
+    tier("cfg-threshold-inf", {"direction": "out", "cny": 260}, cfg={"amount_threshold": "inf"})
+    tier("cfg-threshold-nan", {"direction": "out", "cny": 260}, cfg={"amount_threshold": "nan"})
     tier("cfg-unknown-key", {"direction": "out", "cny": 10},
          cfg={"no_such_key": 1, "auto_renew": "一般"})
     tier("cfg-empty", {"direction": "out", "cny": 10}, cfg={})
@@ -448,6 +476,16 @@ def decide_tier_cases() -> None:
     tier("routine-cfg-empty", UNKNOWN_TIER, routine_count=10, cfg={"routine_count": ""})
     tier("routine-cfg-list", UNKNOWN_TIER, routine_count=12,
          cfg={"routine_count": [1, 2, 3]})
+    # routine_count 超出 Long 范围：Python 是大整数，结论仍是「不是例行」，Kotlin 不能截断回绕
+    tier("routine-cfg-huge-str", UNKNOWN_TIER, routine_count=12,
+         cfg={"routine_count": "18446744073709551621"})
+    tier("routine-cfg-huge-float", UNKNOWN_TIER, routine_count=12,
+         cfg={"routine_count": 1e308})
+    # int("nan") / int("inf") 抛 ValueError，回退默认值 10（routine_count=12 时仍算例行）
+    tier("routine-cfg-nan-str", UNKNOWN_TIER, routine_count=12,
+         cfg={"routine_count": "nan"})
+    tier("routine-cfg-inf-str", UNKNOWN_TIER, routine_count=12,
+         cfg={"routine_count": "inf"})
 
     # 本人主动支出：获得物标签
     for acquired in ("entitlement", "physical", "service", "balance", "virtual_item",

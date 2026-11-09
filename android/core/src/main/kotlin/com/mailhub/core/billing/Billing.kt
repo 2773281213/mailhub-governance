@@ -7,8 +7,7 @@ import com.mailhub.core.text.cpLen
 import com.mailhub.core.text.cpSlice
 import com.mailhub.core.text.pyStrip
 import java.math.BigDecimal
-import java.math.MathContext
-import java.math.RoundingMode
+import java.math.BigInteger
 import java.util.Locale
 import java.util.regex.Pattern
 
@@ -435,10 +434,13 @@ object Billing {
 
     // ---------------- 定级策略 ----------------
 
-    /** 对应 Python `_config`：把设置里的覆盖值并到默认值上，非法值回退默认。 */
+    /**
+     * 对应 Python `_config`：把设置里的覆盖值并到默认值上，非法值回退默认。
+     * `routine_count` 用 [BigInteger]，与 Python 的任意精度整数一致（设置里可能是超出 Long 范围的数字字符串）。
+     */
     private data class TierConfig(
         val amountThreshold: Double,
-        val routineCount: Long,
+        val routineCount: BigInteger,
         val autoRenew: String,
         val refund: String,
     )
@@ -472,7 +474,7 @@ object Billing {
         ) {
             return TierDecision(
                 TIER_IMPORTANT,
-                "金额约 ¥${formatPyG(cnyValue)}，不低于阈值 ¥${formatPyG(c.amountThreshold)}",
+                "金额约 ¥${Py.formatG(cnyValue)}，不低于阈值 ¥${Py.formatG(c.amountThreshold)}",
             )
         }
         if (direction == "out" && initiator == "self") {
@@ -491,7 +493,7 @@ object Billing {
         if (acquired == "virtual_item" && facets["channel"] == "balance") {
             return TierDecision(TIER_MINOR, "平台余额内的虚拟物品流转")
         }
-        if (c.routineCount > 0 && routineCount >= c.routineCount) {
+        if (c.routineCount.signum() > 0 && BigInteger.valueOf(routineCount) >= c.routineCount) {
             return TierDecision(TIER_MINOR, "同类邮件近 30 天 $routineCount 封，属于例行流水")
         }
         return TierDecision(TIER_IMPORTANT, "信息不足，保守视为重要")
@@ -580,12 +582,21 @@ object Billing {
     }
 
     /**
-     * 对应 Python 的 `merged.setdefault("ai_filled", []).append(key)`：
-     * 没有这个键就先放一个空列表，再往同一份列表里追加（与 Python 一样复用已存在的列表）。
+     * 对应 Python 的 `merged.setdefault("ai_filled", []).append(key)`。
+     * Python 直接往已有的列表里追加；调用方传进来的 `ai_filled` 可能是不变列表（例如 `listOf("direction")`），
+     * 强转成可变列表再 `add` 会抛 [UnsupportedOperationException]，所以复制成可变列表再写回 [merged]。
+     * 结果内容与 Python 相同（追加到原列表末尾）；值不是集合时 Python 会抛 AttributeError，这里换成新列表。
      */
-    @Suppress("UNCHECKED_CAST")
-    private fun aiFilled(merged: MutableMap<String, Any?>): MutableList<Any?> =
-        merged.getOrPut("ai_filled") { mutableListOf<Any?>() } as MutableList<Any?>
+    private fun aiFilled(merged: MutableMap<String, Any?>): MutableList<Any?> {
+        val existing = merged["ai_filled"]
+        val list = if (existing is Collection<*>) {
+            existing.mapTo(mutableListOf<Any?>()) { it }
+        } else {
+            mutableListOf()
+        }
+        merged["ai_filled"] = list
+        return list
+    }
 
     /** 对应 Python `_first`：按顺序找第一个命中的枚举值。 */
     private fun firstFacet(
@@ -638,8 +649,8 @@ object Billing {
         }
         val threshold = asDouble(merged["amount_threshold"])
             ?: (DEFAULTS["amount_threshold"] as Double)
-        val routine = asLong(merged["routine_count"])
-            ?: (DEFAULTS["routine_count"] as Int).toLong()
+        val routine = asBigInt(merged["routine_count"])
+            ?: BigInteger.valueOf((DEFAULTS["routine_count"] as Int).toLong())
         fun tierOrDefault(key: String): String {
             val value = merged[key]
             return if (value is String && value in TIERS) value else DEFAULTS.getValue(key) as String
@@ -647,58 +658,42 @@ object Billing {
         return TierConfig(threshold, routine, tierOrDefault("auto_renew"), tierOrDefault("refund"))
     }
 
-    /** 对应 Python 的 `float(value)`：失败（TypeError / ValueError）返回 null。 */
+    /**
+     * 对应 Python 的 `float(value)`：失败（TypeError / ValueError）返回 null。
+     * `float("nan")` / `float("inf")` 在 Python 里是合法值（不抛异常），这里照样返回 [Double.NaN] / 无穷。
+     */
     private fun asDouble(value: Any?): Double? = when (value) {
         is Boolean -> if (value) 1.0 else 0.0
         is Double -> value
         is Float -> value.toDouble()
+        is BigDecimal -> value.toDouble()
+        is BigInteger -> value.toDouble()
         is Long -> value.toDouble()
         is Int -> value.toDouble()
-        is java.math.BigInteger -> value.toDouble()
+        is Short -> value.toDouble()
+        is Byte -> value.toDouble()
         is String -> Py.float(value)
         else -> null
     }
 
-    /** 对应 Python 的 `int(value)`：失败（TypeError / ValueError）返回 null；小数向零截断。 */
-    private fun asLong(value: Any?): Long? = when (value) {
-        is Boolean -> if (value) 1L else 0L
-        is Double -> value.toLong()
-        is Float -> value.toDouble().toLong()
-        is Long -> value
-        is Int -> value.toLong()
-        is java.math.BigInteger -> value.toLong()
-        is String -> Py.int(value)?.toLong()
+    /**
+     * 对应 Python 的 `int(value)`：失败（TypeError / ValueError）返回 null；小数向零截断。
+     * 整数是任意精度的，所以返回 [BigInteger]：`int("18446744073709551621")` 不会被截断回绕成 5。
+     * 非有限的浮点数（nan / inf）在 Python 里会抛 ValueError / OverflowError，这里返回 null 走默认值
+     * ——不能像 `Double.toLong()` 那样把它当成 0。
+     */
+    private fun asBigInt(value: Any?): BigInteger? = when (value) {
+        is Boolean -> if (value) BigInteger.ONE else BigInteger.ZERO
+        is BigInteger -> value
+        is BigDecimal -> value.toBigInteger()
+        is Double -> if (value.isFinite()) BigDecimal.valueOf(value).toBigInteger() else null
+        is Float -> asBigInt(value.toDouble())
+        is Long -> BigInteger.valueOf(value)
+        is Int -> BigInteger.valueOf(value.toLong())
+        is Short -> BigInteger.valueOf(value.toLong())
+        is Byte -> BigInteger.valueOf(value.toLong())
+        is String -> Py.int(value)
         else -> null
     }
 }
 
-/**
- * Python 的 `f"{value:g}"`（默认 6 位有效数字）：按二进制精确值四舍六入五成双，
- * 去掉尾随的零；指数小于 -4 或不小于精度时改用科学计数法，指数至少两位。
- *
- * Py.kt 里没有对应工具（`formatFixed` 是 `f"{x:.2f}"`），所以放在这个包里，
- * 只用于拼定级理由里的金额文案。
- */
-private fun formatPyG(value: Double, precision: Int = 6): String {
-    if (value.isNaN()) return "nan"
-    if (value.isInfinite()) return if (value > 0) "inf" else "-inf"
-    val negative = value < 0.0 || (value == 0.0 && 1.0 / value < 0.0)
-    if (value == 0.0) return if (negative) "-0" else "0"
-    val rounded = BigDecimal(value).abs().round(MathContext(precision, RoundingMode.HALF_EVEN))
-    // 最高有效位对应的 10 的幂
-    val exponent = rounded.precision() - rounded.scale() - 1
-    val body = if (exponent < -4 || exponent >= precision) {
-        // 科学计数法：尾数补齐到 precision 位有效数字后去掉尾随的零
-        val digits = rounded.unscaledValue().toString().padEnd(precision, '0').trimEnd('0')
-            .ifEmpty { "0" }
-        val fraction = if (digits.length > 1) "." + digits.substring(1) else ""
-        val sign = if (exponent < 0) "-" else "+"
-        "${digits.substring(0, 1)}$fraction" + "e" + sign + Math.abs(exponent).toString().padStart(2, '0')
-    } else {
-        val fractionDigits = precision - 1 - exponent
-        val text = rounded.setScale(fractionDigits, RoundingMode.HALF_EVEN).toPlainString()
-            .trimEnd('0')
-        if (text.endsWith('.')) text.dropLast(1) else text
-    }
-    return if (negative) "-$body" else body
-}

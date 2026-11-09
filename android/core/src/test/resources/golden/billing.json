@@ -4295,6 +4295,36 @@
   },
   {
    "args": {
+    "ai_facets": {
+     "acquired": "service",
+     "direction": "in",
+     "initiator": "auto"
+    },
+    "local": {
+     "acquired": "unknown",
+     "ai_filled": [
+      "acquired"
+     ],
+     "direction": "unknown",
+     "initiator": "unknown"
+    }
+   },
+   "expected": {
+    "acquired": "service",
+    "ai_filled": [
+     "acquired",
+     "direction",
+     "initiator",
+     "acquired"
+    ],
+    "direction": "in",
+    "initiator": "auto"
+   },
+   "fn": "merge_ai_facets",
+   "id": "merge-existing-ai-filled"
+  },
+  {
+   "args": {
     "sender_addr": "noreply@shop.example",
     "subject": "Your Order Receipt from Oct 23, 2026"
    },
@@ -5058,6 +5088,126 @@
   {
    "args": {
     "cfg": {
+     "amount_threshold": 100000
+    },
+    "facets": {
+     "cny": 100000,
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "金额约 ¥100000，不低于阈值 ¥100000"
+   ],
+   "fn": "decide_tier",
+   "id": "reason-g-cny-100000"
+  },
+  {
+   "args": {
+    "cfg": {
+     "amount_threshold": 100000
+    },
+    "facets": {
+     "cny": 180000,
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "金额约 ¥180000，不低于阈值 ¥100000"
+   ],
+   "fn": "decide_tier",
+   "id": "reason-g-cny-180000"
+  },
+  {
+   "args": {
+    "cfg": {
+     "amount_threshold": 100000
+    },
+    "facets": {
+     "cny": 99999.99,
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "本人主动支出，获得商品或服务"
+   ],
+   "fn": "decide_tier",
+   "id": "reason-g-cny-99999-99"
+  },
+  {
+   "args": {
+    "cfg": {
+     "amount_threshold": 100000
+    },
+    "facets": {
+     "cny": 123450.5,
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "金额约 ¥123450，不低于阈值 ¥100000"
+   ],
+   "fn": "decide_tier",
+   "id": "reason-g-cny-123450-5"
+  },
+  {
+   "args": {
+    "cfg": {
+     "amount_threshold": 100000
+    },
+    "facets": {
+     "cny": 1234565,
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "金额约 ¥1.23456e+06，不低于阈值 ¥100000"
+   ],
+   "fn": "decide_tier",
+   "id": "reason-g-cny-1234565"
+  },
+  {
+   "args": {
+    "cfg": {
+     "amount_threshold": 100000
+    },
+    "facets": {
+     "cny": 1.25e-05,
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "本人主动支出，获得商品或服务"
+   ],
+   "fn": "decide_tier",
+   "id": "reason-g-cny-0-0000125"
+  },
+  {
+   "args": {
+    "cfg": {
      "amount_threshold": "250"
     },
     "facets": {
@@ -5190,6 +5340,44 @@
    ],
    "fn": "decide_tier",
    "id": "cfg-threshold-list"
+  },
+  {
+   "args": {
+    "cfg": {
+     "amount_threshold": "inf"
+    },
+    "facets": {
+     "cny": 260,
+     "direction": "out"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "cfg-threshold-inf"
+  },
+  {
+   "args": {
+    "cfg": {
+     "amount_threshold": "nan"
+    },
+    "facets": {
+     "cny": 260,
+     "direction": "out"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "cfg-threshold-nan"
   },
   {
    "args": {
@@ -5521,6 +5709,86 @@
    ],
    "fn": "decide_tier",
    "id": "routine-cfg-list"
+  },
+  {
+   "args": {
+    "cfg": {
+     "routine_count": "18446744073709551621"
+    },
+    "facets": {
+     "acquired": "unknown",
+     "direction": "unknown",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 12
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "routine-cfg-huge-str"
+  },
+  {
+   "args": {
+    "cfg": {
+     "routine_count": 1e+308
+    },
+    "facets": {
+     "acquired": "unknown",
+     "direction": "unknown",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 12
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "routine-cfg-huge-float"
+  },
+  {
+   "args": {
+    "cfg": {
+     "routine_count": "nan"
+    },
+    "facets": {
+     "acquired": "unknown",
+     "direction": "unknown",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 12
+   },
+   "expected": [
+    "一般",
+    "同类邮件近 30 天 12 封，属于例行流水"
+   ],
+   "fn": "decide_tier",
+   "id": "routine-cfg-nan-str"
+  },
+  {
+   "args": {
+    "cfg": {
+     "routine_count": "inf"
+    },
+    "facets": {
+     "acquired": "unknown",
+     "direction": "unknown",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 12
+   },
+   "expected": [
+    "一般",
+    "同类邮件近 30 天 12 封，属于例行流水"
+   ],
+   "fn": "decide_tier",
+   "id": "routine-cfg-inf-str"
   },
   {
    "args": {

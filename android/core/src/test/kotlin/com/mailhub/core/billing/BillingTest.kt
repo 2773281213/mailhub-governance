@@ -1,5 +1,9 @@
 package com.mailhub.core.billing
 
+import java.io.File
+import java.math.BigDecimal
+import java.math.BigInteger
+
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -172,5 +176,160 @@ class BillingTest {
         assertEquals(3, Billing.tierImportance(Billing.TIER_IMPORTANT, emptyMap(), 0))
         assertEquals(4, Billing.tierImportance(Billing.TIER_IMPORTANT, mapOf("action" to true), 0))
         assertEquals(5, Billing.tierImportance(Billing.TIER_IMPORTANT, mapOf("action" to true), 5))
+    }
+
+    @Test
+    fun tierReasonFormatsRoundAmountsLikePythonG() {
+        // 阈值 100000：Python 的 `f"{100000.0:g}"` 是 "100000"，删掉整数末尾的 0 会变成 "1"
+        fun reason(cny: Double) = Billing.decideTier(
+            mapOf<String, Any?>("direction" to "out", "initiator" to "self", "cny" to cny),
+            cfg = mapOf("amount_threshold" to 100000),
+        ).reason
+        assertEquals("金额约 ¥100000，不低于阈值 ¥100000", reason(100000.0))
+        assertEquals("金额约 ¥180000，不低于阈值 ¥100000", reason(180000.0))
+        assertEquals("金额约 ¥123450，不低于阈值 ¥100000", reason(123450.5))
+        assertEquals("金额约 ¥1.23456e+06，不低于阈值 ¥100000", reason(1234565.0))
+        // 不到阈值：继续走后一条策略
+        assertEquals("本人主动支出，获得商品或服务", reason(99999.99))
+        assertEquals("本人主动支出，获得商品或服务", reason(0.0000125))
+    }
+
+    @Test
+    fun routineCountBeyondLongRangeIsNotRoutine() {
+        val unknown = mapOf<String, Any?>("direction" to "unknown")
+        // Python 的 int() 得到大整数；截断回绕会变成 5，从而误判成「例行流水」
+        assertEquals(
+            Billing.TIER_IMPORTANT,
+            Billing.decideTier(
+                unknown,
+                routineCount = 12,
+                cfg = mapOf("routine_count" to "18446744073709551621"),
+            ).tier,
+        )
+        assertEquals(
+            Billing.TIER_IMPORTANT,
+            Billing.decideTier(
+                unknown,
+                routineCount = 12,
+                cfg = mapOf("routine_count" to BigInteger("18446744073709551621")),
+            ).tier,
+        )
+    }
+
+    @Test
+    fun nonFiniteRoutineCountFallsBackToDefault() {
+        val unknown = mapOf<String, Any?>("direction" to "unknown")
+        // int(nan) / int(inf) 在 Python 里抛异常，回退默认值 10；Double.toLong() 会给 0
+        for (value in listOf<Any>(Double.NaN, Double.POSITIVE_INFINITY, -Double.NEGATIVE_INFINITY,
+                Float.NaN, "nan", "inf")) {
+            assertEquals(
+                "routine_count = $value",
+                Billing.TIER_MINOR,
+                Billing.decideTier(unknown, routineCount = 10, cfg = mapOf("routine_count" to value)).tier,
+            )
+            assertEquals(
+                "routine_count = $value",
+                Billing.TIER_IMPORTANT,
+                Billing.decideTier(unknown, routineCount = 9, cfg = mapOf("routine_count" to value)).tier,
+            )
+        }
+        // 阈值是 nan / inf：比较不出大小，金额这条不命中
+        val out = mapOf<String, Any?>("direction" to "out", "cny" to 1000)
+        assertEquals(
+            "信息不足，保守视为重要",
+            Billing.decideTier(out, cfg = mapOf("amount_threshold" to Double.NaN)).reason,
+        )
+        assertEquals(
+            "信息不足，保守视为重要",
+            Billing.decideTier(out, cfg = mapOf("amount_threshold" to Double.POSITIVE_INFINITY)).reason,
+        )
+    }
+
+    @Test
+    fun configAcceptsOtherNumberTypes() {
+        val out = mapOf<String, Any?>("direction" to "out", "cny" to 260)
+        val unknown = mapOf<String, Any?>("direction" to "unknown")
+        // amount_threshold：Short / Byte / BigDecimal / BigInteger 与 float() 结果相同
+        assertEquals(
+            "金额约 ¥260，不低于阈值 ¥250",
+            Billing.decideTier(out, cfg = mapOf("amount_threshold" to 250.toShort())).reason,
+        )
+        assertEquals(
+            "金额约 ¥260，不低于阈值 ¥100",
+            Billing.decideTier(out, cfg = mapOf("amount_threshold" to 100.toByte())).reason,
+        )
+        assertEquals(
+            "金额约 ¥260，不低于阈值 ¥250",
+            Billing.decideTier(out, cfg = mapOf("amount_threshold" to BigInteger("250"))).reason,
+        )
+        assertEquals(
+            "金额约 ¥260，不低于阈值 ¥250.5",
+            Billing.decideTier(out, cfg = mapOf("amount_threshold" to BigDecimal("250.5"))).reason,
+        )
+        // routine_count：同样按 int() 处理，小数向零截断
+        for (value in listOf<Any>(12.toShort(), 12.toByte(), BigInteger("12"), BigDecimal("12.9"))) {
+            assertEquals(
+                "routine_count = $value",
+                Billing.TIER_MINOR,
+                Billing.decideTier(unknown, routineCount = 12, cfg = mapOf("routine_count" to value)).tier,
+            )
+        }
+    }
+
+    @Test
+    fun aiFilledAppendsToExistingReadOnlyList() {
+        // 调用方传进来的 ai_filled 是只读 List：不能强转成可变列表再 add
+        val local = mapOf<String, Any?>(
+            "direction" to "unknown",
+            "initiator" to "unknown",
+            "acquired" to "unknown",
+            "ai_filled" to listOf("acquired"),
+        )
+        val merged = Billing.mergeAiFacets(
+            local,
+            mapOf("direction" to "in", "initiator" to "auto", "acquired" to "service"),
+        )
+        assertEquals("in", merged["direction"])
+        assertEquals("auto", merged["initiator"])
+        assertEquals("service", merged["acquired"])
+        // 与 Python 一样追加到原列表末尾
+        assertEquals(listOf("acquired", "direction", "initiator", "acquired"), merged["ai_filled"])
+        // 复制后写回，原字典里的列表不被改动
+        assertEquals(listOf("acquired"), local["ai_filled"])
+    }
+
+    @Test
+    fun policyCodeIsNotTiedToAnyBrandOrSender() {
+        // 与 tests/test_billing.py::test_policy_code_is_not_tied_to_any_brand_or_sender 等价：
+        // 定级只依赖通用的交易画像，源码里不允许出现品牌名或发件域名
+        val source = billingSource().lowercase()
+        // 支付方式名称（visa、paypal、apple pay 等）是通用的渠道特征，不算商户品牌
+        for (brand in listOf(
+            "steam", "valve", "google play", "epic", "gog", "jd.com", "taobao", "amazon",
+            "playstation", "xbox", "nintendo", "humble", "oracle", "aihub", "green man",
+        )) {
+            assertFalse("Billing.kt 里出现了品牌名 $brand", source.contains(brand))
+        }
+        assertFalse(
+            "Billing.kt 里出现了发件域名",
+            Regex("""[a-z0-9-]+\.(com|net|org|cn|top|io|xyz)\b""").containsMatchIn(source),
+        )
+    }
+
+    /** 读 `Billing.kt` 源码：Gradle 的工作目录就是模块目录，往上也找几级以兼容其它入口。 */
+    private fun billingSource(): String {
+        val relative = listOf(
+            "src/main/kotlin/com/mailhub/core/billing/Billing.kt",
+            "core/src/main/kotlin/com/mailhub/core/billing/Billing.kt",
+        )
+        var base: File? = File(System.getProperty("user.dir")).absoluteFile
+        while (base != null) {
+            for (path in relative) {
+                val file = File(base, path)
+                if (file.isFile) return file.readText()
+            }
+            base = base.parentFile
+        }
+        throw AssertionError("找不到 Billing.kt，工作目录是 ${System.getProperty("user.dir")}")
     }
 }
