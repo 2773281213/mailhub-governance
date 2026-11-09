@@ -1,0 +1,63 @@
+{
+  "name": "custom_rules",
+  "now": 1760000000.0,
+  "limit": 0,
+  "preclassify": true,
+  "runs": [
+    {"trigger": "system", "force": false, "since_days": 0}
+  ],
+  "post": [
+    {"op": "backfill_template_keys", "batch": 5},
+    {"op": "retier_bills", "template": "", "only_missing": false}
+  ],
+  "accounts": [
+    {"id": 1, "name": "规则邮箱", "provider": "custom", "email": "rules@example.test",
+     "imap_host": "imap.example.test"}
+  ],
+  "settings": {"ai_enabled": "0"},
+  "rules": [
+    {"name": "验证码优先", "field": "subject", "pattern": "校验码", "category": "验证码",
+     "priority": 1, "enabled": 1},
+    {"name": "发票归档", "field": "subject", "pattern": "发票|invoice", "category": "账单",
+     "priority": 10, "enabled": 1},
+    {"name": "VIP 发件人", "field": "sender", "pattern": "vip@", "category": "重要",
+     "priority": 20, "enabled": 1},
+    {"name": "面试正文", "field": "body", "pattern": "面试", "category": "重要",
+     "priority": 30, "enabled": 1},
+    {"name": "坏正则", "field": "subject", "pattern": "([", "category": "订阅",
+     "priority": 40, "enabled": 1},
+    {"name": "已停用的规则", "field": "subject", "pattern": "验证码", "category": "验证码",
+     "priority": 5, "enabled": 0}
+  ],
+  "bill_prefs": [],
+  "messages": [
+    {"id": 1, "account_id": 1, "uid": 1, "subject": "您的发票已开具",
+     "sender_addr": "billing@shop.example", "date_ts": 1759999000.0,
+     "snippet": "发票金额 120 元", "body_text": "发票金额 120 元",
+     "category": "未分类", "created_ts": 1759999500.0},
+    {"id": 2, "account_id": 1, "uid": 2, "subject": "来自 VIP 的邀请",
+     "sender_addr": "vip@corp.example", "date_ts": 1759998000.0,
+     "snippet": "请查收", "body_text": "请查收邀请函", "category": "未分类"},
+    {"id": 3, "account_id": 1, "uid": 3, "subject": "面试通知",
+     "sender_addr": "hr@corp.example", "date_ts": 1759997000.0,
+     "snippet": "面试安排在周五", "body_text": "面试安排在周五下午",
+     "category": "未分类", "created_ts": 1759999600.0},
+    {"id": 4, "account_id": 1, "uid": 4, "subject": "校验码 384756",
+     "sender_addr": "noreply@shop.example", "date_ts": 1759996000.0,
+     "snippet": "校验码 384756", "body_text": "您的校验码为 384756，请勿泄露",
+     "category": "未分类"},
+    {"id": 5, "account_id": 1, "uid": 5, "subject": "普通邮件",
+     "sender_addr": "person@example.com", "date_ts": 1759995000.0,
+     "snippet": "你好", "body_text": "你好，最近怎么样", "category": "未分类"},
+    {"id": 6, "account_id": 1, "uid": 6, "subject": "invoice [INV-1]",
+     "sender_addr": "vip@corp.example", "date_ts": 1759994000.0,
+     "snippet": "请查收发票", "body_text": "请查收发票附件", "category": "未分类"},
+    {"id": 7, "account_id": 1, "uid": 7, "subject": "验证码提醒",
+     "sender_addr": "notice@shop.example", "date_ts": 1759993000.0,
+     "snippet": "请使用验证码登录", "body_text": "请使用验证码登录",
+     "category": "未分类"},
+    {"id": 8, "account_id": 1, "uid": 8, "subject": "([测试",
+     "sender_addr": "person@example.com", "date_ts": 1759992000.0,
+     "snippet": "坏正则测试", "body_text": "坏正则测试", "category": "未分类"}
+  ]
+}
