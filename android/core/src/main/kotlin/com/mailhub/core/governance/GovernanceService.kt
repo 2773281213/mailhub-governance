@@ -181,10 +181,18 @@ class GovernanceService(
      *
      * 与 Python 一样按 JSON **文本**判断 `bill_facets` 是否需要更新；本机写的 JSON 键顺序
      * 固定，文本稳定。返回实际更新的行数。
+     *
+     * 两处有意的偏差：
+     * - **UPDATE 带 `AND bill_tier_locked=0`。** 快照（[selectIds] / 这里的 SELECT）之后、
+     *   落库之前用户可能刚好手动锁定等级，此时跳过该行，不覆盖「用户手动设定」；
+     * - **事务按 [Governance.CHUNK_SIZE] 分块。** Python 是上万行一个大事务一次
+     *   `commit()`；手机上那会让界面的查询排在大事务后面等很久（WAL 只有一个写者）。
+     *   retier 是幂等的（同样的画像必然算出同样的等级），中途失败重跑一次就补齐，
+     *   分块安全。返回值只统计真正被改写的行。
      */
     fun retierBills(template: String = "", onlyMissing: Boolean = false): Int {
         // 读取与画像计算都在事务外（Python 的第一条 UPDATE 才开始写事务，语义相同），
-        // 事务里只做最后的几条 UPDATE，避免长时间占着数据库锁。
+        // 事务里只剩 UPDATE，且按 CHUNK_SIZE 分块，避免长时间占着数据库锁。
         var where = "category='账单' AND deleted_ts=0 AND bill_tier_locked=0"
         val args = mutableListOf<Any?>()
         if (template.isNotEmpty()) {
@@ -246,19 +254,31 @@ class GovernanceService(
             }
         }
         if (updates.isEmpty()) return 0
-        return db.transaction {
-            for (update in updates) {
-                db.execute(
-                    "UPDATE messages SET bill_tier=?, bill_facets=?, importance=? WHERE id=?",
-                    update.bill.tier,
-                    update.facetsJson,
-                    update.importance,
-                    update.id,
-                )
-                log.info("账单重新定级 #${update.id} → ${update.bill.tier}账单：${update.bill.reason}")
+        // 每 CHUNK_SIZE 条一个事务：界面查询最多排在这么一小块的后面，而不是上万行的大事务。
+        // 对应 Python 的「全部写完再一次 commit」，差异见 KDoc。
+        var changed = 0
+        var start = 0
+        while (start < updates.size) {
+            val end = minOf(start + Governance.CHUNK_SIZE, updates.size)
+            changed += db.transaction {
+                var written = 0
+                for (update in updates.subList(start, end)) {
+                    val result = db.execute(
+                        "UPDATE messages SET bill_tier=?, bill_facets=?, importance=? " +
+                            "WHERE id=? AND bill_tier_locked=0",
+                        update.bill.tier,
+                        update.facetsJson,
+                        update.importance,
+                        update.id,
+                    )
+                    written += result.changes.toInt()
+                    log.info("账单重新定级 #${update.id} → ${update.bill.tier}账单：${update.bill.reason}")
+                }
+                written
             }
-            updates.size
+            start = end
         }
+        return changed
     }
 
     /**
@@ -295,19 +315,27 @@ class GovernanceService(
      *
      * 与 Python 一样依赖调用方的事务（`run_governance` 每块一个事务）：
      * 邮件可能在中书省选取后被并发移入回收站，此时返回 false，不伪造「已治理」决策。
+     *
+     * **账单等级的快照保护（本机模式新增的偏差）：** UPDATE 的 WHERE 里带上快照读到的
+     * `bill_tier_locked`。中书省读入邮件之后、本函数落库之前，用户完全可能手动设了等级并
+     * 锁定；不比对这一列就会把「用户手动设定」覆盖成一个随后被 [decideBill] 永久保留的错误
+     * 值。条件不再满足时走与「被并发移入回收站」相同的未更新分支：返回 false、不写决策，
+     * 下一轮治理会按锁定值走 `decideBill` 的「用户手动设定」分支。
      */
     fun shangshuApply(runId: Long, message: Map<String, Any?>, verdict: Verdict, ts: Double): Boolean {
         val mid = pyIntOrNull(message["id"])
             ?: throw IllegalArgumentException("message 缺少整数 id：${message["id"]}")
         val (retryCount, retryTs) = Governance.nextRetry(message, verdict, ts)
         val bill = verdict.bill
+        // 快照时的锁定值（NULL 按 0 处理）；落库前被用户改成 1 时下面的 UPDATE 不会命中。
+        val lockedTier = pyIntOrNull(message["bill_tier_locked"]) ?: 0L
         val result: ExecResult = db.execute(
             """UPDATE messages
                SET category=?, importance=?, summary=?, confidence=?, ai_reason=?,
                    needs_review=0, ai_done=1, governance_version=?, governance_ministry=?,
                    governance_action=?, governance_source=?, governance_reason=?, governance_ts=?,
                    ai_retry_count=?, ai_retry_ts=?, bill_tier=?, bill_facets=?
-               WHERE id=? AND deleted_ts=0""",
+               WHERE id=? AND deleted_ts=0 AND bill_tier_locked=?""",
             verdict.category,
             verdict.importance,
             verdict.summary,
@@ -324,6 +352,7 @@ class GovernanceService(
             bill?.tier ?: "",
             toJsonText(bill?.facets ?: emptyMap<String, Any?>()),
             mid,
+            lockedTier,
         )
         if (result.changes != 1L) {
             return false
@@ -437,16 +466,37 @@ class GovernanceService(
      * 对应 Python `_claim_run`：用 SQLite 写锁领取运行权，避免多 worker 同时治理同一批邮件。
      * Python 的 `BEGIN IMMEDIATE` 在这里是 [Db.transaction]（第一条语句就是 UPDATE，
      * 真正的写锁在那一刻取得）。返回 0 表示已有运行在进行。
+     *
+     * **本机模式的有意偏差：孤儿运行立即回收。** 安卓是单进程，而 App 被系统的 Job 超时或
+     * 内存回收杀掉时不会执行任何清理代码，库里会留下 `status='running'` 的记录。Python 只在
+     * 超过 [Governance.RUN_STALE_SECONDS]（15 分钟）后才回收，在服务器上没问题；手机上却会让
+     * 被杀之后的每次运行都返回 0——界面一直显示运行中，`/api/changes` 的待治理屏障还会挡住
+     * 通知最长 1 小时。所以这里的判定换成锁的状态：
+     * - 调用方持有 [RUN_LOCK]（[runGovernance] 的唯一路径）时，库里任何 `running` 行都只可能
+     *   是上一次被杀掉的进程留下的孤儿，**无条件**全部回收，不再比较 `started_ts`；
+     * - 回收不比较时间戳，所以用户把系统时间往回调也不会让孤儿永远回收不了；
+     * - 没有持有 [RUN_LOCK] 时（理论上只有直接调用本函数的测试）保留 Python 的 15 分钟判定，
+     *   这样「已有运行」这个分支仍然有明确语义。
      */
     fun claimRun(trigger: String, started: Double): Long = db.transaction {
-        db.execute(
-            """UPDATE governance_runs
-               SET status='failed', finished_ts=?, error_count=1,
-                   error='运行进程中断，锁已自动回收'
-               WHERE status='running' AND started_ts < ?""",
-            started,
-            started - Governance.RUN_STALE_SECONDS,
-        )
+        if (RUN_LOCK.isHeldByCurrentThread) {
+            db.execute(
+                """UPDATE governance_runs
+                   SET status='failed', finished_ts=?, error_count=1,
+                       error='运行进程中断，锁已自动回收'
+                   WHERE status='running'""",
+                started,
+            )
+        } else {
+            db.execute(
+                """UPDATE governance_runs
+                   SET status='failed', finished_ts=?, error_count=1,
+                       error='运行进程中断，锁已自动回收'
+                   WHERE status='running' AND started_ts < ?""",
+                started,
+                started - Governance.RUN_STALE_SECONDS,
+            )
+        }
         val active = db.queryOne(
             "SELECT id FROM governance_runs WHERE status='running' ORDER BY id DESC LIMIT 1",
         )
@@ -466,11 +516,14 @@ class GovernanceService(
      * 对应 Python `run_governance`：一键运行完整自动治理；重复运行只处理未治理/旧版本邮件。
      *
      * `sinceDays > 0` 时改为重新分拣最近这些天的全部邮件（用户主动发起）。
-     * 返回值里的 `alerts` 是裁决后需要推送的新邮件，由调用方（L10 的通知流程）发送。
+     * 返回值里的 `alerts` 是裁决后需要推送的新邮件，由调用方（L10 的通知流程）发送；
+     * 序列化给接口时不要带上它，见 [GovernanceRunResult.toMap]。
      *
      * 进程内互斥：同一时刻只允许一个运行，忙时立刻返回 `busy=true`。数据库层面还有
-     * [claimRun] 的占位（对应 Python 的多 worker 保护）。分块处理，每块一个事务，
-     * 失败时本块回滚、`governance_runs` 记为 failed、写审计后重新抛出。
+     * [claimRun] 的占位，同时负责回收被杀掉的进程留下的孤儿运行（见它的 KDoc）。
+     * 分块处理，每块一个事务；失败时本块回滚、`governance_runs` 记为 failed、写审计，
+     * 然后重新抛出**原来那个**异常——补记的两步各自兜住自己的失败（用 `addSuppressed`
+     * 附到原异常上），磁盘满或连接已被 [Db] 关掉时不会把根因换掉。
      */
     fun runGovernance(
         limit: Int = 0,
@@ -597,30 +650,51 @@ class GovernanceService(
             )
         } catch (exc: Throwable) {
             // 失败的分块事务已经在 Db.transaction 里回滚；这里补记运行状态与审计后重新抛出。
+            // 这两步本身也可能失败（磁盘满、连接已被 Db 因「事务状态不可信」关掉），所以
+            // 各自兜住：新异常用 addSuppressed 挂到原异常上，原异常无论如何都要抛出去。
+            // 否则「写失败记录时又失败」会把真正的根因换成一个无关的异常，审计也一并跳过。
+            val errorText = pyStr(exc)
             if (runId != 0L) {
-                db.execute(
-                    """UPDATE governance_runs
-                       SET status='failed', finished_ts=?, error_count=1, error=? WHERE id=?""",
-                    clock.now(),
-                    pyStr(exc).cpSlice(0, 500),
-                    runId,
-                )
+                try {
+                    db.execute(
+                        """UPDATE governance_runs
+                           SET status='failed', finished_ts=?, error_count=1, error=? WHERE id=?""",
+                        clock.now(),
+                        errorText.cpSlice(0, 500),
+                        runId,
+                    )
+                } catch (error: Throwable) {
+                    suppress(exc, error)
+                }
             }
-            db.audit(
-                "governance_run",
-                actor = "system",
-                tier = "A",
-                targetIds = emptyList(),
-                allowed = false,
-                reason = "三省六部自动分拣失败：${pyStr(exc).cpSlice(0, 300)}",
-            )
+            try {
+                db.audit(
+                    "governance_run",
+                    actor = "system",
+                    tier = "A",
+                    targetIds = emptyList(),
+                    allowed = false,
+                    reason = "三省六部自动分拣失败：${errorText.cpSlice(0, 300)}",
+                )
+            } catch (error: Throwable) {
+                suppress(exc, error)
+            }
             throw exc
         } finally {
             releaseRunLock()
         }
     }
 
-    /** 对应 Python `governance_status`：返回最近运行和待治理数量，供一键入口展示。 */
+    /**
+     * 对应 Python `governance_status`：返回最近运行和待治理数量，供一键入口展示。
+     *
+     * **与 Python 的偏差：`running` 只看进程内的 [RUN_LOCK]。** Python 还会拿库里最近一行
+     * 的 `status='running'` 和 `started_ts` 去猜（15 分钟窗口）；本机模式只有一个进程，
+     * 锁在手就一定在跑，锁不在手就一定是上次被系统杀掉的孤儿——按时间来猜会让进程被杀后
+     * 界面一直显示「运行中」，还连带挡住 `/api/changes` 的通知。孤儿由 [claimRun] 回收，
+     * 这里不再看数据库。`lastRun` 仍是库里最近一行的原样（可能还写着 running），
+     * 请求方展示状态时以这里的 `running` 为准。
+     */
     fun governanceStatus(): GovernanceStatus {
         val now = clock.now()
         val pending = db.queryOne(
@@ -646,11 +720,10 @@ class GovernanceService(
             }
             map
         }
-        val dbRunning = last != null && last["status"] == "running" &&
-            (floatOrNull(last["started_ts"]) ?: 0.0) >= now - Governance.RUN_STALE_SECONDS
         return GovernanceStatus(
             version = Governance.VERSION,
-            running = RUN_LOCK.isLocked || dbRunning,
+            // 只看锁：进程被杀后库里残留的 running 行不算「运行中」，见 KDoc。
+            running = RUN_LOCK.isLocked,
             pending = pending,
             ministries = Governance.MINISTRIES,
             lastRun = last,
@@ -762,6 +835,16 @@ class GovernanceService(
 
     private fun releaseRunLock() {
         if (RUN_LOCK.isHeldByCurrentThread) RUN_LOCK.unlock()
+    }
+
+    /**
+     * 把补记失败时的异常挂到原异常上，对应 `Db` 回滚失败时的处理。
+     *
+     * 自己挂到自己身上会被 `addSuppressed` 拒绝（`IllegalArgumentException`），那样反而会在
+     * 失败处理里再抛一个异常，所以先比一次引用。
+     */
+    private fun suppress(original: Throwable, error: Throwable) {
+        if (error !== original) original.addSuppressed(error)
     }
 
     private companion object {

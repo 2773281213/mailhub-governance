@@ -205,8 +205,11 @@
       "alert_ts": 0.0,
       "bill_facets": {},
       "bill_tier": "",
+      "bill_tier_locked": 0,
       "category": "验证码",
       "confidence": 0.9,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "工部",
       "governance_reason": "本地规则确定为「验证码」",
@@ -216,9 +219,11 @@
       "id": 1,
       "importance": 2,
       "needs_review": 0,
+      "otp_code": "111111",
       "risk_level": "none",
       "summary": "",
-      "template_key": ""
+      "template_key": "",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -228,8 +233,11 @@
       "alert_ts": 0.0,
       "bill_facets": {},
       "bill_tier": "",
+      "bill_tier_locked": 0,
       "category": "验证码",
       "confidence": 0.9,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "工部",
       "governance_reason": "本地规则确定为「验证码」",
@@ -239,9 +247,11 @@
       "id": 2,
       "importance": 2,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": ""
+      "template_key": "",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -251,8 +261,11 @@
       "alert_ts": 0.0,
       "bill_facets": {},
       "bill_tier": "",
+      "bill_tier_locked": 0,
       "category": "验证码",
       "confidence": 0.9,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "工部",
       "governance_reason": "本地规则确定为「验证码」",
@@ -262,9 +275,11 @@
       "id": 3,
       "importance": 2,
       "needs_review": 0,
+      "otp_code": "999999",
       "risk_level": "none",
       "summary": "",
-      "template_key": ""
+      "template_key": "",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -274,8 +289,11 @@
       "alert_ts": 0.0,
       "bill_facets": {},
       "bill_tier": "",
+      "bill_tier_locked": 0,
       "category": "验证码",
       "confidence": 0.9,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "工部",
       "governance_reason": "本地规则确定为「验证码」",
@@ -285,9 +303,11 @@
       "id": 4,
       "importance": 2,
       "needs_review": 0,
+      "otp_code": "222333",
       "risk_level": "low",
       "summary": "",
-      "template_key": ""
+      "template_key": "",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -297,8 +317,11 @@
       "alert_ts": 0.0,
       "bill_facets": {},
       "bill_tier": "",
+      "bill_tier_locked": 0,
       "category": "其他",
       "confidence": 0.55,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "工部",
       "governance_reason": "AI 未启用，门下省采用本地保守分类「其他」",
@@ -308,9 +331,11 @@
       "id": 5,
       "importance": 2,
       "needs_review": 0,
+      "otp_code": "555555",
       "risk_level": "none",
       "summary": "",
-      "template_key": ""
+      "template_key": "",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -320,8 +345,11 @@
       "alert_ts": 0.0,
       "bill_facets": {},
       "bill_tier": "",
+      "bill_tier_locked": 0,
       "category": "验证码",
       "confidence": 0.9,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "工部",
       "governance_reason": "本地规则确定为「验证码」",
@@ -331,9 +359,11 @@
       "id": 6,
       "importance": 2,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": ""
+      "template_key": "",
+      "unread": 1
      }
     ],
     "runs": [
@@ -866,8 +896,11 @@
        "initiator": "unknown"
       },
       "bill_tier": "重要",
+      "bill_tier_locked": 0,
       "category": "账单",
       "confidence": 0.9,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "户部",
       "governance_reason": "本地规则确定为「账单」",
@@ -877,9 +910,11 @@
       "id": 1,
       "importance": 3,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": "example.com|订单确认 #"
+      "template_key": "example.com|订单确认 #",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -898,8 +933,11 @@
        "initiator": "unknown"
       },
       "bill_tier": "重要",
+      "bill_tier_locked": 0,
       "category": "账单",
       "confidence": 0.9,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "户部",
       "governance_reason": "本地规则确定为「账单」",
@@ -909,9 +947,11 @@
       "id": 2,
       "importance": 3,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": "example.com|订单确认 #"
+      "template_key": "example.com|订单确认 #",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -930,8 +970,11 @@
        "initiator": "unknown"
       },
       "bill_tier": "一般",
+      "bill_tier_locked": 0,
       "category": "账单",
       "confidence": 0.9,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "户部",
       "governance_reason": "本地规则确定为「账单」",
@@ -941,9 +984,11 @@
       "id": 3,
       "importance": 2,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": "example.com|月度订阅扣款"
+      "template_key": "example.com|月度订阅扣款",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -955,8 +1000,11 @@
        "direction": "in"
       },
       "bill_tier": "一般",
+      "bill_tier_locked": 1,
       "category": "账单",
       "confidence": 0.9,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "户部",
       "governance_reason": "本地规则确定为「账单」",
@@ -966,9 +1014,11 @@
       "id": 4,
       "importance": 2,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": "example.com|手动锁定账单"
+      "template_key": "example.com|手动锁定账单",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -987,8 +1037,11 @@
        "initiator": "auto"
       },
       "bill_tier": "重要",
+      "bill_tier_locked": 0,
       "category": "账单",
       "confidence": 0.9,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "户部",
       "governance_reason": "本地规则确定为「账单」",
@@ -998,9 +1051,11 @@
       "id": 5,
       "importance": 3,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": "example.com|your subscription has been renewed"
+      "template_key": "example.com|your subscription has been renewed",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -1019,8 +1074,11 @@
        "initiator": "self"
       },
       "bill_tier": "一般",
+      "bill_tier_locked": 0,
       "category": "账单",
       "confidence": 0.9,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "户部",
       "governance_reason": "本地规则确定为「账单」",
@@ -1030,9 +1088,11 @@
       "id": 6,
       "importance": 2,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": "example.com|您的购买已退款"
+      "template_key": "example.com|您的购买已退款",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -1051,8 +1111,11 @@
        "initiator": "unknown"
       },
       "bill_tier": "一般",
+      "bill_tier_locked": 0,
       "category": "账单",
       "confidence": 0.9,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "户部",
       "governance_reason": "本地规则确定为「账单」",
@@ -1062,9 +1125,11 @@
       "id": 7,
       "importance": 2,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": "example.com|返现已到账"
+      "template_key": "example.com|返现已到账",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -1083,8 +1148,11 @@
        "initiator": "unknown"
       },
       "bill_tier": "重要",
+      "bill_tier_locked": 0,
       "category": "账单",
       "confidence": 0.9,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "户部",
       "governance_reason": "本地规则确定为「账单」",
@@ -1094,9 +1162,11 @@
       "id": 8,
       "importance": 4,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": "example.com|payment failed for your subscription"
+      "template_key": "example.com|payment failed for your subscription",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -1115,8 +1185,11 @@
        "initiator": "unknown"
       },
       "bill_tier": "一般",
+      "bill_tier_locked": 0,
       "category": "账单",
       "confidence": 0.9,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "户部",
       "governance_reason": "本地规则确定为「账单」",
@@ -1126,9 +1199,11 @@
       "id": 9,
       "importance": 2,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": "example.com|免费领取会员体验"
+      "template_key": "example.com|免费领取会员体验",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -1147,8 +1222,11 @@
        "initiator": "unknown"
       },
       "bill_tier": "重要",
+      "bill_tier_locked": 0,
       "category": "账单",
       "confidence": 0.9,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "户部",
       "governance_reason": "本地规则确定为「账单」",
@@ -1158,9 +1236,11 @@
       "id": 10,
       "importance": 3,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": "example.com|transaction #"
+      "template_key": "example.com|transaction #",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -1179,8 +1259,11 @@
        "initiator": "unknown"
       },
       "bill_tier": "重要",
+      "bill_tier_locked": 0,
       "category": "账单",
       "confidence": 0.9,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "户部",
       "governance_reason": "本地规则确定为「账单」",
@@ -1190,9 +1273,11 @@
       "id": 11,
       "importance": 3,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": "example.com|待确认账单"
+      "template_key": "example.com|待确认账单",
+      "unread": 1
      }
     ],
     "runs": [
@@ -1536,8 +1621,11 @@
        "initiator": "unknown"
       },
       "bill_tier": "重要",
+      "bill_tier_locked": 0,
       "category": "账单",
       "confidence": 0.95,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "户部",
       "governance_reason": "本地规则确定为「账单」",
@@ -1547,9 +1635,11 @@
       "id": 1,
       "importance": 3,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": "shop.example|您的发票已开具"
+      "template_key": "shop.example|您的发票已开具",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -1559,8 +1649,11 @@
       "alert_ts": 0.0,
       "bill_facets": {},
       "bill_tier": "",
+      "bill_tier_locked": 0,
       "category": "重要",
       "confidence": 0.95,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "吏部",
       "governance_reason": "本地规则确定为「重要」",
@@ -1570,9 +1663,11 @@
       "id": 2,
       "importance": 5,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": "corp.example|来自 vip 的邀请"
+      "template_key": "corp.example|来自 vip 的邀请",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -1582,8 +1677,11 @@
       "alert_ts": 1760000000.0,
       "bill_facets": {},
       "bill_tier": "",
+      "bill_tier_locked": 0,
       "category": "重要",
       "confidence": 0.95,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "吏部",
       "governance_reason": "本地规则确定为「重要」",
@@ -1593,9 +1691,11 @@
       "id": 3,
       "importance": 5,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": "corp.example|面试通知"
+      "template_key": "corp.example|面试通知",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -1605,8 +1705,11 @@
       "alert_ts": 0.0,
       "bill_facets": {},
       "bill_tier": "",
+      "bill_tier_locked": 0,
       "category": "验证码",
       "confidence": 0.95,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "工部",
       "governance_reason": "本地规则确定为「验证码」",
@@ -1616,9 +1719,11 @@
       "id": 4,
       "importance": 2,
       "needs_review": 0,
+      "otp_code": "384756",
       "risk_level": "none",
       "summary": "",
-      "template_key": "shop.example|校验码 #"
+      "template_key": "shop.example|校验码 #",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -1628,8 +1733,11 @@
       "alert_ts": 0.0,
       "bill_facets": {},
       "bill_tier": "",
+      "bill_tier_locked": 0,
       "category": "其他",
       "confidence": 0.5,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "吏部",
       "governance_reason": "AI 未启用，门下省采用本地保守分类「其他」",
@@ -1639,9 +1747,11 @@
       "id": 5,
       "importance": 2,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": "example.com|普通邮件"
+      "template_key": "example.com|普通邮件",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -1660,8 +1770,11 @@
        "initiator": "unknown"
       },
       "bill_tier": "重要",
+      "bill_tier_locked": 0,
       "category": "账单",
       "confidence": 0.95,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "户部",
       "governance_reason": "本地规则确定为「账单」",
@@ -1671,9 +1784,11 @@
       "id": 6,
       "importance": 3,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": "corp.example|invoice"
+      "template_key": "corp.example|invoice",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -1683,8 +1798,11 @@
       "alert_ts": 0.0,
       "bill_facets": {},
       "bill_tier": "",
+      "bill_tier_locked": 0,
       "category": "其他",
       "confidence": 0.5,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "吏部",
       "governance_reason": "AI 未启用，门下省采用本地保守分类「其他」",
@@ -1694,9 +1812,11 @@
       "id": 7,
       "importance": 2,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": "shop.example|验证码提醒"
+      "template_key": "shop.example|验证码提醒",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -1706,8 +1826,11 @@
       "alert_ts": 0.0,
       "bill_facets": {},
       "bill_tier": "",
+      "bill_tier_locked": 0,
       "category": "其他",
       "confidence": 0.5,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "吏部",
       "governance_reason": "AI 未启用，门下省采用本地保守分类「其他」",
@@ -1717,9 +1840,11 @@
       "id": 8,
       "importance": 2,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": "example.com|测试"
+      "template_key": "example.com|测试",
+      "unread": 1
      }
     ],
     "runs": [
@@ -2033,8 +2158,11 @@
       "alert_ts": 0.0,
       "bill_facets": {},
       "bill_tier": "",
+      "bill_tier_locked": 0,
       "category": "可疑",
       "confidence": 1.0,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "刑部",
       "governance_reason": "刑部检出疑似提示注入，自动标记可疑",
@@ -2044,9 +2172,11 @@
       "id": 1,
       "importance": 5,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": ""
+      "template_key": "",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -2056,8 +2186,11 @@
       "alert_ts": 0.0,
       "bill_facets": {},
       "bill_tier": "",
+      "bill_tier_locked": 0,
       "category": "可疑",
       "confidence": 1.0,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "刑部",
       "governance_reason": "刑部依据静态扫描 high 风险自动标记可疑",
@@ -2067,9 +2200,11 @@
       "id": 2,
       "importance": 5,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "high",
       "summary": "",
-      "template_key": ""
+      "template_key": "",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -2079,8 +2214,11 @@
       "alert_ts": 0.0,
       "bill_facets": {},
       "bill_tier": "",
+      "bill_tier_locked": 0,
       "category": "可疑",
       "confidence": 1.0,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "刑部",
       "governance_reason": "刑部依据静态扫描 medium 风险自动标记可疑",
@@ -2090,9 +2228,11 @@
       "id": 3,
       "importance": 5,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "medium",
       "summary": "",
-      "template_key": ""
+      "template_key": "",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -2102,8 +2242,11 @@
       "alert_ts": 0.0,
       "bill_facets": {},
       "bill_tier": "",
+      "bill_tier_locked": 0,
       "category": "可疑",
       "confidence": 1.0,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "刑部",
       "governance_reason": "刑部依据静态扫描 high 风险自动标记可疑",
@@ -2113,9 +2256,11 @@
       "id": 4,
       "importance": 5,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "HIGH",
       "summary": "",
-      "template_key": ""
+      "template_key": "",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -2125,8 +2270,11 @@
       "alert_ts": 1760000000.0,
       "bill_facets": {},
       "bill_tier": "",
+      "bill_tier_locked": 0,
       "category": "安全",
       "confidence": 0.9,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "兵部",
       "governance_reason": "本地规则确定为「安全」",
@@ -2136,9 +2284,11 @@
       "id": 5,
       "importance": 5,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": ""
+      "template_key": "",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -2148,8 +2298,11 @@
       "alert_ts": 0.0,
       "bill_facets": {},
       "bill_tier": "",
+      "bill_tier_locked": 0,
       "category": "可疑",
       "confidence": 0.9,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "刑部",
       "governance_reason": "本地规则确定为「可疑」",
@@ -2159,9 +2312,11 @@
       "id": 6,
       "importance": 5,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": ""
+      "template_key": "",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -2171,8 +2326,11 @@
       "alert_ts": 0.0,
       "bill_facets": {},
       "bill_tier": "",
+      "bill_tier_locked": 0,
       "category": "可疑",
       "confidence": 1.0,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "刑部",
       "governance_reason": "刑部检出疑似提示注入，自动标记可疑",
@@ -2182,9 +2340,11 @@
       "id": 7,
       "importance": 5,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": ""
+      "template_key": "",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -2194,8 +2354,11 @@
       "alert_ts": 0.0,
       "bill_facets": {},
       "bill_tier": "",
+      "bill_tier_locked": 0,
       "category": "可疑",
       "confidence": 1.0,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "刑部",
       "governance_reason": "刑部检出疑似提示注入，自动标记可疑",
@@ -2205,9 +2368,11 @@
       "id": 8,
       "importance": 5,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": ""
+      "template_key": "",
+      "unread": 1
      }
     ],
     "runs": [
@@ -2560,8 +2725,11 @@
       "alert_ts": 1760000000.0,
       "bill_facets": {},
       "bill_tier": "",
+      "bill_tier_locked": 0,
       "category": "重要",
       "confidence": 0.9,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "吏部",
       "governance_reason": "本地规则确定为「重要」",
@@ -2571,9 +2739,11 @@
       "id": 1,
       "importance": 5,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": "corp.example|面试邀请"
+      "template_key": "corp.example|面试邀请",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -2583,8 +2753,11 @@
       "alert_ts": 1760000000.0,
       "bill_facets": {},
       "bill_tier": "",
+      "bill_tier_locked": 0,
       "category": "安全",
       "confidence": 0.9,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "兵部",
       "governance_reason": "本地规则确定为「安全」",
@@ -2594,9 +2767,11 @@
       "id": 2,
       "importance": 5,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "low",
       "summary": "",
-      "template_key": "shop.example|异常登录提醒"
+      "template_key": "shop.example|异常登录提醒",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -2606,8 +2781,11 @@
       "alert_ts": 0.0,
       "bill_facets": {},
       "bill_tier": "",
+      "bill_tier_locked": 0,
       "category": "验证码",
       "confidence": 0.9,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "工部",
       "governance_reason": "本地规则确定为「验证码」",
@@ -2617,9 +2795,11 @@
       "id": 3,
       "importance": 2,
       "needs_review": 0,
+      "otp_code": "384756",
       "risk_level": "none",
       "summary": "",
-      "template_key": "shop.example|验证码 #"
+      "template_key": "shop.example|验证码 #",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -2638,8 +2818,11 @@
        "initiator": "unknown"
       },
       "bill_tier": "重要",
+      "bill_tier_locked": 0,
       "category": "账单",
       "confidence": 0.9,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "户部",
       "governance_reason": "本地规则确定为「账单」",
@@ -2649,9 +2832,11 @@
       "id": 4,
       "importance": 3,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": "shop.example|您的账单已出"
+      "template_key": "shop.example|您的账单已出",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -2661,8 +2846,11 @@
       "alert_ts": 0.0,
       "bill_facets": {},
       "bill_tier": "",
+      "bill_tier_locked": 0,
       "category": "订阅",
       "confidence": 0.9,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "礼部",
       "governance_reason": "本地规则确定为「订阅」",
@@ -2672,9 +2860,11 @@
       "id": 5,
       "importance": 1,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": "shop.example|本周周刊"
+      "template_key": "shop.example|本周周刊",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -2684,8 +2874,11 @@
       "alert_ts": 0.0,
       "bill_facets": {},
       "bill_tier": "",
+      "bill_tier_locked": 0,
       "category": "通知",
       "confidence": 0.9,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "礼部",
       "governance_reason": "本地规则确定为「通知」",
@@ -2695,9 +2888,11 @@
       "id": 6,
       "importance": 1,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": "shop.example|您的包裹已发货"
+      "template_key": "shop.example|您的包裹已发货",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -2707,8 +2902,11 @@
       "alert_ts": 0.0,
       "bill_facets": {},
       "bill_tier": "",
+      "bill_tier_locked": 0,
       "category": "其他",
       "confidence": 0.55,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "吏部",
       "governance_reason": "AI 未启用，门下省采用本地保守分类「其他」",
@@ -2718,9 +2916,11 @@
       "id": 7,
       "importance": 2,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": "shop.example|随手记"
+      "template_key": "shop.example|随手记",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -2730,8 +2930,11 @@
       "alert_ts": 0.0,
       "bill_facets": {},
       "bill_tier": "",
+      "bill_tier_locked": 0,
       "category": "可疑",
       "confidence": 0.9,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "刑部",
       "governance_reason": "本地规则确定为「可疑」",
@@ -2741,9 +2944,11 @@
       "id": 8,
       "importance": 5,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": "shop.example|奇怪的链接"
+      "template_key": "shop.example|奇怪的链接",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -2753,8 +2958,11 @@
       "alert_ts": 0.0,
       "bill_facets": {},
       "bill_tier": "",
+      "bill_tier_locked": 0,
       "category": "其他",
       "confidence": 0.55,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "吏部",
       "governance_reason": "AI 未启用，门下省采用本地保守分类「其他」",
@@ -2764,9 +2972,11 @@
       "id": 9,
       "importance": 2,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": "shop.example|未分类的邮件"
+      "template_key": "shop.example|未分类的邮件",
+      "unread": 1
      },
      {
       "ai_done": 0,
@@ -2776,8 +2986,11 @@
       "alert_ts": 0.0,
       "bill_facets": {},
       "bill_tier": "",
+      "bill_tier_locked": 0,
       "category": "通知",
       "confidence": 0.0,
+      "deleted_ts": 1759999000.0,
+      "flag_push": 0,
       "governance_action": "",
       "governance_ministry": "",
       "governance_reason": "",
@@ -2787,9 +3000,11 @@
       "id": 10,
       "importance": 0,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": "shop.example|已删除的邮件"
+      "template_key": "shop.example|已删除的邮件",
+      "unread": 1
      }
     ],
     "runs": [
@@ -3535,8 +3750,11 @@
       "alert_ts": 0.0,
       "bill_facets": {},
       "bill_tier": "",
+      "bill_tier_locked": 0,
       "category": "通知",
       "confidence": 0.9,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "礼部",
       "governance_reason": "本地规则确定为「通知」",
@@ -3546,9 +3764,11 @@
       "id": 1,
       "importance": 1,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": ""
+      "template_key": "",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -3558,8 +3778,11 @@
       "alert_ts": 1760000000.0,
       "bill_facets": {},
       "bill_tier": "",
+      "bill_tier_locked": 0,
       "category": "重要",
       "confidence": 0.9,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "吏部",
       "governance_reason": "本地规则确定为「重要」",
@@ -3569,9 +3792,11 @@
       "id": 2,
       "importance": 5,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": ""
+      "template_key": "",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -3581,8 +3806,11 @@
       "alert_ts": 0.0,
       "bill_facets": {},
       "bill_tier": "",
+      "bill_tier_locked": 0,
       "category": "其他",
       "confidence": 0.55,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "吏部",
       "governance_reason": "AI 未启用，门下省采用本地保守分类「其他」",
@@ -3592,9 +3820,11 @@
       "id": 3,
       "importance": 2,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": ""
+      "template_key": "",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -3604,8 +3834,11 @@
       "alert_ts": 0.0,
       "bill_facets": {},
       "bill_tier": "",
+      "bill_tier_locked": 0,
       "category": "通知",
       "confidence": 0.9,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "礼部",
       "governance_reason": "本地规则确定为「通知」",
@@ -3615,9 +3848,11 @@
       "id": 4,
       "importance": 1,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": ""
+      "template_key": "",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -3627,8 +3862,11 @@
       "alert_ts": 0.0,
       "bill_facets": {},
       "bill_tier": "",
+      "bill_tier_locked": 0,
       "category": "其他",
       "confidence": 0.55,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "吏部",
       "governance_reason": "AI 未启用，门下省采用本地保守分类「其他」",
@@ -3638,9 +3876,11 @@
       "id": 5,
       "importance": 2,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": ""
+      "template_key": "",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -3650,8 +3890,11 @@
       "alert_ts": 0.0,
       "bill_facets": {},
       "bill_tier": "",
+      "bill_tier_locked": 0,
       "category": "通知",
       "confidence": 0.9,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "礼部",
       "governance_reason": "本地规则确定为「通知」",
@@ -3661,9 +3904,11 @@
       "id": 6,
       "importance": 1,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": ""
+      "template_key": "",
+      "unread": 1
      },
      {
       "ai_done": 1,
@@ -3673,8 +3918,11 @@
       "alert_ts": 0.0,
       "bill_facets": {},
       "bill_tier": "",
+      "bill_tier_locked": 0,
       "category": "通知",
       "confidence": 0.9,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
       "governance_action": "label_only",
       "governance_ministry": "礼部",
       "governance_reason": "本地规则确定为「通知」",
@@ -3684,9 +3932,11 @@
       "id": 7,
       "importance": 1,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": ""
+      "template_key": "",
+      "unread": 1
      },
      {
       "ai_done": 0,
@@ -3696,8 +3946,11 @@
       "alert_ts": 0.0,
       "bill_facets": {},
       "bill_tier": "",
+      "bill_tier_locked": 0,
       "category": "通知",
       "confidence": 0.0,
+      "deleted_ts": 1759990000.0,
+      "flag_push": 0,
       "governance_action": "",
       "governance_ministry": "",
       "governance_reason": "",
@@ -3707,9 +3960,11 @@
       "id": 8,
       "importance": 0,
       "needs_review": 0,
+      "otp_code": "",
       "risk_level": "none",
       "summary": "",
-      "template_key": ""
+      "template_key": "",
+      "unread": 1
      }
     ],
     "runs": [
@@ -3861,6 +4116,203 @@
    },
    "fn": "scenario",
    "id": "regovernance"
+  },
+  {
+   "args": {
+    "scenario": "retier.json"
+   },
+   "expected": {
+    "audit": [],
+    "decisions": [],
+    "messages": [
+     {
+      "ai_done": 0,
+      "ai_reason": "",
+      "ai_retry_count": 0,
+      "ai_retry_ts": 0.0,
+      "alert_ts": 0.0,
+      "bill_facets": {
+       "acquired": "unknown",
+       "action": false,
+       "amount": 250.0,
+       "channel": "unknown",
+       "cny": 250.0,
+       "currency": "CNY",
+       "direction": "out",
+       "initiator": "unknown"
+      },
+      "bill_tier": "重要",
+      "bill_tier_locked": 0,
+      "category": "账单",
+      "confidence": 0.0,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
+      "governance_action": "",
+      "governance_ministry": "",
+      "governance_reason": "",
+      "governance_source": "",
+      "governance_ts": 0.0,
+      "governance_version": "",
+      "id": 1,
+      "importance": 3,
+      "needs_review": 0,
+      "otp_code": "",
+      "risk_level": "none",
+      "summary": "",
+      "template_key": "example.com|订单确认 #",
+      "unread": 1
+     },
+     {
+      "ai_done": 0,
+      "ai_reason": "",
+      "ai_retry_count": 0,
+      "ai_retry_ts": 0.0,
+      "alert_ts": 0.0,
+      "bill_facets": {
+       "acquired": "unknown",
+       "action": false,
+       "amount": 150.0,
+       "channel": "unknown",
+       "cny": 150.0,
+       "currency": "CNY",
+       "direction": "out",
+       "initiator": "unknown"
+      },
+      "bill_tier": "一般",
+      "bill_tier_locked": 0,
+      "category": "账单",
+      "confidence": 0.0,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
+      "governance_action": "",
+      "governance_ministry": "",
+      "governance_reason": "",
+      "governance_source": "",
+      "governance_ts": 0.0,
+      "governance_version": "",
+      "id": 2,
+      "importance": 2,
+      "needs_review": 0,
+      "otp_code": "",
+      "risk_level": "none",
+      "summary": "",
+      "template_key": "example.com|订单确认 #",
+      "unread": 1
+     },
+     {
+      "ai_done": 0,
+      "ai_reason": "",
+      "ai_retry_count": 0,
+      "ai_retry_ts": 0.0,
+      "alert_ts": 0.0,
+      "bill_facets": {
+       "acquired": "unknown",
+       "action": false,
+       "amount": 899.0,
+       "channel": "unknown",
+       "cny": 899.0,
+       "currency": "CNY",
+       "direction": "out",
+       "initiator": "unknown"
+      },
+      "bill_tier": "重要",
+      "bill_tier_locked": 0,
+      "category": "账单",
+      "confidence": 0.0,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
+      "governance_action": "",
+      "governance_ministry": "",
+      "governance_reason": "",
+      "governance_source": "",
+      "governance_ts": 0.0,
+      "governance_version": "",
+      "id": 3,
+      "importance": 3,
+      "needs_review": 0,
+      "otp_code": "",
+      "risk_level": "none",
+      "summary": "",
+      "template_key": "example.com|高额消费",
+      "unread": 1
+     },
+     {
+      "ai_done": 0,
+      "ai_reason": "",
+      "ai_retry_count": 0,
+      "ai_retry_ts": 0.0,
+      "alert_ts": 0.0,
+      "bill_facets": {
+       "direction": "out"
+      },
+      "bill_tier": "一般",
+      "bill_tier_locked": 1,
+      "category": "账单",
+      "confidence": 0.0,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
+      "governance_action": "",
+      "governance_ministry": "",
+      "governance_reason": "",
+      "governance_source": "",
+      "governance_ts": 0.0,
+      "governance_version": "",
+      "id": 4,
+      "importance": 4,
+      "needs_review": 0,
+      "otp_code": "",
+      "risk_level": "none",
+      "summary": "",
+      "template_key": "example.com|手动锁定账单",
+      "unread": 1
+     },
+     {
+      "ai_done": 0,
+      "ai_reason": "",
+      "ai_retry_count": 0,
+      "ai_retry_ts": 0.0,
+      "alert_ts": 0.0,
+      "bill_facets": {},
+      "bill_tier": "",
+      "bill_tier_locked": 1,
+      "category": "账单",
+      "confidence": 0.0,
+      "deleted_ts": 0.0,
+      "flag_push": 0,
+      "governance_action": "",
+      "governance_ministry": "",
+      "governance_reason": "",
+      "governance_source": "",
+      "governance_ts": 0.0,
+      "governance_version": "",
+      "id": 5,
+      "importance": 0,
+      "needs_review": 0,
+      "otp_code": "",
+      "risk_level": "none",
+      "summary": "",
+      "template_key": "example.com|锁定未定级",
+      "unread": 1
+     }
+    ],
+    "runs": [],
+    "scenario": "retier",
+    "status": {
+     "ministries": [
+      "吏部",
+      "户部",
+      "礼部",
+      "兵部",
+      "刑部",
+      "工部"
+     ],
+     "pending": 5,
+     "running": false,
+     "version": "mailhub-three-six-v2"
+    }
+   },
+   "fn": "scenario",
+   "id": "retier"
   }
  ],
  "generator": "scripts/golden/governance_run.py",

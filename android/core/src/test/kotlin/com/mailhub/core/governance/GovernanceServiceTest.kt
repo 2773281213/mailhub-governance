@@ -17,6 +17,10 @@ import java.util.concurrent.TimeUnit
  * L8 的补充测试：并发运行互斥、运行中途失败的回滚与留痕，以及 L9 会用到的
  * 账单重新定级、模板键回填、自定义规则读取。
  *
+ * L8-fix 新增的两类（金标覆盖不到，只能用单元测试打）：
+ * - 进程被杀后留下的孤儿运行记录（Kotlin 与 Python 在这一点上行为不同，金标里不放这种用例）；
+ * - 快照之后用户手动锁定账单等级的并发窗口，以及失败补记本身也失败时的根因保留。
+ *
  * 全部是合成数据；时钟固定为 [FakeClock]。
  */
 class GovernanceServiceTest {
@@ -274,9 +278,370 @@ class GovernanceServiceTest {
         }
     }
 
+    // ---------------- 孤儿运行、并发锁定与失败路径 ----------------
+
+    @Test
+    fun orphanRunningRowIsRecoveredImmediatelyEvenAfterClockRollback() {
+        val clock = clock()
+        withTempDb(clock) { db ->
+            db.initDb()
+            insertAccount(db, 1)
+            insertMessage(db, id = 1, uid = 1, category = "通知")
+            val now = clock.now()
+            // 被系统杀掉的进程留下的 running 行：刚写进去，还远没到 15 分钟。
+            db.execute(
+                "INSERT INTO governance_runs(version, trigger, status, started_ts) VALUES(?,?,?,?)",
+                Governance.VERSION,
+                "killed",
+                "running",
+                now,
+            )
+            val service = GovernanceService(db, clock)
+            // 库里残留的 running 不再让状态显示「运行中」。
+            assertFalse(service.governanceStatus().running)
+            // 用户把系统时间往回调：孤儿行的 started_ts 反而比新的运行更晚，也不能耽误回收。
+            clock.current = now - 3600
+
+            val result = service.runGovernance(trigger = "after-kill")
+            assertTrue(result.ok)
+            assertFalse(result.busy)
+            assertEquals(1, (result.status.lastRun!!["processed_count"] as Number).toInt())
+
+            val rows = db.query("SELECT * FROM governance_runs ORDER BY id")
+            assertEquals(2, rows.size)
+            assertEquals("failed", rows[0].str("status"))
+            assertEquals(1L, rows[0].long("error_count"))
+            assertEquals("运行进程中断，锁已自动回收", rows[0].str("error"))
+            assertEquals(now - 3600, rows[0].double("finished_ts")!!, 1e-9)
+            assertEquals("completed", rows[1].str("status"))
+        }
+    }
+
+    @Test
+    fun claimRunRecoversStaleRunningRowFromDatabase() {
+        val clock = clock()
+        withTempDb(clock) { db ->
+            db.initDb()
+            val now = clock.now()
+            db.execute(
+                "INSERT INTO governance_runs(version, trigger, status, started_ts) VALUES(?,?,?,?)",
+                Governance.VERSION,
+                "stale",
+                "running",
+                now - Governance.RUN_STALE_SECONDS - 1,
+            )
+            // 没有持有 RUN_LOCK：退回 Python 的 15 分钟判定，这一行正好超过窗口。
+            val runId = GovernanceService(db, clock).claimRun("after-stale", now)
+            assertTrue("陈旧的运行没有被回收", runId > 0L)
+            val rows = db.query("SELECT * FROM governance_runs ORDER BY id")
+            assertEquals(2, rows.size)
+            assertEquals("failed", rows[0].str("status"))
+            assertEquals("运行进程中断，锁已自动回收", rows[0].str("error"))
+            assertEquals(1L, rows[0].long("error_count"))
+            assertEquals("running", rows[1].str("status"))
+            assertEquals(runId, rows[1].long("id"))
+        }
+    }
+
+    @Test
+    fun claimRunReturnsZeroWhenLiveRunningRowExists() {
+        val clock = clock()
+        withTempDb(clock) { db ->
+            db.initDb()
+            val now = clock.now()
+            db.execute(
+                "INSERT INTO governance_runs(version, trigger, status, started_ts) VALUES(?,?,?,?)",
+                Governance.VERSION,
+                "live",
+                "running",
+                now - 60,
+            )
+            // 未持有 RUN_LOCK 时仍按 15 分钟判定：窗口内的运行算「已有运行」，返回 0。
+            assertEquals(0L, GovernanceService(db, clock).claimRun("second", now))
+            val rows = db.query("SELECT * FROM governance_runs ORDER BY id")
+            assertEquals(1, rows.size)
+            assertEquals("running", rows[0].str("status"))
+            assertEquals("live", rows[0].str("trigger"))
+        }
+    }
+
+    @Test
+    fun shangshuApplySkipsMessageDeletedAfterSnapshot() {
+        val clock = clock()
+        withTempDb(clock) { db ->
+            db.initDb()
+            insertAccount(db, 1)
+            insertMessage(db, id = 1, uid = 1, category = "通知")
+            val service = GovernanceService(db, clock)
+            val runId = service.claimRun("test", clock.now())
+            val (message, verdict) = snapshotVerdict(service, 1L)
+            // 中书省选出之后、落库之前被并发移入回收站。
+            db.execute("UPDATE messages SET deleted_ts=? WHERE id=1", clock.now())
+
+            assertFalse(service.shangshuApply(runId, message, verdict, clock.now()))
+            assertEquals(0L, db.queryOne(
+                "SELECT COUNT(*) AS c FROM governance_decisions",
+            )!!.long("c"))
+            assertEquals("", db.queryOne(
+                "SELECT governance_version FROM messages WHERE id=1",
+            )!!.str("governance_version"))
+        }
+    }
+
+    @Test
+    fun shangshuApplyKeepsTierLockedAfterSnapshot() {
+        val clock = clock()
+        withTempDb(clock) { db ->
+            db.initDb()
+            insertAccount(db, 1)
+            val now = clock.now()
+            insertBill(db, 1, 1, "订单确认 12345", "订单金额 ¥250.00", now - 100,
+                "example.com|订单确认 #")
+            val service = GovernanceService(db, clock)
+            val runId = service.claimRun("test", now)
+            // 快照里 bill_tier_locked=0；随后用户手动设了等级并锁定。
+            val (message, verdict) = snapshotVerdict(service, 1L)
+            db.execute("UPDATE messages SET bill_tier='重要', bill_tier_locked=1 WHERE id=1")
+
+            assertFalse(service.shangshuApply(runId, message, verdict, now))
+            val row = db.queryOne("SELECT * FROM messages WHERE id=1")!!
+            assertEquals("用户手动设定的等级被覆盖了", "重要", row.str("bill_tier"))
+            assertEquals(1L, row.long("bill_tier_locked"))
+            assertEquals("", row.str("governance_version"))
+            assertEquals(0L, db.queryOne(
+                "SELECT COUNT(*) AS c FROM governance_decisions",
+            )!!.long("c"))
+        }
+    }
+
+    @Test
+    fun retierBillsDoesNotOverwriteTierLockedAfterSnapshot() {
+        val clock = clock()
+        withTempDb(clock) { db ->
+            db.initDb()
+            insertAccount(db, 1)
+            val now = clock.now()
+            // 两封都在快照里（未锁定），且都需要重新定级。
+            insertBill(db, 1, 1, "订单确认 12345", "订单金额 ¥250.00", now - 100,
+                "example.com|订单确认 #")
+            insertBill(db, 2, 2, "返现已到账", "您的账户已收到返现 2.30 元", now - 200,
+                "example.com|返现已到账")
+            // 第一行落库之后、第二行落库之前被用户手动锁定：用 AFTER UPDATE 触发器模拟这段
+            // 并发窗口（两行都在同一个事务里，只有数据库自己能在中间插进来）。两行按 rowid
+            // 升序返回，所以「先 1 后 2」是确定的；下面的断言会连带确认触发器确实跑了。
+            db.execute(
+                """CREATE TRIGGER lock_after_snapshot AFTER UPDATE ON messages WHEN NEW.id=1
+                   BEGIN
+                       UPDATE messages SET bill_tier='重要', bill_facets='{"direction": "out"}',
+                                           bill_tier_locked=1
+                       WHERE id=2;
+                   END""",
+            )
+
+            val changed = GovernanceService(db, clock).retierBills()
+
+            // 第一行照常改写；第二行命中 UPDATE 的 bill_tier_locked=0 条件，被跳过。
+            assertEquals(1, changed)
+            assertEquals("重要", tier(db, 2))
+            assertEquals("{\"direction\": \"out\"}", facets(db, 2))
+            assertEquals(1L, db.queryOne(
+                "SELECT bill_tier_locked FROM messages WHERE id=2",
+            )!!.long("bill_tier_locked"))
+            assertEquals("重要", tier(db, 1))
+        }
+    }
+
+    @Test
+    fun retierBillsCommitsInChunks() {
+        val clock = clock()
+        withTempDb(clock) { db ->
+            db.initDb()
+            insertAccount(db, 1)
+            val now = clock.now()
+            val total = Governance.CHUNK_SIZE * 2 + 1
+            // 一次超过两个分块，验证分块循环把每一块都提交了。
+            db.transaction {
+                for (i in 1..total) {
+                    db.execute(
+                        """INSERT INTO messages(id, account_id, uid, subject, sender_addr, date_ts,
+                                                body_text, snippet, category, template_key,
+                                                bill_tier, importance)
+                           VALUES(?,?,?,?,?,?,?,?, '账单', ?,?,?)""",
+                        i,
+                        1,
+                        i,
+                        "返现到账$i",
+                        "cash@example.com",
+                        now - i,
+                        "您的账户已收到返现 2.30 元",
+                        "返现 2.30 元",
+                        "example.com|返现到账#$i",
+                        "",
+                        0,
+                    )
+                }
+            }
+
+            // 第二个分块的第一行落库时失败：分块提交时第一个分块必须已经落盘。
+            val failing = Governance.CHUNK_SIZE + 1
+            db.execute(
+                """CREATE TRIGGER retier_fail BEFORE UPDATE ON messages WHEN NEW.id=$failing
+                   BEGIN SELECT RAISE(ABORT, 'boom'); END""",
+            )
+            val service = GovernanceService(db, clock)
+            assertThrows(Exception::class.java) { service.retierBills() }
+            assertEquals(Governance.CHUNK_SIZE.toLong(), db.queryOne(
+                "SELECT COUNT(*) AS c FROM messages WHERE bill_tier<>''",
+            )!!.long("c"))
+
+            // 去掉触发器重跑：剩下的是一个分块的量，retier 幂等，补完就一致。
+            db.execute("DROP TRIGGER retier_fail")
+            assertEquals(total - Governance.CHUNK_SIZE, service.retierBills())
+            assertEquals(0L, db.queryOne(
+                "SELECT COUNT(*) AS c FROM messages WHERE bill_tier=''",
+            )!!.long("c"))
+        }
+    }
+
+    @Test
+    fun failedRunKeepsRootCauseWhenBookkeepingAlsoFails() {
+        val clock = clock()
+        withTempDb(clock) { db ->
+            db.initDb()
+            insertAccount(db, 1)
+            insertMessage(db, id = 1, uid = 1, category = "通知")
+            // 治理本身在第一条 UPDATE 就失败。
+            db.execute(
+                """CREATE TRIGGER governance_fail BEFORE UPDATE ON messages
+                   WHEN NEW.governance_version='mailhub-three-six-v2'
+                   BEGIN SELECT RAISE(ABORT, 'boom'); END""",
+            )
+            // 补记失败状态和写审计也写不进去（磁盘满、连接已被关闭的等价物）。
+            db.execute(
+                """CREATE TRIGGER runs_fail BEFORE UPDATE ON governance_runs
+                   WHEN NEW.status='failed'
+                   BEGIN SELECT RAISE(ABORT, '写失败记录时磁盘满'); END""",
+            )
+            db.execute(
+                """CREATE TRIGGER audit_fail BEFORE INSERT ON audit_log
+                   BEGIN SELECT RAISE(ABORT, '审计也写不进去'); END""",
+            )
+            val service = GovernanceService(db, clock)
+
+            val error = assertThrows(Exception::class.java) { service.runGovernance(trigger = "broken") }
+
+            assertTrue("根因被换掉了：${error.message}", error.message!!.contains("boom"))
+            val suppressed = error.suppressed.map { it.message ?: "" }
+            assertEquals("补记失败的异常没有全部挂到原异常上：$suppressed", 2, suppressed.size)
+            assertTrue(suppressed.any { it.contains("写失败记录时磁盘满") })
+            assertTrue(suppressed.any { it.contains("审计也写不进去") })
+            // 运行记录停在 running（补记失败），邮件没有被改写。
+            assertEquals("running", db.queryOne(
+                "SELECT status FROM governance_runs ORDER BY id DESC LIMIT 1",
+            )!!.str("status"))
+            assertEquals(0L, db.queryOne(
+                "SELECT COUNT(*) AS c FROM messages WHERE governance_version<>''",
+            )!!.long("c"))
+
+            // 进程内锁已经释放：去掉全部触发器后可以继续治理。
+            db.execute("DROP TRIGGER governance_fail")
+            db.execute("DROP TRIGGER runs_fail")
+            db.execute("DROP TRIGGER audit_fail")
+            assertTrue(service.runGovernance(trigger = "retry").ok)
+        }
+    }
+
+    @Test
+    fun nonFiniteAiConfidenceIsTreatedAsZero() {
+        val now = clock().now()
+        val message = linkedMapOf<String, Any?>(
+            "id" to 1L,
+            "category" to "其他",
+            "subject" to "本周周报",
+            "sender_addr" to "news@example.com",
+            "snippet" to "本周摘要",
+            "body_text" to "正文",
+            "date_ts" to now - 60,
+            "created_ts" to now - 60,
+        )
+        for (bad in listOf(Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY)) {
+            val aiResult = linkedMapOf<String, Any?>(
+                "id" to 1L,
+                "category" to "通知",
+                "confidence" to bad,
+                "needs_review" to false,
+            )
+            val verdict = Governance.menxiaArbitrate(
+                Governance.zhongshuPropose(message, aiResult, aiEnabled = true),
+            )
+            assertTrue("$bad 通过了护栏", verdict.fallback)
+            assertEquals("fallback", verdict.source)
+            assertTrue("置信度不是有限值：${verdict.confidence}", verdict.confidence.isFinite())
+            assertEquals("$bad 应该按 0 处理", 0.0, verdict.confidence, 1e-9)
+        }
+
+        // 写库前必须清掉 NaN：SQLite 会把 NaN 存成 NULL。
+        val clock = clock()
+        withTempDb(clock) { db ->
+            db.initDb()
+            insertAccount(db, 1)
+            insertMessage(db, id = 1, uid = 1, category = "其他", subject = "本周周报",
+                sender = "news@example.com")
+            val service = GovernanceService(db, clock)
+            val runId = service.claimRun("test", clock.now())
+            val row = service.loadMessages(listOf(1L)).single()
+            val aiResult = linkedMapOf<String, Any?>(
+                "id" to 1L,
+                "category" to "通知",
+                "confidence" to Double.NaN,
+                "needs_review" to false,
+            )
+            val verdict = Governance.menxiaArbitrate(
+                Governance.zhongshuPropose(row, aiResult, aiEnabled = true),
+            )
+            assertTrue(service.shangshuApply(runId, row, verdict, clock.now()))
+            val stored = db.queryOne(
+                "SELECT confidence, typeof(confidence) AS kind FROM messages WHERE id=1",
+            )!!
+            assertEquals("real", stored.str("kind"))
+            assertEquals(0.0, stored.double("confidence")!!, 1e-9)
+        }
+    }
+
+    @Test
+    fun runResultMapOmitsAlerts() {
+        val result = GovernanceRunResult(
+            ok = false,
+            busy = true,
+            running = true,
+            alerts = listOf(linkedMapOf<String, Any?>("subject" to "合成邮件")),
+            status = GovernanceStatus(
+                version = Governance.VERSION,
+                running = true,
+                pending = 0,
+                ministries = Governance.MINISTRIES,
+                lastRun = null,
+            ),
+        )
+        val map = result.toMap()
+        // app.py 先 pop("alerts") 再返回，接口响应里没有这个键；busy 对应 HTTP 409。
+        assertFalse("alerts 不能进接口响应", map.containsKey("alerts"))
+        assertEquals(true, map["busy"])
+        assertEquals(1, result.alerts.size)
+    }
+
     // ---------------- 辅助 ----------------
 
     private fun clock() = FakeClock(1_760_000_000.0)
+
+    /** 按中书省的读取方式取一份快照，并裁决出对应的 [Verdict]。 */
+    private fun snapshotVerdict(service: GovernanceService, id: Long): Pair<Map<String, Any?>, Verdict> {
+        val message = service.loadMessages(listOf(id)).single()
+        val verdict = Governance.menxiaArbitrate(
+            Governance.zhongshuPropose(message, aiResult = null, aiEnabled = false),
+        )
+        return message to verdict
+    }
 
     private fun insertAccount(db: Db, id: Int, name: String = "测试账户") {
         db.execute(

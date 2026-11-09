@@ -322,13 +322,18 @@ class GovernanceRunGoldenTest {
             "flag_push" to 0L,
         )
 
-        /** 与 `scripts/golden/governance_run.py` 的 `EXPORT_MESSAGE_COLUMNS` 完全一致。 */
+        /**
+         * 与 `scripts/golden/governance_run.py` 的 `EXPORT_MESSAGE_COLUMNS` 完全一致。
+         * 末尾五列（验证码、锁定标记、已读、回收站时间、推送标记）治理不应该改动，
+         * 导出它们是为了让 UPDATE 多写一列时金标立刻失败。
+         */
         val EXPORT_MESSAGE_COLUMNS = listOf(
             "id", "category", "importance", "summary", "confidence", "ai_reason",
             "needs_review", "ai_done", "risk_level", "governance_version",
             "governance_ministry", "governance_action", "governance_source",
             "governance_reason", "governance_ts", "ai_retry_count", "ai_retry_ts",
             "bill_tier", "bill_facets", "alert_ts", "template_key",
+            "otp_code", "bill_tier_locked", "unread", "deleted_ts", "flag_push",
         )
     }
 }

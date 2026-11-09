@@ -139,6 +139,13 @@ class Verdict(
 /**
  * 一次治理运行的结果，对应 `run_governance` 返回的字典（`governance_status()` 加上
  * `ok` / `busy` / `running` / `alerts`）。L9 的 `/api/governance/run` 直接把它转成 JSON。
+ *
+ * `alerts` 只是进程内的推送清单，不属于接口响应：`app.py` 的 `/api/governance/run` 先调
+ * `sync.push_alerts(result.pop("alerts"))` 把它取走再返回，所以 [toMap] 也不带这个键。
+ * L9 要先取出 [alerts] 交给通知流程，再序列化 [toMap]。
+ *
+ * `busy=true`（进程内已有运行）在 `app.py` 里对应 **HTTP 409**「已有自动分拣任务正在运行」；
+ * 本机模式的 L9 要回同样的状态码，不要把它包成 200 的成功响应。
  */
 data class GovernanceRunResult(
     val ok: Boolean,
@@ -147,13 +154,12 @@ data class GovernanceRunResult(
     val alerts: List<Map<String, Any?>>,
     val status: GovernanceStatus,
 ) {
-    /** 与 Python 返回的字典一一对应；键顺序不影响 JSON 比较。 */
+    /** 与 Python 返回的字典一一对应（不含 `alerts`，见类注释）；键顺序不影响 JSON 比较。 */
     fun toMap(): Map<String, Any?> {
         val map = LinkedHashMap(status.toMap())
         map["ok"] = ok
         map["busy"] = busy
         map["running"] = running
-        map["alerts"] = alerts
         return map
     }
 }
@@ -496,8 +502,9 @@ object Governance {
                 reason += "（稍后自动重试）"
             }
         } else {
-            var aiConfidence = floatOrNull(result["confidence"] ?: 0) ?: 0.0
-            aiConfidence = clamp01(aiConfidence)
+            // 非有限置信度按 0 处理，见 [finiteConfidence] 的偏差说明。
+            val rawConfidence = floatOrNull(result["confidence"] ?: 0) ?: 0.0
+            val aiConfidence = clamp01(finiteConfidence(rawConfidence))
             val aiCategory = safeCategory(result["category"])
             val rejected = aiGuardrail(baseline, aiCategory, aiConfidence, message)
             if (rejected.isNotEmpty()) {
@@ -540,7 +547,7 @@ object Governance {
             source = source,
             fallback = fallback,
             retry = retry,
-            confidence = clamp01(confidence),
+            confidence = clamp01(finiteConfidence(confidence)),
             importance = maxOf(1, minOf(5, importance)),
             summary = summary,
             reason = reason.cpSlice(0, 500),
@@ -640,8 +647,21 @@ object Governance {
         return parsed.coerceIn(1L, 5L).toInt()
     }
 
-    /** `max(0.0, min(1.0, value))`。 */
-    internal fun clamp01(value: Double): Double = maxOf(0.0, minOf(1.0, value))
+    /** `max(0.0, min(1.0, value))`；NaN 先按 0 处理，见 [finiteConfidence]。 */
+    internal fun clamp01(value: Double): Double = maxOf(0.0, minOf(1.0, finiteConfidence(value)))
+
+    /**
+     * 非有限的置信度（NaN、±Infinity）一律按 0 处理。AI 结果与基线置信度都经过这里。
+     *
+     * **与 Python 的偏差（接入 AI 前必须保留）：** Python 的 `max(0.0, min(1.0, nan))` 得到
+     * **1.0**——`nan < 1.0` 为假，`min` 留下 1.0——所以 AI 给出 NaN 时会通过所有护栏（低置信度、
+     * 可疑、受保护分类都拦不住）。这里按 0 处理，等价于「AI 没有任何把握」，只会回退到本地
+     * 规则。另外 SQLite 会把 NaN 存成 NULL，写库前必须清掉，否则 `messages.confidence`
+     * 会变成 NULL 而不是一个数。
+     *
+     * AI 关闭时（本任务）走不到这条路径；金标不放 NaN 用例（JSON 表达不了，且这是有意偏差）。
+     */
+    internal fun finiteConfidence(value: Double): Double = if (value.isFinite()) value else 0.0
 }
 
 /**

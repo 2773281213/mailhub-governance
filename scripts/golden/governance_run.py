@@ -9,9 +9,11 @@
 4. 关闭 AI（`ai_enabled=0`），按场景里的 `runs` 依次调用 `run_governance()`
    （可带 `force` / `since_days` / `limit`）；
 5. 按场景里的 `post` 依次执行运行后的维护动作（改设置、`backfill_template_keys`、
-   `retier_bills`），覆盖账单例行次数 / 偏好查询和模板键回填；
+   `retier_bills` 的 `template` / `only_missing` 两种入参），覆盖账单例行次数 / 偏好查询和
+   模板键回填；
 6. 导出治理后的邮件列、`governance_decisions`、`governance_runs`、`audit_log` 与
-   `governance_status()` 的关键字段。
+   `governance_status()` 的关键字段。邮件列里包含 `otp_code`、`bill_tier_locked`、
+   `unread`、`deleted_ts`、`flag_push` 这些治理不该改动的列，UPDATE 多写一列就会露馅。
 
 自增 id 只出现在 `governance_runs` 与 `governance_decisions` 里：运行用 `run_index`
 （第几次运行）表示，邮件用显式写入的 `id` 关联，所以不依赖自增 id。
@@ -110,12 +112,16 @@ MESSAGE_DEFAULTS = {
 }
 
 # 导出的邮件列：治理会改写或影响到的字段。
+# 末尾这五列治理**不应该**改动，导出它们是为了让「只写标签」成为金标的一部分：
+# 如果 `shangshu_apply` 或 `retier_bills` 的 UPDATE 多写了这些列（例如把邮件标成已读、
+# 改回回收站时间、动推送标记或验证码），金标会立刻不一致。
 EXPORT_MESSAGE_COLUMNS = [
     "id", "category", "importance", "summary", "confidence", "ai_reason",
     "needs_review", "ai_done", "risk_level", "governance_version",
     "governance_ministry", "governance_action", "governance_source",
     "governance_reason", "governance_ts", "ai_retry_count", "ai_retry_ts",
     "bill_tier", "bill_facets", "alert_ts", "template_key",
+    "otp_code", "bill_tier_locked", "unread", "deleted_ts", "flag_push",
 ]
 
 
