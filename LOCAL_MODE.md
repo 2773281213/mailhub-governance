@@ -82,6 +82,7 @@ Compose 页面 ── Gateway ── Repository ── ApiClient(Retrofit + OkHt
   - 打包的本地库四种 ABI 共约 4.9 MB，release 包从 2.2 MB 涨到 7.1 MB。L10 用 ABI 拆分或只保留 arm64 解决。
 - **IMAP 与 MIME** 用 Eclipse Angus Mail 2.0.5（Jakarta Mail 实现）。
   - 只用 `imaps`（993，隐式 TLS），开启 `mail.imaps.ssl.checkserveridentity=true`。不允许明文 `imap`，不允许放行自签名证书。原因：Angus Mail 用原始 socket，不受 App 的 `network_security_config.xml` 约束，必须在代码里强制。
+  - **只开 `checkserveridentity` 在手机上不够。** 它实际做的是设置端点识别算法 `LDAPS`，而 Android 的 Conscrypt 只认 `HTTPS`，等于没校验主机名。所以必须另外配置 `mail.imaps.ssl.hostnameverifier`，用我们自己的严格校验（`StrictHostnameVerifier`：只看 SAN，不回退到 CN）。
   - 连接超时 15 秒、读超时 30 秒（`mail.imaps.connectiontimeout` / `mail.imaps.timeout`）。协程取消时关闭 `IMAPStore`，后台任务被系统停止时能及时退出。
   - 网易的 RFC 2971 `ID`：只对 `providers.needs_imap_id(...)` 为真或账户带 `need_id` 的账户发送，时机是认证之后、`SELECT` 之前，与 `mail_client.py` 一致。用 `IMAPStore.id(mapOf("name" to "MailHub", "version" to "1.1", "vendor" to "MailHub", "support-email" to "mailhub@localhost"))`，字段与 `IMAP_ID_PAYLOAD` 一致。
   - `mail.mime.decodefilename` 与 `mail.mime.decodeparameters` 是 JVM 系统属性，由 `Mime` 初始化时设置（L1 已实现）。
