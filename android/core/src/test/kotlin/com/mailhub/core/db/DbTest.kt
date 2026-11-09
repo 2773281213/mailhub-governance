@@ -126,7 +126,7 @@ class DbTest {
         assertNull("回滚后不应留下 b", db.queryOne("SELECT 1 FROM settings WHERE k='b'"))
     }
 
-    /** 嵌套事务并入外层：外层回滚时内层的写入一起回滚。 */
+    /** 嵌套事务用 SAVEPOINT：外层回滚时内层的写入一起回滚。 */
     @Test
     fun nestedTransactionRollsBackWithOuter() = withTempDb { db ->
         db.initDb()
@@ -406,6 +406,60 @@ class DbTest {
             assertEquals("外层失败", expected.message)
         }
         assertNull("外层回滚带走 executeMany 的写入", db.queryOne("SELECT 1 FROM settings WHERE k='batch'"))
+    }
+
+    // ---------- 参数个数 ----------
+
+    /**
+     * `?` 的个数必须与参数个数一致：`androidx.sqlite` 会把没绑的参数静默当成 NULL，
+     * 移植 Python 的长 INSERT 时漏一个不会报错。execute / query / executeMany 都要检查。
+     */
+    @Test
+    fun placeholderCountMustMatchArguments() = withTempDb { db ->
+        db.initDb()
+        val mismatches = listOf<Pair<String, (Db) -> Any?>>(
+            "execute 少传" to { it.execute("INSERT INTO settings(k, v) VALUES(?, ?)", "k") },
+            "execute 多传" to { it.execute("INSERT INTO settings(k) VALUES(?)", "k", "多余的") },
+            "query 少传" to { it.query("SELECT ? AS a, ? AS b", 1) },
+            "query 多传" to { it.query("SELECT ?", 1, 2) },
+            "queryOne 少传" to { it.queryOne("SELECT ? AS a, ? AS b", 1) },
+            "executeMany 某一行少传" to {
+                it.executeMany(
+                    "INSERT INTO settings(k, v) VALUES(?, ?)",
+                    listOf(arrayOf<Any?>("k1", "v1"), arrayOf<Any?>("k2")),
+                )
+            },
+        )
+        for ((name, operation) in mismatches) {
+            try {
+                operation(db)
+                fail("$name 应当抛 IllegalArgumentException")
+            } catch (expected: IllegalArgumentException) {
+                assertTrue("$name 的错误信息：${expected.message}", expected.message!!.contains("占位符"))
+            }
+        }
+
+        // executeMany 自动包的事务要把检查失败之前已经写进去的那一行回滚掉。
+        assertNull(
+            "参数检查失败不能留下前一行",
+            db.queryOne("SELECT 1 FROM settings WHERE k='k1'"),
+        )
+    }
+
+    /** 字符串、带引号的标识符和注释里的 `?` 不算占位符（Python 的 sqlite3 也一样）。 */
+    @Test
+    fun placeholdersInsideStringsAndCommentsAreIgnored() = withTempDb { db ->
+        db.initDb()
+        db.execute("INSERT INTO settings(k, v) VALUES(?, ?) -- 尾巴上的 ? 不是占位符", "a", "b")
+        assertEquals("b", db.getSetting("a"))
+
+        val row = db.queryOne("SELECT '?' AS q, ? AS v /* ? 注释 */", 7)
+            ?: throw AssertionError("没有结果行")
+        assertEquals("字符串里的 ? 原样返回", "?", row.str("q"))
+        assertEquals(7L, row.long("v"))
+
+        db.execute("""INSERT INTO settings("k", v) VALUES(?, ?)""", "c", "d")
+        assertEquals("d", db.getSetting("c"))
     }
 
     // ---------- OAuth 表结构 ----------

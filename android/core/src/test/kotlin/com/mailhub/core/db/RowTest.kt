@@ -149,7 +149,10 @@ class RowTest {
         assertNull("NULL 仍然是 null", db.queryOne("SELECT NULL AS x")!!.int("x"))
     }
 
-    /** `toMap()` 对应 `dict(row)`：按列顺序、同名列后者覆盖前者。 */
+    /**
+     * `toMap()` 对应 `dict(row)`：按列顺序、同名列**前者**生效。
+     * `dict(row)` 走 `keys()` + `row[key]`，而 `row["a"]` 取的是第一列，三者必须一致。
+     */
     @Test
     fun toMapMatchesDictRow() = withTempDb { db ->
         db.initDb()
@@ -157,8 +160,9 @@ class RowTest {
             ?: throw AssertionError("没有结果行")
 
         val map = row.toMap()
-        assertEquals("同名列后者覆盖前者", mapOf("a" to 2L, "b" to "x", "c" to null), map)
+        assertEquals("同名列前者生效", mapOf("a" to 1L, "b" to "x", "c" to null), map)
         assertEquals("按列顺序", listOf("a", "b", "c"), map.keys.toList())
+        assertEquals("与 row[\"a\"] 的取值一致", row["a"], map["a"])
     }
 
     /** SQLite 把 `Double.NaN` 存成 NULL，读回来是 null 而不是 NaN（KDoc 里提醒了这一点）。 */

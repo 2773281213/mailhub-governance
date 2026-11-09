@@ -9,7 +9,8 @@ import kotlinx.serialization.json.jsonObject
 import org.junit.Test
 
 /**
- * 新库的表结构必须与 Python `db.init_db()` 建出来的一模一样。
+ * 新库的表结构必须与 Python 依次执行 `db.init_db()`、`oauth_auth.init_oauth_db()` 建出来的
+ * 一模一样（`app.py` 的启动顺序）。
  *
  * 金标由 `scripts/golden/db_schema.py` 生成，包含：
  * - 一条 `sqlite_master` 用例：`type, name, tbl_name, sql` 的完整清单（按 type、name 排序），

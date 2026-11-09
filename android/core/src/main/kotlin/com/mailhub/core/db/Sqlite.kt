@@ -21,8 +21,14 @@ object Sqlite {
      * - `PRAGMA foreign_keys=ON` → `conn.execute("PRAGMA foreign_keys=ON")`
      *
      * `db.py` 的 `get_conn()` 只设了这三条，所以这里也只设这三条，不多不少。
-     * `sqlite3.connect(..., timeout=30)` 的忙等待超时和 `row_factory` 是 Python 驱动的参数，
-     * 在 `androidx.sqlite` 里没有对应项，不在这里模拟。
+     *
+     * `sqlite3.connect(..., timeout=30)` 的忙等待对应的就是 SQLite 自己的
+     * `PRAGMA busy_timeout`（毫秒），这里**不设**：`Db` 全应用只有一个实例，所有访问都在
+     * 同一把锁里串行化，只有一条连接，不会出现两个连接抢同一把写锁，同一连接内的语句也不会
+     * 互相等锁。不设就是 SQLite 的默认值 0，对本机模式足够。反过来，如果真的开了两个
+     * `Db` 实例，仅靠 `busy_timeout` 也只能拖延冲突，不能恢复两个实例各自的事务计数，
+     * 所以正确的做法是保证单实例，而不是调大超时。
+     * `row_factory` 是 Python 驱动的参数，在 `androidx.sqlite` 里没有对应项。
      *
      * 调用方负责关闭返回的连接。
      */

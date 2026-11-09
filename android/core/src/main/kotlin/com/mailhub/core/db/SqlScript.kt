@@ -18,6 +18,11 @@ package com.mailhub.core.db
  * - `.` 后面是限定列名（`new.end`），那一整段当标识符看，不是关键字；
  * - 只有空白或注释的片段被丢弃（例如脚本末尾的注释）。
  *
+ * **已知限制：** 触发器体里如果把 `begin`、`end` 当作**未加引号的列名**（例如
+ * `INSERT INTO t(end) VALUES(new.begin)`），它们仍会被当成关键字，把 `BEGIN` / `END`
+ * 的层数算乱；SQLite 接受这种写法，但 `db.py` 现有的脚本里没有。真遇到时给列名加引号
+ * （`"end"`）即可。列名 `trigger` 不受影响，因为是否进入触发器体只看语句开头的关键字。
+ *
  * 语句文本原样保留（只去掉首尾空白和开头的注释）：`sqlite_master` 保存的是建表语句原文，
  * 拆的时候改动语句内部的空格就会让金标对不上。去掉开头的注释不影响原文——
  * SQLite 存 `sqlite_master.sql` 时也是从第一个关键字算起。
@@ -163,54 +168,134 @@ private fun isIdentifierStart(c: Char): Boolean =
 private fun isIdentifierPart(c: Char): Boolean = c.isLetterOrDigit() || isIdentifierStart(c)
 
 /**
+ * 从 [from] 开始跳过空白与注释，返回第一个既不是空白也不是注释的字符下标；
+ * 一直跳到末尾时返回 `text.length`。
+ *
+ * 拆分脚本时去开头的注释、判断片段里还有没有 SQL、取语句的第一个关键字、统计占位符，
+ * 用的是同一套「什么是注释」的规则；实现只留这一份，四处复用。
+ */
+internal fun skipTrivia(text: String, from: Int): Int {
+    var index = from
+    while (index < text.length) {
+        if (text[index].isWhitespace()) {
+            index++
+            continue
+        }
+        val commentEnd = commentEnd(text, index)
+        if (commentEnd >= 0) {
+            index = commentEnd
+            continue
+        }
+        return index
+    }
+    return index
+}
+
+/** [index] 处是注释开头时返回注释之后的下标，否则返回 -1。 */
+private fun commentEnd(text: String, index: Int): Int {
+    if (index + 1 >= text.length) {
+        return -1
+    }
+    if (text[index] == '-' && text[index + 1] == '-') {
+        var end = index + 2
+        while (end < text.length && text[end] != '\n') {
+            end++
+        }
+        return end
+    }
+    if (text[index] == '/' && text[index + 1] == '*') {
+        var end = index + 2
+        while (end + 1 < text.length && !(text[end] == '*' && text[end + 1] == '/')) {
+            end++
+        }
+        return minOf(end + 2, text.length)
+    }
+    return -1
+}
+
+/** [index] 处是引号时返回配对引号之后的下标（双写是转义）；不是引号时返回 -1。 */
+private fun quotedEnd(text: String, index: Int): Int {
+    val quote = text[index]
+    if (quote != '\'' && quote != '"' && quote != '`') {
+        return -1
+    }
+    var end = index + 1
+    while (end < text.length) {
+        if (text[end] == quote) {
+            if (end + 1 < text.length && text[end + 1] == quote) {
+                end += 2
+                continue
+            }
+            return end + 1
+        }
+        end++
+    }
+    return text.length
+}
+
+/** [index] 处是 `[` 时返回 `]` 之后的下标；没有闭合时返回 `text.length`。 */
+private fun bracketEnd(text: String, index: Int): Int {
+    var end = index + 1
+    while (end < text.length && text[end] != ']') {
+        end++
+    }
+    return if (end < text.length) end + 1 else text.length
+}
+
+/**
+ * 统计 SQL 里字符串、带引号的标识符与注释之外的 `?` 占位符个数。
+ *
+ * 只数匿名 `?`（本类也只支持这种）；`?123` 这种带编号的占位符按一个算，调用方不要用。
+ * 用来在绑定之前核对参数个数：Python 的 `sqlite3` 少传参数会抛 `ProgrammingError`，
+ * 而 `androidx.sqlite` 会把没绑的参数静默当成 NULL，移植 24 个占位符的 INSERT 时漏一个
+ * 就会悄悄写进 NULL。
+ */
+internal fun countPlaceholders(sql: String): Int {
+    var count = 0
+    var index = 0
+    while (index < sql.length) {
+        val c = sql[index]
+        when {
+            c == '?' -> {
+                count++
+                index++
+            }
+            c == '[' -> index = bracketEnd(sql, index)
+            else -> {
+                val quoted = quotedEnd(sql, index)
+                if (quoted >= 0) {
+                    index = quoted
+                    continue
+                }
+                val comment = commentEnd(sql, index)
+                if (comment >= 0) {
+                    index = comment
+                    continue
+                }
+                index++
+            }
+        }
+    }
+    return count
+}
+
+/**
  * 去掉语句开头的空白与注释。SQLite 存储建表语句原文时也是从第一个关键字算起，
  * 所以去掉开头的注释不影响 `sqlite_master.sql`，只是让拆出来的语句更好读。
  */
-private fun stripLeadingTrivia(text: String): String {
-    var index = 0
-    while (index < text.length) {
-        val c = text[index]
-        when {
-            c.isWhitespace() -> index++
-            c == '-' && index + 1 < text.length && text[index + 1] == '-' -> {
-                while (index < text.length && text[index] != '\n') {
-                    index++
-                }
-            }
-            c == '/' && index + 1 < text.length && text[index + 1] == '*' -> {
-                index += 2
-                while (index + 1 < text.length && !(text[index] == '*' && text[index + 1] == '/')) {
-                    index++
-                }
-                index = minOf(index + 2, text.length)
-            }
-            else -> break
-        }
-    }
-    return text.substring(index)
-}
+private fun stripLeadingTrivia(text: String): String = text.substring(skipTrivia(text, 0))
 
-/** [text] 里除了空白和注释之外还有没有内容（纯注释片段不送去 prepare）。 */
+/**
+ * [text] 里除了空白、注释和空语句的分号之外还有没有内容（纯注释或 `;;` 片段不送去 prepare）。
+ *
+ * 只含分号的片段是 `executescript` 里的空语句，Python 会直接跳过；这里也必须丢掉，
+ * 否则 `executeScript(";COMMIT;")` 会先拿 `;` 去 prepare 而报 SQLite 错误，
+ * 轮不到对 `COMMIT` 的事务控制检查。
+ */
 private fun hasSqlCode(text: String): Boolean {
-    var index = 0
-    while (index < text.length) {
-        val c = text[index]
-        when {
-            c.isWhitespace() -> index++
-            c == '-' && index + 1 < text.length && text[index + 1] == '-' -> {
-                while (index < text.length && text[index] != '\n') {
-                    index++
-                }
-            }
-            c == '/' && index + 1 < text.length && text[index + 1] == '*' -> {
-                index += 2
-                while (index + 1 < text.length && !(text[index] == '*' && text[index + 1] == '/')) {
-                    index++
-                }
-                index = minOf(index + 2, text.length)
-            }
-            else -> return true
-        }
+    var index = skipTrivia(text, 0)
+    while (index < text.length && text[index] == ';') {
+        index = skipTrivia(text, index + 1)
     }
-    return false
+    return index < text.length
 }

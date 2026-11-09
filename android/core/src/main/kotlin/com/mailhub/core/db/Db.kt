@@ -43,6 +43,17 @@ private val LOG: Logger = Logger.getLogger("com.mailhub.core.db.Db")
  * - 代价是并发读也要排队。本机模式只有同步、治理和界面查询，量级远不到需要权衡的地步，
  *   但**锁内不能等 IO**，见 [transaction] 的「锁的约束」。
  *
+ * **全应用只能有一个 [Db] 实例。** 事务层数、FTS 可用性缓存和那把锁都挂在实例上；再开一个
+ * 实例就是第二条连接，两个实例的锁互不相干，同一时刻可能同时写同一个库文件，SQLite 只能靠
+ * `SQLITE_BUSY` 报错（本类没有设置忙等待，见 [Sqlite.openDatabase]）。需要访问库的地方都从
+ * 同一个入口拿这个实例。
+ *
+ * **首次调用 [initDb] / [ftsSearchAvailable] 不要放在 [transaction] 里。** 两者都可能创建
+ * FTS5 虚表；外层已经有事务时，它们内部的「独立事务」会退化成 `SAVEPOINT`，而 FTS5 的虚表
+ * 在 SAVEPOINT 里被撤销、外层再 `COMMIT` 时 SQLite 会报 `SQL logic error`（这就是 [initDb]
+ * 把 FTS 单独放在一个事务里的原因）。启动时先在任何事务之外调用 [initDb]，之后
+ * [ftsSearchAvailable] 就只读缓存了。
+ *
  * **事务约定（后续任务必须遵守）：** Python 的 `sqlite3` 在第一条 DML 前隐式 `BEGIN`，
  * 到 `conn.commit()` 才提交，所以 `db.py` 里凡是「一次 `commit()` 之前连续执行多条写入」
  * 的地方（`init_db()`、`audit()`、`app.py` 的批量删除与撤销等），移植时必须整体包进一个
@@ -99,8 +110,12 @@ class Db(val path: String, private val clock: Clock = SystemClock) {
     /**
      * 执行查询，返回全部结果行，对应 `conn.execute(sql, args).fetchall()`。
      *
-     * 事务控制语句（`BEGIN` / `COMMIT` / `ROLLBACK` / `SAVEPOINT` / `RELEASE`）要抛
-     * [IllegalArgumentException]：那是 [transaction] 的职责。
+     * 事务控制语句（`BEGIN` / `COMMIT` / `END` / `ROLLBACK` / `SAVEPOINT` / `RELEASE`）要抛
+     * [IllegalArgumentException]：那是 [transaction] 的职责。开头的分号不影响识别
+     * （`;COMMIT` 同样被拒绝）。
+     *
+     * `?` 占位符的个数必须与 [args] 的个数一致，否则抛 [IllegalArgumentException]；
+     * 字符串和注释里的 `?` 不计数。
      */
     fun query(sql: String, vararg args: Any?): List<Row> = lock.withLock {
         checkOpen()
@@ -127,7 +142,10 @@ class Db(val path: String, private val clock: Clock = SystemClock) {
      *
      * [ExecResult.lastInsertRowid] 见 [ExecResult] 的说明：`changes == 0` 时一律是 0。
      *
-     * 事务控制语句要抛 [IllegalArgumentException]：事务请用 [transaction]。
+     * 事务控制语句（含 `COMMIT` 的别名 `END`）要抛 [IllegalArgumentException]：事务请用
+     * [transaction]。`?` 占位符的个数必须与 [args] 一致，否则抛 [IllegalArgumentException]：
+     * `androidx.sqlite` 不会像 Python 的 `sqlite3` 那样报 `ProgrammingError`，漏传的参数会
+     * 静默绑成 NULL。
      */
     fun execute(sql: String, vararg args: Any?): ExecResult = lock.withLock {
         checkOpen()
@@ -139,7 +157,10 @@ class Db(val path: String, private val clock: Clock = SystemClock) {
      *
      * - 参数是「一行一个 `Array`」，顺序与 SQL 里的 `?` 一致（对应 Python 的元组）；
      * - 复用同一个预编译语句，只为减少反复解析 SQL 的开销，语义与逐条 [execute] 相同；
-     * - 返回值是每条语句 `changes()` 的和（Python 的 `rowcount` 也是这么累加的）；
+     * - 返回值是每条语句 `changes()` 的和（Python 的 `rowcount` 也是这么累加的），
+     *   `SELECT changes()` 只预编译一次，每行复用；
+     * - 每一行的参数个数都必须与 SQL 里的 `?` 一致（`?` 的扫描只做一次），否则抛
+     *   [IllegalArgumentException]，不会把缺的参数静默绑成 NULL；
      * - 不在 [transaction] 里时自动包进一个事务：中途失败不会留下前几行，与
      *   `governance.py` / `sync.py` 里「`executemany` 之后紧跟 `commit()`」一致。
      */
@@ -158,12 +179,15 @@ class Db(val path: String, private val clock: Clock = SystemClock) {
      *
      * 与 Python 的 `executescript` 有一处**不同**：Python 会先隐式 `COMMIT` 掉外层没提交的
      * 事务再执行脚本，这里不会——脚本里的语句就落在当前事务里（没有外层事务时每条自己提交）。
-     * 因此脚本里**不准自带** `BEGIN` / `COMMIT` / `ROLLBACK`：那会和外层的层数计数打架。
-     * 需要事务语义时，把 [executeScript] 包进 [transaction]。
+     * 因此脚本里**不准自带** `BEGIN` / `COMMIT`（含别名 `END`）/ `ROLLBACK`：那会和外层的
+     * 层数计数打架。**每一条**拆出来的语句都会做与 [execute] 相同的检查（事务控制、参数
+     * 个数），不会因为藏在脚本中段就漏过去。需要事务语义时，把 [executeScript] 包进
+     * [transaction]。[executeScript] 不接受参数，脚本里出现 `?` 占位符会报错。
      */
     fun executeScript(script: String) = lock.withLock {
         checkOpen()
         for (statement in splitSqlScript(script)) {
+            rejectTransactionControl(statement)
             stepLocked(statement, emptyArray())
         }
     }
@@ -188,15 +212,23 @@ class Db(val path: String, private val clock: Clock = SystemClock) {
      *   外层回滚时内层一起回滚；内层抛异常时 `ROLLBACK TO` 到自己的 SAVEPOINT 再 `RELEASE`，
      *   所以外层捕获这个异常后继续提交时，**内层的写入不会落盘**。与 Python 里
      *   「多条写入 + 一次 commit」的语义对齐，见类注释。
+     * - **SQLite 自动回滚**（磁盘满、中断、`ON CONFLICT ROLLBACK` 等）后，连接已经不在事务
+     *   里，而本类的层数计数还是 1。每条语句执行前都会用 `SQLiteConnection.inTransaction()`
+     *   确认连接仍在事务中（见 [ensureUsableTransactionLocked]）；不符合就抛
+     *   [IllegalStateException] 并关闭连接，不会让后续写入按 autocommit 逐条落盘。调用方在
+     *   [block] 里捕获异常后继续写（`sync.py` 的逐封处理）也会被这里挡住。
      * - 回滚本身失败时不会吞掉：回滚的异常用 `addSuppressed` 附到原异常上。如果连接已经
      *   不可信（错误信息不是「no transaction is active」，例如 SAVEPOINT 已经被自动回滚
      *   掉），立即关闭连接并把它置为已关闭，后续调用抛 [IllegalStateException]。事务里
      *   调用 [close] 同样抛 [IllegalStateException]。
      * - [block] 里可以继续调用 [query] / [execute] / [executeMany]（同一把可重入锁），
      *   但**不要**自己写 `BEGIN` / `COMMIT` / `SAVEPOINT`：[execute] / [query] 会直接拒绝。
+     * - 不要在 [block] 里首次调用 [initDb] 或 [ftsSearchAvailable]（会创建 FTS5 虚表），
+     *   原因见类注释。
      */
     fun <T> transaction(block: () -> T): T = lock.withLock {
         checkOpen()
+        ensureUsableTransactionLocked()
         if (txDepth > 0) nestedTransactionLocked(block) else outerTransactionLocked(block)
     }
 
@@ -348,16 +380,57 @@ class Db(val path: String, private val clock: Clock = SystemClock) {
     }
 
     /**
+     * 在 `txDepth > 0` 时确认连接真的还在事务里，否则按「连接不可信」处理。
+     *
+     * 为什么需要：SQLite 遇到磁盘满、`sqlite3_interrupt`、`ON CONFLICT ROLLBACK` 等情况会
+     * **自动回滚整个事务**。如果调用方在 [transaction] 里捕获了这个异常继续执行，[txDepth]
+     * 还是 1，后面的每条写入都会按 autocommit 逐条落盘，嵌套的 `SAVEPOINT` 还会另开一个
+     * 事务——`sync.py` 就是逐封捕获后继续的写法，L7 之前必须在这里挡住。
+     *
+     * 用 `SQLiteConnection.inTransaction()`：androidx.sqlite 2.7.1 的打包驱动实现了它
+     * （底层是 `sqlite3_get_autocommit`），可以直接问「连接当前是否在事务里」，不必靠捕获
+     * `cannot rollback` / `no transaction is active` 之类的错误信息去猜，也不需要在每条
+     * 语句后面额外试写一次。只要它说不在事务里，就关闭连接并抛
+     * [IllegalStateException]；后续调用全部按「已关闭」失败。
+     */
+    private fun ensureUsableTransactionLocked() {
+        if (txDepth == 0 || closed) {
+            return
+        }
+        val inTransaction = try {
+            conn.inTransaction()
+        } catch (error: Throwable) {
+            throw untrustedConnectionLocked("无法确认连接的事务状态（${error.message}）", error)
+        }
+        if (!inTransaction) {
+            throw untrustedConnectionLocked(
+                "SQLite 已经自动回滚了当前事务（例如磁盘满或 ON CONFLICT ROLLBACK）",
+            )
+        }
+    }
+
+    /** 关闭连接并按「连接不可信」抛出 [IllegalStateException]，附带关闭时的异常。 */
+    private fun untrustedConnectionLocked(reason: String, cause: Throwable? = null): IllegalStateException {
+        val error = IllegalStateException("$reason，连接状态不可信，已关闭：$path", cause)
+        try {
+            closeLocked()
+        } catch (closeError: Throwable) {
+            error.addSuppressed(closeError)
+        }
+        return error
+    }
+
+    /**
      * 外层事务：真的 `BEGIN` / `COMMIT`。回滚会一并撤销事务里建的 FTS 表与触发器，
      * 所以进入事务前的 FTS 缓存要在回滚时恢复（或置空重新探测），否则缓存会和库不一致。
      */
     private fun <T> outerTransactionLocked(block: () -> T): T {
         val ftsBefore = ftsAvailable
-        stepLocked("BEGIN", emptyArray())
+        stepLocked("BEGIN", emptyArray(), transactionControl = true)
         txDepth = 1
         try {
             val result = block()
-            stepLocked("COMMIT", emptyArray())
+            stepLocked("COMMIT", emptyArray(), transactionControl = true)
             return result
         } catch (throwable: Throwable) {
             ftsAvailable = ftsBefore
@@ -376,11 +449,11 @@ class Db(val path: String, private val clock: Clock = SystemClock) {
         val depth = txDepth
         val ftsBefore = ftsAvailable
         val savepoint = SAVEPOINT_PREFIX + depth
-        stepLocked("SAVEPOINT $savepoint", emptyArray())
+        stepLocked("SAVEPOINT $savepoint", emptyArray(), transactionControl = true)
         txDepth = depth + 1
         try {
             val result = block()
-            stepLocked("RELEASE $savepoint", emptyArray())
+            stepLocked("RELEASE $savepoint", emptyArray(), transactionControl = true)
             return result
         } catch (throwable: Throwable) {
             // 内层也可能建了 FTS，回滚内层同样要恢复缓存。
@@ -399,7 +472,7 @@ class Db(val path: String, private val clock: Clock = SystemClock) {
             return
         }
         try {
-            stepLocked("ROLLBACK", emptyArray())
+            stepLocked("ROLLBACK", emptyArray(), transactionControl = true)
         } catch (error: Throwable) {
             onRollbackFailure(original, error)
         }
@@ -410,14 +483,14 @@ class Db(val path: String, private val clock: Clock = SystemClock) {
             return
         }
         try {
-            stepLocked("ROLLBACK TO $savepoint", emptyArray())
+            stepLocked("ROLLBACK TO $savepoint", emptyArray(), transactionControl = true)
         } catch (error: Throwable) {
             // 连 SAVEPOINT 都没了，RELEASE 也不会成功，别再做无用的尝试。
             onRollbackFailure(original, error)
             return
         }
         try {
-            stepLocked("RELEASE $savepoint", emptyArray())
+            stepLocked("RELEASE $savepoint", emptyArray(), transactionControl = true)
         } catch (error: Throwable) {
             onRollbackFailure(original, error)
         }
@@ -486,6 +559,8 @@ class Db(val path: String, private val clock: Clock = SystemClock) {
 
     private fun queryLocked(sql: String, args: Array<out Any?>, limit: Int = Int.MAX_VALUE): List<Row> {
         rejectTransactionControl(sql)
+        ensureUsableTransactionLocked()
+        checkParameterCount(sql, args)
         val stmt = conn.prepare(sql)
         try {
             bindAll(stmt, args)
@@ -528,30 +603,52 @@ class Db(val path: String, private val clock: Clock = SystemClock) {
 
     /** 复用同一个预编译语句执行多行参数；调用方负责事务（见 [executeMany]）。 */
     private fun executeManyLocked(sql: String, rows: Iterable<Array<out Any?>>): Long {
+        ensureUsableTransactionLocked()
+        // 同一条 SQL 的占位符个数不变，只扫描一次；每行只比个数。
+        val expected = countPlaceholders(sql)
         val stmt = conn.prepare(sql)
-        var total = 0L
         try {
-            for (args in rows) {
-                bindAll(stmt, args)
-                while (stmt.step()) {
-                    // executemany 只用于写语句，结果行丢弃：需要结果请用 query()。
+            // changes() 也只预编译一次：每行重新 prepare 一条一模一样的 SELECT 没有必要。
+            val changesStmt = conn.prepare("SELECT changes()")
+            try {
+                var total = 0L
+                for (args in rows) {
+                    checkParameterCount(sql, expected, args.size)
+                    bindAll(stmt, args)
+                    while (stmt.step()) {
+                        // executemany 只用于写语句，结果行丢弃：需要结果请用 query()。
+                    }
+                    check(changesStmt.step()) { "SELECT changes() 没有返回行" }
+                    total += changesStmt.getLong(0)
+                    changesStmt.reset()
+                    stmt.reset()
+                    stmt.clearBindings()
                 }
-                total += changesLocked()
-                stmt.reset()
-                stmt.clearBindings()
+                return total
+            } finally {
+                changesStmt.close()
             }
         } finally {
             stmt.close()
         }
-        return total
     }
 
-    /** 上一条语句影响的行数，对应 `sqlite3_changes()` / `cur.rowcount`。 */
-    private fun changesLocked(): Long =
-        queryLocked("SELECT changes()", emptyArray(), limit = 1).first().long(0) ?: 0L
-
-    /** 执行一条语句并把它跑到结束，返回结果行（DDL 与 PRAGMA 没有结果行）。 */
-    private fun stepLocked(sql: String, args: Array<out Any?>) {
+    /**
+     * 执行一条语句并把它跑到结束，结果行丢弃（DDL 与 PRAGMA 没有结果行）。
+     *
+     * [transactionControl] 只给 [transaction] 自己的 `BEGIN` / `COMMIT` / `ROLLBACK` /
+     * `SAVEPOINT` / `RELEASE` 用：这些语句本来就是改事务状态的，执行前不能要求「连接还在
+     * 事务里」（`BEGIN` 之前就不在，自动回滚之后的 `ROLLBACK` 也不在）。
+     */
+    private fun stepLocked(
+        sql: String,
+        args: Array<out Any?>,
+        transactionControl: Boolean = false,
+    ) {
+        if (!transactionControl) {
+            ensureUsableTransactionLocked()
+        }
+        checkParameterCount(sql, args)
         val stmt = conn.prepare(sql)
         try {
             bindAll(stmt, args)
@@ -588,36 +685,40 @@ class Db(val path: String, private val clock: Clock = SystemClock) {
         }
     }
 
-    /** 取 SQL 的第一个关键字（跳过开头空白与注释）；第一条不是标识符时返回 null。 */
+    /**
+     * 取 SQL 的第一个关键字（跳过开头空白、注释与空语句的分号）；第一条不是标识符时返回 null。
+     *
+     * 开头的 `;` 是空语句分隔符，不是关键字：`;COMMIT` 里的 `COMMIT` 照样要被识别出来，
+     * 否则只靠 `prepare()` 报错就漏过了统一拦截。
+     */
     private fun leadingKeyword(sql: String): String? {
-        var index = 0
-        while (index < sql.length) {
-            val c = sql[index]
-            when {
-                c.isWhitespace() -> index++
-                c == '-' && index + 1 < sql.length && sql[index + 1] == '-' -> {
-                    while (index < sql.length && sql[index] != '\n') {
-                        index++
-                    }
-                }
-                c == '/' && index + 1 < sql.length && sql[index + 1] == '*' -> {
-                    index += 2
-                    while (index + 1 < sql.length && !(sql[index] == '*' && sql[index + 1] == '/')) {
-                        index++
-                    }
-                    index = minOf(index + 2, sql.length)
-                }
-                isIdentifierStart(c) -> {
-                    val start = index
-                    while (index < sql.length && isIdentifierPart(sql[index])) {
-                        index++
-                    }
-                    return sql.substring(start, index)
-                }
-                else -> return null
-            }
+        var index = skipTrivia(sql, 0)
+        while (index < sql.length && sql[index] == ';') {
+            index = skipTrivia(sql, index + 1)
         }
-        return null
+        if (index >= sql.length || !isIdentifierStart(sql[index])) {
+            return null
+        }
+        val start = index
+        while (index < sql.length && isIdentifierPart(sql[index])) {
+            index++
+        }
+        return sql.substring(start, index)
+    }
+
+    /** 核对 `?` 占位符个数：Python 的 `sqlite3` 会抛 `ProgrammingError`，这里抛参数异常。 */
+    private fun checkParameterCount(sql: String, args: Array<out Any?>) {
+        checkParameterCount(sql, countPlaceholders(sql), args.size)
+    }
+
+    /** 同上，占位符个数已经由调用方扫描过（[executeMany] 每行复用同一个结果）。 */
+    private fun checkParameterCount(sql: String, expected: Int, actual: Int) {
+        if (expected != actual) {
+            throw IllegalArgumentException(
+                "SQL 需要 $expected 个 ? 占位符，实际传了 $actual 个参数（Python 的 sqlite3 会抛 " +
+                    "ProgrammingError）：${sql.take(MAX_SQL_IN_ERROR)}",
+            )
+        }
     }
 
     /**
@@ -668,8 +769,11 @@ class Db(val path: String, private val clock: Clock = SystemClock) {
         /** SQLite INTEGER 是带符号 64 位：`bitLength() > 63` 就已经溢出。 */
         const val MAX_INTEGER_BITS = 63
 
-        /** 不准出现在 [execute] / [query] 里的事务控制关键字。 */
-        val TRANSACTION_CONTROL = setOf("BEGIN", "COMMIT", "ROLLBACK", "SAVEPOINT", "RELEASE")
+        /** 参数个数不符的错误信息里最多带多长的 SQL（避免把整段脚本塞进日志）。 */
+        const val MAX_SQL_IN_ERROR = 200
+
+        /** 不准出现在 [execute] / [query] 里的事务控制关键字；`END` 是 `COMMIT` 的别名。 */
+        val TRANSACTION_CONTROL = setOf("BEGIN", "COMMIT", "END", "ROLLBACK", "SAVEPOINT", "RELEASE")
     }
 }
 
@@ -721,13 +825,18 @@ class Row internal constructor(
     fun has(column: String): Boolean = names.any { it.equals(column, ignoreCase = true) }
 
     /**
-     * 转成 `Map`，对应 Python 的 `dict(row)`：按**列顺序**插入，同名列后者覆盖前者
-     * （`dict(zip(row.keys(), row))` 的行为一致）。
+     * 转成 `Map`，对应 Python 的 `dict(row)`：按**列顺序**插入。
+     *
+     * `dict(row)` 走的是 `keys()` 加 `row[key]`，重复的列名每次取到的都是**第一列**
+     * （`row["a"]` 也如此），所以同名列以第一次出现的值为准，后面的不覆盖。
      */
     fun toMap(): Map<String, Any?> {
         val map = LinkedHashMap<String, Any?>(names.size * 2)
         for (index in names.indices) {
-            map[names[index]] = values[index]
+            val name = names[index]
+            if (!map.containsKey(name)) {
+                map[name] = values[index]
+            }
         }
         return map
     }

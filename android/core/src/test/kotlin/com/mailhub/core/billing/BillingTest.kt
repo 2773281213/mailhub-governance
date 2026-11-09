@@ -220,7 +220,7 @@ class BillingTest {
     fun nonFiniteRoutineCountFallsBackToDefault() {
         val unknown = mapOf<String, Any?>("direction" to "unknown")
         // int(nan) / int(inf) 在 Python 里抛异常，回退默认值 10；Double.toLong() 会给 0
-        for (value in listOf<Any>(Double.NaN, Double.POSITIVE_INFINITY, -Double.NEGATIVE_INFINITY,
+        for (value in listOf<Any>(Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY,
                 Float.NaN, "nan", "inf")) {
             assertEquals(
                 "routine_count = $value",

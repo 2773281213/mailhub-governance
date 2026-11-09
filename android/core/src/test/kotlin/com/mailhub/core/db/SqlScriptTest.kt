@@ -147,6 +147,15 @@ class SqlScriptTest {
         }
     }
 
+    /**
+     * 只含分号的片段是空语句（`executescript` 里是空操作），不能拆成一条送去 prepare；
+     * 否则 `;COMMIT;` 会先拿 `;` 去执行，轮不到事务控制检查。
+     */
+    @Test
+    fun emptyStatementsAreDropped() {
+        assertEquals(listOf("SELECT 1;"), splitSqlScript(";; SELECT 1; ; -- 注释\n ;;;"))
+    }
+
     /** 触发器之外出现 `BEGIN`（例如列名或字符串里的）不能影响断句。 */
     @Test
     fun beginOutsideTriggerDoesNotOpenABlock() {

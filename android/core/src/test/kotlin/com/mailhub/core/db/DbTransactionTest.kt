@@ -8,6 +8,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.concurrent.thread
 
@@ -208,7 +209,10 @@ class DbTransactionTest {
 
     // ---------- 事务控制语句 ----------
 
-    /** 裸的 BEGIN / COMMIT / ROLLBACK / SAVEPOINT / RELEASE 一律拒绝，提示改用 transaction {}。 */
+    /**
+     * 裸的 BEGIN / COMMIT（含别名 END）/ ROLLBACK / SAVEPOINT / RELEASE 一律拒绝，
+     * 提示改用 transaction {}；开头的分号不能帮它们绕过关键字识别。
+     */
     @Test
     fun transactionControlStatementsAreRejected() = withTempDb { db ->
         db.initDb()
@@ -219,6 +223,10 @@ class DbTransactionTest {
             "/* 注释 */ ROLLBACK",
             "-- 注释\nSAVEPOINT sp_1",
             "RELEASE sp_1",
+            "END",
+            "END TRANSACTION",
+            ";COMMIT",
+            ";;  /* 前置注释 */ COMMIT",
         )
         for (sql in forbidden) {
             try {
@@ -237,6 +245,136 @@ class DbTransactionTest {
                 assertTrue(expected.message!!.contains("transaction {}"))
             }
         }
+    }
+
+    /** executeScript 拆出来的每一条语句都要过同样的检查，夹在脚本中段也不能漏。 */
+    @Test
+    fun executeScriptRejectsTransactionControlAtAnyStatement() = withTempDb { db ->
+        db.initDb()
+        val scripts = listOf(
+            "COMMIT;",
+            "SELECT 1; ;COMMIT;",
+            "SELECT 1; BEGIN;",
+            "END;",
+            "SELECT 1; /* 注释 */ ROLLBACK;",
+            "SELECT 1; /* 注释 */ SAVEPOINT sp_9;",
+        )
+        for (script in scripts) {
+            try {
+                db.executeScript(script)
+                fail("脚本里的事务控制语句应当被拒绝：$script")
+            } catch (expected: IllegalArgumentException) {
+                assertTrue(
+                    "提示要指向 transaction {}：${expected.message}",
+                    expected.message!!.contains("transaction {}"),
+                )
+            }
+        }
+    }
+
+    // ---------- 自动回滚后的连接状态 ----------
+
+    /**
+     * SQLite 自动回滚事务（这里用 `INSERT OR ROLLBACK` 撞唯一约束）后，调用方捕获异常继续
+     * 执行时，不能再按 autocommit 逐条写：第一条语句就抛 [IllegalStateException] 并关连接。
+     *
+     * 这正是 `sync.py` 逐封捕获后继续的写法；旧实现会让后续写入悄悄落盘。
+     */
+    @Test
+    fun writesAfterAnAutomaticRollbackAreRejected() = withTempDb { db ->
+        db.initDb()
+        db.setSetting("dup", "1")
+        try {
+            db.transaction {
+                try {
+                    db.execute("INSERT OR ROLLBACK INTO settings(k, v) VALUES(?, ?)", "dup", "2")
+                    fail("唯一约束冲突应当抛异常")
+                } catch (expected: SQLiteException) {
+                    assertTrue(
+                        "应当是唯一约束错误：${expected.message}",
+                        (expected.message ?: "").uppercase().contains("UNIQUE"),
+                    )
+                }
+                // 此时 BEGIN 已经被 SQLite 自动回滚，层数却还是 1。
+                db.setSetting("after_auto_rollback", "1")
+                fail("自动回滚后继续写应当抛异常")
+            }
+            fail("连接不可信的异常应当抛到最外层")
+        } catch (expected: IllegalStateException) {
+            assertTrue("错误信息要说明连接已关闭：${expected.message}", expected.message!!.contains("已关闭"))
+            assertTrue("错误信息要说明事务状态：${expected.message}", expected.message!!.contains("事务"))
+        }
+
+        try {
+            db.query("SELECT 1")
+            fail("连接已经不可信，后续调用应当抛 IllegalStateException")
+        } catch (expected: IllegalStateException) {
+            assertTrue(expected.message!!.contains("已关闭"))
+        }
+
+        // 重开一个连接确认：自动回滚之后的那条写入确实没有落盘。
+        val reopened = Db(db.path)
+        try {
+            assertNull(
+                "自动回滚后不能留下半截写入",
+                reopened.queryOne("SELECT 1 FROM settings WHERE k='after_auto_rollback'"),
+            )
+            assertEquals("原来的值还在", "1", reopened.getSetting("dup"))
+        } finally {
+            reopened.close()
+        }
+    }
+
+    // ---------- 嵌套事务与 FTS 触发器 ----------
+
+    /**
+     * 走真实路径：内层 [Db.transaction] 向 `messages` 插入（FTS 触发器在同一个 SAVEPOINT 里
+     * 写索引），随后失败；外层捕获后继续提交。提交后 `MATCH` 查不到内层那封，外层那封能查到，
+     * 最后用 FTS5 自己的 `integrity-check` 确认索引与 `messages` 表一致。
+     */
+    @Test
+    fun failingInnerMessagesInsertLeavesFtsConsistent(): Unit = withTempDb { db ->
+        db.initDb()
+        val accountId = db.execute(
+            "INSERT INTO accounts(name, provider, email, imap_host) VALUES(?,?,?,?)",
+            "本机账户",
+            "custom",
+            "demo@example.com",
+            "imap.example.com",
+        ).lastInsertRowid
+
+        db.transaction {
+            try {
+                db.transaction {
+                    db.execute(
+                        "INSERT INTO messages(account_id, uid, subject, sender_name, sender_addr, snippet) " +
+                            "VALUES(?,?,?,?,?,?)",
+                        accountId,
+                        1L,
+                        "内层的验证码 246810",
+                        "银行通知",
+                        "notify@bank.example",
+                        "请在 10 分钟内使用",
+                    )
+                    throw IllegalStateException("内层失败")
+                }
+                fail("内层的异常应当抛到外层")
+            } catch (expected: IllegalStateException) {
+                assertEquals("内层失败", expected.message)
+            }
+            // 外层事务仍然是活的：再插一封，最终要能和内层区分开。
+            db.execute(
+                "INSERT INTO messages(account_id, uid, subject) VALUES(?,?,?)",
+                accountId,
+                2L,
+                "外层的收据 invoice",
+            )
+        }
+
+        assertEquals("内层的邮件不能落盘，索引里也不能有", 0L, matchCount(db, "验证码"))
+        assertEquals("外层的邮件要提交并可搜索", 1L, matchCount(db, "invoice"))
+        // FTS5 的完整性检查：索引里每一行都要与 messages 表对得上。
+        db.execute("INSERT INTO messages_fts(messages_fts) VALUES('integrity-check')")
     }
 
     // ---------- 并发 ----------
@@ -313,7 +451,7 @@ class DbTransactionTest {
             }
 
             start.countDown()
-            (writers + failers + readers).forEach { it.join() }
+            (writers + failers + readers).forEach { it.join(TimeUnit.MINUTES.toMillis(2)) }
             (writers + failers + readers).forEach { worker ->
                 assertFalse("线程 ${worker.name} 在 join 之后还活着", worker.isAlive)
             }
@@ -332,4 +470,7 @@ class DbTransactionTest {
             }
         }
     }
+
+    private fun matchCount(db: Db, keyword: String): Long =
+        db.queryOne("SELECT count(*) FROM messages_fts WHERE messages_fts MATCH ?", keyword)?.long(0) ?: 0L
 }
