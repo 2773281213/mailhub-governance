@@ -95,17 +95,19 @@ Compose 页面 ── Gateway ── Repository ── ApiClient(Retrofit + OkHt
    - 输入只用合成数据（`tests/classification_corpus.py` 与各测试里的 fixture），不准出现真实邮件、地址或验证码。
    - 导出脚本支持 `--check`。`scripts/golden/check_all.py` 会逐个检查目录下的所有脚本，CI 的 golden 任务在 Python 3.13 上运行它。新脚本放进目录就会自动纳入。
 3. **Python 语义统一走 `com.mailhub.core.text`：**
-   - 正则只用 `PyRegex.compile` / `compileUser` / `escape`，不准直接 `Regex(...)` 或 `Pattern.compile(...)`。它已经处理了：`\w \s \b` 按 Python 定义重写（Java 把 emoji 变体选择符 U+FE0F 算作单词字符）、`UNIX_LINES`（Python 只把 `\n` 当换行）、`(?P<name>…)`、`\Z`、`{,n}`、字符类里的 `[` 和 `&&`。Unicode 大小写折叠（含 `İ`、`ı`、`ſ`、开尔文符号）实测与 Python 3.13 一致。
+   - 正则只用 `PyRegex.compile` / `compileUser` / `escape`，不准直接 `Regex(...)` 或 `Pattern.compile(...)`。它已经处理了：`\w \s \b` 按 Python 定义重写（Java 把 emoji 变体选择符 U+FE0F 算作单词字符）、`UNIX_LINES`（Python 只把 `\n` 当换行）、`(?P<name>…)`、`\Z`、`{,n}`、字符类里的 `[` 和 `&&`。Unicode 大小写折叠（含 `İ`、`ı`、`ſ`、开尔文符号）实测与 Python 3.13 一致。这是桌面 JDK 上的结果；Android ICU 用完全大小写折叠（例如 `ß` 可能匹配 `ss`），差异只会多判，要靠设备上回放金标确认（`android/scripts/core-on-device.ps1`）。
    - `re.match` 对应 `lookingAt()`，`re.search` 对应 `find()`，`re.fullmatch` 对应 `matches()`。带位置的 `pattern.match(text, pos)` 用 `region(pos, len)`，并设置 `useTransparentBounds(true)`、`useAnchoringBounds(false)`。
    - 下标、切片、`len` 一律按码点：`cpLen`、`cpSlice`、`cpIndex`。
    - 空白与换行用 `isPySpace`、`pySplit`、`pyStrip`、`pyLstrip`、`pySplitLines`（Python 的 `isspace` 认 `&nbsp;`）。
    - `float()` / `int()` / `round()` / `f"{x:.2f}"` 分别用 `Py.float`、`Py.int`、`Py.round`、`Py.formatFixed`。`\d` 能匹配全角数字，所以数字解析必须认全角。
    - 真值判断用 `Py.truthy`；`html.unescape` 用 `PyHtml.unescape`。
-   - Python 源码里的不可见字符或特殊空白（例如 `_FENCE_RE` 里的 U+2028、U+3000）在 Kotlin 里一律写成 `\uXXXX` 转义，不要直接粘贴。
+   - Python 源码里的不可见字符或特殊空白（例如 `_FENCE_RE` 里的 U+2028、U+2029）在 Kotlin 里一律写成 `\uXXXX` 转义，不要直接粘贴。
 4. **Python 自身的不确定性要避开。** Python 的 `set` 遍历顺序受每个进程随机的字符串哈希影响（例如 `security_scan.scan` 的 `list(hosts)[:40]`）。Kotlin 用插入顺序；金标里不放结果依赖这种顺序的用例；任务总结里写明。
-5. **写数据库的 JSON 文本**不必与 Python `json.dumps` 逐字相同，但解析回来的值必须相同。
-6. **安全约束不变。** 自动治理只允许 `label_only`；邮件正文、主题、发件人、附件名一律按不可信输入处理；不可逆的服务器动作在服务器成功后才更新本地状态并写审计。
-7. **注释和 KDoc 用中文**，与仓库现有约定一致。
+5. **HTML 解析不照搬旧版 `HTMLParser`（有意偏差）。** Python 3.13.3 的 `html.parser` 遇到 `<![x]>`、`--!>`、`</script y>` 这类写法会丢掉后面的全部链接，几个字符就能关掉整封信的链接检查。`:core` 的链接提取按 Python 3.14.3 的 HTML5 语义实现；金标用 `scripts/golden/vendor/` 里的 3.14.3 解析器副本生成，不受运行脚本的 Python 版本影响。解析失败或超出资源限制时不放行：按中风险处理，并写明「HTML 无法完整解析」。
+6. **防回溯。** 邮件内容由攻击者控制，正则引擎是回溯式的，栈也有上限。对长度不设限的输入，要在匹配前截断，或用手写扫描代替含嵌套量词的正则；这类改动与 Python 的差异写进 KDoc。
+7. **写数据库的 JSON 文本**不必与 Python `json.dumps` 逐字相同，但解析回来的值必须相同。
+8. **安全约束不变。** 自动治理只允许 `label_only`；邮件正文、主题、发件人、附件名一律按不可信输入处理；不可逆的服务器动作在服务器成功后才更新本地状态并写审计。
+9. **注释和 KDoc 用中文**，与仓库现有约定一致。
 
 ## 五、收信与通知
 
