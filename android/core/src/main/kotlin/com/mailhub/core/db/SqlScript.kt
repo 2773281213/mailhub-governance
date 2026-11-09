@@ -8,8 +8,14 @@ package com.mailhub.core.db
  *
  * - `'…'`、`"…"`、`` `…` ``、`[…]` 里的分号不算语句结束（`''` 这种双写是转义）；
  * - `--` 行注释和块注释（斜杠加星号开头）里的分号也不算（块注释不嵌套，与 SQLite 一致）；
- * - `CREATE TRIGGER … BEGIN … END` 的触发器体里也有分号：见到 `TRIGGER` 之后开始计
- *   `BEGIN` / `CASE` 的嵌套层数，只有层数回到 0 之后的那个分号才是语句结束；
+ * - `CREATE TRIGGER … BEGIN … END` 的触发器体里也有分号：只有语句开头是
+ *   `CREATE [TEMP|TEMPORARY] TRIGGER` 才进入触发器模式，进入之后计 `BEGIN` / `CASE` 的
+ *   嵌套层数，只有层数回到 0 之后的那个分号才是语句结束。**不能见到 `TRIGGER` 就进触发器
+ *   模式**：`governance_runs` 有一列就叫 `trigger`，`SELECT trigger, begin FROM t;` 之后
+ *   的分号必须照常断句；
+ * - 标识符可以以 `_`、`$`、`:`、`@` 开头（后三个是 TCL 风格的参数前缀），所以 `_end`、
+ *   `:begin` 这类整段是一个标识符，`_end` 不能被当成 `END`；
+ * - `.` 后面是限定列名（`new.end`），那一整段当标识符看，不是关键字；
  * - 只有空白或注释的片段被丢弃（例如脚本末尾的注释）。
  *
  * 语句文本原样保留（只去掉首尾空白和开头的注释）：`sqlite_master` 保存的是建表语句原文，
@@ -23,10 +29,16 @@ internal fun splitSqlScript(script: String): List<String> {
     // 触发器体（以及体内 CASE 表达式）的 BEGIN/END 嵌套层数；0 表示不在触发器体里。
     var blockDepth = 0
     var inTrigger = false
+    // 当前语句开头的关键字（只看前 3 个），用来判断是不是 CREATE [TEMP|TEMPORARY] TRIGGER。
+    val leadingKeywords = ArrayList<String>(LEADING_KEYWORD_LIMIT)
+    // 上一个非空白字符：紧跟在 `.` 后面的标识符是限定列名（`new.end`），不是关键字。
+    var previousSignificant = ' '
 
     fun flush() {
         val text = stripLeadingTrivia(current.toString()).trimEnd()
         current.setLength(0)
+        leadingKeywords.clear()
+        previousSignificant = ' '
         if (hasSqlCode(text)) {
             statements.add(text)
         }
@@ -53,6 +65,7 @@ internal fun splitSqlScript(script: String): List<String> {
                     index++
                 }
                 current.append(script, start, index)
+                previousSignificant = script[index - 1]
             }
             // SQL Server 风格的 [标识符]，SQLite 也接受；里面不会有 ] 的转义写法。
             c == '[' -> {
@@ -65,6 +78,7 @@ internal fun splitSqlScript(script: String): List<String> {
                     index++
                 }
                 current.append(script, start, index)
+                previousSignificant = script[index - 1]
             }
             // -- 行注释
             c == '-' && index + 1 < script.length && script[index + 1] == '-' -> {
@@ -85,19 +99,31 @@ internal fun splitSqlScript(script: String): List<String> {
                 index = minOf(index + 2, script.length)
                 current.append(script, start, index)
             }
-            // 关键字：只用来识别触发器体的起止。
-            c.isLetter() -> {
+            // 标识符与关键字（关键字只用来识别触发器体的起止）。
+            isIdentifierStart(c) -> {
                 val start = index
-                while (index < script.length && (script[index].isLetterOrDigit() || script[index] == '_')) {
+                index++
+                while (index < script.length && isIdentifierPart(script[index])) {
                     index++
                 }
-                when (script.substring(start, index).uppercase()) {
-                    "TRIGGER" -> inTrigger = true
-                    "BEGIN" -> if (inTrigger) blockDepth++
-                    "CASE" -> if (inTrigger && blockDepth > 0) blockDepth++
-                    "END" -> if (inTrigger && blockDepth > 0) blockDepth--
+                val word = script.substring(start, index)
+                val keyword = word.uppercase()
+                // `.` 后面是限定列名：`new.end` 里的 end 不是 END。
+                if (previousSignificant != '.') {
+                    if (leadingKeywords.size < LEADING_KEYWORD_LIMIT) {
+                        leadingKeywords.add(keyword)
+                        if (startsCreateTrigger(leadingKeywords)) {
+                            inTrigger = true
+                        }
+                    }
+                    when (keyword) {
+                        "BEGIN" -> if (inTrigger) blockDepth++
+                        "CASE" -> if (inTrigger && blockDepth > 0) blockDepth++
+                        "END" -> if (inTrigger && blockDepth > 0) blockDepth--
+                    }
                 }
-                current.append(script, start, index)
+                current.append(word)
+                previousSignificant = script[index - 1]
             }
             c == ';' && blockDepth == 0 -> {
                 current.append(c)
@@ -107,6 +133,9 @@ internal fun splitSqlScript(script: String): List<String> {
             }
             else -> {
                 current.append(c)
+                if (!c.isWhitespace()) {
+                    previousSignificant = c
+                }
                 index++
             }
         }
@@ -114,6 +143,24 @@ internal fun splitSqlScript(script: String): List<String> {
     flush()
     return statements
 }
+
+/** 触发器体的识别只看语句最前面的这几个关键字。 */
+private const val LEADING_KEYWORD_LIMIT = 3
+
+/** 语句开头是 `CREATE [TEMP|TEMPORARY] TRIGGER` 时才进触发器模式（语句还没走完）。 */
+private fun startsCreateTrigger(keywords: List<String>): Boolean = when (keywords.size) {
+    2 -> keywords[0] == "CREATE" && keywords[1] == "TRIGGER"
+    3 -> keywords[0] == "CREATE" &&
+        (keywords[1] == "TEMP" || keywords[1] == "TEMPORARY") &&
+        keywords[2] == "TRIGGER"
+    else -> false
+}
+
+/** 标识符的首字符：字母，或者 `_`、`$`、`:`、`@` 这些 TCL 风格的参数前缀。 */
+private fun isIdentifierStart(c: Char): Boolean =
+    c.isLetter() || c == '_' || c == '$' || c == ':' || c == '@'
+
+private fun isIdentifierPart(c: Char): Boolean = c.isLetterOrDigit() || isIdentifierStart(c)
 
 /**
  * 去掉语句开头的空白与注释。SQLite 存储建表语句原文时也是从第一个关键字算起，

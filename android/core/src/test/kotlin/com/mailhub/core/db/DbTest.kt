@@ -341,6 +341,133 @@ class DbTest {
         assertEquals("解不开返回空串", "", cipher.decrypt("不是我们的格式"))
     }
 
+    // ---------- execute 的返回值 ----------
+
+    /**
+     * `changes` 与 `lastInsertRowid`：插入一行是 1 与自增 id；
+     * `INSERT OR IGNORE` 被忽略时两者都是 0（不能返回上一次插入留下的 rowid）。
+     */
+    @Test
+    fun insertOrIgnoreReportsZeroRowidWhenIgnored() = withTempDb { db ->
+        db.initDb()
+        val inserted = db.execute("INSERT INTO digests(day, content) VALUES(?, ?)", "2026-11-07", "内容")
+        assertEquals("插入一行", 1L, inserted.changes)
+        assertTrue("自增 id 应当大于 0：${inserted.lastInsertRowid}", inserted.lastInsertRowid > 0)
+
+        db.setSetting("k", "旧值")
+        // 先插一条审计，让 last_insert_rowid() 指向别的表，专门验「不能串到别的行」。
+        val auditId = db.audit("read")
+        assertTrue("审计行有自增 id", auditId > 0)
+
+        val ignored = db.execute("INSERT OR IGNORE INTO settings(k, v) VALUES(?, ?)", "k", "新值")
+        assertEquals("被忽略的行不计入 changes", 0L, ignored.changes)
+        assertEquals("不能返回别的表上一次插入的 rowid", 0L, ignored.lastInsertRowid)
+        assertEquals("旧值不变", "旧值", db.getSetting("k"))
+    }
+
+    /** `executeMany` 对应 `executemany`：返回总影响行数，不在事务里时自动包一个事务。 */
+    @Test
+    fun executeManyReturnsTotalChangesAndWrapsInTransaction() = withTempDb { db ->
+        db.initDb()
+        val total = db.executeMany(
+            "INSERT INTO settings(k, v) VALUES(?, ?)",
+            (1..5).map { arrayOf<Any?>("k$it", "v$it") },
+        )
+        assertEquals("5 行都写进去", 5L, total)
+        assertEquals(5L, count(db, "SELECT count(*) FROM settings"))
+
+        val ignored = db.executeMany(
+            "INSERT INTO settings(k, v) VALUES(?, ?) ON CONFLICT(k) DO NOTHING",
+            (1..5).map { arrayOf<Any?>("k$it", "覆盖") },
+        )
+        assertEquals("全部被忽略时是 0", 0L, ignored)
+
+        // 中途失败整批回滚（自动包的事务），不留下前几行。
+        try {
+            db.executeMany(
+                "INSERT INTO settings(k, v) VALUES(?, ?)",
+                listOf(arrayOf<Any?>("dup", "1"), arrayOf<Any?>("dup", "2")),
+            )
+            fail("主键冲突应当抛出")
+        } catch (expected: SQLiteException) {
+            assertNull("整批回滚，不留半截", db.queryOne("SELECT 1 FROM settings WHERE k='dup'"))
+        }
+
+        // 已经在事务里时不再单开事务：外层回滚会一起撤销。
+        try {
+            db.transaction {
+                db.executeMany(
+                    "INSERT INTO settings(k, v) VALUES(?, ?)",
+                    listOf(arrayOf<Any?>("batch", "1")),
+                )
+                throw IllegalStateException("外层失败")
+            }
+        } catch (expected: IllegalStateException) {
+            assertEquals("外层失败", expected.message)
+        }
+        assertNull("外层回滚带走 executeMany 的写入", db.queryOne("SELECT 1 FROM settings WHERE k='batch'"))
+    }
+
+    // ---------- OAuth 表结构 ----------
+
+    /**
+     * `initDb()` 也要建出 `oauth_auth.init_oauth_db()` 的东西：`oauth_transactions` 表与
+     * `accounts` 的三列。`app.py` 的账户 SQL 依赖这几列，缺了会整片查询失败。
+     */
+    @Test
+    fun initDbCreatesOAuthSchema() = withTempDb { db ->
+        db.initDb()
+        assertEquals(
+            "oauth_transactions 表要在",
+            1L,
+            count(db, "SELECT count(*) FROM sqlite_master WHERE type='table' AND name='oauth_transactions'"),
+        )
+        assertEquals(
+            "两个索引也要在",
+            2L,
+            count(db, "SELECT count(*) FROM sqlite_master WHERE type='index' AND name LIKE 'idx_oauth_%'"),
+        )
+        val columns = db.query("PRAGMA table_info(accounts)").mapNotNull { it.str("name") }
+        for (column in listOf("oauth_client_id", "oauth_scope", "oauth_reauth_required")) {
+            assertTrue("accounts 要有 $column 列，现在只有 $columns", column in columns)
+        }
+
+        // 建出来的表能直接用（列名与 init_oauth_db() 一致）。
+        db.execute(
+            "INSERT INTO oauth_transactions(id, provider, flow, email, expires_ts, created_ts) VALUES(?,?,?,?,?,?)",
+            "tx-1",
+            "outlook",
+            "browser",
+            "demo@example.com",
+            0.0,
+            0.0,
+        )
+        assertEquals(
+            "默认值要按 init_oauth_db() 的建表语句",
+            "pending",
+            db.queryOne("SELECT status FROM oauth_transactions WHERE id='tx-1'")?.str("status"),
+        )
+
+        // 幂等：重复 initDb() 不再报错、不多建。
+        db.initDb()
+        assertEquals(
+            "重复 initDb 不多建表",
+            1L,
+            count(db, "SELECT count(*) FROM sqlite_master WHERE name='oauth_transactions'"),
+        )
+    }
+
+    // ---------- 设置（NULL 值） ----------
+
+    /** settings 的值是 NULL 时，`getSetting` 返回默认值（`db.py` 会把 NULL 原样返回）。 */
+    @Test
+    fun getSettingFallsBackWhenValueIsNull() = withTempDb { db ->
+        db.initDb()
+        db.execute("INSERT INTO settings(k, v) VALUES(?, NULL)", "nulled")
+        assertEquals("给默认值时用默认值", "默认值", db.getSetting("nulled", "默认值"))
+        assertEquals("默认值缺省是空串", "", db.getSetting("nulled"))
+    }
+
     // ---------- 辅助 ----------
 
     private fun insertAccount(db: Db, name: String): Long = db.execute(

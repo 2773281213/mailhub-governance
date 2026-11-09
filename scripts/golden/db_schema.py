@@ -1,7 +1,8 @@
 """导出 `db.py` 建表结果的金标：`sqlite_master` 与每张表的 `PRAGMA table_info`。
 
 本机模式的库结构必须与服务器逐条相同，L7 同步、L8 治理、L9 接口才能把 `sync.py`、
-`governance.py`、`app.py` 里的 SQL 原样搬过来。所以这里直接跑 Python 的 `db.init_db()`，
+`governance.py`、`app.py` 里的 SQL 原样搬过来。服务器的启动流程是
+`db.init_db()` 之后紧跟 `oauth_auth.init_oauth_db()`（`app.py`），所以这里也依次调用这两步，
 把结果导出成 `android/core/src/test/resources/golden/db_schema.json`：
 
 - 一个 `sqlite_master` 用例：`type, name, tbl_name, sql` 的完整清单（按 type、name 排序，
@@ -30,6 +31,7 @@ import _common  # noqa: E402
 _common.prepare_imports()
 
 import db  # noqa: E402
+import oauth_auth  # noqa: E402
 
 
 def _quote(name: str) -> str:
@@ -69,6 +71,8 @@ def _export(conn: sqlite3.Connection) -> list[dict]:
 
 def build_cases() -> list[dict]:
     db.init_db()
+    # app.py 的启动流程：init_db() 之后紧跟 init_oauth_db()，两步合起来才是完整的表结构。
+    oauth_auth.init_oauth_db()
     conn = sqlite3.connect(db.DB_PATH)
     conn.row_factory = sqlite3.Row
     try:

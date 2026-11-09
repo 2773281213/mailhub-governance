@@ -77,4 +77,82 @@ class SqlScriptTest {
         assertEquals("INSERT INTO t(a) VALUES('it''s;ok');", statements[0])
         assertEquals("SELECT 1;", statements[1])
     }
+
+    /**
+     * 以 `_`、`$`、`:`、`@` 开头的标识符整段是一个标识符：`_end` 不能被当成 `END`。
+     *
+     * 旧实现只把字母当标识符开头，`_end` 里的 `end` 会命中 `END`、把触发器体的层数减到 0，
+     * 结果体内的分号提前断句，拆出来的 SQL 直接被截断。
+     */
+    @Test
+    fun underscorePrefixedIdentifiersAreNotKeywords() {
+        val script = """
+            CREATE TRIGGER tr AFTER INSERT ON t BEGIN
+              INSERT INTO t(_end) VALUES(new.begin);
+            END;
+            SELECT 1;
+        """.trimIndent()
+        val statements = splitSqlScript(script)
+        assertEquals("触发器整条保留，后面才是另一条：$statements", 2, statements.size)
+        assertTrue(statements[0].startsWith("CREATE TRIGGER tr"))
+        assertTrue("触发器要以 END; 收尾：${statements[0]}", statements[0].endsWith("END;"))
+        assertTrue("体内的 _end 要原样保留", statements[0].contains("INSERT INTO t(_end)"))
+        assertEquals("SELECT 1;", statements[1])
+    }
+
+    /** `.` 后面的限定列名（`new.end`）不是关键字，触发器体的层数不能被它减掉。 */
+    @Test
+    fun qualifiedColumnNamesAreNotKeywords() {
+        val script = """
+            CREATE TRIGGER tr AFTER UPDATE ON t BEGIN
+              INSERT INTO t(a) VALUES(new.end);
+            END;
+            SELECT 1;
+        """.trimIndent()
+        val statements = splitSqlScript(script)
+        assertEquals("触发器整条保留，后面才是另一条：$statements", 2, statements.size)
+        assertTrue(statements[0].endsWith("END;"))
+        assertTrue(statements[0].contains("VALUES(new.end)"))
+        assertEquals("SELECT 1;", statements[1])
+    }
+
+    /**
+     * 只有语句开头是 `CREATE [TEMP|TEMPORARY] TRIGGER` 才进触发器模式。
+     *
+     * `governance_runs` 有一列就叫 `trigger`，`begin` 也可能是列名；见到这两个词就进触发器
+     * 模式会把后面的两条语句粘成一条。
+     */
+    @Test
+    fun triggerColumnDoesNotStartTriggerMode() {
+        val statements = splitSqlScript("SELECT trigger, begin FROM t; SELECT 1;")
+        assertEquals(2, statements.size)
+        assertEquals("SELECT trigger, begin FROM t;", statements[0])
+        assertEquals("SELECT 1;", statements[1])
+    }
+
+    /** `CREATE TEMP TRIGGER` / `CREATE TEMPORARY TRIGGER` 同样要认出来。 */
+    @Test
+    fun tempTriggersAreRecognised() {
+        for (prefix in listOf("CREATE TEMP TRIGGER", "CREATE TEMPORARY TRIGGER")) {
+            val script = """
+                $prefix tr AFTER INSERT ON t BEGIN
+                  INSERT INTO t(a) VALUES(1);
+                END;
+                SELECT 1;
+            """.trimIndent()
+            val statements = splitSqlScript(script)
+            assertEquals("$prefix 应当按触发器拆：$statements", 2, statements.size)
+            assertTrue(statements[0].endsWith("END;"))
+            assertEquals("SELECT 1;", statements[1])
+        }
+    }
+
+    /** 触发器之外出现 `BEGIN`（例如列名或字符串里的）不能影响断句。 */
+    @Test
+    fun beginOutsideTriggerDoesNotOpenABlock() {
+        val statements = splitSqlScript("UPDATE t SET begin=1 WHERE a='begin'; SELECT 2;")
+        assertEquals(2, statements.size)
+        assertEquals("UPDATE t SET begin=1 WHERE a='begin';", statements[0])
+        assertEquals("SELECT 2;", statements[1])
+    }
 }

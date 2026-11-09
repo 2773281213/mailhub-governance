@@ -70,6 +70,18 @@
      "type": "index"
     },
     {
+     "name": "idx_oauth_expiry",
+     "sql": "CREATE INDEX idx_oauth_expiry ON oauth_transactions(expires_ts)",
+     "tbl_name": "oauth_transactions",
+     "type": "index"
+    },
+    {
+     "name": "idx_oauth_state",
+     "sql": "CREATE UNIQUE INDEX idx_oauth_state ON oauth_transactions(state_hash) WHERE state_hash != ''",
+     "tbl_name": "oauth_transactions",
+     "type": "index"
+    },
+    {
      "name": "idx_sessions_expiry",
      "sql": "CREATE INDEX idx_sessions_expiry ON sessions(expires_ts)",
      "tbl_name": "sessions",
@@ -106,6 +118,12 @@
      "type": "index"
     },
     {
+     "name": "sqlite_autoindex_oauth_transactions_1",
+     "sql": null,
+     "tbl_name": "oauth_transactions",
+     "type": "index"
+    },
+    {
      "name": "sqlite_autoindex_sessions_1",
      "sql": null,
      "tbl_name": "sessions",
@@ -119,7 +137,7 @@
     },
     {
      "name": "accounts",
-     "sql": "CREATE TABLE accounts(\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  name TEXT NOT NULL,\n  provider TEXT NOT NULL,\n  email TEXT NOT NULL,\n  imap_host TEXT NOT NULL,\n  imap_port INTEGER NOT NULL DEFAULT 993,\n  auth_type TEXT NOT NULL DEFAULT 'password',\n  secret_enc TEXT DEFAULT '',\n  oauth_refresh_enc TEXT DEFAULT '',\n  oauth_access_enc TEXT DEFAULT '',\n  oauth_expires REAL DEFAULT 0,\n  enabled INTEGER DEFAULT 1,\n  poll_interval INTEGER DEFAULT 300,\n  last_uid INTEGER DEFAULT 0,\n  uidvalidity INTEGER DEFAULT 0,\n  last_sync REAL DEFAULT 0,\n  last_error TEXT DEFAULT '',\n  color TEXT DEFAULT '#38bdf8',\n  created_ts REAL DEFAULT 0\n)",
+     "sql": "CREATE TABLE accounts(\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  name TEXT NOT NULL,\n  provider TEXT NOT NULL,\n  email TEXT NOT NULL,\n  imap_host TEXT NOT NULL,\n  imap_port INTEGER NOT NULL DEFAULT 993,\n  auth_type TEXT NOT NULL DEFAULT 'password',\n  secret_enc TEXT DEFAULT '',\n  oauth_refresh_enc TEXT DEFAULT '',\n  oauth_access_enc TEXT DEFAULT '',\n  oauth_expires REAL DEFAULT 0,\n  enabled INTEGER DEFAULT 1,\n  poll_interval INTEGER DEFAULT 300,\n  last_uid INTEGER DEFAULT 0,\n  uidvalidity INTEGER DEFAULT 0,\n  last_sync REAL DEFAULT 0,\n  last_error TEXT DEFAULT '',\n  color TEXT DEFAULT '#38bdf8',\n  created_ts REAL DEFAULT 0\n, oauth_client_id TEXT DEFAULT '', oauth_scope TEXT DEFAULT '', oauth_reauth_required INTEGER DEFAULT 0)",
      "tbl_name": "accounts",
      "type": "table"
     },
@@ -193,6 +211,12 @@
      "name": "messages_fts_idx",
      "sql": "CREATE TABLE 'messages_fts_idx'(segid, term, pgno, PRIMARY KEY(segid, term)) WITHOUT ROWID",
      "tbl_name": "messages_fts_idx",
+     "type": "table"
+    },
+    {
+     "name": "oauth_transactions",
+     "sql": "CREATE TABLE oauth_transactions(\n        id TEXT PRIMARY KEY,\n        state_hash TEXT DEFAULT '',\n        provider TEXT NOT NULL,\n        flow TEXT NOT NULL,\n        email TEXT NOT NULL,\n        display_name TEXT DEFAULT '',\n        color TEXT DEFAULT '#38bdf8',\n        sync_interval INTEGER DEFAULT 300,\n        account_id INTEGER DEFAULT 0,\n        client_id TEXT DEFAULT '',\n        scope TEXT DEFAULT '',\n        redirect_uri TEXT DEFAULT '',\n        verifier_enc TEXT DEFAULT '',\n        device_code_enc TEXT DEFAULT '',\n        expires_ts REAL NOT NULL,\n        next_poll_ts REAL DEFAULT 0,\n        oauth_interval INTEGER DEFAULT 5,\n        created_ts REAL NOT NULL\n    , status TEXT DEFAULT 'pending', result_account_id INTEGER DEFAULT 0, result_message TEXT DEFAULT '', client TEXT DEFAULT 'web')",
+     "tbl_name": "oauth_transactions",
      "type": "table"
     },
     {
@@ -408,6 +432,36 @@
   },
   {
    "args": {
+    "name": "idx_oauth_expiry",
+    "type": "index"
+   },
+   "expected": {
+    "name": "idx_oauth_expiry",
+    "sql": "CREATE INDEX idx_oauth_expiry ON oauth_transactions(expires_ts)",
+    "table_info": [],
+    "tbl_name": "oauth_transactions",
+    "type": "index"
+   },
+   "fn": "object",
+   "id": "index/idx_oauth_expiry"
+  },
+  {
+   "args": {
+    "name": "idx_oauth_state",
+    "type": "index"
+   },
+   "expected": {
+    "name": "idx_oauth_state",
+    "sql": "CREATE UNIQUE INDEX idx_oauth_state ON oauth_transactions(state_hash) WHERE state_hash != ''",
+    "table_info": [],
+    "tbl_name": "oauth_transactions",
+    "type": "index"
+   },
+   "fn": "object",
+   "id": "index/idx_oauth_state"
+  },
+  {
+   "args": {
     "name": "idx_sessions_expiry",
     "type": "index"
    },
@@ -498,6 +552,21 @@
   },
   {
    "args": {
+    "name": "sqlite_autoindex_oauth_transactions_1",
+    "type": "index"
+   },
+   "expected": {
+    "name": "sqlite_autoindex_oauth_transactions_1",
+    "sql": null,
+    "table_info": [],
+    "tbl_name": "oauth_transactions",
+    "type": "index"
+   },
+   "fn": "object",
+   "id": "index/sqlite_autoindex_oauth_transactions_1"
+  },
+  {
+   "args": {
     "name": "sqlite_autoindex_sessions_1",
     "type": "index"
    },
@@ -533,7 +602,7 @@
    },
    "expected": {
     "name": "accounts",
-    "sql": "CREATE TABLE accounts(\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  name TEXT NOT NULL,\n  provider TEXT NOT NULL,\n  email TEXT NOT NULL,\n  imap_host TEXT NOT NULL,\n  imap_port INTEGER NOT NULL DEFAULT 993,\n  auth_type TEXT NOT NULL DEFAULT 'password',\n  secret_enc TEXT DEFAULT '',\n  oauth_refresh_enc TEXT DEFAULT '',\n  oauth_access_enc TEXT DEFAULT '',\n  oauth_expires REAL DEFAULT 0,\n  enabled INTEGER DEFAULT 1,\n  poll_interval INTEGER DEFAULT 300,\n  last_uid INTEGER DEFAULT 0,\n  uidvalidity INTEGER DEFAULT 0,\n  last_sync REAL DEFAULT 0,\n  last_error TEXT DEFAULT '',\n  color TEXT DEFAULT '#38bdf8',\n  created_ts REAL DEFAULT 0\n)",
+    "sql": "CREATE TABLE accounts(\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  name TEXT NOT NULL,\n  provider TEXT NOT NULL,\n  email TEXT NOT NULL,\n  imap_host TEXT NOT NULL,\n  imap_port INTEGER NOT NULL DEFAULT 993,\n  auth_type TEXT NOT NULL DEFAULT 'password',\n  secret_enc TEXT DEFAULT '',\n  oauth_refresh_enc TEXT DEFAULT '',\n  oauth_access_enc TEXT DEFAULT '',\n  oauth_expires REAL DEFAULT 0,\n  enabled INTEGER DEFAULT 1,\n  poll_interval INTEGER DEFAULT 300,\n  last_uid INTEGER DEFAULT 0,\n  uidvalidity INTEGER DEFAULT 0,\n  last_sync REAL DEFAULT 0,\n  last_error TEXT DEFAULT '',\n  color TEXT DEFAULT '#38bdf8',\n  created_ts REAL DEFAULT 0\n, oauth_client_id TEXT DEFAULT '', oauth_scope TEXT DEFAULT '', oauth_reauth_required INTEGER DEFAULT 0)",
     "table_info": [
      {
       "cid": 0,
@@ -686,6 +755,30 @@
       "notnull": 0,
       "pk": 0,
       "type": "REAL"
+     },
+     {
+      "cid": 19,
+      "dflt_value": "''",
+      "name": "oauth_client_id",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 20,
+      "dflt_value": "''",
+      "name": "oauth_scope",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 21,
+      "dflt_value": "0",
+      "name": "oauth_reauth_required",
+      "notnull": 0,
+      "pk": 0,
+      "type": "INTEGER"
      }
     ],
     "tbl_name": "accounts",
@@ -1757,6 +1850,198 @@
    },
    "fn": "object",
    "id": "table/messages_fts_idx"
+  },
+  {
+   "args": {
+    "name": "oauth_transactions",
+    "type": "table"
+   },
+   "expected": {
+    "name": "oauth_transactions",
+    "sql": "CREATE TABLE oauth_transactions(\n        id TEXT PRIMARY KEY,\n        state_hash TEXT DEFAULT '',\n        provider TEXT NOT NULL,\n        flow TEXT NOT NULL,\n        email TEXT NOT NULL,\n        display_name TEXT DEFAULT '',\n        color TEXT DEFAULT '#38bdf8',\n        sync_interval INTEGER DEFAULT 300,\n        account_id INTEGER DEFAULT 0,\n        client_id TEXT DEFAULT '',\n        scope TEXT DEFAULT '',\n        redirect_uri TEXT DEFAULT '',\n        verifier_enc TEXT DEFAULT '',\n        device_code_enc TEXT DEFAULT '',\n        expires_ts REAL NOT NULL,\n        next_poll_ts REAL DEFAULT 0,\n        oauth_interval INTEGER DEFAULT 5,\n        created_ts REAL NOT NULL\n    , status TEXT DEFAULT 'pending', result_account_id INTEGER DEFAULT 0, result_message TEXT DEFAULT '', client TEXT DEFAULT 'web')",
+    "table_info": [
+     {
+      "cid": 0,
+      "dflt_value": null,
+      "name": "id",
+      "notnull": 0,
+      "pk": 1,
+      "type": "TEXT"
+     },
+     {
+      "cid": 1,
+      "dflt_value": "''",
+      "name": "state_hash",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 2,
+      "dflt_value": null,
+      "name": "provider",
+      "notnull": 1,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 3,
+      "dflt_value": null,
+      "name": "flow",
+      "notnull": 1,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 4,
+      "dflt_value": null,
+      "name": "email",
+      "notnull": 1,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 5,
+      "dflt_value": "''",
+      "name": "display_name",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 6,
+      "dflt_value": "'#38bdf8'",
+      "name": "color",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 7,
+      "dflt_value": "300",
+      "name": "sync_interval",
+      "notnull": 0,
+      "pk": 0,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 8,
+      "dflt_value": "0",
+      "name": "account_id",
+      "notnull": 0,
+      "pk": 0,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 9,
+      "dflt_value": "''",
+      "name": "client_id",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 10,
+      "dflt_value": "''",
+      "name": "scope",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 11,
+      "dflt_value": "''",
+      "name": "redirect_uri",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 12,
+      "dflt_value": "''",
+      "name": "verifier_enc",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 13,
+      "dflt_value": "''",
+      "name": "device_code_enc",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 14,
+      "dflt_value": null,
+      "name": "expires_ts",
+      "notnull": 1,
+      "pk": 0,
+      "type": "REAL"
+     },
+     {
+      "cid": 15,
+      "dflt_value": "0",
+      "name": "next_poll_ts",
+      "notnull": 0,
+      "pk": 0,
+      "type": "REAL"
+     },
+     {
+      "cid": 16,
+      "dflt_value": "5",
+      "name": "oauth_interval",
+      "notnull": 0,
+      "pk": 0,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 17,
+      "dflt_value": null,
+      "name": "created_ts",
+      "notnull": 1,
+      "pk": 0,
+      "type": "REAL"
+     },
+     {
+      "cid": 18,
+      "dflt_value": "'pending'",
+      "name": "status",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 19,
+      "dflt_value": "0",
+      "name": "result_account_id",
+      "notnull": 0,
+      "pk": 0,
+      "type": "INTEGER"
+     },
+     {
+      "cid": 20,
+      "dflt_value": "''",
+      "name": "result_message",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     },
+     {
+      "cid": 21,
+      "dflt_value": "'web'",
+      "name": "client",
+      "notnull": 0,
+      "pk": 0,
+      "type": "TEXT"
+     }
+    ],
+    "tbl_name": "oauth_transactions",
+    "type": "table"
+   },
+   "fn": "object",
+   "id": "table/oauth_transactions"
   },
   {
    "args": {

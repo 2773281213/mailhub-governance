@@ -3,11 +3,14 @@ package com.mailhub.core.db
 /**
  * `db.py` 里的表结构定义，逐条照搬自服务端 `db.py`：
  * [SCHEMA] 对应 `SCHEMA`，[MIGRATIONS] 对应 `MIGRATIONS`，[FTS_STATEMENTS] 对应 `_fts_statements()`。
+ * OAuth 那部分（[OAUTH_SCHEMA]、[OAUTH_ACCOUNT_COLUMNS]、[OAUTH_TRANSACTION_COLUMNS]、
+ * [OAUTH_REAUTH_SQL]）照搬自 `oauth_auth.py` 的 `init_oauth_db()`：服务器启动时先
+ * `db.init_db()` 再 `oauth_auth.init_oauth_db()`（`app.py`），[Db.initDb] 也按这个顺序执行。
  *
  * 为什么要逐字照搬：表结构必须与服务器完全相同，L7 同步、L8 治理、L9 接口才能把 `sync.py`、
- * `governance.py`、`app.py` 里的 SQL 原样搬过来。金标 `scripts/golden/db_schema.py` 把
- * Python `init_db()` 建出来的 `sqlite_master` 与 `PRAGMA table_info` 全部导出，
- * `DbSchemaGoldenTest` 逐条比较，`sql` 文本要求逐字相同。
+ * `governance.py`、`app.py` 里的 SQL 原样搬过来。金标 `scripts/golden/db_schema.py` 依次跑
+ * `db.init_db()` 与 `oauth_auth.init_oauth_db()`，把建出来的 `sqlite_master` 与
+ * `PRAGMA table_info` 全部导出，`DbSchemaGoldenTest` 逐条比较，`sql` 文本要求逐字相同。
  *
  * 因此**下面这些 SQL 的换行与缩进都是从 `db.py` 原样抄来的**（`sqlite_master` 保存的是建表
  * 语句原文，差一个空格金标就对不上），不要重新排版、不要合并成一行。多行字符串统一写成
@@ -266,4 +269,83 @@ object DbSchema {
                    END
         """.trimIndent(),
     )
+
+    /**
+     * 对应 `oauth_auth.py` 的 `init_oauth_db()` 里的建表与建索引语句：OAuth 登录的临时事务表。
+     *
+     * `app.py` 的账户读写、`oauth_auth.py` 的登录流程都依赖这张表，所以本机库必须与服务器
+     * 一起建出来。注意 `CREATE TABLE` 的原文里，列名缩进 8 个空格、结尾的 `)` 只缩进 4 个空格
+     * （`sqlite_master` 保存原文，金标逐字比较）；`trimIndent()` 表达不了比基准更小的缩进，
+     * 所以最后那一行用字符串拼接补上。
+     */
+    val OAUTH_SCHEMA: String =
+        """
+        CREATE TABLE IF NOT EXISTS oauth_transactions(
+                id TEXT PRIMARY KEY,
+                state_hash TEXT DEFAULT '',
+                provider TEXT NOT NULL,
+                flow TEXT NOT NULL,
+                email TEXT NOT NULL,
+                display_name TEXT DEFAULT '',
+                color TEXT DEFAULT '#38bdf8',
+                sync_interval INTEGER DEFAULT 300,
+                account_id INTEGER DEFAULT 0,
+                client_id TEXT DEFAULT '',
+                scope TEXT DEFAULT '',
+                redirect_uri TEXT DEFAULT '',
+                verifier_enc TEXT DEFAULT '',
+                device_code_enc TEXT DEFAULT '',
+                expires_ts REAL NOT NULL,
+                next_poll_ts REAL DEFAULT 0,
+                oauth_interval INTEGER DEFAULT 5,
+                created_ts REAL NOT NULL
+        """.trimIndent() + "\n    );\n" + """
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_oauth_state ON oauth_transactions(state_hash) WHERE state_hash != '';
+        CREATE INDEX IF NOT EXISTS idx_oauth_expiry ON oauth_transactions(expires_ts);
+        """.trimIndent()
+
+    /**
+     * 对应 `init_oauth_db()` 里给 `accounts` 补的三列。
+     *
+     * `app.py` 的账户 SQL（读账户、写 OAuth 客户端、标「需要重新授权」）依赖这三列；
+     * 新库执行时每一条都会以「列已存在」失败，[Db.initDb] 只忽略这种错误。
+     */
+    val OAUTH_ACCOUNT_COLUMNS: List<String> = listOf(
+        "ALTER TABLE accounts ADD COLUMN oauth_client_id TEXT DEFAULT ''",
+        "ALTER TABLE accounts ADD COLUMN oauth_scope TEXT DEFAULT ''",
+        "ALTER TABLE accounts ADD COLUMN oauth_reauth_required INTEGER DEFAULT 0",
+    )
+
+    /**
+     * 对应 `init_oauth_db()` 里给 `oauth_transactions` 补的四列。
+     *
+     * 服务器是「取出即删」改成「保留到过期」时加的列，旧库升级要用；新库已包含，只会报
+     * 「列已存在」。
+     */
+    val OAUTH_TRANSACTION_COLUMNS: List<String> = listOf(
+        "ALTER TABLE oauth_transactions ADD COLUMN status TEXT DEFAULT 'pending'",
+        "ALTER TABLE oauth_transactions ADD COLUMN result_account_id INTEGER DEFAULT 0",
+        "ALTER TABLE oauth_transactions ADD COLUMN result_message TEXT DEFAULT ''",
+        "ALTER TABLE oauth_transactions ADD COLUMN client TEXT DEFAULT 'web'",
+    )
+
+    /**
+     * 对应 `init_oauth_db()` 末尾调的 `_require_reauth_for_borrowed_identities()`：旧版借用了
+     * Thunderbird / 网易的 Client ID 登录的账户，标记为「需要重新授权」。两个参数依次是
+     * [OAUTH_REAUTH_MESSAGE] 与被拒绝的网易 appid。
+     *
+     * 本机新建的库里没有这类账户，语句是空操作；保留它只为与服务器的迁移保持一致（P2 接 OAuth
+     * 时不用再补一遍）。
+     */
+    val OAUTH_REAUTH_SQL: String =
+        """UPDATE accounts SET oauth_reauth_required=1, last_error=?
+           WHERE auth_type='oauth' AND oauth_reauth_required=0
+             AND ((provider='outlook' AND COALESCE(oauth_client_id, '')='')
+                  OR oauth_client_id=?)""".trimIndent()
+
+    /** [OAUTH_REAUTH_SQL] 里写进 `accounts.last_error` 的说明。 */
+    const val OAUTH_REAUTH_MESSAGE = "该账户使用的是已停用的借用登录身份，请配置自有 OAuth 客户端后重新登录"
+
+    /** 旧版网易 outlook 通道复用的 Outlook 合作方 appid（`oauth_auth._OUTLOOK_NETEASE_APP_ID`）。 */
+    const val OAUTH_BORROWED_CLIENT_ID = "rjg1fubwqzie5unhx6"
 }
