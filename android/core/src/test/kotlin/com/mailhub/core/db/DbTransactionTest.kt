@@ -1,6 +1,5 @@
 package com.mailhub.core.db
 
-import androidx.sqlite.SQLiteException
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -107,7 +106,8 @@ class DbTransactionTest {
                 fail("唯一约束冲突应当抛异常")
             }
             fail("事务里的异常应当抛出来")
-        } catch (expected: SQLiteException) {
+        } catch (expected: RuntimeException) {
+            assertSqliteError(expected)
             assertTrue(
                 "回滚失败要挂到原异常上，不能用 catch 吞掉：${expected.suppressed.toList()}",
                 expected.suppressed.isNotEmpty(),
@@ -140,7 +140,8 @@ class DbTransactionTest {
                 fail("唯一约束冲突应当抛异常")
             }
             fail("异常应当抛到最外层")
-        } catch (expected: SQLiteException) {
+        } catch (expected: RuntimeException) {
+            assertSqliteError(expected)
             assertTrue(
                 "回滚 SAVEPOINT 的失败要挂到原异常上",
                 expected.suppressed.isNotEmpty(),
@@ -289,7 +290,8 @@ class DbTransactionTest {
                 try {
                     db.execute("INSERT OR ROLLBACK INTO settings(k, v) VALUES(?, ?)", "dup", "2")
                     fail("唯一约束冲突应当抛异常")
-                } catch (expected: SQLiteException) {
+                } catch (expected: RuntimeException) {
+                    assertSqliteError(expected)
                     assertTrue(
                         "应当是唯一约束错误：${expected.message}",
                         (expected.message ?: "").uppercase().contains("UNIQUE"),

@@ -13,7 +13,7 @@
 
     设备是否开机由用户负责：本脚本不启动、不关闭、不安装、不卸载任何软件（包括 MuMu 模拟器本身）。
 
-    @Category(JvmOnly::class) 标记的测试只能在桌面 JVM 上跑，这里用 runner 参数 notAnnotation 排除，
+    @JvmOnly 标记的测试只能在桌面 JVM 上跑，这里用 runner 参数 notAnnotation 排除，
     约定见 android/core/src/test/kotlin/com/mailhub/core/JvmOnly.kt。
 
 .PARAMETER Serial
@@ -90,7 +90,7 @@ foreach ($item in $ExtraArgs) {
     }
 }
 
-# JvmOnly 是 :core 测试源码里的标记接口，只能在桌面 JVM 上跑的测试用 @Category(JvmOnly::class) 标出来。
+# JvmOnly 是 :core 测试源码里的注解，只能在桌面 JVM 上跑的测试用 @JvmOnly 标出来。
 $jvmOnlyCategory = 'com.mailhub.core.JvmOnly'
 
 $gradleArgs = @(

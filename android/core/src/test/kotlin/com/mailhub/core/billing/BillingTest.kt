@@ -1,5 +1,6 @@
 package com.mailhub.core.billing
 
+import com.mailhub.core.JvmOnly
 import java.io.File
 import java.math.BigDecimal
 import java.math.BigInteger
@@ -298,6 +299,7 @@ class BillingTest {
         assertEquals(listOf("acquired"), local["ai_filled"])
     }
 
+    @JvmOnly // 要读仓库里的源码文件，设备上没有
     @Test
     fun policyCodeIsNotTiedToAnyBrandOrSender() {
         // 与 tests/test_billing.py::test_policy_code_is_not_tied_to_any_brand_or_sender 等价：

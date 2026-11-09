@@ -1,6 +1,5 @@
 package com.mailhub.core.db
 
-import androidx.sqlite.SQLiteException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
@@ -179,7 +178,8 @@ class DbTest {
             // sqlite3.OperationalError: duplicate column name）。
             db.execute("ALTER TABLE messages ADD COLUMN to_addr TEXT DEFAULT ''")
             fail("重复补列应当抛 SQLiteException")
-        } catch (expected: SQLiteException) {
+        } catch (expected: RuntimeException) {
+            assertSqliteError(expected)
             assertTrue(
                 "错误信息应包含 duplicate column name：${expected.message}",
                 expected.message!!.lowercase().contains("duplicate column name"),
@@ -188,7 +188,8 @@ class DbTest {
         try {
             db.execute("ALTER TABLE 没有这张表 ADD COLUMN x TEXT")
             fail("表不存在应当抛 SQLiteException")
-        } catch (expected: SQLiteException) {
+        } catch (expected: RuntimeException) {
+            assertSqliteError(expected)
             assertTrue("不是重复列错误", !expected.message!!.lowercase().contains("duplicate column name"))
         }
     }
@@ -389,7 +390,8 @@ class DbTest {
                 listOf(arrayOf<Any?>("dup", "1"), arrayOf<Any?>("dup", "2")),
             )
             fail("主键冲突应当抛出")
-        } catch (expected: SQLiteException) {
+        } catch (expected: RuntimeException) {
+            assertSqliteError(expected)
             assertNull("整批回滚，不留半截", db.queryOne("SELECT 1 FROM settings WHERE k='dup'"))
         }
 

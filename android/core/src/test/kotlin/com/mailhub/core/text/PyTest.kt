@@ -138,6 +138,61 @@ class PyTest {
     }
 
     @Test
+    fun turkishIExpandsWhereverIgnoreCaseApplies() {
+        fun match(pattern: String, text: String, ignoreCase: Boolean = false) =
+            PyRegex.compile(pattern, ignoreCase = ignoreCase).matcher(text).matches()
+
+        val dotted = 0x130.toChar().toString()
+        val dotless = 0x131.toChar().toString()
+        for (letter in listOf(dotted, dotless, "i", "I")) {
+            // 字面量、转义、字符类、范围、否定字符类
+            assertTrue(match("i", letter, ignoreCase = true))
+            assertTrue(match("\\x69", letter, ignoreCase = true))
+            assertTrue(match("[i]", letter, ignoreCase = true))
+            assertTrue(match("[a-z]", letter, ignoreCase = true))
+            assertTrue(match("[\\x60-\\x70]", letter, ignoreCase = true))
+            assertFalse(match("[^i]", letter, ignoreCase = true))
+            assertFalse(match("[^a-z]", letter, ignoreCase = true))
+            // 内联标志与作用域
+            assertTrue(match("(?i)i", letter))
+            assertTrue(match("(?i:i)", letter))
+            // 量词作用在展开后的整体上
+            assertTrue(match("i{2}", letter + letter, ignoreCase = true))
+        }
+        // 没有忽略大小写时不展开
+        assertFalse(match("i", dotted))
+        assertFalse(match("[a-z]", dotted))
+        assertEquals("i", PyRegex.translate("i"))
+        assertEquals("[a-z]", PyRegex.translate("[a-z]"))
+        // 范围没覆盖到 i 时不追加
+        assertEquals("[a-c]", PyRegex.translate("[a-c]", ignoreCase = true))
+        // 忽略大小写时不走多字符折叠（ICU 的默认行为），结果与 Python 实测相同
+        val sharpS = 0xDF.toChar().toString()
+        val capitalSharpS = 0x1E9E.toChar().toString()
+        val ligatureFi = 0xFB01.toChar().toString()
+        val ligatureSt = 0xFB06.toChar().toString()
+        val longSt = 0xFB05.toChar().toString()
+        assertFalse(match("ss", sharpS, ignoreCase = true))
+        assertFalse(match(sharpS, "ss", ignoreCase = true))
+        // 这两对 Python 和手机上的 ICU 都认，桌面 JDK 的折叠不认。手机才是运行环境，所以只在设备上断言
+        if (System.getProperty("java.vm.name") == "Dalvik") {
+            assertTrue(match(sharpS, capitalSharpS, ignoreCase = true))
+            assertTrue(match(longSt, ligatureSt, ignoreCase = true))
+        }
+        assertFalse(match("fi", ligatureFi, ignoreCase = true))
+        assertFalse(match("FI", ligatureFi, ignoreCase = true))
+        assertFalse(match("st", ligatureSt, ignoreCase = true))
+        assertFalse(match("\\x73\\x73", sharpS, ignoreCase = true))
+        assertTrue(match("ss", "SS", ignoreCase = true))
+        assertTrue(match("ss", "ſſ", ignoreCase = true))
+        // 作用域：(?-i:…) 里不展开，(?i:…) 结束后恢复
+        assertFalse(match("(?-i:i)", dotted, ignoreCase = true))
+        assertTrue(match("(?i:a)b", "Ab"))
+        assertFalse(match("(?i:a)b", "AB"))
+        assertFalse(match("(?i:a)i", "A$dotted"))
+    }
+
+    @Test
     fun ignoreCaseFoldsUnicode() {
         assertTrue(find("s", "ſ", ignoreCase = true))
         assertTrue(find("k", "K", ignoreCase = true))

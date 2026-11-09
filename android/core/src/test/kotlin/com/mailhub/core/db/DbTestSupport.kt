@@ -5,6 +5,12 @@ import com.mailhub.core.SecretCipher
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.deleteIfExists
+import org.junit.Assert.assertTrue
+
+/** 断言这是 SQLite 报的错。两个平台的异常类不同，见 [isSqliteError]。 */
+fun assertSqliteError(e: Throwable) {
+    assertTrue("应当是 SQLite 错误，实际是 $e", isSqliteError(e))
+}
 
 /**
  * 可控时钟，对应 `com.mailhub.core.Clock`（`time.time()`）。

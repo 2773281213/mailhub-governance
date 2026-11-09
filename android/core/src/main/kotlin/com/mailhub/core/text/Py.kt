@@ -41,7 +41,7 @@ object PyRegex {
         if (ignoreCase) flags = flags or Pattern.CASE_INSENSITIVE or Pattern.UNICODE_CASE
         if (multiline) flags = flags or Pattern.MULTILINE
         if (dotAll) flags = flags or Pattern.DOTALL
-        return Pattern.compile(translate(pattern), flags)
+        return Pattern.compile(translate(pattern, ignoreCase), flags)
     }
 
     /**
@@ -66,7 +66,9 @@ object PyRegex {
      * - `(?#…)` 注释删掉；
      * - `{,n}` 改成 `{0,n}`；不构成量词的 `{`、字符类外的 `}` 和 `]` 按字面量转义；
      * - 字符类里的 `[`、`&`、空格按字面量转义（Java 和 ICU 把它们当成嵌套、交集或忽略的空白）；
-     * - 字符类里的 `\W \S \D` 用嵌套集合表达。
+     * - 字符类里的 `\W \S \D` 用嵌套集合表达；
+     * - 忽略大小写时展开 i 类字母、把其他字母写成单字符集合（见 [TURKISH_I]）。[ignoreCase] 是
+     *   模式之外传入的 `re.I`，模式里的 `(?i)`、`(?i:…)`、`(?-i:…)` 按作用域跟踪。
      *
      * Python 会报错的写法同样抛 [PatternSyntaxException]：
      * - 不认识的字母转义，如 `\p`、`\e`；
@@ -79,7 +81,7 @@ object PyRegex {
      *
      * 不支持 `\N{名字}`（直接报错，规则会被跳过）。
      */
-    fun translate(pattern: String): String = Translator(pattern).run()
+    fun translate(pattern: String, ignoreCase: Boolean = false): String = Translator(pattern, ignoreCase).run()
 
     /**
      * Python 的 `re.escape(s)`：只给正则特殊字符加反斜杠，结果可以安全拼进 [compile] 的模式里。
@@ -106,6 +108,24 @@ object PyRegex {
 
     /** 单独的内联标志，例如 `(?i)`、`(?im)`；带冒号的 `(?i:…)` 是非捕获组，不在此列。 */
     private val INLINE_FLAGS: Pattern = Pattern.compile("\\(\\?([aiLmsux]+)\\)")
+
+    /** 带作用域的标志，例如 `(?i:…)`、`(?-i:…)`、`(?s-i:…)`；`(?:…)` 也匹配，两组都是空的。 */
+    private val SCOPED_FLAGS: Pattern = Pattern.compile("\\(\\?([aiLmsux]*)(?:-([imsx]+))?:")
+
+    /**
+     * Python 的 `re.I` 把 i、I、İ（U+0130）、ı（U+0131）当成同一个字母（`_sre` 的 lower 加等价表）。
+     * 桌面 JDK 的折叠算法碰巧也是这样，Android 的 ICU 按 Unicode 简单折叠，`i` 匹配不到后两个，
+     * `verıfıcatıon` 这样的写法在手机上就能绕过规则。所以忽略大小写时由 [translate] 显式展开。
+     *
+     * ICU 还有反方向的差异：连续的字面量按**完整**折叠比较，`ß` 能匹配 `SS`，`ss`、`fi`、`st` 能匹配
+     * `ß`、`ﬁ`、`ﬆ`，Python 都不会。字符类不走完整折叠，所以忽略大小写时把字母写成单字符集合，
+     * 打断连续字面量（见 `Translator.appendLiteral`）。桌面 JDK 上 `[s]` 与 `s` 语义相同。
+     */
+    private const val TURKISH_I = "iI\\x{130}\\x{131}"
+
+    private val TURKISH_I_CODE_POINTS = intArrayOf('I'.code, 'i'.code, 0x130, 0x131)
+
+    private fun isTurkishI(codePoint: Int): Boolean = codePoint in TURKISH_I_CODE_POINTS
 
     /**
      * Python 的 `\w`：`str.isalnum()` 或下划线，即字母（L*）和带数值的字符（N*，含 ½、①）。
@@ -146,11 +166,17 @@ object PyRegex {
     private const val NOT_BOUNDARY =
         "$AT_CODE_POINT(?!\\A\\z)(?:$PREV_WORD(?=[$WORD])|$PREV_NOT_WORD(?![$WORD]))"
 
-    private class Translator(private val p: String) {
+    private class Translator(private val p: String, private var ignoreCase: Boolean) {
         private val out = StringBuilder(p.length + 16)
         private var i = 0
         private var inClass = false
         private var classStart = -1
+        /** 当前字符类里是否有 i 类字母（单个成员，或被范围覆盖）。 */
+        private var classHasTurkishI = false
+        /** 字符类里上一个单字符成员的码点，判断范围用；上一个是简写集合时为 -1。 */
+        private var prevMember = -1
+        /** 每个打开的括号进入时的 [ignoreCase]，`)` 时恢复。 */
+        private val caseScopes = ArrayDeque<Boolean>()
         /** 字符类里上一个成员是简写集合（\w \s \d 及其否定）。 */
         private var prevShorthand = false
         /** 字符类里刚读到一个范围符 `-`，下一个成员是范围的终点。 */
@@ -197,6 +223,8 @@ object PyRegex {
                     classStart = i + 1
                     prevShorthand = false
                     rangePending = false
+                    classHasTurkishI = false
+                    prevMember = -1
                     out.append('[')
                     i++
                 }
@@ -212,6 +240,7 @@ object PyRegex {
                 c == '(' -> openParen()
                 c == ')' -> {
                     val number = openGroups.removeLastOrNull() ?: fail("括号不配对")
+                    ignoreCase = caseScopes.removeLast()
                     if (number > 0) {
                         closedGroups += number
                         nameOfGroup[number]?.let { closedNames += it }
@@ -222,15 +251,35 @@ object PyRegex {
                 c == '{' -> brace()
                 c == '}' -> { out.append("\\}"); i++ }
                 c == ']' -> { out.append("\\]"); i++ }
-                else -> { out.append(c); i++ }
+                else -> { appendLiteral(c.code, c.toString()); i++ }
             }
+        }
+
+        /**
+         * 写一个字面量字符，[text] 是它在 Java 模式里的写法。
+         *
+         * 字符类之外、忽略大小写时：i 类字母展开成 [TURKISH_I]，其余 BMP 字母写成单字符集合
+         * （原因见 [TURKISH_I] 下面的说明）。字符类里的 i 类字母在 `]` 处统一补，其他不用处理。
+         */
+        private fun appendLiteral(codePoint: Int, text: String) {
+            when {
+                inClass || !ignoreCase -> out.append(text)
+                isTurkishI(codePoint) -> out.append('[').append(TURKISH_I).append(']')
+                codePoint <= 0xFFFF && Character.isLetter(codePoint) -> out.append('[').append(text).append(']')
+                else -> out.append(text)
+            }
+        }
+
+        private fun pushGroup(number: Int) {
+            openGroups.addLast(number)
+            caseScopes.addLast(ignoreCase)
         }
 
         /** 普通括号：不带 `?` 的是捕获组；`(?i)` 这类单独的内联标志不开组；其余 `(?…` 开非捕获组。 */
         private fun openParen() {
             if (!p.startsWith("(?", i)) {
                 groupCount++
-                openGroups.addLast(groupCount)
+                pushGroup(groupCount)
                 out.append('(')
                 i++
                 return
@@ -243,10 +292,25 @@ object PyRegex {
                 // Java 的 (?i) 只折叠 ASCII 大小写，Python 的是 Unicode，所以补上 u
                 val javaFlags = letters.replace("u", "") + if ('i' in letters) "u" else ""
                 if (javaFlags.isNotEmpty()) out.append("(?").append(javaFlags).append(')')
+                if ('i' in letters) ignoreCase = true
                 i = flags.end()
                 return
             }
-            openGroups.addLast(0)
+            val scoped = SCOPED_FLAGS.matcher(p).region(i, p.length)
+            if (scoped.lookingAt()) {
+                val on = scoped.group(1)
+                val off = scoped.group(2).orEmpty()
+                if ('a' in on || 'L' in on) fail("不支持 (?a) / (?L)")
+                pushGroup(0)
+                if ('i' in on) ignoreCase = true
+                if ('i' in off) ignoreCase = false
+                out.append("(?").append(on.replace("u", "")).append(if ('i' in on) "u" else "")
+                if (off.isNotEmpty()) out.append('-').append(off)
+                out.append(':')
+                i = scoped.end()
+                return
+            }
+            pushGroup(0)
             out.append('(')
             i++
         }
@@ -326,29 +390,28 @@ object PyRegex {
             out.append("(?:\\").append(digits).append(')')
         }
 
-        /** 字母和其他字符的单字符转义（字符类内外通用）。 */
-        private fun simpleEscape(n: Char, inClassContext: Boolean = false) {
-            when (n) {
-                'a' -> appendCodePoint(0x07)
-                'f' -> appendCodePoint(0x0c)
-                'n' -> appendCodePoint(0x0a)
-                'r' -> appendCodePoint(0x0d)
-                't' -> appendCodePoint(0x09)
-                'v' -> appendCodePoint(0x0b)
-                'x' -> hexEscape(2)
-                'u' -> hexEscape(4)
-                'U' -> hexEscape(8)
-                'N' -> fail("不支持 \\N{名字}")
-                else -> {
-                    if (n in 'a'..'z' || n in 'A'..'Z') fail("Python 不认识的转义 \\$n")
-                    if (inClassContext && n in '0'..'9') fail("Python 不认识的转义 \\$n")
-                    // 非字母数字字符：按字面量
-                    out.append('\\').append(n)
-                }
+        /** 字母和其他字符的单字符转义（字符类内外通用），返回转义表示的码点。 */
+        private fun simpleEscape(n: Char, inClassContext: Boolean = false): Int = when (n) {
+            'a' -> appendCodePoint(0x07)
+            'f' -> appendCodePoint(0x0c)
+            'n' -> appendCodePoint(0x0a)
+            'r' -> appendCodePoint(0x0d)
+            't' -> appendCodePoint(0x09)
+            'v' -> appendCodePoint(0x0b)
+            'x' -> hexEscape(2)
+            'u' -> hexEscape(4)
+            'U' -> hexEscape(8)
+            'N' -> fail("不支持 \\N{名字}")
+            else -> {
+                if (n in 'a'..'z' || n in 'A'..'Z') fail("Python 不认识的转义 \\$n")
+                if (inClassContext && n in '0'..'9') fail("Python 不认识的转义 \\$n")
+                // 非字母数字字符：按字面量
+                appendLiteral(n.code, "\\$n")
+                n.code
             }
         }
 
-        private fun hexEscape(width: Int) {
+        private fun hexEscape(width: Int): Int {
             if (i + width > p.length) fail("十六进制转义位数不够")
             val hex = p.substring(i, i + width)
             if (!hex.all { it in '0'..'9' || it in 'a'..'f' || it in 'A'..'F' }) fail("十六进制转义位数不够")
@@ -356,10 +419,12 @@ object PyRegex {
             if (value > 0x10FFFF) fail("码点超出范围")
             appendCodePoint(value.toInt())
             i += width
+            return value.toInt()
         }
 
-        private fun appendCodePoint(cp: Int) {
-            out.append("\\x{").append(Integer.toHexString(cp)).append('}')
+        private fun appendCodePoint(cp: Int): Int {
+            appendLiteral(cp, "\\x{" + Integer.toHexString(cp) + "}")
+            return cp
         }
 
         private fun groupDefinition() {
@@ -380,7 +445,7 @@ object PyRegex {
             }
             groupNames[name] = javaName
             groupCount++
-            openGroups.addLast(groupCount)
+            pushGroup(groupCount)
             nameOfGroup[groupCount] = name
             out.append("(?<").append(javaName).append('>')
             i = close + 1
@@ -407,10 +472,11 @@ object PyRegex {
                     classEscape(n)
                     return
                 }
-                c == ']' && atHead -> { out.append("\\]"); memberDone(false); i++ }
+                c == ']' && atHead -> { out.append("\\]"); memberDone(false, c.code); i++ }
                 c == ']' -> {
                     if (rangePending) fail("字符类范围不完整")
                     inClass = false
+                    if (ignoreCase && classHasTurkishI) out.append(TURKISH_I)
                     out.append(']')
                     i++
                 }
@@ -421,18 +487,28 @@ object PyRegex {
                     out.append('-')
                     i++
                 }
-                c == '-' -> { out.append("\\-"); memberDone(false); i++ }
-                c == '[' -> { out.append("\\["); memberDone(false); i++ }
-                c == '&' -> { out.append("\\&"); memberDone(false); i++ }
-                c == ' ' -> { out.append("\\x{20}"); memberDone(false); i++ }
-                else -> { out.append(c); memberDone(false); i++ }
+                c == '-' -> { out.append("\\-"); memberDone(false, c.code); i++ }
+                c == '[' -> { out.append("\\["); memberDone(false, c.code); i++ }
+                c == '&' -> { out.append("\\&"); memberDone(false, c.code); i++ }
+                c == ' ' -> { out.append("\\x{20}"); memberDone(false, c.code); i++ }
+                else -> { out.append(c); memberDone(false, c.code); i++ }
             }
         }
 
-        private fun memberDone(shorthand: Boolean) {
+        /** 记下一个成员已写完；[codePoint] 是单字符成员的码点，简写集合不传。 */
+        private fun memberDone(shorthand: Boolean, codePoint: Int = -1) {
             if (shorthand && rangePending) fail("字符类范围的端点不能是简写集合")
+            if (codePoint >= 0) {
+                val covered = if (rangePending && prevMember >= 0) {
+                    TURKISH_I_CODE_POINTS.any { it in prevMember..codePoint }
+                } else {
+                    isTurkishI(codePoint)
+                }
+                if (covered) classHasTurkishI = true
+            }
             rangePending = false
             prevShorthand = shorthand
+            prevMember = codePoint
         }
 
         private fun classEscape(n: Char) {
@@ -443,7 +519,7 @@ object PyRegex {
                 'W' -> { out.append("[^$WORD]"); memberDone(true) }
                 's' -> { out.append(SPACE); memberDone(true) }
                 'S' -> { out.append("[^$SPACE]"); memberDone(true) }
-                'b' -> { appendCodePoint(0x08); memberDone(false) }
+                'b' -> { appendCodePoint(0x08); memberDone(false, 0x08) }
                 in '0'..'7' -> {
                     // 字符类里的数字转义都是八进制，最多三位
                     var value = n - '0'
@@ -455,9 +531,9 @@ object PyRegex {
                     }
                     if (value > 0xff) fail("八进制转义超出范围")
                     appendCodePoint(value)
-                    memberDone(false)
+                    memberDone(false, value)
                 }
-                else -> { simpleEscape(n, inClassContext = true); memberDone(false) }
+                else -> memberDone(false, simpleEscape(n, inClassContext = true))
             }
         }
 

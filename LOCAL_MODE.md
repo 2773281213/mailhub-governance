@@ -108,6 +108,9 @@ Compose 页面 ── Gateway ── Repository ── ApiClient(Retrofit + OkHt
 7. **写数据库的 JSON 文本**不必与 Python `json.dumps` 逐字相同，但解析回来的值必须相同。
 8. **安全约束不变。** 自动治理只允许 `label_only`；邮件正文、主题、发件人、附件名一律按不可信输入处理；不可逆的服务器动作在服务器成功后才更新本地状态并写审计。
 9. **注释和 KDoc 用中文**，与仓库现有约定一致。
+10. **桌面测试通过不等于手机上能跑。** `:core` 按 JVM 编译，实际运行在 ART 和 ICU 上。合并后要用 `android/scripts/core-on-device.ps1` 在设备上回放。只能在桌面跑的测试标 `@JvmOnly`。已知的平台差异：
+    - SQLite 报错的异常类分平台，不准 `catch (androidx.sqlite.SQLiteException)`（手机上接不住）。先接 `RuntimeException`，再用 `com.mailhub.core.db.isSqliteError` 判断；
+    - ICU 的大小写折叠和 Python 不同（多字符折叠、土耳其语 i），所以正则一律经 `PyRegex`，规则 3 不能破例。
 
 ## 五、收信与通知
 

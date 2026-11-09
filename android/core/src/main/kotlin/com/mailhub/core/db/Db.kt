@@ -1,7 +1,6 @@
 package com.mailhub.core.db
 
 import androidx.sqlite.SQLiteConnection
-import androidx.sqlite.SQLiteException
 import androidx.sqlite.SQLiteStatement
 import com.mailhub.core.Clock
 import com.mailhub.core.SystemClock
@@ -527,7 +526,8 @@ class Db(val path: String, private val clock: Clock = SystemClock) {
             transaction { createFtsLocked() }
             ftsAvailable = true
             true
-        } catch (e: SQLiteException) {
+        } catch (e: RuntimeException) {
+            if (!isSqliteError(e)) throw e
             // 与 Python 一致：只记一条 warning，不抛。低版本 SQLite 没有 FTS5 的 trigram
             // 分词器，建表时就会失败，搜索整体回落到 LIKE，其余功能不受影响。
             LOG.warning("SQLite 不支持 FTS5 trigram 索引，邮件搜索回落到 LIKE：${e.message}")
@@ -664,8 +664,8 @@ class Db(val path: String, private val clock: Clock = SystemClock) {
     private fun stepIgnoringDuplicateColumn(sql: String) {
         try {
             stepLocked(sql, emptyArray())
-        } catch (e: SQLiteException) {
-            if (!(e.message ?: "").lowercase().contains("duplicate column name")) {
+        } catch (e: RuntimeException) {
+            if (!isSqliteError(e) || !(e.message ?: "").lowercase().contains("duplicate column name")) {
                 throw e
             }
         }
@@ -776,6 +776,19 @@ class Db(val path: String, private val clock: Clock = SystemClock) {
         val TRANSACTION_CONTROL = setOf("BEGIN", "COMMIT", "END", "ROLLBACK", "SAVEPOINT", "RELEASE")
     }
 }
+
+/** androidx.sqlite 报错时可能抛的类：桌面、Android 各一个。 */
+private val SQLITE_ERROR_CLASSES = setOf("androidx.sqlite.SQLiteException", "android.database.SQLException")
+
+/**
+ * 这个异常是不是 SQLite 报的错。
+ *
+ * androidx.sqlite 在两个平台抛的类不同。`:core` 按 JVM 编译，字节码里的 `catch` 只认桌面那个类，
+ * 在手机上接不住（`initDb` 的补列语句会直接崩），所以按类名判断，子类也算。
+ * 都是 `RuntimeException`，调用方先接 `RuntimeException` 再用这里判断。
+ */
+internal fun isSqliteError(e: Throwable): Boolean =
+    generateSequence<Class<*>>(e.javaClass) { it.superclass }.any { it.name in SQLITE_ERROR_CLASSES }
 
 /** 写语句的执行结果，对应 `cursor.rowcount` 与 `cursor.lastrowid`。 */
 data class ExecResult(
