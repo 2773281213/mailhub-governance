@@ -1,0 +1,2914 @@
+{
+ "cases": [
+  {
+   "args": {
+    "file": "plain_ascii.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "<plain-1@mail.shop.example>",
+    "reply_to": "",
+    "sender_addr": "alice@shop.example",
+    "sender_name": "Alice",
+    "subject": "Quarterly report",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "plain_ascii"
+  },
+  {
+   "args": {
+    "file": "utf8_b64_subject.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730860200.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notify@bank.example",
+    "sender_name": "通知",
+    "subject": "你好，这是一封测试邮件",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "utf8_b64_subject"
+  },
+  {
+   "args": {
+    "file": "utf8_q_subject.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730860200.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "billing@shop.example",
+    "sender_name": "账单中心",
+    "subject": "本月账单",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "utf8_q_subject"
+  },
+  {
+   "args": {
+    "file": "gb2312_q_subject.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notify@bank.example",
+    "sender_name": "一丁通知",
+    "subject": "账户安全提醒",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "gb2312_q_subject"
+  },
+  {
+   "args": {
+    "file": "gb2312_sender_encoded.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@bank.example",
+    "sender_name": "银行通知",
+    "subject": "GB2312 sender",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "gb2312_sender_encoded"
+  },
+  {
+   "args": {
+    "file": "gb2312_gbk_only.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notifier@bank.example",
+    "sender_name": "",
+    "subject": "�@",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "gb2312_gbk_only"
+  },
+  {
+   "args": {
+    "file": "two_encoded_words.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "",
+    "subject": "你好",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "two_encoded_words"
+  },
+  {
+   "args": {
+    "file": "mixed_text_words.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "",
+    "subject": "Re: 你好 (fwd) 2024",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "mixed_text_words"
+  },
+  {
+   "args": {
+    "file": "folded_subject.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "",
+    "subject": "你好世界 and more text",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "folded_subject"
+  },
+  {
+   "args": {
+    "file": "folded_from.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "finance@corp.example",
+    "sender_name": "财务部",
+    "subject": "Folded from",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "folded_from"
+  },
+  {
+   "args": {
+    "file": "quoted_name_comma.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "john@shop.example",
+    "sender_name": "Doe, John",
+    "subject": "Quoted comma",
+    "to_addr": "jane@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "quoted_name_comma"
+  },
+  {
+   "args": {
+    "file": "comment_address.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "jsmith@shop.example",
+    "sender_name": "John Smith",
+    "subject": "Comment address",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "comment_address"
+  },
+  {
+   "args": {
+    "file": "group_address.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "",
+    "subject": "Group address",
+    "to_addr": "team@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "group_address"
+  },
+  {
+   "args": {
+    "file": "multi_to.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "",
+    "subject": "Multi recipients",
+    "to_addr": "a@corp.example,alias+tag@corp.example,b@corp.example,c@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "multi_to"
+  },
+  {
+   "args": {
+    "file": "to_dedupe_sort.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "",
+    "subject": "Dedupe and sort",
+    "to_addr": "amy@cord.example,amy@corp.example,bob@corp.example,zed@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "to_dedupe_sort"
+  },
+  {
+   "args": {
+    "file": "to_truncate.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "",
+    "subject": "Truncated recipients",
+    "to_addr": "user00@corp.example,user01@corp.example,user02@corp.example,user03@corp.example,user04@corp.example,user05@corp.example,user06@corp.example,user07@corp.example,user08@corp.example,user09@corp.example,user10@corp.example,user11@corp.example,user12@corp.example,user13@corp.example,user14@corp.example,user15@corp.example,user16@corp.example,user17@corp.example,user18@corp.example,user19@corp.example,user20@corp.example,user21@corp.example,user22@corp.example,user23@corp.example,user24@corp.example,",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "to_truncate"
+  },
+  {
+   "args": {
+    "file": "reply_to.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "support@shop.example",
+    "sender_addr": "newsletter@shop.example",
+    "sender_name": "",
+    "subject": "Reply-To header",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "reply_to"
+  },
+  {
+   "args": {
+    "file": "reply_to_empty.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "not-an-address",
+    "sender_addr": "newsletter@shop.example",
+    "sender_name": "",
+    "subject": "Broken reply-to",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "reply_to_empty"
+  },
+  {
+   "args": {
+    "file": "list_unsubscribe.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": true,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "newsletter@shop.example",
+    "sender_name": "",
+    "subject": "Unsubscribe present",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 1
+   },
+   "fn": "parse_headers",
+   "id": "list_unsubscribe"
+  },
+  {
+   "args": {
+    "file": "precedence_bulk.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": true
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "bulk@shop.example",
+    "sender_name": "",
+    "subject": "Bulk precedence",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "precedence_bulk"
+  },
+  {
+   "args": {
+    "file": "precedence_list.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": true
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "list@shop.example",
+    "sender_name": "",
+    "subject": "List precedence",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "precedence_list"
+  },
+  {
+   "args": {
+    "file": "precedence_other.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "urgent@shop.example",
+    "sender_name": "",
+    "subject": "Urgent precedence",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "precedence_other"
+  },
+  {
+   "args": {
+    "file": "auto_submitted.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": true,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "autoresponder@shop.example",
+    "sender_name": "",
+    "subject": "Auto submitted",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "auto_submitted"
+  },
+  {
+   "args": {
+    "file": "auto_submitted_no.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "human@shop.example",
+    "sender_name": "",
+    "subject": "Auto submitted no",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "auto_submitted_no"
+  },
+  {
+   "args": {
+    "file": "feedback_id.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": true,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "reports@shop.example",
+    "sender_name": "",
+    "subject": "Feedback id",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "feedback_id"
+  },
+  {
+   "args": {
+    "file": "return_path_esp.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": true,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "promo@shop.example",
+    "sender_name": "",
+    "subject": "ESP return path",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "return_path_esp"
+  },
+  {
+   "args": {
+    "file": "dkim_multi.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": true,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "promo@shop.example",
+    "sender_name": "",
+    "subject": "Two DKIM signatures",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "dkim_multi"
+  },
+  {
+   "args": {
+    "file": "dkim_domain_only.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": true,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "promo@shop.example",
+    "sender_name": "",
+    "subject": "DKIM domain only",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "dkim_domain_only"
+  },
+  {
+   "args": {
+    "file": "auth_results_multi.eml"
+   },
+   "expected": {
+    "auth_results": "mx.corp.example; spf=pass smtp.mailfrom=shop.example",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "",
+    "subject": "Two auth results",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "auth_results_multi"
+  },
+  {
+   "args": {
+    "file": "auth_results_long.eml"
+   },
+   "expected": {
+    "auth_results": "mx.corp.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dkim=pass header.d=shop.example; dki",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "",
+    "subject": "Long auth results",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "auth_results_long"
+  },
+  {
+   "args": {
+    "file": "msgid_whitespace.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "<spaced-id@mail.shop.example>",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "",
+    "subject": "Spaced message id",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "msgid_whitespace"
+  },
+  {
+   "args": {
+    "file": "date_two_digit_year.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730937600.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "",
+    "subject": "Two digit year",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "date_two_digit_year"
+  },
+  {
+   "args": {
+    "file": "date_est.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1731075330.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "",
+    "subject": "EST date",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "date_est"
+  },
+  {
+   "args": {
+    "file": "date_rfc850.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1731153600.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "",
+    "subject": "RFC 850 date",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "date_rfc850"
+  },
+  {
+   "args": {
+    "file": "date_no_seconds.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1731277800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "",
+    "subject": "Date without seconds",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "date_no_seconds"
+  },
+  {
+   "args": {
+    "file": "malformed_from_paren.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "",
+    "sender_name": "",
+    "subject": "Unbalanced comment",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "malformed_from_paren"
+  },
+  {
+   "args": {
+    "file": "malformed_to_bracket.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "",
+    "subject": "Broken domain literal",
+    "to_addr": "",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "malformed_to_bracket"
+  },
+  {
+   "args": {
+    "file": "no_from_header.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "",
+    "sender_name": "",
+    "subject": "No From header",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "no_from_header"
+  },
+  {
+   "args": {
+    "file": "raw_8bit_subject.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "",
+    "subject": "caf� au lait �hola!",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "raw_8bit_subject"
+  },
+  {
+   "args": {
+    "file": "bad_base64.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "",
+    "subject": "=?utf-8?B?a?=",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "bad_base64"
+  },
+  {
+   "args": {
+    "file": "unknown_charset.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "",
+    "subject": "=?x-unknown-charset?B?YWJj?=",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "unknown_charset"
+  },
+  {
+   "args": {
+    "file": "latin1_b64.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "jose@shop.example",
+    "sender_name": "JosÃ©",
+    "subject": "café",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "latin1_b64"
+  },
+  {
+   "args": {
+    "file": "latin1_sender_b64.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "jose@shop.example",
+    "sender_name": "José",
+    "subject": "Latin-1 sender",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "latin1_sender_b64"
+  },
+  {
+   "args": {
+    "file": "duplicate_subject.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "",
+    "subject": "第一封",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "duplicate_subject"
+  },
+  {
+   "args": {
+    "file": "lowercase_headers.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "<lowercase-id@mail.shop.example>",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "",
+    "subject": "小写头名",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "lowercase_headers"
+  },
+  {
+   "args": {
+    "file": "cp1252_subject.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "shop@shop.example",
+    "sender_name": "",
+    "subject": "€ 100 “quoted”",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "cp1252_subject"
+  },
+  {
+   "args": {
+    "file": "big5_subject.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "shop@shop.example",
+    "sender_name": "",
+    "subject": "繁體中文郵件",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "big5_subject"
+  },
+  {
+   "args": {
+    "file": "shift_jis_subject.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "shop@shop.example",
+    "sender_name": "",
+    "subject": "日本語のメール",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "shift_jis_subject"
+  },
+  {
+   "args": {
+    "file": "euckr_subject.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "shop@shop.example",
+    "sender_name": "",
+    "subject": "한국어 메일",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "euckr_subject"
+  },
+  {
+   "args": {
+    "file": "iso2022jp_subject.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "shop@shop.example",
+    "sender_name": "",
+    "subject": "こんにちは",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "iso2022jp_subject"
+  },
+  {
+   "args": {
+    "file": "gbk_subject.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "shop@shop.example",
+    "sender_name": "",
+    "subject": "简体中文（GBK）",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "gbk_subject"
+  },
+  {
+   "args": {
+    "file": "gb18030_subject.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "shop@shop.example",
+    "sender_name": "",
+    "subject": "GB18030 编码的主题",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "gb18030_subject"
+  },
+  {
+   "args": {
+    "file": "lf_line_endings.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "",
+    "subject": "你好世界",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "lf_line_endings"
+  },
+  {
+   "args": {
+    "file": "empty_subject.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "",
+    "subject": "",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "empty_subject"
+  },
+  {
+   "args": {
+    "file": "unfolded_tab.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "",
+    "subject": "first\r\n\tsecond",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "unfolded_tab"
+  },
+  {
+   "args": {
+    "file": "semicolon_subject.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "",
+    "subject": "报表：📈",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "semicolon_subject"
+  },
+  {
+   "args": {
+    "file": "unix_from_line.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "",
+    "subject": "Unix from line",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "unix_from_line"
+  },
+  {
+   "args": {
+    "file": "colon_at_start.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "",
+    "subject": "Colon at start",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "colon_at_start"
+  },
+  {
+   "args": {
+    "file": "value_starts_with_newline.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "",
+    "subject": "你好",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "value_starts_with_newline"
+  },
+  {
+   "args": {
+    "file": "delivered_to_only.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "",
+    "subject": "Delivered-To only",
+    "to_addr": "alias+tag@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "delivered_to_only"
+  },
+  {
+   "args": {
+    "raw": null
+   },
+   "expected": "",
+   "fn": "decode_header",
+   "id": "decode-header-00"
+  },
+  {
+   "args": {
+    "raw": ""
+   },
+   "expected": "",
+   "fn": "decode_header",
+   "id": "decode-header-01"
+  },
+  {
+   "args": {
+    "raw": "   "
+   },
+   "expected": "",
+   "fn": "decode_header",
+   "id": "decode-header-02"
+  },
+  {
+   "args": {
+    "raw": "纯文本主题"
+   },
+   "expected": "纯文本主题",
+   "fn": "decode_header",
+   "id": "decode-header-03"
+  },
+  {
+   "args": {
+    "raw": "Re: =?utf-8?B?5L2g5aW9?="
+   },
+   "expected": "Re: 你好",
+   "fn": "decode_header",
+   "id": "decode-header-04"
+  },
+  {
+   "args": {
+    "raw": "=?utf-8?B?5L2g5aW9?="
+   },
+   "expected": "你好",
+   "fn": "decode_header",
+   "id": "decode-header-05"
+  },
+  {
+   "args": {
+    "raw": "=?utf-8?b?5L2g5aW9?="
+   },
+   "expected": "你好",
+   "fn": "decode_header",
+   "id": "decode-header-06"
+  },
+  {
+   "args": {
+    "raw": "=?utf-8?q?caf=C3=A9?="
+   },
+   "expected": "café",
+   "fn": "decode_header",
+   "id": "decode-header-07"
+  },
+  {
+   "args": {
+    "raw": "=?UTF-8?Q?caf=C3=A9?="
+   },
+   "expected": "café",
+   "fn": "decode_header",
+   "id": "decode-header-08"
+  },
+  {
+   "args": {
+    "raw": "=?utf-8?B?5L2g?= =?utf-8?B?5aW9?="
+   },
+   "expected": "你好",
+   "fn": "decode_header",
+   "id": "decode-header-09"
+  },
+  {
+   "args": {
+    "raw": "=?utf-8?B?5L2g?=   =?utf-8?B?5aW9?="
+   },
+   "expected": "你好",
+   "fn": "decode_header",
+   "id": "decode-header-10"
+  },
+  {
+   "args": {
+    "raw": "=?utf-8?B?5L2g?= =?gb2312?B?xOO6ww==?="
+   },
+   "expected": "你你好",
+   "fn": "decode_header",
+   "id": "decode-header-11"
+  },
+  {
+   "args": {
+    "raw": "a =?utf-8?B?5L2g?= b =?utf-8?B?5aW9?= c"
+   },
+   "expected": "a 你 b 好 c",
+   "fn": "decode_header",
+   "id": "decode-header-12"
+  },
+  {
+   "args": {
+    "raw": "=?utf-8?B?5L2g5aW9?= trail"
+   },
+   "expected": "你好 trail",
+   "fn": "decode_header",
+   "id": "decode-header-13"
+  },
+  {
+   "args": {
+    "raw": "=?utf-8?q?a_b?="
+   },
+   "expected": "a b",
+   "fn": "decode_header",
+   "id": "decode-header-14"
+  },
+  {
+   "args": {
+    "raw": "=?gb2312?B?xOO6ww==?="
+   },
+   "expected": "你好",
+   "fn": "decode_header",
+   "id": "decode-header-15"
+  },
+  {
+   "args": {
+    "raw": "=?gb2312?q?=81=40?="
+   },
+   "expected": "�@",
+   "fn": "decode_header",
+   "id": "decode-header-16"
+  },
+  {
+   "args": {
+    "raw": "=?gbk?q?=81=40?="
+   },
+   "expected": "丂",
+   "fn": "decode_header",
+   "id": "decode-header-17"
+  },
+  {
+   "args": {
+    "raw": "=?big5?B?pMFA?="
+   },
+   "expected": "切@",
+   "fn": "decode_header",
+   "id": "decode-header-18"
+  },
+  {
+   "args": {
+    "raw": "=?shift_jis?B?grGC8YLJgr+CzQ==?="
+   },
+   "expected": "こんにちは",
+   "fn": "decode_header",
+   "id": "decode-header-19"
+  },
+  {
+   "args": {
+    "raw": "=?euc-kr?B?x9Gxub6u?="
+   },
+   "expected": "한국쒜",
+   "fn": "decode_header",
+   "id": "decode-header-20"
+  },
+  {
+   "args": {
+    "raw": "=?iso-2022-jp?B?GyRCJCIbKEI=?="
+   },
+   "expected": "あ",
+   "fn": "decode_header",
+   "id": "decode-header-21"
+  },
+  {
+   "args": {
+    "raw": "=?iso-8859-1?q?caf=E9?="
+   },
+   "expected": "café",
+   "fn": "decode_header",
+   "id": "decode-header-22"
+  },
+  {
+   "args": {
+    "raw": "=?windows-1252?q?=80?="
+   },
+   "expected": "€",
+   "fn": "decode_header",
+   "id": "decode-header-23"
+  },
+  {
+   "args": {
+    "raw": "=?x-unknown?B?YWJj?="
+   },
+   "expected": "=?x-unknown?B?YWJj?=",
+   "fn": "decode_header",
+   "id": "decode-header-24"
+  },
+  {
+   "args": {
+    "raw": "=?utf-8?B?a?="
+   },
+   "expected": "=?utf-8?B?a?=",
+   "fn": "decode_header",
+   "id": "decode-header-25"
+  },
+  {
+   "args": {
+    "raw": "=?utf-8?B?5L2g5aW9?=  =?utf-8?B?5LiW55WM?="
+   },
+   "expected": "你好世界",
+   "fn": "decode_header",
+   "id": "decode-header-26"
+  },
+  {
+   "args": {
+    "raw": "  前导空白 =?utf-8?B?5L2g5aW9?=  尾巴  "
+   },
+   "expected": "\\u524d\\u5bfc\\u7a7a\\u767d 你好  \\u5c3e\\u5df4",
+   "fn": "decode_header",
+   "id": "decode-header-27"
+  },
+  {
+   "args": {
+    "raw": "=?utf-8?B?5L2g?=\r\n =?utf-8?B?5aW9?="
+   },
+   "expected": "你好",
+   "fn": "decode_header",
+   "id": "decode-header-28"
+  },
+  {
+   "args": {
+    "raw": "=?utf-8?q??="
+   },
+   "expected": "",
+   "fn": "decode_header",
+   "id": "decode-header-29"
+  },
+  {
+   "args": {
+    "raw": "=?utf-8?b??="
+   },
+   "expected": "",
+   "fn": "decode_header",
+   "id": "decode-header-30"
+  },
+  {
+   "args": {
+    "raw": "=?utf-8?B?5L2g5aW9?= =?utf-8?q?x?="
+   },
+   "expected": "你好x",
+   "fn": "decode_header",
+   "id": "decode-header-31"
+  },
+  {
+   "args": {
+    "raw": "=?utf-8?B?5L2g5aW9?=x=?utf-8?B?5aW977yM?="
+   },
+   "expected": "你好x好，",
+   "fn": "decode_header",
+   "id": "decode-header-32"
+  },
+  {
+   "args": {
+    "raw": "=?utf-8?B?5L2g?=\r\n\t=?utf-8?B?5aW9?="
+   },
+   "expected": "你好",
+   "fn": "decode_header",
+   "id": "decode-header-33"
+  },
+  {
+   "args": {
+    "raw": "=?utf-8?q?=E4=BD=A0?= =?gbk?B?xOO6ww==?= =?utf-8?B?5aW9?="
+   },
+   "expected": "你你好好",
+   "fn": "decode_header",
+   "id": "decode-header-34"
+  },
+  {
+   "args": {
+    "raw": "trailing text =?utf-8?B?5L2g5aW9?=   "
+   },
+   "expected": "trailing text 你好",
+   "fn": "decode_header",
+   "id": "decode-header-35"
+  },
+  {
+   "args": {
+    "raw": "=?utf-8?B?5L2g5aW9?= =?utf-8?B?5LiW55WM?= tail =?utf-8?B?77yB?="
+   },
+   "expected": "你好世界 tail ！",
+   "fn": "decode_header",
+   "id": "decode-header-36"
+  },
+  {
+   "args": {
+    "raw": "=?utf-8?B?5L2g5aW9?= =?x-unknown?B?YWJj?="
+   },
+   "expected": "=?utf-8?B?5L2g5aW9?= =?x-unknown?B?YWJj?=",
+   "fn": "decode_header",
+   "id": "decode-header-37"
+  },
+  {
+   "args": {
+    "raw": "not =? utf-8 ?B?5L2g5aW9?= an encoded word"
+   },
+   "expected": "not 你好 an encoded word",
+   "fn": "decode_header",
+   "id": "decode-header-38"
+  },
+  {
+   "args": {
+    "raw": "=?utf-8?x?abc?="
+   },
+   "expected": "=?utf-8?x?abc?=",
+   "fn": "decode_header",
+   "id": "decode-header-39"
+  },
+  {
+   "args": {
+    "raw": "=?utf-8?B?5L2g5aW9?==?utf-8?B?5LiW55WM?="
+   },
+   "expected": "你好世界",
+   "fn": "decode_header",
+   "id": "decode-header-40"
+  },
+  {
+   "args": {
+    "raw": " ，=?utf-8?B?5L2g5aW9?=。 "
+   },
+   "expected": "\\uff0c你好\\u3002",
+   "fn": "decode_header",
+   "id": "decode-header-41"
+  },
+  {
+   "args": {
+    "raw": "=?iso-2022-jp?B?GyRCJCIbKEI=?= =?utf-8?B?5L2g5aW9?="
+   },
+   "expected": "あ你好",
+   "fn": "decode_header",
+   "id": "decode-header-42"
+  },
+  {
+   "args": {
+    "addr": "Alice <alice@shop.example>"
+   },
+   "expected": [
+    "Alice",
+    "alice@shop.example"
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-00"
+  },
+  {
+   "args": {
+    "addr": "alice@shop.example"
+   },
+   "expected": [
+    "",
+    "alice@shop.example"
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-01"
+  },
+  {
+   "args": {
+    "addr": "<alice@shop.example>"
+   },
+   "expected": [
+    "",
+    "alice@shop.example"
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-02"
+  },
+  {
+   "args": {
+    "addr": "\"Doe, John\" <john@shop.example>"
+   },
+   "expected": [
+    "Doe, John",
+    "john@shop.example"
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-03"
+  },
+  {
+   "args": {
+    "addr": "Doe, John <john@shop.example>"
+   },
+   "expected": [
+    "",
+    ""
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-04"
+  },
+  {
+   "args": {
+    "addr": "jsmith@shop.example (John Smith)"
+   },
+   "expected": [
+    "John Smith",
+    "jsmith@shop.example"
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-05"
+  },
+  {
+   "args": {
+    "addr": "John Smith <jsmith@shop.example>"
+   },
+   "expected": [
+    "John Smith",
+    "jsmith@shop.example"
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-06"
+  },
+  {
+   "args": {
+    "addr": "  spaced@shop.example  "
+   },
+   "expected": [
+    "",
+    "spaced@shop.example"
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-07"
+  },
+  {
+   "args": {
+    "addr": ""
+   },
+   "expected": [
+    "",
+    ""
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-08"
+  },
+  {
+   "args": {
+    "addr": "not-an-address"
+   },
+   "expected": [
+    "",
+    "not-an-address"
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-09"
+  },
+  {
+   "args": {
+    "addr": "undisclosed-recipients:;"
+   },
+   "expected": [
+    "",
+    ""
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-10"
+  },
+  {
+   "args": {
+    "addr": "Group: a@shop.example, b@shop.example;"
+   },
+   "expected": [
+    "",
+    ""
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-11"
+  },
+  {
+   "args": {
+    "addr": "a@shop.example, b@shop.example"
+   },
+   "expected": [
+    "",
+    ""
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-12"
+  },
+  {
+   "args": {
+    "addr": "Alice <alice@shop.example"
+   },
+   "expected": [
+    "Alice",
+    "alice@shop.example"
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-13"
+  },
+  {
+   "args": {
+    "addr": "Alice alice@shop.example>"
+   },
+   "expected": [
+    "",
+    ""
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-14"
+  },
+  {
+   "args": {
+    "addr": "user@[127.0.0.1]"
+   },
+   "expected": [
+    "",
+    ""
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-15"
+  },
+  {
+   "args": {
+    "addr": "user@[corp.example"
+   },
+   "expected": [
+    "",
+    ""
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-16"
+  },
+  {
+   "args": {
+    "addr": "a@malicious.example@important.example"
+   },
+   "expected": [
+    "",
+    ""
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-17"
+  },
+  {
+   "args": {
+    "addr": "=?utf-8?B?5L2g5aW9?= <you@shop.example>"
+   },
+   "expected": [
+    "=?utf-8?B?5L2g5aW9?=",
+    "you@shop.example"
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-18"
+  },
+  {
+   "args": {
+    "addr": "@shop.example"
+   },
+   "expected": [
+    "",
+    "@shop.example"
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-19"
+  },
+  {
+   "args": {
+    "addr": "a@"
+   },
+   "expected": [
+    "",
+    ""
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-20"
+  },
+  {
+   "args": {
+    "addr": "\"quoted local\"@shop.example"
+   },
+   "expected": [
+    "",
+    "\"quoted local\"@shop.example"
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-21"
+  },
+  {
+   "args": {
+    "addr": "Name <sp ace@shop.example>"
+   },
+   "expected": [
+    "Name",
+    "sp ace@shop.example"
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-22"
+  },
+  {
+   "args": {
+    "addr": "Name (comment) <c@shop.example>"
+   },
+   "expected": [
+    "Name (comment)",
+    "c@shop.example"
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-23"
+  },
+  {
+   "args": {
+    "addr": "one@shop.example two@shop.example"
+   },
+   "expected": [
+    "",
+    ""
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-24"
+  },
+  {
+   "args": {
+    "addr": "Name (one) (two) <c@shop.example>"
+   },
+   "expected": [
+    "Name (one two)",
+    "c@shop.example"
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-25"
+  },
+  {
+   "args": {
+    "addr": "'single quoted' <s@shop.example>"
+   },
+   "expected": [
+    "'single quoted'",
+    "s@shop.example"
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-26"
+  },
+  {
+   "args": {
+    "addr": "\"escaped \\\" quote\" <q@shop.example>"
+   },
+   "expected": [
+    "escaped \" quote",
+    "q@shop.example"
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-27"
+  },
+  {
+   "args": {
+    "addr": "<@route.example:user@shop.example>"
+   },
+   "expected": [
+    "",
+    "user@shop.example"
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-28"
+  },
+  {
+   "args": {
+    "addr": "\"a b\" <a@shop.example>, \"c d\" <c@shop.example>"
+   },
+   "expected": [
+    "",
+    ""
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-29"
+  },
+  {
+   "args": {
+    "addr": "Name <>"
+   },
+   "expected": [
+    "Name",
+    ""
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-30"
+  },
+  {
+   "args": {
+    "addr": "<>"
+   },
+   "expected": [
+    "",
+    ""
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-31"
+  },
+  {
+   "args": {
+    "addr": "a@shop.example (comment"
+   },
+   "expected": [
+    "",
+    ""
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-32"
+  },
+  {
+   "args": {
+    "addr": "a@shop.example)"
+   },
+   "expected": [
+    "",
+    ""
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-33"
+  },
+  {
+   "args": {
+    "addr": "Name <a@shop.example> extra"
+   },
+   "expected": [
+    "",
+    ""
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-34"
+  },
+  {
+   "args": {
+    "addr": "  "
+   },
+   "expected": [
+    "",
+    ""
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-35"
+  },
+  {
+   "args": {
+    "addr": "\t"
+   },
+   "expected": [
+    "",
+    ""
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-36"
+  },
+  {
+   "args": {
+    "addr": "Name\t<a@shop.example>"
+   },
+   "expected": [
+    "Name",
+    "a@shop.example"
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-37"
+  },
+  {
+   "args": {
+    "values": [
+     "Alice <alice@shop.example>"
+    ]
+   },
+   "expected": [
+    [
+     "Alice",
+     "alice@shop.example"
+    ]
+   ],
+   "fn": "getaddresses",
+   "id": "getaddresses-00"
+  },
+  {
+   "args": {
+    "values": [
+     "Alice <alice@shop.example>",
+     "Bob <bob@corp.example>"
+    ]
+   },
+   "expected": [
+    [
+     "Alice",
+     "alice@shop.example"
+    ],
+    [
+     "Bob",
+     "bob@corp.example"
+    ]
+   ],
+   "fn": "getaddresses",
+   "id": "getaddresses-01"
+  },
+  {
+   "args": {
+    "values": [
+     "a@shop.example, b@shop.example"
+    ]
+   },
+   "expected": [
+    [
+     "",
+     "a@shop.example"
+    ],
+    [
+     "",
+     "b@shop.example"
+    ]
+   ],
+   "fn": "getaddresses",
+   "id": "getaddresses-02"
+  },
+  {
+   "args": {
+    "values": [
+     "a@shop.example",
+     "b@shop.example"
+    ]
+   },
+   "expected": [
+    [
+     "",
+     "a@shop.example"
+    ],
+    [
+     "",
+     "b@shop.example"
+    ]
+   ],
+   "fn": "getaddresses",
+   "id": "getaddresses-03"
+  },
+  {
+   "args": {
+    "values": [
+     "\"Doe, John\" <john@shop.example>"
+    ]
+   },
+   "expected": [
+    [
+     "Doe, John",
+     "john@shop.example"
+    ]
+   ],
+   "fn": "getaddresses",
+   "id": "getaddresses-04"
+  },
+  {
+   "args": {
+    "values": [
+     "Doe, John <john@shop.example>"
+    ]
+   },
+   "expected": [
+    [
+     "",
+     "Doe"
+    ],
+    [
+     "John",
+     "john@shop.example"
+    ]
+   ],
+   "fn": "getaddresses",
+   "id": "getaddresses-05"
+  },
+  {
+   "args": {
+    "values": [
+     "undisclosed-recipients:;"
+    ]
+   },
+   "expected": [
+    [
+     "",
+     ""
+    ]
+   ],
+   "fn": "getaddresses",
+   "id": "getaddresses-06"
+  },
+  {
+   "args": {
+    "values": []
+   },
+   "expected": [],
+   "fn": "getaddresses",
+   "id": "getaddresses-07"
+  },
+  {
+   "args": {
+    "values": [
+     ""
+    ]
+   },
+   "expected": [
+    [
+     "",
+     ""
+    ]
+   ],
+   "fn": "getaddresses",
+   "id": "getaddresses-08"
+  },
+  {
+   "args": {
+    "values": [
+     "",
+     ""
+    ]
+   },
+   "expected": [
+    [
+     "",
+     ""
+    ]
+   ],
+   "fn": "getaddresses",
+   "id": "getaddresses-09"
+  },
+  {
+   "args": {
+    "values": [
+     "a@shop.example",
+     ""
+    ]
+   },
+   "expected": [
+    [
+     "",
+     "a@shop.example"
+    ],
+    [
+     "",
+     ""
+    ]
+   ],
+   "fn": "getaddresses",
+   "id": "getaddresses-10"
+  },
+  {
+   "args": {
+    "values": [
+     "jsmith@shop.example (John Smith)"
+    ]
+   },
+   "expected": [
+    [
+     "John Smith",
+     "jsmith@shop.example"
+    ]
+   ],
+   "fn": "getaddresses",
+   "id": "getaddresses-11"
+  },
+  {
+   "args": {
+    "values": [
+     "Group: a@shop.example, b@shop.example;"
+    ]
+   },
+   "expected": [
+    [
+     "",
+     "a@shop.example"
+    ],
+    [
+     "",
+     "b@shop.example"
+    ]
+   ],
+   "fn": "getaddresses",
+   "id": "getaddresses-12"
+  },
+  {
+   "args": {
+    "values": [
+     "a@shop.example, b@shop.example, c@shop.example"
+    ]
+   },
+   "expected": [
+    [
+     "",
+     "a@shop.example"
+    ],
+    [
+     "",
+     "b@shop.example"
+    ],
+    [
+     "",
+     "c@shop.example"
+    ]
+   ],
+   "fn": "getaddresses",
+   "id": "getaddresses-13"
+  },
+  {
+   "args": {
+    "values": [
+     "Alice <alice@shop.example>, Bob"
+    ]
+   },
+   "expected": [
+    [
+     "Alice",
+     "alice@shop.example"
+    ],
+    [
+     "",
+     "Bob"
+    ]
+   ],
+   "fn": "getaddresses",
+   "id": "getaddresses-14"
+  },
+  {
+   "args": {
+    "values": [
+     "user@[127.0.0.1]"
+    ]
+   },
+   "expected": [
+    [
+     "",
+     ""
+    ]
+   ],
+   "fn": "getaddresses",
+   "id": "getaddresses-15"
+  },
+  {
+   "args": {
+    "values": [
+     "user@[corp.example"
+    ]
+   },
+   "expected": [
+    [
+     "",
+     ""
+    ]
+   ],
+   "fn": "getaddresses",
+   "id": "getaddresses-16"
+  },
+  {
+   "args": {
+    "values": [
+     "a@malicious.example@important.example"
+    ]
+   },
+   "expected": [
+    [
+     "",
+     ""
+    ]
+   ],
+   "fn": "getaddresses",
+   "id": "getaddresses-17"
+  },
+  {
+   "args": {
+    "values": [
+     "Alice <alice@shop.example"
+    ]
+   },
+   "expected": [
+    [
+     "Alice",
+     "alice@shop.example"
+    ]
+   ],
+   "fn": "getaddresses",
+   "id": "getaddresses-18"
+  },
+  {
+   "args": {
+    "values": [
+     "@"
+    ]
+   },
+   "expected": [
+    [
+     "",
+     ""
+    ]
+   ],
+   "fn": "getaddresses",
+   "id": "getaddresses-19"
+  },
+  {
+   "args": {
+    "values": [
+     "a@shop.example\tb@shop.example"
+    ]
+   },
+   "expected": [
+    [
+     "",
+     ""
+    ]
+   ],
+   "fn": "getaddresses",
+   "id": "getaddresses-20"
+  },
+  {
+   "args": {
+    "values": [
+     "=?utf-8?B?5L2g5aW9?= <you@shop.example>"
+    ]
+   },
+   "expected": [
+    [
+     "=?utf-8?B?5L2g5aW9?=",
+     "you@shop.example"
+    ]
+   ],
+   "fn": "getaddresses",
+   "id": "getaddresses-21"
+  },
+  {
+   "args": {
+    "values": [
+     "a@shop.example,",
+     ",a@shop.example"
+    ]
+   },
+   "expected": [
+    [
+     "",
+     ""
+    ]
+   ],
+   "fn": "getaddresses",
+   "id": "getaddresses-22"
+  },
+  {
+   "args": {
+    "values": [
+     "Name <a@shop.example>, Name <a@shop.example>"
+    ]
+   },
+   "expected": [
+    [
+     "Name",
+     "a@shop.example"
+    ],
+    [
+     "Name",
+     "a@shop.example"
+    ]
+   ],
+   "fn": "getaddresses",
+   "id": "getaddresses-23"
+  },
+  {
+   "args": {
+    "value": "Tue, 05 Nov 2024 10:30:00 +0800"
+   },
+   "expected": 1730773800.0,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-00"
+  },
+  {
+   "args": {
+    "value": "Tue, 5 Nov 2024 10:30:00 +0800"
+   },
+   "expected": 1730773800.0,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-01"
+  },
+  {
+   "args": {
+    "value": "05 Nov 2024 10:30:00 +0800"
+   },
+   "expected": 1730773800.0,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-02"
+  },
+  {
+   "args": {
+    "value": "Tue, 05 Nov 2024 10:30:00 GMT"
+   },
+   "expected": 1730802600.0,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-03"
+  },
+  {
+   "args": {
+    "value": "Tue, 05 Nov 2024 10:30:00 UT"
+   },
+   "expected": 1730802600.0,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-04"
+  },
+  {
+   "args": {
+    "value": "Tue, 05 Nov 2024 10:30:00 UTC"
+   },
+   "expected": 1730802600.0,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-05"
+  },
+  {
+   "args": {
+    "value": "Tue, 05 Nov 2024 10:30:00 Z"
+   },
+   "expected": 1730802600.0,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-06"
+  },
+  {
+   "args": {
+    "value": "Tue, 05 Nov 2024 10:30:00 EST"
+   },
+   "expected": 1730820600.0,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-07"
+  },
+  {
+   "args": {
+    "value": "Tue, 05 Nov 2024 10:30:00 EDT"
+   },
+   "expected": 1730817000.0,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-08"
+  },
+  {
+   "args": {
+    "value": "Tue, 05 Nov 2024 10:30:00 CST"
+   },
+   "expected": 1730824200.0,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-09"
+  },
+  {
+   "args": {
+    "value": "Tue, 05 Nov 2024 10:30:00 PDT"
+   },
+   "expected": 1730827800.0,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-10"
+  },
+  {
+   "args": {
+    "value": "Tue, 05 Nov 2024 10:30:00 -0500"
+   },
+   "expected": 1730820600.0,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-11"
+  },
+  {
+   "args": {
+    "value": "Tue, 05 Nov 2024 10:30:00 +0000"
+   },
+   "expected": 1730802600.0,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-12"
+  },
+  {
+   "args": {
+    "value": "Tue, 05 Nov 2024 10:30 +0900"
+   },
+   "expected": 1730770200.0,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-13"
+  },
+  {
+   "args": {
+    "value": "Thu, 07 Nov 24 08:00:00 +0800"
+   },
+   "expected": 1730937600.0,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-14"
+  },
+  {
+   "args": {
+    "value": "Thursday, 07-Nov-24 08:00:00 GMT"
+   },
+   "expected": 1730966400.0,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-15"
+  },
+  {
+   "args": {
+    "value": "Sat, 09 Nov 2024 12:00:00 +0000"
+   },
+   "expected": 1731153600.0,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-16"
+  },
+  {
+   "args": {
+    "value": "Mon, 11 Nov 2024 07:30:59 +0530"
+   },
+   "expected": 1731290459.0,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-17"
+  },
+  {
+   "args": {
+    "value": "11 Nov 2024 07:30:59 -0700"
+   },
+   "expected": 1731335459.0,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-18"
+  },
+  {
+   "args": {
+    "value": "Tue, 05 Nov 2024 23:59:59 +1400"
+   },
+   "expected": 1730800799.0,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-19"
+  },
+  {
+   "args": {
+    "value": "Tue, 05 Nov 2024 00:00:01 -1200"
+   },
+   "expected": 1730808001.0,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-20"
+  },
+  {
+   "args": {
+    "value": "Wed, 06 Nov 2024 02:30:00 gmt"
+   },
+   "expected": 1730860200.0,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-21"
+  },
+  {
+   "args": {
+    "value": "Tue, 05 November 2024 10:30:00 +0800"
+   },
+   "expected": 1730773800.0,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-22"
+  },
+  {
+   "args": {
+    "value": "Tue, 05 Nov 2024 10:30:00 +0800 (CST)"
+   },
+   "expected": 1730773800.0,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-23"
+  },
+  {
+   "args": {
+    "value": "1 Jan 1970 00:00:00 +0000"
+   },
+   "expected": 0.0,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-24"
+  },
+  {
+   "args": {
+    "value": "Wed, 31 Dec 1969 23:59:59 -0500"
+   },
+   "expected": 17999.0,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-25"
+  },
+  {
+   "args": {
+    "value": "Mon, 29 Feb 2024 12:00:00 +0100"
+   },
+   "expected": 1709204400.0,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-26"
+  },
+  {
+   "args": {
+    "value": "Tue, 05 Nov 68 10:30:00 +0800"
+   },
+   "expected": 3119308200.0,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-27"
+  },
+  {
+   "args": {
+    "value": "Tue, 05 Nov 69 10:30:00 +0800"
+   },
+   "expected": -4915800.0,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-28"
+  },
+  {
+   "args": {
+    "value": "Fri, 01 Mar 2024 00:00:00 -0930"
+   },
+   "expected": 1709285400.0,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-29"
+  },
+  {
+   "args": {
+    "value": "Tue, 05 Nov 2024 10:30:00 +0000 extra"
+   },
+   "expected": 1730802600.0,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-30"
+  }
+ ],
+ "generator": "scripts/golden/mail_headers.py",
+ "module": "mail_headers"
+}

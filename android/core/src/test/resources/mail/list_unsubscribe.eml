@@ -1,0 +1,8 @@
+From: newsletter@shop.example
+To: bob@corp.example
+List-Unsubscribe: <mailto:unsub@shop.example>
+List-Id: Shop Newsletter <news.shop.example>
+Subject: Unsubscribe present
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+
+这是正文。
