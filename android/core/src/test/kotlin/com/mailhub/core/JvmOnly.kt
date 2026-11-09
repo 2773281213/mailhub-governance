@@ -5,7 +5,8 @@ package com.mailhub.core
  *
  * `:core` 的测试默认都要能在 Android 运行时上跑：`:app` 的 `androidTest` 源码集直接指向
  * `android/core/src/test/kotlin` 和 `android/core/src/test/resources`，在设备上原样编译执行。
- * 只有确实依赖桌面 JVM 独有能力的测试才标它，例如读仓库里的源码文件、起 GreenMail。
+ * 只有确实依赖桌面 JVM 独有能力的测试才标它，例如读仓库里的源码文件。用到桌面专用库
+ * （GreenMail）的测试编译不过 `androidTest`，放在 `android/core/src/jvmTest`，不用这个注解。
  *
  * instrumented 运行时用 runner 参数排除：`-e notAnnotation com.mailhub.core.JvmOnly`
  * （脚本里写成 `-Pandroid.testInstrumentationRunnerArguments.notAnnotation=com.mailhub.core.JvmOnly`，

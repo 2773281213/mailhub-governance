@@ -70,8 +70,8 @@ android {
 
     // 设备测试直接复用 :core 的测试源码和测试资源，不复制任何一行测试代码：
     // 以后往 android/core/src/test 里新增的测试会自动在设备上跑。
-    // 依赖桌面 JVM 的测试按约定加 @Category(JvmOnly::class)（见 android/core/src/test/kotlin/com/mailhub/core/JvmOnly.kt），
-    // 由 android/scripts/core-on-device.ps1 用 runner 参数 notAnnotation 排除。
+    // 要用桌面专用依赖（GreenMail）的测试放 android/core/src/jvmTest，这里不编译；
+    // 个别只是读仓库文件的测试加 @JvmOnly，由 android/scripts/core-on-device.ps1 用 runner 参数 notAnnotation 排除。
     sourceSets {
         getByName("androidTest") {
             kotlin.srcDir("../core/src/test/kotlin")

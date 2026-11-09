@@ -16,6 +16,9 @@ kotlin {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
+    // src/test 的测试同时在设备上回放（见 :app 的 androidTest 源码集）；
+    // 依赖 GreenMail 这类桌面专用库的测试放 src/jvmTest，设备构建不会编译它们。
+    sourceSets.getByName("test").kotlin.srcDir("src/jvmTest/kotlin")
 }
 
 dependencies {
@@ -30,10 +33,22 @@ dependencies {
     // 读取 Python 导出的数据表（html.unescape 的实体表等）；金标测试也用它解析 JSON。
     // 只用 JsonElement API，不需要序列化编译器插件。
     implementation(libs.kotlinx.serialization.json)
+    // 同步协调器（SyncCoordinator）用协程做并发控制：Semaphore 限流、每个账户一把 Mutex。
+    implementation(libs.kotlinx.coroutines.core)
 
     testImplementation(libs.junit)
+    // 本地 IMAP 服务器（IMAPS + 自签名证书）。它声明的 org.eclipse.angus:jakarta.mail 是
+    // 含 jakarta.mail-api 类的胖 jar，会和本模块的 jakarta.mail-api 2.1.5 打架，所以排除；
+    // GreenMail 需要的 JavaMail 实现由本模块已有的 angus-mail 2.0.5 提供（版本相同）。
+    testImplementation(libs.greenmail) {
+        exclude(group = "org.eclipse.angus", module = "jakarta.mail")
+    }
 }
 
 tasks.test {
     useJUnit()
+    // Angus 只在类加载时读一次这两个属性。GreenMail 的测试和 MimeSmokeTest 在同一个 JVM 里跑，
+    // 谁先加载 MimeBodyPart 谁说了算，所以在 JVM 启动时就定死。
+    systemProperty("mail.mime.decodefilename", "true")
+    systemProperty("mail.mime.decodeparameters", "true")
 }

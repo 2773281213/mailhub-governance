@@ -71,3 +71,9 @@
 -keep class org.eclipse.angus.mail.util.MailStreamProvider { public <init>(); }
 -keep class org.eclipse.angus.activation.MailcapRegistryProviderImpl { public <init>(); }
 -keep class org.eclipse.angus.activation.MimeTypeRegistryProviderImpl { public <init>(); }
+
+# Android 没有 javax.security.sasl 和 NameCallback，只有 Angus 的 SASL 认证器引用它们。
+# 这段代码只在 mail.imaps.sasl.enable=true 时才会执行，而 ImapSession 从不开启它
+# （登录用 mail.imaps.auth.mechanisms 指定的 PLAIN / LOGIN / XOAUTH2）。
+-dontwarn javax.security.sasl.**
+-dontwarn javax.security.auth.callback.NameCallback
