@@ -2242,7 +2242,7 @@
    },
    "expected": [
     [
-     "¬it;",
+     "&notit;",
      "x"
     ]
    ],
@@ -2680,6 +2680,1077 @@
    ],
    "fn": "extract_html_links",
    "id": "html-protocol-relative"
+  },
+  {
+   "args": {
+    "html": "<![x]><a href=\"http://evil.example/x\">click</a>"
+   },
+   "expected": [
+    [
+     "http://evil.example/x",
+     "click"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-bang-bracket"
+  },
+  {
+   "args": {
+    "html": "<!-- c --!><a href=\"http://evil.example/x\">click</a><!-- -->"
+   },
+   "expected": [
+    [
+     "http://evil.example/x",
+     "click"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-comment-bang-close"
+  },
+  {
+   "args": {
+    "html": "<script>x</script y><a href=\"http://evil.example/x\">click</a>"
+   },
+   "expected": [
+    [
+     "http://evil.example/x",
+     "click"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-script-endtag-junk"
+  },
+  {
+   "args": {
+    "html": "<style>a{}</style/><a href=\"http://evil.example/x\">click</a>"
+   },
+   "expected": [
+    [
+     "http://evil.example/x",
+     "click"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-style-endtag-selfclose"
+  },
+  {
+   "args": {
+    "body": "",
+    "html": "<![x]><a href=\"http://203.0.113.9/login\">click</a>",
+    "sender_addr": "notice@mailer.example",
+    "sender_name": "Support",
+    "subject": "Please review"
+   },
+   "expected": {
+    "reasons": [
+     "正文含指向裸 IP 的链接 203.0.113.9"
+    ],
+    "risk": "high"
+   },
+   "fn": "scan",
+   "id": "html-bang-bracket-bare-ip"
+  },
+  {
+   "args": {
+    "body": "",
+    "html": "<!-- c --!><a href=\"https://paypa1-secure.example/verify\">https://www.paypal.com/signin</a><!-- -->",
+    "sender_addr": "notice@mailer.example",
+    "sender_name": "Service",
+    "subject": "Action required"
+   },
+   "expected": {
+    "reasons": [
+     "链接文字显示为知名品牌域名 www.paypal.com，实际指向 paypa1-secure.example"
+    ],
+    "risk": "high"
+   },
+   "fn": "scan",
+   "id": "html-comment-bang-close-brand"
+  },
+  {
+   "args": {
+    "body": "",
+    "html": "<script>x</script y><a href=\"http://203.0.113.9/login\">click</a>",
+    "sender_addr": "notice@mailer.example",
+    "sender_name": "Support",
+    "subject": "Please review"
+   },
+   "expected": {
+    "reasons": [
+     "正文含指向裸 IP 的链接 203.0.113.9"
+    ],
+    "risk": "high"
+   },
+   "fn": "scan",
+   "id": "html-script-endtag-junk-bare-ip"
+  },
+  {
+   "args": {
+    "body": "",
+    "html": "<style>a{}</style/><a href=\"http://203.0.113.9/login\">click</a>",
+    "sender_addr": "notice@mailer.example",
+    "sender_name": "Support",
+    "subject": "Please review"
+   },
+   "expected": {
+    "reasons": [
+     "正文含指向裸 IP 的链接 203.0.113.9"
+    ],
+    "risk": "high"
+   },
+   "fn": "scan",
+   "id": "html-style-endtag-selfclose-bare-ip"
+  },
+  {
+   "args": {
+    "html": "<a href=\"http://a.example/1"
+   },
+   "expected": [],
+   "fn": "extract_html_links",
+   "id": "html-eof-attr-value"
+  },
+  {
+   "args": {
+    "html": "<a href=\"http://a.example/1\" "
+   },
+   "expected": [],
+   "fn": "extract_html_links",
+   "id": "html-eof-attr-space"
+  },
+  {
+   "args": {
+    "html": "<a href="
+   },
+   "expected": [],
+   "fn": "extract_html_links",
+   "id": "html-eof-attr-eq"
+  },
+  {
+   "args": {
+    "html": "<a href=\"http://a.example/1\">t</a"
+   },
+   "expected": [],
+   "fn": "extract_html_links",
+   "id": "html-eof-endtag-name"
+  },
+  {
+   "args": {
+    "html": "<a href=\"http://a.example/1\">t</a "
+   },
+   "expected": [],
+   "fn": "extract_html_links",
+   "id": "html-eof-endtag-space"
+  },
+  {
+   "args": {
+    "html": "<a href=\"http://a.example/1\">t</"
+   },
+   "expected": [],
+   "fn": "extract_html_links",
+   "id": "html-eof-endtag-slash"
+  },
+  {
+   "args": {
+    "html": "</"
+   },
+   "expected": [],
+   "fn": "extract_html_links",
+   "id": "html-eof-lone-slash"
+  },
+  {
+   "args": {
+    "html": "<!--"
+   },
+   "expected": [],
+   "fn": "extract_html_links",
+   "id": "html-eof-comment-open"
+  },
+  {
+   "args": {
+    "html": "<!-- comment"
+   },
+   "expected": [],
+   "fn": "extract_html_links",
+   "id": "html-eof-comment-body"
+  },
+  {
+   "args": {
+    "html": "<!-- comment -"
+   },
+   "expected": [],
+   "fn": "extract_html_links",
+   "id": "html-eof-comment-dash"
+  },
+  {
+   "args": {
+    "html": "<!-- comment --"
+   },
+   "expected": [],
+   "fn": "extract_html_links",
+   "id": "html-eof-comment-dashdash"
+  },
+  {
+   "args": {
+    "html": "<!doctype"
+   },
+   "expected": [],
+   "fn": "extract_html_links",
+   "id": "html-eof-doctype"
+  },
+  {
+   "args": {
+    "html": "<!doctype html"
+   },
+   "expected": [],
+   "fn": "extract_html_links",
+   "id": "html-eof-doctype-body"
+  },
+  {
+   "args": {
+    "html": "<!"
+   },
+   "expected": [],
+   "fn": "extract_html_links",
+   "id": "html-eof-decl-open"
+  },
+  {
+   "args": {
+    "html": "<!-"
+   },
+   "expected": [],
+   "fn": "extract_html_links",
+   "id": "html-eof-decl-dash"
+  },
+  {
+   "args": {
+    "html": "<?"
+   },
+   "expected": [],
+   "fn": "extract_html_links",
+   "id": "html-eof-pi-open"
+  },
+  {
+   "args": {
+    "html": "<?pi"
+   },
+   "expected": [],
+   "fn": "extract_html_links",
+   "id": "html-eof-pi-body"
+  },
+  {
+   "args": {
+    "html": "<![CDATA["
+   },
+   "expected": [],
+   "fn": "extract_html_links",
+   "id": "html-eof-cdata-open"
+  },
+  {
+   "args": {
+    "html": "<![CDATA[ x"
+   },
+   "expected": [],
+   "fn": "extract_html_links",
+   "id": "html-eof-cdata-body"
+  },
+  {
+   "args": {
+    "html": "<!["
+   },
+   "expected": [],
+   "fn": "extract_html_links",
+   "id": "html-eof-bang-bracket"
+  },
+  {
+   "args": {
+    "html": "<script"
+   },
+   "expected": [],
+   "fn": "extract_html_links",
+   "id": "html-eof-script-open"
+  },
+  {
+   "args": {
+    "html": "<script>x</script"
+   },
+   "expected": [],
+   "fn": "extract_html_links",
+   "id": "html-eof-script-close-open"
+  },
+  {
+   "args": {
+    "html": "<script>x</script "
+   },
+   "expected": [],
+   "fn": "extract_html_links",
+   "id": "html-eof-script-close-space"
+  },
+  {
+   "args": {
+    "html": "<title>t"
+   },
+   "expected": [],
+   "fn": "extract_html_links",
+   "id": "html-eof-title-open"
+  },
+  {
+   "args": {
+    "html": "<title>t</title"
+   },
+   "expected": [],
+   "fn": "extract_html_links",
+   "id": "html-eof-title-close-open"
+  },
+  {
+   "args": {
+    "html": "<textarea>t</textarea"
+   },
+   "expected": [],
+   "fn": "extract_html_links",
+   "id": "html-eof-textarea-close-open"
+  },
+  {
+   "args": {
+    "html": "<a href=\"http://a.example/1\">t<script>x"
+   },
+   "expected": [],
+   "fn": "extract_html_links",
+   "id": "html-eof-a-script"
+  },
+  {
+   "args": {
+    "html": "<a href=\"http://a.example/1\">t&"
+   },
+   "expected": [],
+   "fn": "extract_html_links",
+   "id": "html-eof-amp"
+  },
+  {
+   "args": {
+    "html": "<a href=\"http://a.example/1\">t&am"
+   },
+   "expected": [],
+   "fn": "extract_html_links",
+   "id": "html-eof-amp-prefix"
+  },
+  {
+   "args": {
+    "html": "<a href=\"http://a.example/1\">t&#"
+   },
+   "expected": [],
+   "fn": "extract_html_links",
+   "id": "html-eof-charref"
+  },
+  {
+   "args": {
+    "html": "<title><a href=\"http://a.example/t\">t</a></title><a href=\"http://a.example/after\">a</a>"
+   },
+   "expected": [
+    [
+     "http://a.example/after",
+     "a"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-title-contains-link"
+  },
+  {
+   "args": {
+    "html": "<title>x</titley><a href=\"http://a.example/after\">a</a>"
+   },
+   "expected": [],
+   "fn": "extract_html_links",
+   "id": "html-title-close-junk"
+  },
+  {
+   "args": {
+    "html": "<title>x</title ><a href=\"http://a.example/after\">a</a>"
+   },
+   "expected": [
+    [
+     "http://a.example/after",
+     "a"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-title-close-space"
+  },
+  {
+   "args": {
+    "html": "<title>x</title/><a href=\"http://a.example/after\">a</a>"
+   },
+   "expected": [
+    [
+     "http://a.example/after",
+     "a"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-title-close-slash"
+  },
+  {
+   "args": {
+    "html": "<textarea><a href=\"http://a.example/t\">t</a></textarea><a href=\"http://a.example/after\">a</a>"
+   },
+   "expected": [
+    [
+     "http://a.example/after",
+     "a"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-textarea-contains-link"
+  },
+  {
+   "args": {
+    "html": "<textarea>x</textareay><a href=\"http://a.example/after\">a</a>"
+   },
+   "expected": [],
+   "fn": "extract_html_links",
+   "id": "html-textarea-close-junk"
+  },
+  {
+   "args": {
+    "html": "<textarea>&notit;</textarea><a href=\"http://a.example/after\">a</a>"
+   },
+   "expected": [
+    [
+     "http://a.example/after",
+     "a"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-textarea-charref"
+  },
+  {
+   "args": {
+    "html": "<xmp><a href=\"http://a.example/x\">x</a></xmp><a href=\"http://a.example/after\">a</a>"
+   },
+   "expected": [
+    [
+     "http://a.example/after",
+     "a"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-xmp-contains-link"
+  },
+  {
+   "args": {
+    "html": "<iframe><a href=\"http://a.example/x\">x</a></iframe><a href=\"http://a.example/after\">a</a>"
+   },
+   "expected": [
+    [
+     "http://a.example/after",
+     "a"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-iframe-contains-link"
+  },
+  {
+   "args": {
+    "html": "<noembed><a href=\"http://a.example/x\">x</a></noembed><a href=\"http://a.example/after\">a</a>"
+   },
+   "expected": [
+    [
+     "http://a.example/after",
+     "a"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-noembed-contains-link"
+  },
+  {
+   "args": {
+    "html": "<noframes><a href=\"http://a.example/x\">x</a></noframes><a href=\"http://a.example/after\">a</a>"
+   },
+   "expected": [
+    [
+     "http://a.example/after",
+     "a"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-noframes-contains-link"
+  },
+  {
+   "args": {
+    "html": "<noscript><a href=\"http://a.example/x\">x</a></noscript><a href=\"http://a.example/after\">a</a>"
+   },
+   "expected": [
+    [
+     "http://a.example/x",
+     "x"
+    ],
+    [
+     "http://a.example/after",
+     "a"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-noscript-parsed"
+  },
+  {
+   "args": {
+    "html": "<plaintext><a href=\"http://a.example/x\">x</a>"
+   },
+   "expected": [],
+   "fn": "extract_html_links",
+   "id": "html-plaintext"
+  },
+  {
+   "args": {
+    "html": "<a href=\"&notit;\">x</a>"
+   },
+   "expected": [
+    [
+     "&notit;",
+     "x"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-attr-notit"
+  },
+  {
+   "args": {
+    "html": "<a href=\"&notit\">x</a>"
+   },
+   "expected": [
+    [
+     "&notit",
+     "x"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-attr-notit-bare"
+  },
+  {
+   "args": {
+    "html": "<a href=\"&notit=\">x</a>"
+   },
+   "expected": [
+    [
+     "&notit=",
+     "x"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-attr-notit-eq"
+  },
+  {
+   "args": {
+    "html": "<a href=\"&not;\">x</a>"
+   },
+   "expected": [
+    [
+     "¬",
+     "x"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-attr-not"
+  },
+  {
+   "args": {
+    "html": "<a href=\"&not\">x</a>"
+   },
+   "expected": [
+    [
+     "¬",
+     "x"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-attr-not-bare"
+  },
+  {
+   "args": {
+    "html": "<a href=\"&not=\">x</a>"
+   },
+   "expected": [
+    [
+     "&not=",
+     "x"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-attr-not-eq"
+  },
+  {
+   "args": {
+    "html": "<a href=\"&amp;\">x</a>"
+   },
+   "expected": [
+    [
+     "&",
+     "x"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-attr-amp"
+  },
+  {
+   "args": {
+    "html": "<a href=\"&amp\">x</a>"
+   },
+   "expected": [
+    [
+     "&",
+     "x"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-attr-amp-bare"
+  },
+  {
+   "args": {
+    "html": "<a href=\"&amp=\">x</a>"
+   },
+   "expected": [
+    [
+     "&amp=",
+     "x"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-attr-amp-eq"
+  },
+  {
+   "args": {
+    "html": "<a href=\"&#38;\">x</a>"
+   },
+   "expected": [
+    [
+     "&",
+     "x"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-attr-numeric"
+  },
+  {
+   "args": {
+    "html": "<a href=\"&#38=\">x</a>"
+   },
+   "expected": [
+    [
+     "&=",
+     "x"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-attr-numeric-eq"
+  },
+  {
+   "args": {
+    "html": "<a href=\"&#x26;\">x</a>"
+   },
+   "expected": [
+    [
+     "&",
+     "x"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-attr-hex"
+  },
+  {
+   "args": {
+    "html": "<a href=\"&notarealentity;\">x</a>"
+   },
+   "expected": [
+    [
+     "&notarealentity;",
+     "x"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-attr-unknown"
+  },
+  {
+   "args": {
+    "html": "<a href=\"&not_it;\">x</a>"
+   },
+   "expected": [
+    [
+     "¬_it;",
+     "x"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-attr-underscore"
+  },
+  {
+   "args": {
+    "html": "<a href=\"&COPY;\">x</a>"
+   },
+   "expected": [
+    [
+     "©",
+     "x"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-attr-copy-upper"
+  },
+  {
+   "args": {
+    "html": "<a href=\"&notit;\">&notit;</a>"
+   },
+   "expected": [
+    [
+     "&notit;",
+     "¬it;"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-attr-text-vs-attr"
+  },
+  {
+   "args": {
+    "html": "<a \"x\">t</a>"
+   },
+   "expected": [
+    [
+     "",
+     "t"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-attr-quote-name"
+  },
+  {
+   "args": {
+    "html": "<a 'x'>t</a>"
+   },
+   "expected": [
+    [
+     "",
+     "t"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-attr-single-quote-name"
+  },
+  {
+   "args": {
+    "html": "<a =x>t</a>"
+   },
+   "expected": [
+    [
+     "",
+     "t"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-attr-eq-name"
+  },
+  {
+   "args": {
+    "html": "<a ==x>t</a>"
+   },
+   "expected": [
+    [
+     "",
+     "t"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-attr-eq-eq-name"
+  },
+  {
+   "args": {
+    "html": "<a b\"c>t</a><a href=\"z\">z</a>"
+   },
+   "expected": [
+    [
+     "",
+     "t"
+    ],
+    [
+     "z",
+     "z"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-attr-name-quote-junk"
+  },
+  {
+   "args": {
+    "html": "<a b<c>t</a>"
+   },
+   "expected": [
+    [
+     "",
+     "t"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-attr-name-lt"
+  },
+  {
+   "args": {
+    "html": "<a href=\"x\"y>t</a>"
+   },
+   "expected": [
+    [
+     "x",
+     "t"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-attr-value-quote-junk"
+  },
+  {
+   "args": {
+    "html": "<a href=\"x\"y=\"1\">t</a>"
+   },
+   "expected": [
+    [
+     "x",
+     "t"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-attr-value-quote-junk2"
+  },
+  {
+   "args": {
+    "html": "<a b=c/>t</a>"
+   },
+   "expected": [
+    [
+     "",
+     "t"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-slash-after-value"
+  },
+  {
+   "args": {
+    "html": "<a b=c />t</a>"
+   },
+   "expected": [
+    [
+     "",
+     ""
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-slash-space-after-value"
+  },
+  {
+   "args": {
+    "html": "<a b=c/ >t</a>"
+   },
+   "expected": [
+    [
+     "",
+     "t"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-slash-space-after-value2"
+  },
+  {
+   "args": {
+    "html": "<a/x>t</a>"
+   },
+   "expected": [
+    [
+     "",
+     "t"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-slash-in-tag"
+  },
+  {
+   "args": {
+    "html": "<a/x/>t</a>"
+   },
+   "expected": [
+    [
+     "",
+     ""
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-slash-in-tag2"
+  },
+  {
+   "args": {
+    "html": "<a href=\"z\" b = >t</a>"
+   },
+   "expected": [
+    [
+     "z",
+     "t"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-eq-empty"
+  },
+  {
+   "args": {
+    "html": "<a href=\"z\" b=>t</a>"
+   },
+   "expected": [
+    [
+     "z",
+     "t"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-eq-bare"
+  },
+  {
+   "args": {
+    "html": "<a href=\"z\" b=\"c>d\">t</a>"
+   },
+   "expected": [
+    [
+     "z",
+     "t"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-quoted-gt"
+  },
+  {
+   "args": {
+    "html": "<a href=\"z\" b=c>d>t</a>"
+   },
+   "expected": [
+    [
+     "z",
+     "d>t"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-bare-gt"
+  },
+  {
+   "args": {
+    "html": "<a href=\"z\" b = \"c\"x>t</a>"
+   },
+   "expected": [
+    [
+     "z",
+     "t"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-value-then-name"
+  },
+  {
+   "args": {
+    "html": "<a href=\"z\" b\n=\n\"c\">t</a>"
+   },
+   "expected": [
+    [
+     "z",
+     "t"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-value-newlines"
+  },
+  {
+   "args": {
+    "html": "<a href=\"z\" b　=　\"c\">t</a>"
+   },
+   "expected": [
+    [
+     "z",
+     "t"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-value-fullwidth-space"
+  },
+  {
+   "args": {
+    "html": "<a href=\"z\"　>t</a>"
+   },
+   "expected": [
+    [
+     "z",
+     "t"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-trailing-fullwidth-space"
+  },
+  {
+   "args": {
+    "html": "</a b\"c><a href=\"z\">z</a>"
+   },
+   "expected": [
+    [
+     "z",
+     "z"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-endtag-quote-junk"
+  },
+  {
+   "args": {
+    "html": "</>x<a href=\"z\">z</a>"
+   },
+   "expected": [
+    [
+     "z",
+     "z"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-endtag-empty"
+  },
+  {
+   "args": {
+    "html": "</a b=1><a href=\"z\">z</a>"
+   },
+   "expected": [
+    [
+     "z",
+     "z"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-endtag-attrs"
+  },
+  {
+   "args": {
+    "html": "</a/><a href=\"z\">z</a>"
+   },
+   "expected": [
+    [
+     "z",
+     "z"
+    ]
+   ],
+   "fn": "extract_html_links",
+   "id": "html-endtag-slash"
+  },
+  {
+   "args": {
+    "html": "<a\u0000href=\"z\">t</a>"
+   },
+   "expected": [],
+   "fn": "extract_html_links",
+   "id": "html-tag-name-nul"
+  },
+  {
+   "args": {
+    "html": "<a<b href=\"z\">t</a>"
+   },
+   "expected": [],
+   "fn": "extract_html_links",
+   "id": "html-tag-name-lt"
   },
   {
    "args": {

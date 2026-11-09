@@ -5,12 +5,19 @@ Kotlin 端在 com.mailhub.core.security.SecurityScan 里重写，必须与这里
     python scripts/golden/security_scan.py           # 重新生成 JSON
     python scripts/golden/security_scan.py --check   # 检查是否与当前 Python 实现一致
 
+HTML 解析按 CPython 3.14.3 的语义：脚本在导入 security_scan 之前，把 html.parser 与
+_markupbase 换成 vendor/ 里的 3.14.3 副本（见 vendor/README.md）。于是 CI 固定的 3.13.3
+也能复现 3.14.3 的分词行为；`html.unescape` 与 `html.entities.html5` 两个版本内容相同，
+仍然用运行时的实现。
+
 用例来源：
 - tests/test_security.py 里所有调用 security_scan.* 的输入；
 - 每个检查项至少 3 条正例、2 条反例（显示名伪装、品牌冒用、同形字符、Reply-To、
   危险附件、链接文字与目标不符、裸 IP、链接域名同形字符、紧迫话术、Authentication-Results）；
 - extract_html_links 与 _link_host 的分词与 URL 边界（见 test_security.py 的相关回归测试）；
-- 含 emoji、&nbsp;、全角字符的样例。
+- 含 emoji、&nbsp;、全角字符的样例；
+- 3.13 会丢掉链接、3.14 能提取到的四种写法（<![x]>、--!>、</script y>、</style/>）；
+- 文件尾截断的各种结构、<title> / <textarea> 的内容模式、属性里的字符引用（&notit;）。
 
 Python 自身的不确定性：scan 第 6 步的 hosts 是 Python 的 set，`list(hosts)[:40]` 的顺序由
 每个进程随机的字符串哈希决定，所以链接里有多个裸 IP、或去重后超过 40 个域名时，Python
@@ -27,7 +34,39 @@ import _common  # noqa: E402
 
 _common.prepare_imports()
 
+VENDOR = Path(__file__).resolve().parent / "vendor"
+
+
+def install_vendored_parser():
+    """把 html.parser / _markupbase 换成 vendor/ 里的 3.14.3 副本，返回 parser 模块。
+
+    必须在导入 security_scan 之前调用：它在导入时执行 `from html.parser import HTMLParser`。
+    """
+    import importlib.util
+
+    def load(name, path):
+        spec = importlib.util.spec_from_file_location(name, path)
+        if spec is None or spec.loader is None:
+            raise SystemExit(f"无法加载内置解析器 {path}")
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[name] = module
+        spec.loader.exec_module(module)
+        return module
+
+    load("_markupbase", VENDOR / "_markupbase.py")
+    parser = load("html.parser", VENDOR / "parser.py")
+    import html
+    html.parser = parser   # 让 `from html import parser` 也拿到副本
+    return parser
+
+
+VENDORED_PARSER = install_vendored_parser()
+
 import security_scan as ss  # noqa: E402
+
+if sys.modules.get("html.parser") is not VENDORED_PARSER or \
+        ss.HTMLParser is not VENDORED_PARSER.HTMLParser:
+    raise SystemExit("security_scan 没有使用 vendor/ 里的 3.14.3 解析器，检查导入顺序")
 
 # 函数名 → Python 实现，expected 一律由这里现算，脚本里不手写期望值
 FN = {
@@ -585,6 +624,200 @@ def html_cases() -> None:
         html='<a href="//a.example/x">x</a><a href="mailto:a@b.example">m</a>')
 
 
+# ---------------- 13b. Python 3.14.3 的 HTML 语义（3.13 会丢掉链接） ----------------
+
+def html_314_cases() -> None:
+    # 四种足以让 3.13 丢掉整封信链接的写法；金标全部按 3.14.3 生成。
+    # 前两条对应 3.14 的 commentclose（--!?>）与 <![ 走 bogus comment，
+    # 后两条对应 CDATA 内容元素的结束标签只要求后面是空白、斜杠或 >。
+    tricks = [
+        ("bang-bracket", '<![x]><a href="http://evil.example/x">click</a>'),
+        ("comment-bang-close",
+         '<!-- c --!><a href="http://evil.example/x">click</a><!-- -->'),
+        ("script-endtag-junk",
+         '<script>x</script y><a href="http://evil.example/x">click</a>'),
+        ("style-endtag-selfclose",
+         '<style>a{}</style/><a href="http://evil.example/x">click</a>'),
+    ]
+    for cid, html in tricks:
+        add("extract_html_links", f"html-{cid}", html=html)
+
+    # 同样四种写法放进 scan：链接检查必须照常判定，而不是被前 6 个字符关掉
+    add_scan("html-bang-bracket-bare-ip",
+             subject="Please review", body="", sender_name="Support",
+             sender_addr="notice@mailer.example",
+             html='<![x]><a href="http://203.0.113.9/login">click</a>')
+    add_scan("html-comment-bang-close-brand",
+             subject="Action required", body="", sender_name="Service",
+             sender_addr="notice@mailer.example",
+             html='<!-- c --!><a href="https://paypa1-secure.example/verify">'
+                  'https://www.paypal.com/signin</a><!-- -->')
+    add_scan("html-script-endtag-junk-bare-ip",
+             subject="Please review", body="", sender_name="Support",
+             sender_addr="notice@mailer.example",
+             html='<script>x</script y><a href="http://203.0.113.9/login">click</a>')
+    add_scan("html-style-endtag-selfclose-bare-ip",
+             subject="Please review", body="", sender_name="Support",
+             sender_addr="notice@mailer.example",
+             html='<style>a{}</style/><a href="http://203.0.113.9/login">click</a>')
+
+
+# ---------------- 13c. 文件尾截断：各结构在缓冲区结束时的行为 ----------------
+
+def html_eof_cases() -> None:
+    samples = [
+        ("eof-attr-value", '<a href="http://a.example/1'),
+        ("eof-attr-space", '<a href="http://a.example/1" '),
+        ("eof-attr-eq", '<a href='),
+        ("eof-endtag-name", '<a href="http://a.example/1">t</a'),
+        ("eof-endtag-space", '<a href="http://a.example/1">t</a '),
+        ("eof-endtag-slash", '<a href="http://a.example/1">t</'),
+        ("eof-lone-slash", '</'),
+        ("eof-comment-open", '<!--'),
+        ("eof-comment-body", '<!-- comment'),
+        ("eof-comment-dash", '<!-- comment -'),
+        ("eof-comment-dashdash", '<!-- comment --'),
+        ("eof-doctype", '<!doctype'),
+        ("eof-doctype-body", '<!doctype html'),
+        ("eof-decl-open", '<!'),
+        ("eof-decl-dash", '<!-'),
+        ("eof-pi-open", '<?'),
+        ("eof-pi-body", '<?pi'),
+        ("eof-cdata-open", '<![CDATA['),
+        ("eof-cdata-body", '<![CDATA[ x'),
+        ("eof-bang-bracket", '<!['),
+        ("eof-script-open", '<script'),
+        ("eof-script-close-open", '<script>x</script'),
+        ("eof-script-close-space", '<script>x</script '),
+        ("eof-title-open", '<title>t'),
+        ("eof-title-close-open", '<title>t</title'),
+        ("eof-textarea-close-open", '<textarea>t</textarea'),
+        ("eof-a-script", '<a href="http://a.example/1">t<script>x'),
+        ("eof-amp", '<a href="http://a.example/1">t&'),
+        ("eof-amp-prefix", '<a href="http://a.example/1">t&am'),
+        ("eof-charref", '<a href="http://a.example/1">t&#'),
+    ]
+    for cid, html in samples:
+        add("extract_html_links", f"html-{cid}", html=html)
+
+
+# ---------------- 13d. <title> / <textarea> 的 RCDATA 模式与其余 CDATA 元素 ----------------
+
+def html_rcdata_cases() -> None:
+    samples = [
+        # RCDATA 里的 <a> 是文本，不是标签；结束标签之后照常解析
+        ("title-contains-link",
+         '<title><a href="http://a.example/t">t</a></title>'
+         '<a href="http://a.example/after">a</a>'),
+        # 结束标签名后面必须是空白、斜杠、>，</titley> 不算结束
+        ("title-close-junk",
+         '<title>x</titley><a href="http://a.example/after">a</a>'),
+        ("title-close-space",
+         '<title>x</title ><a href="http://a.example/after">a</a>'),
+        ("title-close-slash",
+         '<title>x</title/><a href="http://a.example/after">a</a>'),
+        ("textarea-contains-link",
+         '<textarea><a href="http://a.example/t">t</a></textarea>'
+         '<a href="http://a.example/after">a</a>'),
+        ("textarea-close-junk",
+         '<textarea>x</textareay><a href="http://a.example/after">a</a>'),
+        # RCDATA 是可转义的：文本里的字符引用照常转换（结果只体现在链接文字上）
+        ("textarea-charref",
+         '<textarea>&notit;</textarea><a href="http://a.example/after">a</a>'),
+        # 3.14 的 CDATA_CONTENT_ELEMENTS 比 3.13 多 xmp / iframe / noembed / noframes
+        ("xmp-contains-link",
+         '<xmp><a href="http://a.example/x">x</a></xmp>'
+         '<a href="http://a.example/after">a</a>'),
+        ("iframe-contains-link",
+         '<iframe><a href="http://a.example/x">x</a></iframe>'
+         '<a href="http://a.example/after">a</a>'),
+        ("noembed-contains-link",
+         '<noembed><a href="http://a.example/x">x</a></noembed>'
+         '<a href="http://a.example/after">a</a>'),
+        ("noframes-contains-link",
+         '<noframes><a href="http://a.example/x">x</a></noframes>'
+         '<a href="http://a.example/after">a</a>'),
+        # scripting=False（默认）：noscript 的内容照常解析
+        ("noscript-parsed",
+         '<noscript><a href="http://a.example/x">x</a></noscript>'
+         '<a href="http://a.example/after">a</a>'),
+        # plaintext 之后全部是文本
+        ("plaintext", '<plaintext><a href="http://a.example/x">x</a>'),
+    ]
+    for cid, html in samples:
+        add("extract_html_links", f"html-{cid}", html=html)
+
+
+# ---------------- 13e. 属性值里的字符引用（3.14 只转换完整实体名） ----------------
+
+def html_attr_charref_cases() -> None:
+    samples = [
+        # 3.13 会把 &notit; 当成 &not + "it;"，3.14 的 _unescape_attrvalue 只认完整实体名
+        ("attr-notit", '<a href="&notit;">x</a>'),
+        ("attr-notit-bare", '<a href="&notit">x</a>'),
+        ("attr-notit-eq", '<a href="&notit=">x</a>'),
+        # 完整实体名照常转换；后面跟等号时不转换
+        ("attr-not", '<a href="&not;">x</a>'),
+        ("attr-not-bare", '<a href="&not">x</a>'),
+        ("attr-not-eq", '<a href="&not=">x</a>'),
+        ("attr-amp", '<a href="&amp;">x</a>'),
+        ("attr-amp-bare", '<a href="&amp">x</a>'),
+        ("attr-amp-eq", '<a href="&amp=">x</a>'),
+        # 数字引用总是转换，末尾的等号原样保留
+        ("attr-numeric", '<a href="&#38;">x</a>'),
+        ("attr-numeric-eq", '<a href="&#38=">x</a>'),
+        ("attr-hex", '<a href="&#x26;">x</a>'),
+        ("attr-unknown", '<a href="&notarealentity;">x</a>'),
+        ("attr-underscore", '<a href="&not_it;">x</a>'),
+        ("attr-copy-upper", '<a href="&COPY;">x</a>'),
+        # 属性值与文本走不同的转换规则
+        ("attr-text-vs-attr", '<a href="&notit;">&notit;</a>'),
+    ]
+    for cid, html in samples:
+        add("extract_html_links", f"html-{cid}", html=html)
+
+
+# ---------------- 13f. 标签定位与属性解析的边界（locatetagend / attrfind_tolerant） ----------------
+
+def html_tag_torture_cases() -> None:
+    samples = [
+        # 属性名后面直接跟引号或等号：正则的后顾与「属性名首字符」规则
+        ("attr-quote-name", '<a "x">t</a>'),
+        ("attr-single-quote-name", "<a 'x'>t</a>"),
+        ("attr-eq-name", '<a =x>t</a>'),
+        ("attr-eq-eq-name", '<a ==x>t</a>'),
+        ("attr-name-quote-junk", '<a b"c>t</a><a href="z">z</a>'),
+        ("attr-name-lt", '<a b<c>t</a>'),
+        ("attr-value-quote-junk", '<a href="x"y>t</a>'),
+        ("attr-value-quote-junk2", '<a href="x"y="1">t</a>'),
+        # 无引号值会把 / 吃进去，带空格时才按自闭合处理
+        ("slash-after-value", '<a b=c/>t</a>'),
+        ("slash-space-after-value", '<a b=c />t</a>'),
+        ("slash-space-after-value2", '<a b=c/ >t</a>'),
+        ("slash-in-tag", '<a/x>t</a>'),
+        ("slash-in-tag2", '<a/x/>t</a>'),
+        # 空的等号、等号后直接是 >、引号值里出现 >
+        ("eq-empty", '<a href="z" b = >t</a>'),
+        ("eq-bare", '<a href="z" b=>t</a>'),
+        ("quoted-gt", '<a href="z" b="c>d">t</a>'),
+        ("bare-gt", '<a href="z" b=c>d>t</a>'),
+        ("value-then-name", '<a href="z" b = "c"x>t</a>'),
+        ("value-newlines", '<a href="z" b\n=\n"c">t</a>'),
+        ("value-fullwidth-space", '<a href="z" b\u3000=\u3000"c">t</a>'),
+        ("trailing-fullwidth-space", '<a href="z"\u3000>t</a>'),
+        # 结束标签里的垃圾（locatetagend 失败时整段丢弃）
+        ("endtag-quote-junk", '</a b"c><a href="z">z</a>'),
+        ("endtag-empty", '</>x<a href="z">z</a>'),
+        ("endtag-attrs", '</a b=1><a href="z">z</a>'),
+        ("endtag-slash", '</a/><a href="z">z</a>'),
+        # 标签名里的 NUL 与 <（3.14 的 tagfind_tolerant 只排除 \t\n\r\f / >）
+        ("tag-name-nul", '<a\x00href="z">t</a>'),
+        ("tag-name-lt", '<a<b href="z">t</a>'),
+    ]
+    for cid, html in samples:
+        add("extract_html_links", f"html-{cid}", html=html)
+
+
 # ---------------- 14. _link_host 的边界 ----------------
 
 def link_host_cases() -> None:
@@ -669,6 +902,11 @@ def build_cases() -> list[dict]:
     misc_cases()
     truncation_cases()
     html_cases()
+    html_314_cases()
+    html_eof_cases()
+    html_rcdata_cases()
+    html_attr_charref_cases()
+    html_tag_torture_cases()
     link_host_cases()
     return CASES
 

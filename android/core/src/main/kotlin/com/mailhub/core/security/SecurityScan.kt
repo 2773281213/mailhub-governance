@@ -16,14 +16,39 @@ data class ScanResult(
 )
 
 /**
+ * [SecurityScan.extractHtmlLinks] 的完整结果。
+ *
+ * @property links 已经提取到的链接，按出现顺序；解析中途失败时只含失败之前的部分。
+ * @property complete 解析是否正常走完。false 表示中途抛了异常或 [StackOverflowError]，
+ *   对应 Python `extract_html_links` 里 `except: pass` 吞掉的那种不完整解析；调用方不应当
+ *   把这种结果当成「没有危险链接」。
+ */
+data class HtmlLinksResult(
+    val links: List<Pair<String, String>>,
+    val complete: Boolean,
+)
+
+/**
  * `security_scan.py` 的 Kotlin 移植：显示名欺骗、异形域名、危险附件、可疑链接与
  * SPF/DKIM/DMARC 结论的纯静态分析，不访问邮件里的任何链接、不打开附件。
  *
- * **与 Python 的一处刻意差异**：`scan` 第 6 步的域名集合在 Python 里是 `set`，
- * `list(hosts)[:40]` 的顺序由每个进程随机的字符串哈希决定，所以正文里有多个裸 IP、
- * 或去重后超过 40 个域名时，Python 自己每次运行的结果都可能不同（命中哪个裸 IP、
- * 40 个域名截到哪些）。这里用 `LinkedHashSet` 固定为插入顺序：先正文 URL、后 HTML 链接，
- * 结果稳定；金标语料里不放依赖这种顺序的用例（导出脚本会断言）。
+ * **与 Python 的刻意差异**（邮件内容由攻击者控制，这些改动防止平方级回溯与栈溢出，
+ * 对应 LOCAL_MODE.md 第四节第 6 条）：
+ * 1. 第 6 步的域名集合在 Python 里是 `set`，`list(hosts)[:40]` 的顺序由每个进程随机的
+ *    字符串哈希决定，所以正文里有多个裸 IP、或去重后超过 40 个域名时，Python 自己每次
+ *    运行的结果都可能不同（命中哪个裸 IP、40 个域名截到哪些）。这里用 `LinkedHashSet`
+ *    固定为插入顺序：先正文 URL、后 HTML 链接，结果稳定；金标语料里不放依赖这种顺序的用例。
+ * 2. `_DOMAIN_TEXT_RE` 的 `(?:[a-z0-9-]+\.)+` 在长链接文字上是平方级。这里先把链接文字按
+ *    非域名字符切成候选，**超过 253 个字符的候选直接跳过**，再对候选做「后缀匹配」。
+ *    Python 里超长候选能匹配到，这里会漏判；正常邮件里不会出现这种链接文字。
+ * 3. `_ADDR_IN_NAME_RE` 匹配前把显示名截到 **1000 码点**。地址出现在 1000 码点之后的
+ *    显示名在 Python 里会命中，这里不会。
+ * 4. 解析 HTML 抛异常或 [StackOverflowError] 时，Python 的 `except: pass` 会当作「没有
+ *    更多链接」继续；这里保留已经提取到的链接，并让 [scan] 追加中风险理由
+ *    「HTML 无法完整解析」。注意 `Error` 不会被 `catch (Exception)` 捕获，所以
+ *    [extractHtmlLinksResult] 里对 [StackOverflowError] 单独捕获。
+ * 5. [hasConfusable] 在 `Character.getName` 没有名字时用 `Character.UnicodeScript` 兜底判断
+ *    西里尔 / 希腊字母（Python 的 `unicodedata.name(ch, "")` 返回空时直接算不命中）。
  */
 object SecurityScan {
 
@@ -79,10 +104,6 @@ object SecurityScan {
         ignoreCase = true,
     )
 
-    /** 对应 `_DOMAIN_TEXT_RE`：链接文字里显示的域名，分组 1 是主机名。 */
-    private val DOMAIN_TEXT_RE: Pattern =
-        PyRegex.compile("(?:https?://)?((?:[a-z0-9-]+\\.)+[a-z]{2,})(?:[/:?#]|$)", ignoreCase = true)
-
     /**
      * 国家顶级域下常见的二级注册后缀（co.uk / com.cn / ne.jp / com.tw …）。
      * 不是完整的 Public Suffix List，但覆盖了邮件里最常见的情况（对应 `_SECOND_LEVEL_LABELS`）。
@@ -107,19 +128,40 @@ object SecurityScan {
     /** 域名集合最多检查 40 个（对应 `list(hosts)[:40]`）。 */
     private const val HOST_LIMIT = 40
 
+    /** 链接文字里单个候选域名的长度上限（超过就跳过，防止平方级回溯）。 */
+    private const val DOMAIN_CANDIDATE_LIMIT = 253
+
+    /** `_ADDR_IN_NAME_RE` 匹配前截断的码点数（防止 `[\w.+-]+@` 在长显示名上平方级回溯）。 */
+    private const val SENDER_NAME_LIMIT = 1000
+
     /**
      * 对应 `security_scan.extract_html_links`：从 HTML 正文里收集 `(href, 链接文字)`。
-     * 畸形 HTML 抛异常时保留已经解析出的链接，只看前 300000 码点，最多返回 [limit] 条。
+     * 只看前 300000 码点，最多返回 [limit] 条；解析失败时保留已经提取到的链接，
+     * 但返回值里不带「是否完整」的标记（要区分请看 [extractHtmlLinksResult]）。
      */
-    fun extractHtmlLinks(html: String?, limit: Int = DEFAULT_LINK_LIMIT): List<Pair<String, String>> {
+    fun extractHtmlLinks(html: String?, limit: Int = DEFAULT_LINK_LIMIT): List<Pair<String, String>> =
+        extractHtmlLinksResult(html, limit).links
+
+    /**
+     * 与 [extractHtmlLinks] 相同，但返回 [HtmlLinksResult]，调用方能知道解析是否完整。
+     *
+     * Python 的 `extract_html_links` 用 `except: pass` 吞掉异常后继续；这里保留已经提取到的
+     * 链接，并把 [HtmlLinksResult.complete] 置为 false。`StackOverflowError` 是 `Error`，
+     * 不会被 `catch (Exception)` 捕获，所以单独捕获——Android 上的栈比桌面 JVM 小，
+     * 递归或极深的调用链可能在这里溢出。
+     */
+    fun extractHtmlLinksResult(html: String?, limit: Int = DEFAULT_LINK_LIMIT): HtmlLinksResult {
         val collector = HtmlLinkCollector()
-        try {
+        return try {
             collector.feed((html ?: "").cpSlice(0, HTML_LIMIT))
             collector.close()
+            HtmlLinksResult(collector.links.take(limit), complete = true)
         } catch (_: Exception) {
-            // 畸形 HTML：保留已经解析出的链接
+            // 畸形 HTML：保留已经解析出的链接，但标记为不完整
+            HtmlLinksResult(collector.links.take(limit), complete = false)
+        } catch (_: StackOverflowError) {
+            HtmlLinksResult(collector.links.take(limit), complete = false)
         }
-        return collector.links.take(limit)
     }
 
     /**
@@ -168,15 +210,27 @@ object SecurityScan {
         return parts.subList(parts.size - 2, parts.size).joinToString(".")
     }
 
-    /** 对应 `security_scan._has_confusable`：域名里混入了西里尔或希腊字母。 */
-    fun hasConfusable(s: String?): Boolean {
+    /**
+     * 对应 `security_scan._has_confusable`：域名里混入了西里尔或希腊字母。
+     *
+     * 与 Python 的偏差：`Character.getName` 在某些字符上没有名字（返回 null 或抛异常），
+     * 此时用 `Character.UnicodeScript` 兜底判断 CYRILLIC / GREEK。Python 的
+     * `unicodedata.name(ch, "")` 返回空串时直接算不命中，所以这里只会更严格。
+     */    fun hasConfusable(s: String?): Boolean {
         val text = s ?: ""
         var i = 0
         while (i < text.length) {
             val cp = text.codePointAt(i)
             if (Character.isLetter(cp) && cp > 127) {
-                val name = runCatching { Character.getName(cp) }.getOrNull() ?: ""
-                if ("CYRILLIC" in name || "GREEK" in name) return true
+                val name = runCatching { Character.getName(cp) }.getOrNull()
+                if (name != null && ("CYRILLIC" in name || "GREEK" in name)) return true
+                if (name.isNullOrEmpty()) {
+                    val script = runCatching { Character.UnicodeScript.of(cp) }.getOrNull()
+                    if (script == Character.UnicodeScript.CYRILLIC ||
+                        script == Character.UnicodeScript.GREEK) {
+                        return true
+                    }
+                }
             }
             i += Character.charCount(cp)
         }
@@ -204,6 +258,25 @@ object SecurityScan {
         attachments: List<String>? = null,
         html: String? = "",
         authResults: String? = "",
+    ): ScanResult = scanInternal(
+        subject, body, senderName, senderAddr, replyTo, attachments, html, authResults,
+        linkExtractor = { extractHtmlLinksResult(it) },
+    )
+
+    /**
+     * [scan] 的内部实现。[linkExtractor] 只为测试注入「解析不完整」的结果，
+     * 生产路径固定用 [extractHtmlLinksResult]。
+     */
+    internal fun scanInternal(
+        subject: String?,
+        body: String?,
+        senderName: String?,
+        senderAddr: String?,
+        replyTo: String?,
+        attachments: List<String>?,
+        html: String?,
+        authResults: String?,
+        linkExtractor: (String?) -> HtmlLinksResult,
     ): ScanResult {
         val reasons = mutableListOf<String>()
         var risk = RISK_NONE
@@ -218,8 +291,8 @@ object SecurityScan {
         val senderDomain = domainOf(senderAddr)
         val senderReg = registrableDomain(senderDomain)
 
-        // 1) 显示名里嵌了另一个域的邮箱地址
-        val addrInName = ADDR_IN_NAME_RE.matcher(senderName ?: "")
+        // 1) 显示名里嵌了另一个域的邮箱地址。先截到 1000 码点，防止长显示名上的平方级回溯
+        val addrInName = ADDR_IN_NAME_RE.matcher((senderName ?: "").cpSlice(0, SENDER_NAME_LIMIT))
         if (addrInName.find() && senderReg.isNotEmpty()) {
             val shown = addrInName.group(1)
             if (registrableDomain(shown) != senderReg) {
@@ -280,12 +353,12 @@ object SecurityScan {
         }
         var brandSpoof: Pair<String, String>? = null
         var plainMismatch: Pair<String, String>? = null
-        for ((href, linkText) in extractHtmlLinks(html ?: "")) {
+        val htmlLinks = linkExtractor(html ?: "")
+        for ((href, linkText) in htmlLinks.links) {
             val host = linkHost(href)
             if (host.isEmpty()) continue
             hosts += host
-            val shownMatch = DOMAIN_TEXT_RE.matcher(linkText)
-            val shown = if (shownMatch.find()) shownMatch.group(1) else continue
+            val shown = findShownDomain(linkText) ?: continue
             val shownReg = registrableDomain(shown)
             val targetReg = registrableDomain(host)
             if (shownReg.isEmpty() || targetReg == shownReg || targetReg == senderReg) {
@@ -297,6 +370,10 @@ object SecurityScan {
             } else if (plainMismatch == null) {
                 plainMismatch = pair
             }
+        }
+        if (!htmlLinks.complete) {
+            // 与 Python 的刻意差异：解析不完整时不放行，按中风险处理
+            bump(RISK_MEDIUM, "HTML 无法完整解析")
         }
         val firstHosts = hosts.take(HOST_LIMIT)
         if (brandSpoof != null) {
@@ -350,6 +427,74 @@ object SecurityScan {
             PyRegex.compile("(?<![a-z0-9])" + PyRegex.escape(brand) + "(?![a-z0-9])")
         }
     }
+
+    /**
+     * 对应 `_DOMAIN_TEXT_RE.search(text)` 的分组 1，但按候选切分后再匹配：
+     * 先取一段连续的域名字符（`[a-z0-9-.]`），候选必须被 `/`、`:`、`?`、`#` 或字符串结尾
+     * 收住，长度不超过 [DOMAIN_CANDIDATE_LIMIT]；再要求候选的后缀能匹配
+     * `(?:[a-z0-9-]+\.)+[a-z]{2,}\Z`（见 [domainSuffix]）。这样每个字符最多看常数次，
+     * 既不会在 `a.a.a…` 上回溯爆炸，也不需要带嵌套量词的正则。
+     *
+     * 与 Python 的偏差：超过 253 个字符的候选直接跳过（Python 会整段匹配后取末两段，
+     * 结果等价于「没有可注册域」，这里直接当没有匹配）。
+     */
+    private fun findShownDomain(text: String): String? {
+        val n = text.length
+        var i = 0
+        while (i < n) {
+            if (!isDomainChar(text[i])) {
+                i++
+                continue
+            }
+            var j = i + 1
+            while (j < n && isDomainChar(text[j])) j++
+            val delimited = j == n || text[j] == '/' || text[j] == ':' ||
+                text[j] == '?' || text[j] == '#'
+            if (delimited && j - i <= DOMAIN_CANDIDATE_LIMIT) {
+                val shown = domainSuffix(text.substring(i, j))
+                if (shown != null) return shown
+            }
+            i = j
+        }
+        return null
+    }
+
+    /**
+     * `(?:[a-z0-9-]+\.)+[a-z]{2,}\Z` 在候选上的左端最短匹配，返回分组 1。
+     *
+     * 候选只含域名字符，所以只需要：跳过所有空标签（开头的点或连续的点）、至少有一个点、
+     * 最后一个标签全是字母且长度 >= 2。匹配必须到候选末尾，因此起点的最左选择就是
+     * 「最后一个空标签之后」。手写判断是线性的，不会回溯。
+     */
+    private fun domainSuffix(candidate: String): String? {
+        val n = candidate.length
+        var start = 0
+        for (p in 0 until n) {
+            if (candidate[p] == '.' && (p == 0 || candidate[p - 1] == '.')) start = p + 1
+        }
+        if (start >= n) return null
+        val lastDot = candidate.lastIndexOf('.')
+        if (lastDot <= start) return null
+        val tail = candidate.substring(lastDot + 1)
+        if (tail.length < 2) return null
+        for (k in tail.indices) {
+            if (!isDomainLetter(tail[k])) return null
+        }
+        return candidate.substring(start)
+    }
+
+    /**
+     * `[a-z0-9-]` 的字母部分在 `re.I` 下的字符集。除 ASCII 外把 Python 文档列出的四个特殊
+     * 折叠字符（`İ` U+0130、`ı` U+0131、`ſ` U+017F、开尔文符号 U+212A）也算作字母，
+     * 否则候选切分与后缀判断会和 Python 的正则不一致。
+     */
+    private fun isDomainLetter(c: Char): Boolean =
+        c in 'a'..'z' || c in 'A'..'Z' ||
+            c == '\u0130' || c == '\u0131' || c == '\u017F' || c == '\u212A'
+
+    /** `[a-z0-9-.]` 在 `re.I` 下的字符集：字母、数字、连字符、点。 */
+    private fun isDomainChar(c: Char): Boolean =
+        isDomainLetter(c) || c in '0'..'9' || c == '-' || c == '.'
 
     /** Python 的 `s.strip(".")`：只去掉两端的点。 */
     private fun String.trimDots(): String {
