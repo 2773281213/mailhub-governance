@@ -108,20 +108,25 @@ fun interface SyncStatusSource {
  * @param clock 当前时间，对应 `time.time()`。
  * @param zone 本地时区，对应 `sync.TZ`；`/api/meta` 的 `tz` 用它的 id（对应 `sync.TZ_NAME`）。
  * @param status `sync.get_status()` 的来源。
- * @param governance 三省六部治理，`/api/governance/status` 与 `/api/changes` 的屏障用它。
- * @param cipher 读设置里加密字段（AI Key、Bark 地址等）用，对应 `security.decrypt`。
+ * @param governance 三省六部治理，`/api/governance/status`、`/api/governance/run` 与
+ *   `/api/changes` 的屏障用它。
+ * @param cipher 读写设置里加密字段（AI Key、账户授权码等）用，对应
+ *   `security.encrypt` / `security.decrypt`。
+ * @param sync 同步子系统的入口（触发同步、探测连接、回放服务器动作），见 [SyncBackend]。
+ *   写接口必须注入真实实现（L10 用 [CoordinatorSyncBackend]）；默认的空实现只给读接口用。
  * @param publicBaseUrl 本机会话的保留地址，用来拼 OAuth 回调地址（对应 `MAILHUB_PUBLIC_URL`）。
  * @param onReadStateChanged 已读状态有需要写回服务器的改动时回调（对应 `_trigger_read_state_sync`），
- *   参数是去重升序的账户 id；默认什么都不做。
+ *   参数是去重升序的账户 id；默认什么都不做。写接口走 [SyncBackend.triggerAccount]。
  */
 class LocalApi(
-    private val db: Db,
-    private val clock: Clock = SystemClock,
-    private val zone: ZoneId = ZoneId.of(DEFAULT_TZ_NAME),
-    private val status: SyncStatusSource = SyncStatusSource.EMPTY,
-    private val governance: GovernanceService = GovernanceService(db, clock),
-    private val cipher: SecretCipher,
-    private val publicBaseUrl: String = LOCAL_BASE_URL,
+    internal val db: Db,
+    internal val clock: Clock = SystemClock,
+    internal val zone: ZoneId = ZoneId.of(DEFAULT_TZ_NAME),
+    internal val status: SyncStatusSource = SyncStatusSource.EMPTY,
+    internal val governance: GovernanceService = GovernanceService(db, clock),
+    internal val cipher: SecretCipher,
+    internal val sync: SyncBackend = SyncBackend.NoOp,
+    internal val publicBaseUrl: String = LOCAL_BASE_URL,
     private val onReadStateChanged: (List<Int>) -> Unit = {},
 ) {
 
@@ -134,7 +139,11 @@ class LocalApi(
      */
     fun handle(request: LocalRequest): LocalResponse = try {
         val (path, query) = splitTarget(request)
-        LocalResponse(200, JSON_HEADERS, dispatch(request.method.uppercase(Locale.ROOT), path, query))
+        LocalResponse(
+            200,
+            JSON_HEADERS,
+            dispatch(request.method.uppercase(Locale.ROOT), path, Call(query, rawBody = request.body)),
+        )
     } catch (error: ApiException) {
         val headers = LinkedHashMap<String, String>(JSON_HEADERS)
         headers.putAll(error.headers)
@@ -147,46 +156,126 @@ class LocalApi(
 
     // ---------------- 路由 ----------------
 
-    /** 一条精确路径上的路由：方法 + 处理函数。 */
-    private class Route(val method: String, val handler: (Params) -> JsonElement)
+    /**
+     * 一条路由：方法 + 路径模式 + 处理函数。
+     *
+     * 模式里的 `{name}` 是路径参数，对应 FastAPI 的 `{name}` / `{name: int}`；其余段落必须
+     * 逐字相同。段数不同、或参数位上出现空段（`//`）时都不匹配——与 FastAPI 一致。
+     */
+    private class Route(
+        val method: String,
+        val pattern: List<String>,
+        val handler: (Call) -> JsonElement,
+    ) {
 
-    private val routes: Map<String, Route> = linkedMapOf(
-        "/api/meta" to Route("GET", ::metaRoute),
-        "/api/overview" to Route("GET", ::overviewRoute),
-        "/api/governance/status" to Route("GET", ::governanceStatusRoute),
-        "/api/accounts" to Route("GET", ::accountsRoute),
-        "/api/status" to Route("GET", ::syncStatusRoute),
-        "/api/messages" to Route("GET", ::messagesRoute),
-        "/api/changes" to Route("GET", ::changesRoute),
-        "/api/otp" to Route("GET", ::otpRoute),
-        "/api/review" to Route("GET", ::reviewRoute),
-        "/api/trash" to Route("GET", ::trashRoute),
-        "/api/audit" to Route("GET", ::auditRoute),
-        "/api/settings" to Route("GET", ::settingsRoute),
-        "/api/sessions" to Route("GET", ::sessionsRoute),
-        "/api/oauth/providers" to Route("GET", ::oauthProvidersRoute),
+        /** 匹配成功时返回路径参数（可能为空表），不匹配返回 null。 */
+        fun match(segments: List<String>): Map<String, String>? {
+            if (segments.size != pattern.size) return null
+            var params: LinkedHashMap<String, String>? = null
+            for (index in pattern.indices) {
+                val expected = pattern[index]
+                val actual = segments[index]
+                if (expected.length > 2 && expected.startsWith("{") && expected.endsWith("}")) {
+                    if (actual.isEmpty()) return null
+                    val map = params ?: LinkedHashMap<String, String>().also { params = it }
+                    map[expected.substring(1, expected.length - 1)] = actual
+                } else if (expected != actual) {
+                    return null
+                }
+            }
+            return params ?: emptyMap()
+        }
+    }
+
+    /**
+     * 路由表。顺序与 `app.py` 的声明顺序大致相同：静态路径放在带参数的同前缀路径之前，
+     * 这样 `POST /api/messages/batch` 不会被 `GET /api/messages/{msg_id}` 抢走。
+     */
+    private val routes: List<Route> = listOf(
+        // —— 读接口（L9a） ——
+        get("/api/meta", ::metaRoute),
+        get("/api/overview", ::overviewRoute),
+        get("/api/governance/status", ::governanceStatusRoute),
+        get("/api/accounts", ::accountsRoute),
+        get("/api/status", ::syncStatusRoute),
+        get("/api/messages", ::messagesRoute),
+        getCall("/api/messages/{msg_id}", ::messageDetailCall),
+        get("/api/changes", ::changesRoute),
+        get("/api/otp", ::otpRoute),
+        get("/api/review", ::reviewRoute),
+        get("/api/trash", ::trashRoute),
+        get("/api/audit", ::auditRoute),
+        get("/api/settings", ::settingsRoute),
+        get("/api/sessions", ::sessionsRoute),
+        get("/api/oauth/providers", ::oauthProvidersRoute),
+        // —— 写接口（L9b） ——
+        post("/api/accounts", ::createAccountRoute),
+        put("/api/accounts/{acc_id}", ::updateAccountRoute),
+        delete("/api/accounts/{acc_id}", ::deleteAccountRoute),
+        post("/api/accounts/{acc_id}/sync", ::syncNowRoute),
+        post("/api/accounts/{acc_id}/test", ::testAccountRoute),
+        post("/api/sync-all", ::syncAllRoute),
+        post("/api/messages/batch", ::batchMessagesRoute),
+        post("/api/trash/restore", ::restoreTrashRoute),
+        post("/api/audit/{audit_id}/undo", ::undoActionRoute),
+        post("/api/governance/run", ::governanceRunRoute),
+        put("/api/settings", ::putSettingsRoute),
+        // —— 本机语义（附录 A）：App 会调用，但本机模式一律不执行 ——
+        post("/api/login", ::localLoginRoute),
+        post("/api/logout", ::localLogoutRoute),
+        post("/api/sessions/revoke-all", ::localNoOtherDevicesRoute),
+        delete("/api/sessions/{sid}", ::localNoOtherDevicesRoute),
+        post("/api/notify/test", ::localNotifyTestRoute),
+        post("/api/oauth/start", ::localOauthUnsupportedRoute),
+        getCall("/api/oauth/transactions/{transaction_id}", ::localOauthUnsupportedRoute),
+        post("/api/oauth/outlook/device/start", ::localOauthUnsupportedRoute),
+        post("/api/oauth/outlook/device/poll", ::localOauthUnsupportedRoute),
     )
 
-    /** 对应 FastAPI 的路由匹配：未知路径 404，方法不符 405（带 `Allow`）。 */
-    private fun dispatch(method: String, path: String, query: Params): JsonElement {
-        routes[path]?.let { route ->
-            if (route.method != method) {
-                throw ApiException(405, "Method Not Allowed", mapOf("Allow" to route.method))
-            }
-            return route.handler(query)
-        }
-        // `/api/messages/{msg_id}`：与 FastAPI 的路径参数一样，空段不匹配任何路由
+    private fun get(path: String, handler: (Params) -> JsonElement): Route =
+        Route("GET", pathSegments(path)) { call -> handler(call.query) }
+
+    /** 需要拿到路径参数或请求体的 GET 路由（`/api/messages/{msg_id}` 这类）。 */
+    private fun getCall(path: String, handler: (Call) -> JsonElement): Route =
+        Route("GET", pathSegments(path), handler)
+
+    private fun post(path: String, handler: (Call) -> JsonElement): Route =
+        Route("POST", pathSegments(path), handler)
+
+    private fun put(path: String, handler: (Call) -> JsonElement): Route =
+        Route("PUT", pathSegments(path), handler)
+
+    private fun delete(path: String, handler: (Call) -> JsonElement): Route =
+        Route("DELETE", pathSegments(path), handler)
+
+    /**
+     * 对应 FastAPI 的路由匹配：先找「路径 + 方法」都匹配的路由；只有路径匹配而方法不符时
+     * 回 405（`Allow` 列出该路径的全部方法），都不匹配回 404。
+     */
+    private fun dispatch(method: String, path: String, call: Call): JsonElement {
         val segments = pathSegments(path)
-        if (segments.size == 3 && segments[0] == "api" && segments[1] == "messages" &&
-            segments[2].isNotEmpty()
-        ) {
-            if (method != "GET") {
-                throw ApiException(405, "Method Not Allowed", mapOf("Allow" to "GET"))
+        var allowed: MutableList<String>? = null
+        for (route in routes) {
+            val params = route.match(segments) ?: continue
+            if (route.method != method) {
+                (allowed ?: ArrayList<String>(2).also { allowed = it }).add(route.method)
+                continue
             }
-            return messageDetailRoute(query, parsePathId("msg_id", segments[2]))
+            return route.handler(Call(call.query, params, call.rawBody))
+        }
+        allowed?.let { methods ->
+            throw ApiException(
+                405,
+                "Method Not Allowed",
+                mapOf("Allow" to methods.distinct().joinToString(", ")),
+            )
         }
         throw ApiException(404, "Not Found")
     }
+
+    /** `/api/messages/{msg_id}`：把路径参数转成整数后交给原来的处理函数。 */
+    private fun messageDetailCall(call: Call): JsonElement =
+        messageDetailRoute(call.query, parsePathId("msg_id", call.pathText("msg_id")))
 
     /** 拆出路径与查询参数；`path` 里带 `?` 时一并解析（拦截器正常情况下不会这样传）。 */
     private fun splitTarget(request: LocalRequest): Pair<String, Params> {
@@ -796,7 +885,7 @@ class LocalApi(
     }
 
     /** 对应 `sync.read_state_sync_enabled`：已读状态双向同步开关。 */
-    private fun readStateSyncEnabled(): Boolean = db.getSetting("sync_read_state", "0") == "1"
+    internal fun readStateSyncEnabled(): Boolean = db.getSetting("sync_read_state", "0") == "1"
 
     /** 对应 `ai.ai_config()["enabled"]`。 */
     private fun aiEnabled(): Boolean = db.getSetting("ai_enabled", "0") == "1"
@@ -807,7 +896,7 @@ class LocalApi(
      * flag：1 = 下次同步要把这些邮件在服务器上标为已读（本地同时置已读），-1 = 标为未读。
      * 调用方负责只传入状态确实发生变化的邮件，并在事务里调用（与 Python 的一次 `commit()` 对应）。
      */
-    private fun registerFlagPush(ids: List<Long>, flag: Int): List<Int> {
+    internal fun registerFlagPush(ids: List<Long>, flag: Int): List<Int> {
         if (ids.isEmpty()) return emptyList()
         val placeholders = ids.joinToString(",") { "?" }
         db.execute(
@@ -1016,7 +1105,7 @@ internal class Params(private val values: Map<String, String>) {
 }
 
 /** 路径参数转整数，对应 FastAPI 的 `{msg_id: int}`：类型不对 422。 */
-private fun parsePathId(name: String, text: String): Long {
+internal fun parsePathId(name: String, text: String): Long {
     val value = Py.int(text)
     if (value == null || value.bitLength() > MAX_INTEGER_BITS) {
         throw ApiException(

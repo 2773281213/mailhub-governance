@@ -147,11 +147,17 @@ internal class ApiSeed(private val root: JsonObject) {
     }
 }
 
-/** 用种子建好的 [LocalApi]，测试里直接复用。 */
+/**
+ * 用种子建好的 [LocalApi]，测试里直接复用。
+ *
+ * [sync] 是同步子系统的入口：读接口用默认的空实现，写接口的金标回放注入假的
+ * [SyncBackend]（记录调用并按用例成功 / 抛异常 / 返回部分成功）。
+ */
 internal fun apiFor(
     db: Db,
     seed: ApiSeed,
     clock: Clock = FakeClock(seed.now),
+    sync: SyncBackend = SyncBackend.NoOp,
     onReadStateChanged: (List<Int>) -> Unit = {},
 ): LocalApi = LocalApi(
     db = db,
@@ -160,6 +166,7 @@ internal fun apiFor(
     status = SyncStatusSource { seed.syncStatus() },
     governance = GovernanceService(db, clock),
     cipher = FakeSecretCipher(),
+    sync = sync,
     publicBaseUrl = seed.publicBaseUrl,
     onReadStateChanged = onReadStateChanged,
 )
