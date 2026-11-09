@@ -18,6 +18,9 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "2.2.0"
+        // 设备上的 instrumented test 由 AndroidJUnitRunner 执行；:core 的测试源码直接挂在
+        // androidTest 源码集上（见下面的 sourceSets），所以它同时也是 :core 的「手机回归」入口。
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     signingConfigs {
@@ -63,6 +66,19 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+
+    // 设备测试直接复用 :core 的测试源码和测试资源，不复制任何一行测试代码：
+    // 以后往 android/core/src/test 里新增的测试会自动在设备上跑。
+    // 依赖桌面 JVM 的测试按约定加 @Category(JvmOnly::class)（见 android/core/src/test/kotlin/com/mailhub/core/JvmOnly.kt），
+    // 由 android/scripts/core-on-device.ps1 用 runner 参数 notAnnotation 排除。
+    sourceSets {
+        getByName("androidTest") {
+            kotlin.srcDir("../core/src/test/kotlin")
+            // 金标语料（golden/*.json）和 MIME 夹具（mime/*.eml）用类加载器读取，
+            // 所以挂到 androidTest 的 java 资源目录，最终打进测试 APK。
+            resources.srcDirs("../core/src/test/resources")
+        }
     }
 
     testOptions {
@@ -113,7 +129,43 @@ dependencies {
     testImplementation(libs.okhttp.mockwebserver)
     testImplementation(libs.kotlinx.coroutines.test)
 
+    // 设备测试：:core 的测试源码跑在 ART 上，所以测试编译期需要 :core 本身和它用到的库。
+    // 这些依赖在 App 的运行时类路径上已经有了（:core 的 implementation 依赖），
+    // 这里显式写出来是为了让 androidTest 的编译类路径也拿到它们。
+    androidTestImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(project(":core"))
+    androidTestImplementation(libs.androidx.sqlite)
+    androidTestImplementation(libs.androidx.sqlite.bundled)
+    androidTestImplementation(libs.jakarta.mail.api)
+    androidTestImplementation(libs.angus.mail)
+    androidTestImplementation(libs.angus.activation)
+    androidTestImplementation(libs.kotlinx.serialization.json)
+
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+}
+
+/**
+ * 把 :core 的产物（jar）加进 androidTest 编译的 friend paths。
+ *
+ * :core 的测试源码里用到了 :core 的 internal 声明（`Db.Row.long(Int)`、`splitSqlScript` 等）。
+ * Kotlin 的 internal 只对同一个「模块」（即同一次编译）可见：:core 自己的 test 源集是靠
+ * KGP 自动设置的 friend paths 才看得到 main 的 internal，而 :app 的 androidTest 编译不是
+ * :core 的 friend 模块。这里按同一机制显式补上，是「androidTest 直接复用 :core 测试源码」
+ * 的必要前提；否则那几个测试只能在 :core:test 里跑，等于要在设备上漏掉它们。
+ */
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    if (name.startsWith("compile") && name.endsWith("AndroidTestKotlin")) {
+        // friend path 必须指到「编译类路径上那一份」:core：androidTest 的类路径上是
+        // :core 的 jar（build/libs/core.jar），不是 build/classes/kotlin/main 目录。
+        // 两者指向同一份代码但被编译器当成不同的模块，指错目录 internal 仍然不可见。
+        val coreJar = project(":core").tasks.named<Jar>("jar").flatMap { it.archiveFile }
+        dependsOn(":core:jar")
+        compilerOptions.freeCompilerArgs.add(
+            "-Xfriend-paths=" + coreJar.get().asFile.invariantSeparatorsPath,
+        )
+    }
 }
 
 /**
