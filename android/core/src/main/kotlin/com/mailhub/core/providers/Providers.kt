@@ -273,14 +273,17 @@ val PROVIDERS: Map<String, Provider> = PROVIDERS_ALL.associateBy { it.key }
 /** 对应 `providers.get(key)`：key 去空白、转小写后查表；查不到返回 null。 */
 fun get(key: String?): Provider? = PROVIDERS[(key ?: "").pyStrip().lowercase()]
 
-/** 对应 `providers.detect(email_addr)`：按邮箱域名识别服务商，识别不出来时返回 "custom"。 */
+/**
+ * 对应 `providers.detect(email_addr)`：按邮箱域名识别服务商，识别不出来时返回 "custom"。
+ *
+ * Python 用的是 `rpartition('@')[2]`：没有 `@` 时它返回**整个字符串**（不是空串），
+ * 所以 `detect("qq.com")` 得到 `"qq"`。这里照抄，不要改回「找不到 @ 就当空域名」。
+ */
 fun detect(emailAddr: String?): String {
     val text = (emailAddr ?: "").pyStrip().lowercase()
-    // Python 的 str.rpartition('@')[2]：最后一个 @ 之后的部分，没有 @ 时是空串
-    val at = text.lastIndexOf('@')
-    val domain = if (at >= 0) text.substring(at + 1) else ""
+    val domain = text.substring(text.lastIndexOf('@') + 1)
     for (provider in PROVIDERS_ALL) {
-        if (domain.isNotEmpty() && domain in provider.domains) return provider.key
+        if (domain in provider.domains) return provider.key
     }
     return "custom"
 }

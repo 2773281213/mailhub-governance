@@ -2,6 +2,8 @@ package com.mailhub.core.mail
 
 import com.mailhub.core.Clock
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 import java.util.TimeZone
 
@@ -113,7 +115,8 @@ class MailHeadersTest {
 
     @Test
     fun trailingSpaceInHeaderNameIsNotStripped() {
-        // Python 的 header_source_parse 只取冒号前的内容，`X-Name :` 的头名带一个空格
+        // Python 的 headerRE 只允许 ASCII 可打印字符直接接冒号；`X-Name :` 里的空格让整行
+        // 都不匹配，头部块在它这里结束，所以其实一个头都没有，`get` 两种写法都取不到。
         val headers = MimeHeaders.parse(("X-Name : v\r\n\r\nbody").toByteArray())
         assertEquals(null, headers.get("X-Name"))
         assertEquals(null, headers.get("X-Name "))
@@ -130,6 +133,101 @@ class MailHeadersTest {
         val headers = MimeHeaders.parse(("X-A: v\r\nno-colon-line\r\nX-B: c\r\n\r\nbody").toByteArray())
         assertEquals("v", headers.get("X-A"))
         assertEquals(null, headers.get("X-B"))
+    }
+
+    @Test
+    fun bareCarriageReturnEndsAHeaderLine() {
+        // Python 的 BufferedSubFile 按 \r\n|\r|\n 切行：裸 \r 也断行，伪造的 From 是独立的头
+        val headers = MimeHeaders.parse(
+            ("Subject: x\rFrom: forged@evil.example\r\nFrom: real@bank.example\r\n\r\nbody").toByteArray(),
+        )
+        assertEquals("x", headers.get("Subject"))
+        assertEquals(listOf("forged@evil.example", "real@bank.example"), headers.getAll("From"))
+    }
+
+    @Test
+    fun bareCarriageReturnBlankLineEndsTheHeaderBlock() {
+        val headers = MimeHeaders.parse(("A: 1\r\rB: 2\r\n\r\nbody").toByteArray())
+        assertEquals("1", headers.get("A"))
+        assertEquals(null, headers.get("B"))
+    }
+
+    @Test
+    fun eightBitHeaderValueIsMarked() {
+        val headers = MimeHeaders.parse(
+            "X-8bit: caf\u00E9\r\nX-Ascii: cafe\r\n\r\nbody".toByteArray(Charsets.ISO_8859_1),
+        )
+        assertEquals(true, headers.field("X-8bit")?.has8Bit)
+        assertEquals(false, headers.field("X-Ascii")?.has8Bit)
+    }
+
+    @Test
+    fun eightBitFromAndReplyToParseAsEmpty() {
+        // Python 的 msg.get 返回 Header 对象，parseaddr 对非 str 直接返回 ("", "")
+        val raw = (
+            "From: \u00E9 <forged@bank.example>\r\n" +
+                "Reply-To: \u00E9 <reply@bank.example>\r\n" +
+                "To: bob@corp.example\r\n" +
+                "Subject: 8bit sender\r\n\r\nbody"
+            ).toByteArray(Charsets.ISO_8859_1)
+        val parsed = parseHeaders(raw, clock = clock(), zone = utc)
+        assertEquals("", parsed.senderName)
+        assertEquals("", parsed.senderAddr)
+        assertEquals("", parsed.replyTo)
+    }
+
+    @Test
+    fun eightBitDateFallsBackToTheClock() {
+        // Python 抛 AttributeError（Header 没有 split），parse_message 的 except 吞掉后回退 time.time()
+        val raw = (
+            "From: notice@shop.example\r\n" +
+                "Date: Tue, 05 Nov 2024 10:30:00 +0800 (\u00B1\u00B1)\r\n\r\nbody"
+            ).toByteArray(Charsets.ISO_8859_1)
+        assertEquals(CLOCK_VALUE, parseHeaders(raw, clock = clock(), zone = utc).dateTs, 0.0)
+    }
+
+    @Test
+    fun eightBitMessageIdIsUnparsable() {
+        // Python 的 (msg.get("Message-ID") or "").strip() 抛 AttributeError，整封走 unparsable_message()
+        val raw = (
+            "From: notice@shop.example\r\n" +
+                "Message-ID: <\u00E9@mail.shop.example>\r\n\r\nbody"
+            ).toByteArray(Charsets.ISO_8859_1)
+        try {
+            parseHeaders(raw, clock = clock(), zone = utc)
+            fail("含 8 位字节的 Message-ID 应抛 UnparsableMessageException")
+        } catch (_: UnparsableMessageException) {
+            // 对应 Python 的 AttributeError
+        }
+    }
+
+    @Test(timeout = 2000)
+    fun deeplyNestedCommentsFailFastWithoutStackOverflow() {
+        // 10 万层嵌套注释是远程可触发的输入：必须抛普通 Exception，不能是 StackOverflowError
+        val nested = "(".repeat(100_000) + ")".repeat(100_000)
+        val thrown = try {
+            parseAddr(nested)
+            null
+        } catch (e: Error) {
+            e
+        } catch (e: Exception) {
+            e
+        }
+        assertTrue("应抛 AddressRecursionException，实际是 $thrown", thrown is AddressRecursionException)
+    }
+
+    @Test(timeout = 2000)
+    fun deeplyNestedGroupsFailFastWithoutStackOverflow() {
+        val nested = (1..100_000).joinToString(":") { "a" }
+        val thrown = try {
+            parseAddr(nested)
+            null
+        } catch (e: Error) {
+            e
+        } catch (e: Exception) {
+            e
+        }
+        assertTrue("应抛 AddressRecursionException，实际是 $thrown", thrown is AddressRecursionException)
     }
 
     /** 拼一封只关心头部的合成邮件；[extraHeaders] 里可以放 Date 头，也可以什么都不放。 */

@@ -30,8 +30,10 @@ fun decodeHeader(raw: String?): String {
         val out = StringBuilder()
         for ((data, charset) in decodeHeaderParts(raw)) {
             if (data is ByteArray) {
-                // charset 为 None 时按 UTF-8 解；名字不认识时 Python 抛 LookupError，走下面的 except
-                val text = PyCodecs.decode(data, charset ?: "utf-8") ?: return raw
+                // Python 是 `charset or "utf-8"`：charset 为空串时也用 UTF-8；
+                // 名字不认识时 Python 抛 LookupError，走下面的 except
+                val name = if (charset.isNullOrEmpty()) "utf-8" else charset
+                val text = PyCodecs.decode(data, name) ?: return raw
                 out.append(text)
             } else {
                 out.append(data as String)
@@ -99,7 +101,8 @@ internal fun decodeHeaderParts(header: String): List<Pair<Any, String?>> {
             "q" -> decoded += rawUnicodeEscapeEncode(quopriHeaderDecode(word.text)) to word.charset
             "b" -> {
                 var encoded = word.text
-                val remainder = encoded.length % 4
+                // Python 的 `len(encoded_string)` 按码点计
+                val remainder = encoded.codePointCount(0, encoded.length) % 4
                 // Postel 规则：补上缺的 '='
                 if (remainder != 0) encoded += "=".repeat(4 - remainder)
                 val bytes = try {
@@ -196,8 +199,8 @@ private fun isAsciiHex(ch: Char): Boolean =
     ch in '0'..'9' || ch in 'a'..'f' || ch in 'A'..'F'
 
 /**
- * Python 的 `bytes(s, 'raw-unicode-escape')`：0x100 以下的字符写成单字节，
- * 其余写成 `\uXXXX`（U+FFFF 以上拆成代理对的两个转义）。
+ * Python 的 `bytes(s, 'raw-unicode-escape')`：0x100 以下的字符写成单字节，BMP 内的其余字符
+ * 写成 `\uXXXX`，U+10000 以上的写成 `\UXXXXXXXX`（8 位小写十六进制，不是代理对）。
  */
 internal fun rawUnicodeEscapeEncode(text: String): ByteArray {
     val out = ByteArrayOutputStream(text.length)
@@ -209,10 +212,7 @@ internal fun rawUnicodeEscapeEncode(text: String): ByteArray {
         } else if (cp <= 0xFFFF) {
             out.write("\\u%04x".format(cp).toByteArray(Charsets.US_ASCII))
         } else {
-            val offset = cp - 0x10000
-            val high = 0xD800 + (offset shr 10)
-            val low = 0xDC00 + (offset and 0x3FF)
-            out.write("\\u%04x\\u%04x".format(high, low).toByteArray(Charsets.US_ASCII))
+            out.write("\\U%08x".format(cp).toByteArray(Charsets.US_ASCII))
         }
         index += Character.charCount(cp)
     }
@@ -223,72 +223,77 @@ internal fun rawUnicodeEscapeEncode(text: String): ByteArray {
 internal class Base64DecodeError(message: String) : Exception(message)
 
 /**
- * `binascii.a2b_base64(data, strict_mode=False)` 的移植（Python 3.11 起的宽松模式）：
+ * `binascii.a2b_base64(data, strict_mode=False)` 的移植（Python 3.11 起的宽松模式），
+ * 入口与 `email.base64mime.decode` 一样先做 `data.encode('raw-unicode-escape')`。
  *
- * - 字母表外的字符（空白、标点）直接丢弃；
- * - 数据字符（含第一个 `=` 之后的那些）总数是 4n+1 时报错；
- * - 第一个 `=` 之前的数据字符数不是 4 的倍数时，要求有足够的 `=` 把它们补满，否则报错；
- * - 分段解码，最后一组不足 4 个字符时只输出完整的字节，多余的位丢掉（`ab==` 得到 1 个字节）。
+ * 逐条对应 CPython 3.13 `Modules/binascii.c` 的状态机：
+ * - 字母表外的字节（空白、标点、`\uXXXX` 里的反斜杠等）直接跳过，且不会重置 `pads`；
+ * - `=` 只在 `quad_pos >= 2` 且 `quad_pos + pads >= 4` 时终止解码（`pads` 是连续 `=` 的个数，
+ *   遇到数据字节清零）。`quad_pos` 为 0 或 1 时 `=` 被忽略，不参与计数；
+ * - 结束后 `quad_pos == 1` 说明数据字符数比 4 的倍数多 1，报错；
+ *   `quad_pos` 为 2 或 3 说明缺 padding，报错。
+ *
+ * 需要注意的点：第一个 `=` 之后的数据字符仍会继续解码（例如 `QUJD=REVG` 得到 `ABCDEF`），
+ * 这与「`=` 之后全部丢弃」的旧实现不同。
  */
 internal fun a2bBase64Lenient(text: String): ByteArray {
-    val data = StringBuilder(text.length)
-    var dataChars = 0
-    var padding = 0
-    var paddingStarted = false
-    for (ch in text) {
-        when {
-            isBase64Char(ch) -> {
-                dataChars++
-                if (!paddingStarted) data.append(ch)
+    val bytes = rawUnicodeEscapeEncode(text)
+    val out = ByteArrayOutputStream(bytes.size / 4 * 3 + 3)
+    var quadPos = 0
+    var leftChar = 0
+    var pads = 0
+    var stoppedByPadding = false
+    for (byte in bytes) {
+        val ch = byte.toInt() and 0xFF
+        if (ch == '='.code) {
+            if (quadPos >= 2) {
+                pads++
+                if (quadPos + pads >= 4) {
+                    // 与 C 的 `goto done` 一样：padding 提前结束解码，跳过最后的完整性检查
+                    stoppedByPadding = true
+                    break
+                }
             }
-            ch == '=' -> {
-                padding++
-                paddingStarted = true
+            continue
+        }
+        val value = base64Value(ch)
+        if (value < 0) continue
+        pads = 0
+        when (quadPos) {
+            0 -> {
+                quadPos = 1
+                leftChar = value
             }
-            else -> Unit // 字母表外：忽略
+            1 -> {
+                quadPos = 2
+                out.write((leftChar shl 2) or (value shr 4))
+                leftChar = value and 0x0F
+            }
+            2 -> {
+                quadPos = 3
+                out.write((leftChar shl 4) or (value shr 2))
+                leftChar = value and 0x03
+            }
+            else -> {
+                quadPos = 0
+                out.write((leftChar shl 6) or value)
+                leftChar = 0
+            }
         }
     }
-    if (dataChars % 4 == 1) {
-        throw Base64DecodeError("number of data characters ($dataChars) cannot be 1 more than a multiple of 4")
-    }
-    val remainder = data.length % 4
-    if (remainder == 1) throw Base64DecodeError("Incorrect padding")
-    if (remainder != 0 && padding < 4 - remainder) throw Base64DecodeError("Incorrect padding")
-
-    val out = ByteArrayOutputStream(data.length / 4 * 3 + 3)
-    var index = 0
-    while (index + 3 < data.length) {
-        val chunk = (decodeBase64Char(data[index]) shl 18) or
-            (decodeBase64Char(data[index + 1]) shl 12) or
-            (decodeBase64Char(data[index + 2]) shl 6) or
-            decodeBase64Char(data[index + 3])
-        out.write((chunk shr 16) and 0xFF)
-        out.write((chunk shr 8) and 0xFF)
-        out.write(chunk and 0xFF)
-        index += 4
-    }
-    val rest = data.length - index
-    if (rest == 2) {
-        val chunk = (decodeBase64Char(data[index]) shl 18) or (decodeBase64Char(data[index + 1]) shl 12)
-        out.write((chunk shr 16) and 0xFF)
-    } else if (rest == 3) {
-        val chunk = (decodeBase64Char(data[index]) shl 18) or
-            (decodeBase64Char(data[index + 1]) shl 12) or
-            (decodeBase64Char(data[index + 2]) shl 6)
-        out.write((chunk shr 16) and 0xFF)
-        out.write((chunk shr 8) and 0xFF)
+    if (!stoppedByPadding) {
+        if (quadPos == 1) throw Base64DecodeError("number of data characters cannot be 1 more than a multiple of 4")
+        if (quadPos != 0) throw Base64DecodeError("Incorrect padding")
     }
     return out.toByteArray()
 }
 
-private fun isBase64Char(ch: Char): Boolean =
-    ch in 'A'..'Z' || ch in 'a'..'z' || ch in '0'..'9' || ch == '+' || ch == '/'
-
-private fun decodeBase64Char(ch: Char): Int = when (ch) {
-    in 'A'..'Z' -> ch - 'A'
-    in 'a'..'z' -> ch - 'a' + 26
-    in '0'..'9' -> ch - '0' + 52
-    '+' -> 62
-    '/' -> 63
-    else -> 0 // 调用方已过滤掉字母表外的字符
+/** `table_a2b_base64`：字母表内返回 0–63，其余返回 -1。 */
+private fun base64Value(ch: Int): Int = when (ch) {
+    in 'A'.code..'Z'.code -> ch - 'A'.code
+    in 'a'.code..'z'.code -> ch - 'a'.code + 26
+    in '0'.code..'9'.code -> ch - '0'.code + 52
+    '+'.code -> 62
+    '/'.code -> 63
+    else -> -1
 }

@@ -5,12 +5,15 @@
 
 做三件事：
 
-1. 在 `android/core/src/test/resources/mail/` 下写合成 `.eml`（域名一律 `.example`）。
-   文件名在 [FIXTURES] 里明确列出，**不遍历目录**：L5b 会往同一个目录加文件，
-   本脚本的 `--check` 不能因此失败。
+1. 在 `android/core/src/test/resources/mail/` 下写合成 `.eml`（域名一律 `.example`，
+   例外见 [FIXTURES] 里标了注释的 ESP 域名）。文件名在 [FIXTURES] 里明确列出，**不遍历目录**：
+   L5b 会往同一个目录加文件，本脚本的 `--check` 不能因此失败。
 2. 用 `mail_client.parse_message` 解析每封夹具，导出只与头部有关的字段（`fn` 为 `parse_headers`）。
-3. 导出 `_decode_header`、`parseaddr`、`getaddresses`、`parsedate_to_datetime` 的单函数用例。
-   日期用例只放带明确时区的写法，避免依赖本机时区。
+   生成时把 `time.time()` 固定成 [FIXED_NOW]，这样日期缺失 / 非法（含 8 位字节）的夹具
+   也有确定的 `date_ts`，Kotlin 侧用同样的注入时钟回放。
+3. 导出 `_decode_header`、`parseaddr`、`getaddresses`、`parsedate_to_datetime` 的单函数用例，
+   以及两类「Python 抛异常」的用例：`Message-ID` 含 8 位字节（`AttributeError`）、
+   地址解析嵌套过深（`RecursionError`）。
 
 金标里不放依赖「当前时间」或「进程本地时区」的用例：这类行为在 Kotlin 测试里用注入的时钟和
 固定时区单独验证（见 `MailHeadersGoldenTest` 与 `MailHeadersTest`）。
@@ -20,11 +23,22 @@ from __future__ import annotations
 import email.utils
 import sys
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import _common  # noqa: E402
 
 MAIL_DIR = _common.REPO_ROOT / "android" / "core" / "src" / "test" / "resources" / "mail"
+
+# 生成金标时固定的 `time.time()`，用于日期缺失 / 非法的夹具；Kotlin 测试用同样的时钟值回放。
+FIXED_NOW = 1700000000.0
+
+# 这些夹具会让 Python 的 `parse_message` 直接抛异常（整封走 `unparsable_message()`），
+# 不能用 `parse_headers` 导出字段，改用 `parse_headers_unparsable` 记录异常类型。
+UNPARSABLE_FIXTURES = {"msgid_8bit.eml"}
+
+# Python 确实抛 `RecursionError` 的嵌套深度：(kind, depth)。kind 见 recursion_cases。
+RECURSION_CASES = [("comments", 5000), ("groups", 2000)]
 
 HEADER_FIELDS = [
     "msg_id",
@@ -128,7 +142,7 @@ FIXTURES: list[tuple[str, bytes]] = [
     (
         "gb2312_gbk_only.eml",
         # 0x8140 是 GBK 独有码位（U+4E02）。gb2312 编解码器严格按 GB2312-80，
-        # 解不出来，`errors="replace"` 得到两个 U+FFFD。
+        # 解不出来，`errors="replace"` 得到 U+FFFD 加字面 `@`（不是两个 U+FFFD）。
         message([
             "From: notifier@bank.example",
             "To: bob@corp.example",
@@ -334,7 +348,8 @@ FIXTURES: list[tuple[str, bytes]] = [
     ),
     (
         "return_path_esp.eml",
-        # Return-Path 命中群发平台（sendgrid）
+        # Return-Path 命中群发平台（sendgrid）。sendgrid.net 不是 .example 域名：
+        # 这里必须用真实 ESP 域名才能命中 `_ESP_RE`，是夹具里唯一几处有意为之的例外之一。
         message([
             "Return-Path: <bounce@sendgrid.net>",
             "From: promo@shop.example",
@@ -357,7 +372,8 @@ FIXTURES: list[tuple[str, bytes]] = [
     ),
     (
         "dkim_domain_only.eml",
-        # d= 指向群发平台，但 Return-Path 干净
+        # d= 指向群发平台，但 Return-Path 干净。mandrillapp.com 同 sendgrid.net：
+        # 为了命中 `_ESP_RE` 必须用真实域名，不改成 .example。
         message([
             "DKIM-Signature: v=1; a=rsa-sha256; d=mandrillapp.com; s=sel; b=abc",
             "From: promo@shop.example",
@@ -688,6 +704,154 @@ FIXTURES: list[tuple[str, bytes]] = [
             DATE_0800,
         ]),
     ),
+    # ---- H2：头部含 8 位字节。compat32 下 msg.get 返回 Header 对象而不是 str ----
+    (
+        "from_8bit.eml",
+        # parseaddr(Header) 直接返回 ("", "")：发件人两个字段都是空串
+        message([
+            b"From: \xe5\xbc\xa0 <forged@bank.example>",
+            "To: bob@corp.example",
+            "Subject: Eight bit from",
+            DATE_0800,
+        ]),
+    ),
+    (
+        "reply_to_8bit.eml",
+        message([
+            "From: newsletter@shop.example",
+            b"Reply-To: \xe5\xbc\xa0 <reply@bank.example>",
+            "To: bob@corp.example",
+            "Subject: Eight bit reply-to",
+            DATE_0800,
+        ]),
+    ),
+    (
+        "date_8bit.eml",
+        # parsedate_to_datetime(Header) 抛 AttributeError：parse_message 回退 time.time()
+        message([
+            "From: notice@shop.example",
+            "To: bob@corp.example",
+            b"Date: Tue, 05 Nov 2024 10:30:00 +0800 (\xb1\xb1)",
+            "Subject: Eight bit date",
+        ]),
+    ),
+    (
+        "msgid_8bit.eml",
+        # (msg.get("Message-ID") or "").strip() 抛 AttributeError：整封走 unparsable_message()
+        message([
+            "From: notice@shop.example",
+            "To: bob@corp.example",
+            b"Message-ID: <\xe5\xbc\xa0@mail.shop.example>",
+            "Subject: Eight bit message id",
+            DATE_0800,
+        ]),
+    ),
+    (
+        "recipients_8bit.eml",
+        # getaddresses 先对每个值做 str(v)（净化成 U+FFFD），收件地址照常解析
+        message([
+            "From: notice@shop.example",
+            b"To: \xe5\xbc\xa0 <a@corp.example>",
+            b"Cc: \xb1 <c@corp.example>",
+            b"Delivered-To: \xe5 <d@corp.example>",
+            "Subject: Eight bit recipients",
+            DATE_0800,
+        ]),
+    ),
+    (
+        "subject_8bit_encoded.eml",
+        # 8 位字节与编码字混排：_decode_header 先 str(Header)，替换符留在普通文本里，
+        # 再按 raw-unicode-escape 变成字面量 \ufffd 后与编码字拼接
+        message([
+            "From: notice@shop.example",
+            "To: bob@corp.example",
+            b"Subject: caf\xe9 =?utf-8?B?5L2g5aW9?=",
+            DATE_0800,
+        ]),
+    ),
+    (
+        "signals_8bit.eml",
+        # header_signals 全部先 str(...)：Precedence 变成 "\ufffdbulk"（不算 bulk），
+        # List-Id / Feedback-ID 非空仍为真，Authentication-Results 带替换符，ESP 仍命中 sendgrid
+        message([
+            b"Return-Path: <bounce@sendgrid.net\xe5>",
+            b"DKIM-Signature: v=1; a=rsa-sha256; d=\xe5mailchimp; s=sel; b=abc",
+            b"Precedence: \xe5bulk",
+            b"List-Id: \xe5news.shop.example",
+            b"Authentication-Results: \xe5mx.corp.example; spf=pass",
+            b"Feedback-ID: \xe5123",
+            b"Auto-Submitted: \xe5auto",
+            b"List-Unsubscribe: \xe5<mailto:unsub@shop.example>",
+            "From: notice@shop.example",
+            "To: bob@corp.example",
+            "Subject: Eight bit signals",
+            DATE_0800,
+        ]),
+    ),
+    # ---- H3：单独的 \r 也断行（Python 的 BufferedSubFile 按 \r\n|\r|\n 切）----
+    (
+        "bare_cr_subject_from.eml",
+        # 伪造的 From 是独立的头，而且排在真实 From 前面，msg.get 取到的就是它
+        b"Subject: x\rFrom: forged@evil.example\r\nFrom: real@bank.example\r\n"
+        + DATE_0800.encode("ascii")
+        + b"\r\n\r\nbody\r\n",
+    ),
+    (
+        "bare_cr_blank_line.eml",
+        # 裸 \r 构成的空行结束头部块：B、From、Subject 都落到正文里
+        b"A: 1\r\rB: 2\r\nFrom: notice@shop.example\r\nSubject: s\r\n\r\nbody\r\n",
+    ),
+    (
+        "bare_cr_folded_subject.eml",
+        # 裸 \r 后面接空格是续行，值里保留这个 \r
+        b"Subject: first\r second\r\nFrom: notice@shop.example\r\n"
+        + DATE_0800.encode("ascii")
+        + b"\r\n\r\nbody\r\n",
+    ),
+    # ---- L3：Compat32.header_source_parse 的 lstrip(' \t\r\n') ----
+    (
+        "auth_results_folded_leading.eml",
+        # 冒号后直接换行再接一行一个空格：lstrip 后值是 "x"
+        b"Authentication-Results:\r\n x\r\nFrom: notice@shop.example\r\nTo: bob@corp.example\r\n"
+        b"Subject: Folded auth results\r\n" + DATE_0800.encode("ascii") + b"\r\n\r\nbody\r\n",
+    ),
+    (
+        "list_id_blank.eml",
+        # 续行只有一个空格：lstrip + rstrip('\r\n') 后是空串，bool 为假
+        b"List-Id:\r\n \r\nFrom: notice@shop.example\r\nTo: bob@corp.example\r\n"
+        b"Subject: Blank list id\r\n" + DATE_0800.encode("ascii") + b"\r\n\r\nbody\r\n",
+    ),
+    # ---- M6：日期边界 ----
+    (
+        "date_offset_1900.eml",
+        # +19:00 合法（datetime.timezone 允许 ±24 小时以内；Java 的 ZoneOffset 只到 ±18）
+        message([
+            "From: notice@shop.example",
+            "To: bob@corp.example",
+            "Subject: Plus 19 offset",
+            "Date: Tue, 05 Nov 2024 10:30:00 +1900",
+        ]),
+    ),
+    (
+        "date_year_10000.eml",
+        # 10000 年超出 datetime 的 1–9999，回退当前时间
+        message([
+            "From: notice@shop.example",
+            "To: bob@corp.example",
+            "Subject: Year 10000",
+            "Date: 1 Jan 10000 00:00:00 +0000",
+        ]),
+    ),
+    (
+        "date_huge_offset.eml",
+        # 偏移绝对值远超 24 小时，datetime.timezone 拒绝，回退当前时间
+        message([
+            "From: notice@shop.example",
+            "To: bob@corp.example",
+            "Subject: Huge offset",
+            "Date: Tue, 05 Nov 2024 10:30:00 +99999999999",
+        ]),
+    ),
 ]
 
 
@@ -722,13 +886,60 @@ def write_fixtures(check: bool) -> None:
 def parse_headers_cases(parse_message) -> list[dict]:
     cases = []
     for name, data in FIXTURES:
-        parsed = parse_message(data)
+        if name in UNPARSABLE_FIXTURES:
+            continue
+        # 固定 time.time()：日期缺失 / 非法的夹具也能导出确定的 date_ts
+        with mock.patch("mail_client.time.time", return_value=FIXED_NOW):
+            parsed = parse_message(data)
         expected = {field: parsed[field] for field in HEADER_FIELDS}
         cases.append({
             "id": name.removesuffix(".eml"),
             "fn": "parse_headers",
-            "args": {"file": name},
+            "args": {"file": name, "clock": FIXED_NOW},
             "expected": expected,
+        })
+    return cases
+
+
+def unparsable_cases(parse_message) -> list[dict]:
+    """`parse_message` 在 Python 里直接抛异常的夹具：整封走 `unparsable_message()`。"""
+    cases = []
+    for name in sorted(UNPARSABLE_FIXTURES):
+        data = fixture(name)
+        try:
+            with mock.patch("mail_client.time.time", return_value=FIXED_NOW):
+                parse_message(data)
+        except Exception as exc:  # noqa: BLE001 —— 金标记录 Python 实际抛出的类型
+            error = type(exc).__name__
+        else:
+            raise ValueError(f"{name}：Python 没有抛异常，不能作为不可解析用例")
+        cases.append({
+            "id": name.removesuffix(".eml"),
+            "fn": "parse_headers_unparsable",
+            "args": {"file": name, "clock": FIXED_NOW},
+            "expected": error,
+        })
+    return cases
+
+
+def recursion_cases() -> list[dict]:
+    """Python 确实抛 `RecursionError` 的输入：Kotlin 要抛普通 Exception，不能是 `Error`。"""
+    cases = []
+    for kind, depth in RECURSION_CASES:
+        text = "(" * depth + ")" * depth if kind == "comments" else ":".join(["a"] * depth)
+        try:
+            email.utils.parseaddr(text)
+        except RecursionError:
+            error = "RecursionError"
+        except Exception as exc:  # noqa: BLE001 —— 记录实际类型，方便排查
+            error = type(exc).__name__
+        else:
+            raise ValueError(f"{kind} 深度 {depth} 没有触发 RecursionError，请加大深度")
+        cases.append({
+            "id": f"parseaddr-recursion-{kind}",
+            "fn": "parseaddr_recursion",
+            "args": {"kind": kind, "depth": depth},
+            "expected": error,
         })
     return cases
 
@@ -777,6 +988,17 @@ DECODE_HEADER_SAMPLES = [
     "=?utf-8?B?5L2g5aW9?==?utf-8?B?5LiW55WM?=",
     " ，=?utf-8?B?5L2g5aW9?=。 ",
     "=?iso-2022-jp?B?GyRCJCIbKEI=?= =?utf-8?B?5L2g5aW9?=",
+    # M2：binascii.a2b_base64 的宽松状态机。`=` 只有在 quad_pos >= 2 且 quad_pos + pads >= 4
+    # 时才终止解码，所以第一个 `=` 之后的字符仍可能参与解码。
+    "=?utf-8?B?QUJD=REVG?=",
+    "=?utf-8?B?Q=UJD?=",
+    "=?utf-8?B?QUJD\xffREVG?=",
+    # M3：charset 为空串时 Python 走 `charset or "utf-8"`
+    "=??q?a?=",
+    "=??B?YWJj?=",
+    # L1：raw-unicode-escape 把 U+10000 以上写成 \\UXXXXXXXX
+    "😀 =?utf-8?q?a?=",
+    "😀 =?utf-8?B?QUJD?=",
 ]
 
 PARSEADDR_SAMPLES = [
@@ -818,6 +1040,13 @@ PARSEADDR_SAMPLES = [
     "  ",
     "\t",
     "Name\t<a@shop.example>",
+    # L2：Python 的 `oldcl` 只是 commentlist 的别名，注释会被重复收集
+    "a(c1)@b.example",
+    "a(c1)@b.example, c@d.example",
+    "(c1)a@b.example",
+    "a@b.example (c1) (c2)",
+    # 深度 100 的嵌套注释在 Python 里还不算 RecursionError（Kotlin 的上限见 AddressParse）
+    "(" * 100 + ")" * 100,
 ]
 
 GETADDRESSES_SAMPLES = [
@@ -845,6 +1074,9 @@ GETADDRESSES_SAMPLES = [
     ["=?utf-8?B?5L2g5aW9?= <you@shop.example>"],
     ["a@shop.example,", ",a@shop.example"],
     ["Name <a@shop.example>, Name <a@shop.example>"],
+    ["a(c1)@b.example"],
+    ["(c1)a@b.example"],
+    ["a@b.example (c1) (c2)"],
 ]
 
 PARSEDATE_SAMPLES = [
@@ -879,6 +1111,16 @@ PARSEDATE_SAMPLES = [
     "Tue, 05 Nov 69 10:30:00 +0800",
     "Fri, 01 Mar 2024 00:00:00 -0930",
     "Tue, 05 Nov 2024 10:30:00 +0000 extra",
+    # M6：日期边界
+    "Tue, 05 Nov 2024 10:30:00 +1900",        # ±18–24 小时之间：合法
+    "Tue, 05 Nov 2024 10:30:00 -1900",
+    "Tue, 05 Nov 2024 10:30:00 +1800",        # 恰好 18 小时：Java ZoneOffset 的上限
+    "Tue, 05 Nov 2024 10:30:00 +2400",        # 恰好 24 小时：datetime.timezone 拒绝
+    "1 Jan 9999 00:00:00 +0000",              # datetime 允许的最大年份
+    "1 Jan 10000 00:00:00 +0000",             # 年份越界
+    "1 Jan 0 00:00:00 +0000",                 # 两位年份规则：0 → 2000
+    "Tue, 05 Nov 2024 10:30:00 +99999999999", # 偏移远超 ±24 小时
+    "Tue, 05 Nov 2024 10:30:00 -99999999999",
 ]
 
 
@@ -887,6 +1129,8 @@ def build_cases() -> list[dict]:
     import mail_client
 
     cases = parse_headers_cases(mail_client.parse_message)
+    cases += unparsable_cases(mail_client.parse_message)
+    cases += recursion_cases()
 
     for index, sample in enumerate(DECODE_HEADER_SAMPLES):
         cases.append({
@@ -914,12 +1158,17 @@ def build_cases() -> list[dict]:
         })
 
     for index, sample in enumerate(PARSEDATE_SAMPLES):
-        parsed = email.utils.parsedate_to_datetime(sample)
+        # 年份越界、偏移越界时 Python 抛 ValueError；金标写成 null，对应 Kotlin 的 parse 失败
+        try:
+            parsed = email.utils.parsedate_to_datetime(sample)
+            expected = parsed.timestamp()
+        except (ValueError, OverflowError):
+            expected = None
         cases.append({
             "id": f"parsedate-{index:02d}",
             "fn": "parsedate_to_datetime",
             "args": {"value": sample},
-            "expected": parsed.timestamp(),
+            "expected": expected,
         })
 
     return cases

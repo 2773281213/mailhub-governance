@@ -87,6 +87,10 @@ def detect_cases() -> list[dict]:
         "trailing-space": "  user@qq.com  ",
         "uppercase-full": "USER@QQ.COM",
         "dots": "user@qq.com.example",
+        # M8：`rpartition('@')[2]` 找不到分隔符时返回整个字符串，所以裸域名会被识别成服务商
+        "no-at-qq-domain": "qq.com",
+        "no-at-gmail-domain": "gmail.com",
+        "no-at-subdomain": "mail.qq.com",
     }
     for name, value in extras.items():
         cases.append({

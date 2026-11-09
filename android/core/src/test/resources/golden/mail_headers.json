@@ -2,6 +2,7 @@
  "cases": [
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "plain_ascii.eml"
    },
    "expected": {
@@ -27,6 +28,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "utf8_b64_subject.eml"
    },
    "expected": {
@@ -52,6 +54,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "utf8_q_subject.eml"
    },
    "expected": {
@@ -77,6 +80,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "gb2312_q_subject.eml"
    },
    "expected": {
@@ -102,6 +106,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "gb2312_sender_encoded.eml"
    },
    "expected": {
@@ -127,6 +132,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "gb2312_gbk_only.eml"
    },
    "expected": {
@@ -152,6 +158,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "two_encoded_words.eml"
    },
    "expected": {
@@ -177,6 +184,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "mixed_text_words.eml"
    },
    "expected": {
@@ -202,6 +210,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "folded_subject.eml"
    },
    "expected": {
@@ -227,6 +236,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "folded_from.eml"
    },
    "expected": {
@@ -252,6 +262,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "quoted_name_comma.eml"
    },
    "expected": {
@@ -277,6 +288,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "comment_address.eml"
    },
    "expected": {
@@ -302,6 +314,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "group_address.eml"
    },
    "expected": {
@@ -327,6 +340,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "multi_to.eml"
    },
    "expected": {
@@ -352,6 +366,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "to_dedupe_sort.eml"
    },
    "expected": {
@@ -377,6 +392,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "to_truncate.eml"
    },
    "expected": {
@@ -402,6 +418,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "reply_to.eml"
    },
    "expected": {
@@ -427,6 +444,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "reply_to_empty.eml"
    },
    "expected": {
@@ -452,6 +470,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "list_unsubscribe.eml"
    },
    "expected": {
@@ -477,6 +496,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "precedence_bulk.eml"
    },
    "expected": {
@@ -502,6 +522,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "precedence_list.eml"
    },
    "expected": {
@@ -527,6 +548,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "precedence_other.eml"
    },
    "expected": {
@@ -552,6 +574,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "auto_submitted.eml"
    },
    "expected": {
@@ -577,6 +600,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "auto_submitted_no.eml"
    },
    "expected": {
@@ -602,6 +626,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "feedback_id.eml"
    },
    "expected": {
@@ -627,6 +652,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "return_path_esp.eml"
    },
    "expected": {
@@ -652,6 +678,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "dkim_multi.eml"
    },
    "expected": {
@@ -677,6 +704,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "dkim_domain_only.eml"
    },
    "expected": {
@@ -702,6 +730,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "auth_results_multi.eml"
    },
    "expected": {
@@ -727,6 +756,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "auth_results_long.eml"
    },
    "expected": {
@@ -752,6 +782,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "msgid_whitespace.eml"
    },
    "expected": {
@@ -777,6 +808,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "date_two_digit_year.eml"
    },
    "expected": {
@@ -802,6 +834,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "date_est.eml"
    },
    "expected": {
@@ -827,6 +860,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "date_rfc850.eml"
    },
    "expected": {
@@ -852,6 +886,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "date_no_seconds.eml"
    },
    "expected": {
@@ -877,6 +912,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "malformed_from_paren.eml"
    },
    "expected": {
@@ -902,6 +938,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "malformed_to_bracket.eml"
    },
    "expected": {
@@ -927,6 +964,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "no_from_header.eml"
    },
    "expected": {
@@ -952,6 +990,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "raw_8bit_subject.eml"
    },
    "expected": {
@@ -977,6 +1016,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "bad_base64.eml"
    },
    "expected": {
@@ -1002,6 +1042,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "unknown_charset.eml"
    },
    "expected": {
@@ -1027,6 +1068,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "latin1_b64.eml"
    },
    "expected": {
@@ -1052,6 +1094,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "latin1_sender_b64.eml"
    },
    "expected": {
@@ -1077,6 +1120,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "duplicate_subject.eml"
    },
    "expected": {
@@ -1102,6 +1146,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "lowercase_headers.eml"
    },
    "expected": {
@@ -1127,6 +1172,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "cp1252_subject.eml"
    },
    "expected": {
@@ -1152,6 +1198,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "big5_subject.eml"
    },
    "expected": {
@@ -1177,6 +1224,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "shift_jis_subject.eml"
    },
    "expected": {
@@ -1202,6 +1250,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "euckr_subject.eml"
    },
    "expected": {
@@ -1227,6 +1276,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "iso2022jp_subject.eml"
    },
    "expected": {
@@ -1252,6 +1302,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "gbk_subject.eml"
    },
    "expected": {
@@ -1277,6 +1328,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "gb18030_subject.eml"
    },
    "expected": {
@@ -1302,6 +1354,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "lf_line_endings.eml"
    },
    "expected": {
@@ -1327,6 +1380,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "empty_subject.eml"
    },
    "expected": {
@@ -1352,6 +1406,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "unfolded_tab.eml"
    },
    "expected": {
@@ -1377,6 +1432,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "semicolon_subject.eml"
    },
    "expected": {
@@ -1402,6 +1458,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "unix_from_line.eml"
    },
    "expected": {
@@ -1427,6 +1484,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "colon_at_start.eml"
    },
    "expected": {
@@ -1452,6 +1510,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "value_starts_with_newline.eml"
    },
    "expected": {
@@ -1477,6 +1536,7 @@
   },
   {
    "args": {
+    "clock": 1700000000.0,
     "file": "delivered_to_only.eml"
    },
    "expected": {
@@ -1499,6 +1559,397 @@
    },
    "fn": "parse_headers",
    "id": "delivered_to_only"
+  },
+  {
+   "args": {
+    "clock": 1700000000.0,
+    "file": "from_8bit.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "",
+    "sender_name": "",
+    "subject": "Eight bit from",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "from_8bit"
+  },
+  {
+   "args": {
+    "clock": 1700000000.0,
+    "file": "reply_to_8bit.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "newsletter@shop.example",
+    "sender_name": "",
+    "subject": "Eight bit reply-to",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "reply_to_8bit"
+  },
+  {
+   "args": {
+    "clock": 1700000000.0,
+    "file": "date_8bit.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1700000000.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "",
+    "subject": "Eight bit date",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "date_8bit"
+  },
+  {
+   "args": {
+    "clock": 1700000000.0,
+    "file": "recipients_8bit.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "",
+    "subject": "Eight bit recipients",
+    "to_addr": "a@corp.example,c@corp.example,d@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "recipients_8bit"
+  },
+  {
+   "args": {
+    "clock": 1700000000.0,
+    "file": "subject_8bit_encoded.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "",
+    "subject": "caf\\ufffd 你好",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "subject_8bit_encoded"
+  },
+  {
+   "args": {
+    "clock": 1700000000.0,
+    "file": "signals_8bit.eml"
+   },
+   "expected": {
+    "auth_results": "�mx.corp.example; spf=pass",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": true,
+     "esp": true,
+     "feedback_id": true,
+     "list_id": true,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "",
+    "subject": "Eight bit signals",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 1
+   },
+   "fn": "parse_headers",
+   "id": "signals_8bit"
+  },
+  {
+   "args": {
+    "clock": 1700000000.0,
+    "file": "bare_cr_subject_from.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "forged@evil.example",
+    "sender_name": "",
+    "subject": "x",
+    "to_addr": "",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "bare_cr_subject_from"
+  },
+  {
+   "args": {
+    "clock": 1700000000.0,
+    "file": "bare_cr_blank_line.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1700000000.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "",
+    "sender_name": "",
+    "subject": "",
+    "to_addr": "",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "bare_cr_blank_line"
+  },
+  {
+   "args": {
+    "clock": 1700000000.0,
+    "file": "bare_cr_folded_subject.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "",
+    "subject": "first\r second",
+    "to_addr": "",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "bare_cr_folded_subject"
+  },
+  {
+   "args": {
+    "clock": 1700000000.0,
+    "file": "auth_results_folded_leading.eml"
+   },
+   "expected": {
+    "auth_results": "x",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "",
+    "subject": "Folded auth results",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "auth_results_folded_leading"
+  },
+  {
+   "args": {
+    "clock": 1700000000.0,
+    "file": "list_id_blank.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730773800.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "",
+    "subject": "Blank list id",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "list_id_blank"
+  },
+  {
+   "args": {
+    "clock": 1700000000.0,
+    "file": "date_offset_1900.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1730734200.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "",
+    "subject": "Plus 19 offset",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "date_offset_1900"
+  },
+  {
+   "args": {
+    "clock": 1700000000.0,
+    "file": "date_year_10000.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1700000000.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "",
+    "subject": "Year 10000",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "date_year_10000"
+  },
+  {
+   "args": {
+    "clock": 1700000000.0,
+    "file": "date_huge_offset.eml"
+   },
+   "expected": {
+    "auth_results": "",
+    "date_ts": 1700000000.0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "",
+    "subject": "Huge offset",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_headers",
+   "id": "date_huge_offset"
+  },
+  {
+   "args": {
+    "clock": 1700000000.0,
+    "file": "msgid_8bit.eml"
+   },
+   "expected": "AttributeError",
+   "fn": "parse_headers_unparsable",
+   "id": "msgid_8bit"
+  },
+  {
+   "args": {
+    "depth": 5000,
+    "kind": "comments"
+   },
+   "expected": "RecursionError",
+   "fn": "parseaddr_recursion",
+   "id": "parseaddr-recursion-comments"
+  },
+  {
+   "args": {
+    "depth": 2000,
+    "kind": "groups"
+   },
+   "expected": "RecursionError",
+   "fn": "parseaddr_recursion",
+   "id": "parseaddr-recursion-groups"
   },
   {
    "args": {
@@ -1843,6 +2294,62 @@
    "expected": "あ你好",
    "fn": "decode_header",
    "id": "decode-header-42"
+  },
+  {
+   "args": {
+    "raw": "=?utf-8?B?QUJD=REVG?="
+   },
+   "expected": "ABCDEF",
+   "fn": "decode_header",
+   "id": "decode-header-43"
+  },
+  {
+   "args": {
+    "raw": "=?utf-8?B?Q=UJD?="
+   },
+   "expected": "ABC",
+   "fn": "decode_header",
+   "id": "decode-header-44"
+  },
+  {
+   "args": {
+    "raw": "=?utf-8?B?QUJDÿREVG?="
+   },
+   "expected": "ABCDEF",
+   "fn": "decode_header",
+   "id": "decode-header-45"
+  },
+  {
+   "args": {
+    "raw": "=??q?a?="
+   },
+   "expected": "a",
+   "fn": "decode_header",
+   "id": "decode-header-46"
+  },
+  {
+   "args": {
+    "raw": "=??B?YWJj?="
+   },
+   "expected": "abc",
+   "fn": "decode_header",
+   "id": "decode-header-47"
+  },
+  {
+   "args": {
+    "raw": "😀 =?utf-8?q?a?="
+   },
+   "expected": "\\U0001f600 a",
+   "fn": "decode_header",
+   "id": "decode-header-48"
+  },
+  {
+   "args": {
+    "raw": "😀 =?utf-8?B?QUJD?="
+   },
+   "expected": "\\U0001f600 ABC",
+   "fn": "decode_header",
+   "id": "decode-header-49"
   },
   {
    "args": {
@@ -2264,6 +2771,61 @@
   },
   {
    "args": {
+    "addr": "a(c1)@b.example"
+   },
+   "expected": [
+    "c1 c1",
+    "a@b.example"
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-38"
+  },
+  {
+   "args": {
+    "addr": "a(c1)@b.example, c@d.example"
+   },
+   "expected": [
+    "",
+    ""
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-39"
+  },
+  {
+   "args": {
+    "addr": "(c1)a@b.example"
+   },
+   "expected": [
+    "c1",
+    "a@b.example"
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-40"
+  },
+  {
+   "args": {
+    "addr": "a@b.example (c1) (c2)"
+   },
+   "expected": [
+    "c1 c2",
+    "a@b.example"
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-41"
+  },
+  {
+   "args": {
+    "addr": "(((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((())))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))"
+   },
+   "expected": [
+    "",
+    ""
+   ],
+   "fn": "parseaddr",
+   "id": "parseaddr-42"
+  },
+  {
+   "args": {
     "values": [
      "Alice <alice@shop.example>"
     ]
@@ -2662,6 +3224,51 @@
   },
   {
    "args": {
+    "values": [
+     "a(c1)@b.example"
+    ]
+   },
+   "expected": [
+    [
+     "c1 c1",
+     "a@b.example"
+    ]
+   ],
+   "fn": "getaddresses",
+   "id": "getaddresses-24"
+  },
+  {
+   "args": {
+    "values": [
+     "(c1)a@b.example"
+    ]
+   },
+   "expected": [
+    [
+     "c1",
+     "a@b.example"
+    ]
+   ],
+   "fn": "getaddresses",
+   "id": "getaddresses-25"
+  },
+  {
+   "args": {
+    "values": [
+     "a@b.example (c1) (c2)"
+    ]
+   },
+   "expected": [
+    [
+     "c1 c2",
+     "a@b.example"
+    ]
+   ],
+   "fn": "getaddresses",
+   "id": "getaddresses-26"
+  },
+  {
+   "args": {
     "value": "Tue, 05 Nov 2024 10:30:00 +0800"
    },
    "expected": 1730773800.0,
@@ -2907,6 +3514,78 @@
    "expected": 1730802600.0,
    "fn": "parsedate_to_datetime",
    "id": "parsedate-30"
+  },
+  {
+   "args": {
+    "value": "Tue, 05 Nov 2024 10:30:00 +1900"
+   },
+   "expected": 1730734200.0,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-31"
+  },
+  {
+   "args": {
+    "value": "Tue, 05 Nov 2024 10:30:00 -1900"
+   },
+   "expected": 1730871000.0,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-32"
+  },
+  {
+   "args": {
+    "value": "Tue, 05 Nov 2024 10:30:00 +1800"
+   },
+   "expected": 1730737800.0,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-33"
+  },
+  {
+   "args": {
+    "value": "Tue, 05 Nov 2024 10:30:00 +2400"
+   },
+   "expected": null,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-34"
+  },
+  {
+   "args": {
+    "value": "1 Jan 9999 00:00:00 +0000"
+   },
+   "expected": 253370764800.0,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-35"
+  },
+  {
+   "args": {
+    "value": "1 Jan 10000 00:00:00 +0000"
+   },
+   "expected": null,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-36"
+  },
+  {
+   "args": {
+    "value": "1 Jan 0 00:00:00 +0000"
+   },
+   "expected": 946684800.0,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-37"
+  },
+  {
+   "args": {
+    "value": "Tue, 05 Nov 2024 10:30:00 +99999999999"
+   },
+   "expected": null,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-38"
+  },
+  {
+   "args": {
+    "value": "Tue, 05 Nov 2024 10:30:00 -99999999999"
+   },
+   "expected": null,
+   "fn": "parsedate_to_datetime",
+   "id": "parsedate-39"
   }
  ],
  "generator": "scripts/golden/mail_headers.py",

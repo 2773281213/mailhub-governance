@@ -1,5 +1,6 @@
 package com.mailhub.core.mail
 
+import com.mailhub.core.Clock
 import com.mailhub.core.golden.Golden
 import com.mailhub.core.golden.GoldenCase
 import com.mailhub.core.golden.boolMapOrNull
@@ -37,6 +38,42 @@ class MailHeadersGoldenTest {
     fun parseHeadersMatchesPython() = Golden.replay("mail_headers") { case ->
         when (case.fn) {
             "parse_headers" -> checkParseHeaders(case)
+            // Python 在这里抛异常：Message-ID 含 8 位字节时是 AttributeError（整封不可解析），
+            // 嵌套过深时是 RecursionError。Kotlin 用普通 Exception 表示同一种结果。
+            "parse_headers_unparsable" -> {
+                val actual = try {
+                    parseHeaders(readFixture(case.args.str("file")), clock = fixedClock(case), zone = utc)
+                    "ok"
+                } catch (_: UnparsableMessageException) {
+                    "AttributeError"
+                } catch (e: AddressRecursionException) {
+                    "RecursionError"
+                } catch (e: Error) {
+                    "Error(${e::class.simpleName})"
+                } catch (e: Exception) {
+                    "Exception(${e::class.simpleName})"
+                }
+                Golden.diff(case.expected.jsonPrimitive.content, actual)
+            }
+            "parseaddr_recursion" -> {
+                val depth = case.args.getValue("depth").jsonPrimitive.int
+                val input = when (val kind = case.args.str("kind")) {
+                    "comments" -> "(".repeat(depth) + ")".repeat(depth)
+                    "groups" -> (1..depth).joinToString(":") { "a" }
+                    else -> return@replay "未知的 kind：$kind"
+                }
+                val actual = try {
+                    parseAddr(input)
+                    "ok"
+                } catch (_: AddressRecursionException) {
+                    "RecursionError"
+                } catch (e: Error) {
+                    "Error(${e::class.simpleName})"
+                } catch (e: Exception) {
+                    "Exception(${e::class.simpleName})"
+                }
+                Golden.diff(case.expected.jsonPrimitive.content, actual)
+            }
             "decode_header" -> Golden.diff(
                 stringOrNull(case.expected),
                 decodeHeader(case.args.strOrNull("raw")),
@@ -60,7 +97,7 @@ class MailHeadersGoldenTest {
     /** `parse_headers`：逐字段比较，差异里写明字段名。 */
     private fun checkParseHeaders(case: GoldenCase): String? {
         val expected: JsonObject = case.expected.jsonObject
-        val actual = parseHeaders(readFixture(case.args.str("file")), zone = utc)
+        val actual = parseHeaders(readFixture(case.args.str("file")), clock = fixedClock(case), zone = utc)
         val problems = mutableListOf<String>()
         fun check(name: String, expectedValue: Any?, actualValue: Any?) {
             if (expectedValue != actualValue) problems += "$name 期望 $expectedValue，实际 $actualValue"
@@ -82,6 +119,12 @@ class MailHeadersGoldenTest {
         checkNotNull(javaClass.getResourceAsStream("/mail/$name")) {
             "找不到夹具 /mail/$name，先运行 python scripts/golden/mail_headers.py"
         }.use { it.readBytes() }
+
+    /**
+     * 金标生成时用 `mock.patch` 把 `mail_client` 里的 `time.time()` 固定成 `args.clock`，
+     * 这样「日期缺失 / 非法时回退当前时间」的用例也能逐条比较。
+     */
+    private fun fixedClock(case: GoldenCase): Clock = Clock { case.args.double("clock") }
 
     private fun stringOrNull(element: Any): String? =
         (element as? JsonPrimitive)?.takeIf { it !is JsonNull }?.content

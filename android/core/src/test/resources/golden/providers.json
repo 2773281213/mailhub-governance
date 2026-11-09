@@ -2662,6 +2662,30 @@
   },
   {
    "args": {
+    "email": "qq.com"
+   },
+   "expected": "qq",
+   "fn": "detect",
+   "id": "detect-extra-no-at-qq-domain"
+  },
+  {
+   "args": {
+    "email": "gmail.com"
+   },
+   "expected": "gmail",
+   "fn": "detect",
+   "id": "detect-extra-no-at-gmail-domain"
+  },
+  {
+   "args": {
+    "email": "mail.qq.com"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-extra-no-at-subdomain"
+  },
+  {
+   "args": {
     "key": "qq"
    },
    "expected": false,

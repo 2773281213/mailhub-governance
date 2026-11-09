@@ -3,6 +3,27 @@ package com.mailhub.core.mail
 import com.mailhub.core.text.pyStrip
 
 /**
+ * 地址解析的嵌套层数超过上限。Python 在同类输入上抛 `RecursionError`（`Exception` 的子类，
+ * `parse_message` 的 `except Exception` 能接住并走 `unparsable_message()`）；这里也抛普通的
+ * `Exception`，而不是 JVM 的 `StackOverflowError`（`Error`，`catch (Exception)` 拦不住）。
+ *
+ * 上限见 `AddrlistParser.MAX_DEPTH`（300 层）。
+ */
+class AddressRecursionException(message: String) : Exception(message)
+
+/**
+ * `parseaddr(msg.get(name))` 的移植：`msg.get` 在头部含 8 位字节时返回 `Header` 对象，
+ * 而 `parseaddr` 对非 str 直接返回 `("", "")`。对应 [HeaderField.has8Bit]。
+ *
+ * 用于 `From` / `Reply-To` 等直接喂给 `parseaddr` 的字段；`To` / `Cc` / `Delivered-To`
+ * 走的是 `getaddresses`，它在 Python 里先对每个值做 `str(v)`，所以仍用 [getAddresses]。
+ */
+fun parseAddrHeader(field: HeaderField?): Pair<String, String> {
+    if (field == null || field.has8Bit) return "" to ""
+    return parseAddr(field.value)
+}
+
+/**
  * `email.utils.parseaddr` / `email.utils.getaddresses` 的移植。
  *
  * Python 3.13 里这两个函数仍然走 `email._parseaddr.AddrlistClass`（rfc822 时代的状态机），
@@ -115,6 +136,25 @@ private class AddrlistParser(field: String) {
     private var pos = 0
     private var commentList = ArrayList<String>()
 
+    /** 当前递归层数：`getAddress`（组地址嵌套）与 `getDelimited`（嵌套注释）都算一层。 */
+    private var depth = 0
+
+    /**
+     * 进入一层递归。超过 [MAX_DEPTH] 时抛 [AddressRecursionException]（普通 `Exception`），
+     * 对应 Python 的 `RecursionError`。
+     */
+    private inline fun <T> withDepth(block: () -> T): T {
+        if (depth >= MAX_DEPTH) {
+            throw AddressRecursionException("地址解析嵌套超过 $MAX_DEPTH 层")
+        }
+        depth++
+        try {
+            return block()
+        } finally {
+            depth--
+        }
+    }
+
     fun getAddrList(): List<Pair<String, String>> {
         val result = ArrayList<Pair<String, String>>()
         while (pos < length) {
@@ -141,11 +181,13 @@ private class AddrlistParser(field: String) {
         return whitespace.toString()
     }
 
-    private fun getAddress(): List<Pair<String, String>> {
+    private fun getAddress(): List<Pair<String, String>> = withDepth {
         commentList = ArrayList()
         gotonext()
         val oldPos = pos
-        val oldComments = ArrayList(commentList)
+        // Python 的 `oldcl = self.commentlist` 是别名，不是拷贝：后面解析 addr-spec 时
+        // 追加的注释会同时出现在 oldcl 里（`a(c1)@b.example` 因此得到 `c1 c1`）。
+        val oldComments = commentList
         val phraseList = getPhraseList()
         gotonext()
         var result: List<Pair<String, String>> = emptyList()
@@ -188,7 +230,7 @@ private class AddrlistParser(field: String) {
         }
         gotonext()
         if (pos < length && chars[pos] == ','.code) pos++
-        return result
+        result
     }
 
     /** `getrouteaddr`：跳过路由信息（`<@a,@b:user@host>`），只要 addr-spec。 */
@@ -274,8 +316,8 @@ private class AddrlistParser(field: String) {
         return parts.joinToString("")
     }
 
-    private fun getDelimited(beginChar: Char, endChars: String, allowComments: Boolean): String {
-        if (pos >= length || chars[pos] != beginChar.code) return ""
+    private fun getDelimited(beginChar: Char, endChars: String, allowComments: Boolean): String = withDepth {
+        if (pos >= length || chars[pos] != beginChar.code) return@withDepth ""
         val parts = ArrayList<String>()
         var quoted = false
         pos++
@@ -297,7 +339,7 @@ private class AddrlistParser(field: String) {
             }
             pos++
         }
-        return parts.joinToString("")
+        parts.joinToString("")
     }
 
     private fun getQuote(): String = getDelimited('"', "\"\r", allowComments = false)
@@ -336,6 +378,14 @@ private class AddrlistParser(field: String) {
     private fun String.trimmedEmpty(): Boolean = this.pyStrip().isEmpty()
 
     private companion object {
+        /**
+         * 递归层数上限。Python 的默认递归上限是 1000 帧，实测约 450 层嵌套注释、
+         * 500–1000 层嵌套组地址就会抛 `RecursionError`；精确值取决于进程状态，无法也不必逐帧对齐。
+         * 这里取 300：正常邮件的嵌套层数远小于它，而几万层的攻击输入会立即变成普通异常，
+         * 不会触发 JVM 的 `StackOverflowError`。
+         */
+        const val MAX_DEPTH = 300
+
         /** `self.specials`。 */
         const val SPECIALS = "()<>@,:;.\"[]"
 

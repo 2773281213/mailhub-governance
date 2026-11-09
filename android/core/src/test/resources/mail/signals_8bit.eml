@@ -1,0 +1,14 @@
+Return-Path: <bounce@sendgrid.netå>
+DKIM-Signature: v=1; a=rsa-sha256; d=åmailchimp; s=sel; b=abc
+Precedence: åbulk
+List-Id: ånews.shop.example
+Authentication-Results: åmx.corp.example; spf=pass
+Feedback-ID: å123
+Auto-Submitted: åauto
+List-Unsubscribe: å<mailto:unsub@shop.example>
+From: notice@shop.example
+To: bob@corp.example
+Subject: Eight bit signals
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+
+è¿™æ˜¯æ­£æ–‡ã€‚
