@@ -699,6 +699,33 @@ object Py {
     fun formatPercent(value: Double, digits: Int = 0): String = formatFixed(value * 100.0, digits) + "%"
 
     /**
+     * Python 的 `repr(value)`：最短往返表示；小数点位置 decpt 大于 16 或小于 -3 时用科学计数法（指数至少两位），
+     * 否则用定点写法并保证带小数点（`1e+16`、`1000000000000000.0`、`0.0001`、`1e-05`）。
+     * 分页游标用它写时间戳（`app.py` 的 `_encode_cursor`）。
+     *
+     * 有效数字取自 `Double.toString`。JDK 19 起它给的是最短表示；更旧的运行时（包括部分 Android 版本）
+     * 偶尔多一位，结果不再逐字等于 Python，但仍能精确往返，游标只需要往返。
+     * 最小次正规数例外：`Double.toString` 规定至少两位，给 `4.9E-324`，Python 是 `5e-324`，时间戳碰不到。
+     */
+    fun reprFloat(value: Double): String {
+        if (value.isNaN()) return "nan"
+        if (value.isInfinite()) return if (value > 0) "inf" else "-inf"
+        val sign = if (value < 0 || (value == 0.0 && 1.0 / value < 0)) "-" else ""
+        if (value == 0.0) return sign + "0.0"
+        val shortest = BigDecimal(java.lang.Double.toString(Math.abs(value))).stripTrailingZeros()
+        val digits = shortest.unscaledValue().toString()
+        val decpt = digits.length - shortest.scale()
+        if (decpt > 16 || decpt < -3) {
+            val exponent = decpt - 1
+            val mantissa = if (digits.length > 1) digits.substring(0, 1) + "." + digits.substring(1) else digits
+            val expSign = if (exponent < 0) "-" else "+"
+            return sign + mantissa + "e" + expSign + Math.abs(exponent).toString().padStart(2, '0')
+        }
+        val plain = shortest.toPlainString()
+        return sign + if ('.' in plain) plain else "$plain.0"
+    }
+
+    /**
      * Python 的 `f"{value:g}"` / `f"{value:.{precision}g}"`（默认 6 位有效数字）。规则：
      * - 先对二进制精确值按有效数字四舍六入五成双，得到舍入后的指数 exp；
      * - -4 ≤ exp < precision 用定点写法，否则用科学计数法（指数至少两位，带正负号）；

@@ -250,6 +250,22 @@ class PyTest {
     }
 
     @Test
+    fun reprFloatMatchesPython() {
+        // 期望值来自 Python 3.13 的 repr(x)
+        val cases = listOf(
+            0.0 to "0.0", -0.0 to "-0.0", 1.0 to "1.0", -1.5 to "-1.5", 0.1 to "0.1", 0.0001 to "0.0001",
+            0.00001 to "1e-05", 0.000123 to "0.000123", 1e15 to "1000000000000000.0", 1e16 to "1e+16",
+            1.5e16 to "1.5e+16", 123456789012345680.0 to "1.2345678901234568e+17",
+            1234567890123456.0 to "1234567890123456.0", 1700000000.5 to "1700000000.5",
+            1730773800.123456 to "1730773800.123456", 1e22 to "1e+22", 1e-7 to "1e-07",
+            1.7976931348623157e308 to "1.7976931348623157e+308", 2.5 to "2.5", 100.0 to "100.0",
+            9999999999999998.0 to "9999999999999998.0", Double.POSITIVE_INFINITY to "inf",
+            Double.NEGATIVE_INFINITY to "-inf", Double.NaN to "nan",
+        )
+        cases.forEach { (value, python) -> assertEquals(python, Py.reprFloat(value)) }
+    }
+
+    @Test
     fun formatGMatchesPython() {
         // 期望值来自 Python 3.13 的 format(x, "g")
         val cases = listOf(
