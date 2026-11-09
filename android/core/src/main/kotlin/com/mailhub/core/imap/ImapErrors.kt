@@ -44,9 +44,15 @@ data class ImapAccount(
  *
  * 网易的要求是认证成功之后、`SELECT` 之前提交 ID；失败时与 Python 一样：先关闭会话，
  * 认证类失败统一换成带 [NETEASE_LOGIN_HELP] 的中文说明再抛。
+ *
+ * [onCreated] 在**登录之前**回调：调用方在这里登记会话，登录卡住时也能从别的线程 `abort`。
  */
-fun openSession(account: ImapAccount, secret: String, clock: Clock = SystemClock): ImapSession =
-    openSession(account, secret, ImapTransport(), clock)
+fun openSession(
+    account: ImapAccount,
+    secret: String,
+    clock: Clock = SystemClock,
+    onCreated: (ImapSession) -> Unit = {},
+): ImapSession = openSession(account, secret, ImapTransport(), clock, onCreated)
 
 /**
  * [openSession] 的可注入版本：只用 `:core` 内部（含同模块测试）调用，
@@ -57,8 +63,10 @@ internal fun openSession(
     secret: String,
     transport: ImapTransport,
     clock: Clock = SystemClock,
+    onCreated: (ImapSession) -> Unit = {},
 ): ImapSession {
     val session = ImapSession(account.host, account.port, transport, clock)
+    onCreated(session)
     val needsId = needsImapId(account.provider) || account.needId
     try {
         if (account.authType == AUTH_TYPE_OAUTH) {

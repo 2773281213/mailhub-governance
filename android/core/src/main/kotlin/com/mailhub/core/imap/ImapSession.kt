@@ -643,6 +643,9 @@ class ImapSession internal constructor(
     // ---------------- 内部：连接与命令 ----------------
 
     private fun connect(user: String, password: String, extra: Map<String, String>) {
+        if (aborted) {
+            throw ImapException("IMAP 会话已取消")
+        }
         val properties = Properties().apply {
             put("mail.store.protocol", IMAP_PROTOCOL)
             put("mail.imaps.host", host)
