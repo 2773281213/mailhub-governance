@@ -1,0 +1,16 @@
+From: Notice <notice@shop.example>
+To: bob@corp.example
+Subject: RFC 2231 sort
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+Content-Type: multipart/mixed; boundary="a8"
+
+--a8
+Content-Type: text/plain
+
+see attachment
+--a8
+Content-Type: application/octet-stream
+Content-Disposition: attachment; filename*0="b"; filename*0="a"
+
+BLOB
+--a8--

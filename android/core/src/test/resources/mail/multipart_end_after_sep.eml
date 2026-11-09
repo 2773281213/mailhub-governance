@@ -1,0 +1,9 @@
+From: Notice <notice@shop.example>
+To: bob@corp.example
+Subject: End after separator
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+Content-Type: multipart/mixed; boundary="b"
+
+--b
+--b--
+HIDDEN

@@ -1,12 +1,10 @@
 package com.mailhub.core.mail
 
-import com.mailhub.core.text.PyRegex
 import com.mailhub.core.text.isPySpace
 import com.mailhub.core.text.pyLstrip
 import com.mailhub.core.text.pySplitLines
 import com.mailhub.core.text.pyStrip
 import java.io.ByteArrayOutputStream
-import java.util.regex.Pattern
 
 /** Python 抛 `email.errors.HeaderParseError` 的场合（例如编码字的 base64 解不出来）。 */
 internal class HeaderParseError(message: String) : Exception(message)
@@ -30,6 +28,9 @@ fun decodeHeader(raw: String?): String {
         val out = StringBuilder()
         for ((data, charset) in decodeHeaderParts(raw)) {
             if (data is ByteArray) {
+                // Python 的 `bytes.decode`：空字节在查编解码器之前就返回空串，
+                // 所以 `=?unknown?q??=` 不会抛 LookupError，结果也是空串
+                if (data.isEmpty()) continue
                 // Python 是 `charset or "utf-8"`：charset 为空串时也用 UTF-8；
                 // 名字不认识时 Python 抛 LookupError，走下面的 except
                 val name = if (charset.isNullOrEmpty()) "utf-8" else charset
@@ -50,21 +51,30 @@ fun decodeHeader(raw: String?): String {
  * （编码字解出来的字节），第二项是编码字里写的小写 charset 名（普通文本为 null）。
  *
  * 与 CPython 逐条对应的部分：
- * - 只认出 `=?charset?q?…?=` / `=?charset?b?…?=` 两种编码（[ENCODED_WORD]）；
+ * - 只认出 `=?charset?q?…?=` / `=?charset?b?…?=` 两种编码（[ENCODED_WORD] 的语义）；
  * - 按行处理（`header.splitlines()`），每行的第一段做 `lstrip()`；
  * - 两个编码字之间只有空白的片段会被删掉；
  * - charset 相同的相邻片段合并：都在编码字里就首尾相接，普通文本之间用空格连接；
  * - 没有编码字时整串原样返回。
+ *
+ * **反回溯（有意偏差）**：Python 用的是
+ * `ecre = re.compile(r'=\?(?P<charset>[^?]*?)\?(?P<encoding>[qQbB])\?(?P<encoded>.*?)\?=')`
+ * 加 `re.split`。`.*?` 在「很多个 `=?x?q?A` 开头、始终没有 `?=`」的输入上是平方级：
+ * 一兆字节大约 7.5×10¹⁰ 步，而 `Subject` 与附件名都走这里，攻击者可以控。
+ * 这里用单遍扫描实现同一语义（见 [findEncodedWord]），最坏输入线性。
  */
 internal fun decodeHeaderParts(header: String): List<Pair<Any, String?>> {
-    if (!ENCODED_WORD.matcher(header).find()) return listOf(header to null)
+    // Python 的 `if not ecre.search(header): return [(header, None)]`：这个判断在**整串**上做
+    // （`.` 只被换行挡住），而接下来的切分是按 `header.splitlines()` 逐行做的。两者不一致时以 Python 为准：
+    // 例如 `=?a?q?x\r?=` 在整串上能匹配（`.` 认裸 \r），逐行切分后两行都没有编码字。
+    if (findEncodedWord(header, 0, Finders(header)) == null) return listOf(header to null)
 
     // (文本, 编码, charset)：普通文本的编码和 charset 都是 null
     data class Word(val text: String, val encoding: String?, val charset: String?)
 
     val words = ArrayList<Word>()
     for (line in header.pySplitLines()) {
-        val parts = splitWithGroups(ENCODED_WORD, line).toMutableList()
+        val parts = splitEncodedWords(line).toMutableList()
         var first = true
         while (parts.isNotEmpty()) {
             var unencoded = parts.removeAt(0)
@@ -138,26 +148,115 @@ internal fun decodeHeaderParts(header: String): List<Pair<Any, String?>> {
     return collapsed
 }
 
-/** `email.header.ecre`：编译一次复用。 */
-private val ENCODED_WORD: Pattern = PyRegex.compile(
-    "=\\?(?P<charset>[^?]*?)\\?(?P<encoding>[qQbB])\\?(?P<encoded>.*?)\\?=",
-    multiline = true,
-)
+/**
+ * 一个编码字的匹配：`start`..`end` 是整段，三个捕获组是组文本。
+ *
+ * 对应 Python 的 `email.header.ecre`：
+ * `=\?(?P<charset>[^?]*?)\?(?P<encoding>[qQbB])\?(?P<encoded>.*?)\?=`（`re.MULTILINE`）。
+ */
+private class EncodedWordMatch(val start: Int, val end: Int, val charset: String, val encoding: String, val encoded: String)
 
 /**
- * Python 的 `re.split(pattern, text)`（模式带捕获组）：返回「非匹配片段 + 各组」交错的列表。
+ * Python 的 `ecre.split(line)`（模式带捕获组）：返回「非匹配片段 + 各组」交错的列表。
+ *
+ * `ENCODED_WORD_PATTERN` 的匹配是**确定的**，所以可以手写扫描而不损失语义：
+ * 1. `=?` 之后是 `[^?]*?`，字符集里不能有 `?`，所以 `\?` 只能落在 `=?` 之后的**第一个** `?` 上；
+ * 2. 紧接着必须是 `[qQbB]`，再后面必须是 `?`；
+ * 3. `.*?`（不含换行）配到 `?=` 的最小匹配，也就是这个位置之后的**第一个** `?=`——
+ *    它必须在同一行的下一个换行之前。
+ *
+ * 「下一个 `?`」「下一个 `?=`」「下一个换行」用单调游标的缓存来查（见 [MonotoneFinder]），
+ * 查询位置只增不减，所以整行扫描是线性的；找不到匹配时从候选起点的下一个字符继续。
  */
-private fun splitWithGroups(pattern: Pattern, text: String): List<String> {
-    val matcher = pattern.matcher(text)
+private fun splitEncodedWords(line: String): List<String> {
+    val finders = Finders(line)
     val out = ArrayList<String>()
     var last = 0
-    while (matcher.find()) {
-        out += text.substring(last, matcher.start())
-        for (group in 1..matcher.groupCount()) out += matcher.group(group) ?: ""
-        last = matcher.end()
+    while (true) {
+        val match = findEncodedWord(line, last, finders) ?: break
+        out += line.substring(last, match.start)
+        out += match.charset
+        out += match.encoding
+        out += match.encoded
+        last = match.end
     }
-    out += text.substring(last)
+    out += line.substring(last)
     return out
+}
+
+/** 在一行里从 [from] 开始找下一个编码字；找不到返回 null。 */
+private fun findEncodedWord(line: String, from: Int, finders: Finders): EncodedWordMatch? {
+    var index = from
+    while (true) {
+        val start = line.indexOf("=?", index)
+        if (start < 0) return null
+        val charsetStart = start + 2
+        val question = finders.nextQuestionMark(charsetStart)
+        if (question >= 0 && question + 2 < line.length) {
+            val encoding = line[question + 1]
+            if ((encoding == 'q' || encoding == 'Q' || encoding == 'b' || encoding == 'B') && line[question + 2] == '?') {
+                val encodedStart = question + 3
+                val encodedEnd = finders.nextEncodedEnd(encodedStart)
+                if (encodedEnd >= 0) {
+                    return EncodedWordMatch(
+                        start,
+                        encodedEnd + 2,
+                        line.substring(charsetStart, question),
+                        encoding.toString(),
+                        line.substring(encodedStart, encodedEnd),
+                    )
+                }
+            }
+        }
+        index = start + 1
+    }
+}
+
+/**
+ * 「下一个 `?`」「下一个 `?=`（且不跨行）」的单调查找器。
+ *
+ * `decode_header` 里的查询位置只增不减，所以缓存「从上次起点往后找到的位置」即可：
+ * 起点变大时如果缓存位置还在后面就直接复用，否则重新扫一遍——每个字符最多被扫常数次，整体线性。
+ */
+private class Finders(private val line: String) {
+
+    private var questionFrom = -1
+    private var questionPosition = -1
+
+    private var encodedFrom = -1
+    private var encodedPosition = -1
+
+    private var newlineFrom = -1
+    private var newlinePosition = -1
+
+    fun nextQuestionMark(from: Int): Int {
+        if (questionFrom >= 0 && from >= questionFrom && (questionPosition < 0 || questionPosition >= from)) {
+            return questionPosition
+        }
+        questionFrom = from
+        questionPosition = line.indexOf('?', from)
+        return questionPosition
+    }
+
+    /** 下一个 `?=` 的位置；如果它跨过了换行（`.*?` 不含换行）就返回 -1。 */
+    fun nextEncodedEnd(from: Int): Int {
+        if (!(encodedFrom >= 0 && from >= encodedFrom && (encodedPosition < 0 || encodedPosition >= from))) {
+            encodedFrom = from
+            encodedPosition = line.indexOf("?=", from)
+        }
+        if (encodedPosition < 0) return -1
+        val newline = nextNewline(from)
+        return if (newline >= 0 && newline < encodedPosition) -1 else encodedPosition
+    }
+
+    private fun nextNewline(from: Int): Int {
+        if (newlineFrom >= 0 && from >= newlineFrom && (newlinePosition < 0 || newlinePosition >= from)) {
+            return newlinePosition
+        }
+        newlineFrom = from
+        newlinePosition = line.indexOf('\n', from)
+        return newlinePosition
+    }
 }
 
 /** Python 的 `s.isspace()`（非空且全是空白）。 */

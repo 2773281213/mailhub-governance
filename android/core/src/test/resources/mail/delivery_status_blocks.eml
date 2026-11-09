@@ -1,0 +1,21 @@
+From: Notice <notice@shop.example>
+To: bob@corp.example
+Subject: Delivery status blocks
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+Content-Type: multipart/report; boundary="r2"
+
+--r2
+Content-Type: text/plain; charset=utf-8
+
+投递失败通知。
+--r2
+Content-Type: message/delivery-status
+
+Reporting-MTA: dns; mx.shop.example
+Content-Disposition: attachment; filename="report.txt"
+
+not a header line
+
+Final-Recipient: rfc822; bob@corp.example
+
+--r2--

@@ -32,8 +32,17 @@ data class HeaderField(val name: String, val value: String, val has8Bit: Boolean
  *
  * [bodyStart] 是正文第一个字节在整段字节里的下标（头部/正文分隔行本身不算正文，已经跳过）；
  * 头部一直到最后一行时等于整段的末尾。
+ *
+ * 头部末行的 `From ` 被推回正文时，这一行的**后面**还隔着一个已经丢掉的分隔空行：
+ * [skippedLineStart] / [skippedLineEnd] 给出那个空行的范围（没有这种情况时都是 -1），
+ * 调用方要把正文拼成「From 行 + 空行之后的内容」。
  */
-internal class HeaderBlock(val headers: MimeHeaders, val bodyStart: Int)
+internal class HeaderBlock(
+    val headers: MimeHeaders,
+    val bodyStart: Int,
+    val skippedLineStart: Int = -1,
+    val skippedLineEnd: Int = -1,
+)
 
 class MimeHeaders(val fields: List<HeaderField>) {
 
@@ -74,22 +83,40 @@ class MimeHeaders(val fields: List<HeaderField>) {
          * 它就是 RFC 规定的头部/正文分隔行，丢掉；否则按缺陷处理，算作正文的第一行（`unreadline`）。
          * 字节到字符是一对一的（8 位字节变成 U+FFFD），所以这里直接按字节扫描，
          * 只把头部那几行解码成字符串。
+         *
+         * 还有一条 `_parse_headers` 的规则：头部**最后一行**如果以 `From ` 开头，Python 会
+         * `unreadline` 把它推回正文（它更可能是正文的第一行），所以它既不是头，也要算进正文。
          */
         internal fun parsePart(raw: ByteArray, start: Int = 0, end: Int = raw.size): HeaderBlock {
             val headerLines = ArrayList<String>()
+            val headerStarts = ArrayList<Int>()
             var pos = start
             var bodyStart = end
+            var separatorStart = -1
+            var separatorEnd = -1
             while (pos < end) {
                 val lineEnd = lineEnd(raw, pos, end)
                 if (!matchesHeaderLine(raw, pos, lineEnd)) {
                     bodyStart = pos
                     val first = raw[pos].toInt() and 0xFF
                     // 只有空行（以 \r\n、\r 或 \n 开头）才是分隔行；其余不匹配的行属于正文
-                    if (first == 0x0D || first == 0x0A) bodyStart = lineEnd
+                    if (first == 0x0D || first == 0x0A) {
+                        separatorStart = pos
+                        separatorEnd = lineEnd
+                        bodyStart = lineEnd
+                    }
                     break
                 }
+                headerStarts += pos
                 headerLines += decodeAsciiDisplay(raw, pos, lineEnd)
                 pos = lineEnd
+            }
+            // 头部最后一行的 `From ` 要退回正文：它之后（含它自己）都是正文，
+            // 而两者之间那个已经丢掉的分隔空行不算正文
+            if (headerLines.size > 1 && startsWithAscii(raw, headerStarts.last(), end, "From ")) {
+                bodyStart = headerStarts.removeAt(headerStarts.size - 1)
+                headerLines.removeAt(headerLines.size - 1)
+                return HeaderBlock(MimeHeaders(parseHeaderLines(headerLines)), bodyStart, separatorStart, separatorEnd)
             }
             return HeaderBlock(MimeHeaders(parseHeaderLines(headerLines)), bodyStart)
         }

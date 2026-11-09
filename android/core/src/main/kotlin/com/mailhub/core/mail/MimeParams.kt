@@ -30,6 +30,20 @@ internal object MimeParams {
 
     private class ContinuationValue(val number: Long?, val value: String, val encoded: Boolean)
 
+    /** Python 的字符串比较按码点（不是 Java 的 UTF-16 码元），排序续行参数时要用这个。 */
+    private val CODE_POINT_ORDER: Comparator<String> = Comparator { left, right ->
+        var leftIndex = 0
+        var rightIndex = 0
+        while (leftIndex < left.length && rightIndex < right.length) {
+            val leftCodePoint = left.codePointAt(leftIndex)
+            val rightCodePoint = right.codePointAt(rightIndex)
+            if (leftCodePoint != rightCodePoint) return@Comparator leftCodePoint.compareTo(rightCodePoint)
+            leftIndex += Character.charCount(leftCodePoint)
+            rightIndex += Character.charCount(rightCodePoint)
+        }
+        (left.length - leftIndex).compareTo(right.length - rightIndex)
+    }
+
     /** Python 在 `decode_params` 里排序 `(None, ...)` 与 `(数字, ...)` 时抛 `TypeError`。 */
     class MimeParamOrderException(name: String) : Exception("参数 $name 的续行编号混用了空值与数字")
 
@@ -101,15 +115,22 @@ internal object MimeParams {
         return collapseRfc2231(value).pyStrip()
     }
 
-    /** `email.utils.collapse_rfc2231_value(value, errors="replace")`。 */
+    /**
+     * `email.utils.collapse_rfc2231_value(value, errors="replace")`。
+     *
+     * 两个分支都要注意 `unquote` 的次数：`get_param` 已经解过一次引号（见 [MimeParam.toValue]），
+     * `collapse_rfc2231_value` 在「不是三元组」或「charset 不认识」时还会**再解一次**。
+     * 少解这一次会让 `filename="\"invoice.exe\""` 变成 `"invoice.exe"`（扩展名成了 `exe"`），
+     * `boundary="<b>"` 也不会退成 `b`。
+     */
     fun collapseRfc2231(value: ParamValue): String = when (value) {
-        is ParamValue.Plain -> value.value
+        is ParamValue.Plain -> pyUnquote(value.value)
         is ParamValue.Extended -> {
             val charset = value.charset ?: "us-ascii"
             val codec = PyCodecs.lookup(charset)
             if (codec == null) {
-                // charset 不认识：Python 退回 unquote(text)（这里已经去引号）
-                value.value
+                // charset 不认识：Python 退回第二次 unquote
+                pyUnquote(value.value)
             } else {
                 codec.decode(rawUnicodeEscapeEncode(value.value))
             }
@@ -155,7 +176,9 @@ internal object MimeParams {
             position++
             var end = text.indexOf(';', position)
             if (end < 0) end = text.length
-            // Python 的 s.count('"', 0, end) - s.count('\\"', 0, end)：边扫边累计
+            // Python 的 s.count('"', 0, end) - s.count('\\"', 0, end)：边扫边累计。
+            // 注意 Python 先数**所有**引号再减去 `\"` 的个数，所以转义引号要同时计入两个计数
+            // （`x="\""` 里 3 个引号、1 个 `\"`，差值是 2，是偶数）。
             var counted = position
             var quotes = 0
             var escapedQuotes = 0
@@ -163,7 +186,8 @@ internal object MimeParams {
                 val target = minOf(limit, text.length)
                 while (counted < target) {
                     if (text[counted] == '"') {
-                        if (counted > position && text[counted - 1] == '\\') escapedQuotes++ else quotes++
+                        quotes++
+                        if (counted > position && text[counted - 1] == '\\') escapedQuotes++
                     }
                     counted++
                 }
@@ -215,7 +239,15 @@ internal object MimeParams {
             val hasEmpty = values.any { it.number == null }
             val hasNumber = values.any { it.number != null }
             if (hasEmpty && hasNumber) throw MimeParamOrderException(name)
-            val sorted = values.sortedBy { it.number ?: 0L }
+            // Python 的 `continuations.sort()` 比的是整个三元组 `(编号, 值, 是否编码)`：
+            // 编号相同时按值排（`filename*0="b"; filename*0="a"` 得到 `ab`），值也相同时按是否编码排。
+            values.sortWith(Comparator { left, right ->
+                var result = if (hasEmpty) 0 else left.number!!.compareTo(right.number!!)
+                if (result == 0) result = CODE_POINT_ORDER.compare(left.value, right.value)
+                if (result == 0) result = left.encoded.compareTo(right.encoded)
+                result
+            })
+            val sorted = values
             val joined = StringBuilder()
             var extended = false
             for (item in sorted) {
@@ -264,15 +296,42 @@ internal object MimeParams {
     }
 
     /**
-     * `urllib.parse.unquote(s, encoding="latin-1")`：先把字符串按 UTF-8 变成字节，
-     * `%XX` 解成一个字节（不是合法十六进制就原样保留 `%`），最后按 latin-1 一字节一字符。
+     * `urllib.parse.unquote(s, encoding="latin-1")`：把 `%XX` 解成一个字节，再把每个字节按 latin-1
+     * 变成一个字符。
+     *
+     * Python 的实现是 `re.compile('([\x00-\x7f]+)').split(string)`，**只解 ASCII 段**，非 ASCII 字符
+     * 原样保留。这里照做：非 ASCII 字符不进字节流，避免被再度编码成 UTF-8 而变成乱码。
      *
      * 这里的 UTF-8 编码与 latin-1 解码都是逐个码点 / 字节换算，**不经过平台的字符集实现**
      * （与 [PyCodecs] 的理由相同：桌面 JDK 与 Android ICU 的映射不一定一致）。
      */
-    private fun urlUnquoteLatin1(text: String): String {
-        val bytes = utf8Bytes(text)
-        val out = ByteArrayOutputStream(bytes.size)
+    internal fun urlUnquoteLatin1(text: String): String {
+        val out = StringBuilder(text.length)
+        val ascii = ByteArrayOutputStream(text.length)
+        var index = 0
+        while (index <= text.length) {
+            if (index == text.length) {
+                appendUnquotedLatin1(ascii, out)
+                break
+            }
+            val codePoint = text.codePointAt(index)
+            if (codePoint < 0x80) {
+                ascii.write(codePoint)
+            } else {
+                // 非 ASCII：先落盘前面的 ASCII 段，再原样写出这个字符
+                appendUnquotedLatin1(ascii, out)
+                out.appendCodePoint(codePoint)
+            }
+            index += Character.charCount(codePoint)
+        }
+        return out.toString()
+    }
+
+    /** 把一段 ASCII 字节按 `unquote_to_bytes` 解百分号编码，再按 latin-1 拼进 [out]。 */
+    private fun appendUnquotedLatin1(ascii: ByteArrayOutputStream, out: StringBuilder) {
+        if (ascii.size() == 0) return
+        val bytes = ascii.toByteArray()
+        ascii.reset()
         var index = 0
         while (index < bytes.size) {
             if (bytes[index] == '%'.code.toByte()) {
@@ -280,50 +339,18 @@ internal object MimeParams {
                     val high = hexValue(bytes[index + 1])
                     val low = hexValue(bytes[index + 2])
                     if (high >= 0 && low >= 0) {
-                        out.write(high * 16 + low)
+                        out.append((high * 16 + low).toChar())
                         index += 3
                         continue
                     }
                 }
-                out.write('%'.code)
+                out.append('%')
                 index++
                 continue
             }
-            out.write(bytes[index].toInt() and 0xFF)
+            out.append((bytes[index].toInt() and 0xFF).toChar())
             index++
         }
-        val decoded = out.toByteArray()
-        val chars = CharArray(decoded.size) { (decoded[it].toInt() and 0xFF).toChar() }
-        return String(chars)
-    }
-
-    /** Python 的 `s.encode("utf-8")`。 */
-    private fun utf8Bytes(text: String): ByteArray {
-        val out = ByteArrayOutputStream(text.length)
-        var index = 0
-        while (index < text.length) {
-            val codePoint = text.codePointAt(index)
-            when {
-                codePoint < 0x80 -> out.write(codePoint)
-                codePoint < 0x800 -> {
-                    out.write(0xC0 or (codePoint shr 6))
-                    out.write(0x80 or (codePoint and 0x3F))
-                }
-                codePoint < 0x10000 -> {
-                    out.write(0xE0 or (codePoint shr 12))
-                    out.write(0x80 or ((codePoint shr 6) and 0x3F))
-                    out.write(0x80 or (codePoint and 0x3F))
-                }
-                else -> {
-                    out.write(0xF0 or (codePoint shr 18))
-                    out.write(0x80 or ((codePoint shr 12) and 0x3F))
-                    out.write(0x80 or ((codePoint shr 6) and 0x3F))
-                    out.write(0x80 or (codePoint and 0x3F))
-                }
-            }
-            index += Character.charCount(codePoint)
-        }
-        return out.toByteArray()
     }
 
     private fun hexValue(byte: Byte): Int = when (val value = byte.toInt() and 0xFF) {

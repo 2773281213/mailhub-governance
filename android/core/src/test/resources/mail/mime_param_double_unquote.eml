@@ -1,0 +1,16 @@
+From: Notice <notice@shop.example>
+To: bob@corp.example
+Subject: Double unquote
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+Content-Type: multipart/mixed; boundary="<b>"
+
+--b
+Content-Type: text/plain; charset=utf-8
+
+正文。
+--b
+Content-Type: application/octet-stream
+Content-Disposition: attachment; filename="\"invoice.exe\""
+
+BLOB
+--b--

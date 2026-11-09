@@ -60,6 +60,15 @@ class MailBodyGoldenTest {
         }
     }
 
+    /** RFC 2231 的百分号解码：`urllib.parse.unquote(s, encoding="latin-1")`（只解 ASCII 段）。 */
+    @Test
+    fun urlUnquoteLatin1MatchesPython() = Golden.replay("mail_body", cases("url_unquote_latin1")) { case ->
+        Golden.diff(
+            case.expected.jsonPrimitive.content,
+            MimeParams.urlUnquoteLatin1(case.args.str("text")),
+        )
+    }
+
     /** `parse_message` 的完整结果：逐字段比较，长文本只打印前 200 字符和长度。 */
     private fun checkParseMessage(case: GoldenCase): String? {
         val expected: JsonObject = case.expected.jsonObject

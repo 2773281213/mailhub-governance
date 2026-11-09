@@ -138,7 +138,18 @@ private const val STYLE = "style"
 /**
  * `_TAG_RE.sub(" ", h)`：删掉 `<script …>…</script>` / `<style …>…</style>`（大小写不敏感，`.` 含换行）。
  *
- * 逐个候选位置判断：`<` 后面是 script 或 style，下一个 `>` 结束开始标签，之后找同一个名字的
+ * 与 Python 正则的两处关键对应（邮件正文由攻击者控制，两处都会影响「隐藏文字」是否进正文）：
+ *
+ * 1. **开始标签的字面量** `(script|style)` 在 `re.I` 下按 Python 的等价类匹配：`s` 还能匹配 `ſ`（U+017F），
+ *    `i` 还能匹配 `İ`（U+0130）和 `ı`（U+0131）。`regionMatches(ignoreCase = true)` 对这些字符的判定
+ *    与 Python 3.13.3 实测一致。
+ * 2. **闭合标签的 `\1` 反向引用**比较的是「捕获到的文本」，而且比较方式与字面量不同：Python 是
+ *    逐码点比 `str.lower`（简单小写映射），所以 `<ſcript>x</script>`、`<script>x</ſcript>` 都**不匹配**
+ *    （`ſ` 的小写还是 `ſ`），而 `<scrİpt>x</scrİpt>` 匹配（`İ` 的小写是 `i`）。这里按捕获文本逐码点比较，
+ *    并把「某个捕获名以后再也不会出现闭合标签」的优化标志按捕获名的小写形式分别记录——捕获名可能是
+ *    `ſcript`、`SCRIPT`、`Script`，它们能共用一个闭合标签，但只有小写形式相同的才等价。
+ *
+ * 逐个候选位置判断：`<` 后面是 script 或 style，下一个 `>` 结束开始标签，之后找同一个捕获名的
  * `</name>`。找不到闭合标签时 Python 的这个位置不匹配，扫描从下一个字符继续——这里用
  * 「某个名字的闭合标签一旦找不到，后面也不可能再有」来避免重复扫描，保证线性。
  */
@@ -146,59 +157,90 @@ private fun removeScriptAndStyle(text: String): String {
     val out = StringBuilder(text.length)
     var copied = 0
     var index = 0
-    var scriptCloseGone = false
-    var styleCloseGone = false
+    // 捕获名的小写形式 → 这个位置之后不可能再有闭合标签
+    val closeGone = HashSet<String>()
+    var noMoreGt = false
     while (true) {
         val lt = text.indexOf('<', index)
         if (lt < 0) break
-        val name = when {
-            text.regionMatches(lt + 1, "script", 0, SCRIPT.length, ignoreCase = true) -> SCRIPT
-            text.regionMatches(lt + 1, "style", 0, STYLE.length, ignoreCase = true) -> STYLE
+        val nameEnd = when {
+            text.regionMatches(lt + 1, SCRIPT, 0, SCRIPT.length, ignoreCase = true) -> lt + 1 + SCRIPT.length
+            text.regionMatches(lt + 1, STYLE, 0, STYLE.length, ignoreCase = true) -> lt + 1 + STYLE.length
             else -> {
                 index = lt + 1
                 continue
             }
         }
-        if ((name == SCRIPT && scriptCloseGone) || (name == STYLE && styleCloseGone)) {
+        val capture = text.substring(lt + 1, nameEnd)
+        val key = simpleLowercase(capture)
+        if (noMoreGt || closeGone.contains(key)) {
             index = lt + 1
             continue
         }
         // `[^>]*>`：开始标签在第一个 `>` 处结束
-        val tagEnd = text.indexOf('>', lt + 1 + name.length)
+        val tagEnd = text.indexOf('>', nameEnd)
         if (tagEnd < 0) {
             // 后面已经没有 `>`，这个位置和更靠后的位置都不会匹配
-            scriptCloseGone = true
-            styleCloseGone = true
+            noMoreGt = true
             index = lt + 1
             continue
         }
-        val closeTag = "</$name>"
-        val close = indexOfIgnoreCase(text, closeTag, tagEnd + 1)
+        val close = indexOfClosingTag(text, capture, tagEnd + 1)
         if (close < 0) {
-            if (name == SCRIPT) scriptCloseGone = true else styleCloseGone = true
+            closeGone += key
             index = lt + 1
             continue
         }
         out.append(text, copied, lt)
         out.append(' ')
-        copied = close + closeTag.length
+        copied = close + 2 + capture.length + 1
         index = copied
     }
     out.append(text, copied, text.length)
     return out.toString()
 }
 
-/** 大小写不敏感的 `indexOf`：先找小写化文本里的小写 needle，再回原串取位置。 */
-private fun indexOfIgnoreCase(text: String, needle: String, from: Int): Int {
-    if (from > text.length) return -1
-    // 只在 ASCII 上做大小写折叠（标签名都是 ASCII），逐位置比较，均摊线性
-    var index = from
-    val last = text.length - needle.length
-    while (index <= last) {
-        if (text.regionMatches(index, needle, 0, needle.length, ignoreCase = true)) return index
-        index++
+/** Python 的 `str.lower` 按码点逐个做简单小写映射（不是整串的完整小写折叠）。 */
+private fun simpleLowercase(text: String): String {
+    val out = StringBuilder(text.length)
+    var index = 0
+    while (index < text.length) {
+        val codePoint = text.codePointAt(index)
+        out.appendCodePoint(Character.toLowerCase(codePoint))
+        index += Character.charCount(codePoint)
     }
-    return -1
+    return out.toString()
+}
+
+/**
+ * 找 `</` + [capture] + `>`：逐个码点比「简单小写」，与 Python 反向引用 `\1` 在 `re.I` 下的比较方式相同。
+ * 返回 `</` 的位置；找不到返回 -1。
+ */
+private fun indexOfClosingTag(text: String, capture: String, from: Int): Int {
+    var index = from
+    while (true) {
+        val lt = text.indexOf("</", index)
+        if (lt < 0) return -1
+        var textIndex = lt + 2
+        var captureIndex = 0
+        var matched = true
+        while (captureIndex < capture.length) {
+            if (textIndex >= text.length) {
+                matched = false
+                break
+            }
+            val textCodePoint = text.codePointAt(textIndex)
+            val captureCodePoint = capture.codePointAt(captureIndex)
+            if (Character.toLowerCase(textCodePoint) != Character.toLowerCase(captureCodePoint)) {
+                matched = false
+                break
+            }
+            textIndex += Character.charCount(textCodePoint)
+            captureIndex += Character.charCount(captureCodePoint)
+        }
+        if (matched && textIndex < text.length && text[textIndex] == '>') return lt
+        index = lt + 2
+    }
 }
 
 /**
@@ -315,13 +357,21 @@ private fun subUrls(text: String): String {
     return out.toString()
 }
 
-/** 在 [at] 处匹配 `https?://`，返回方案长度；不匹配返回 -1。 */
+/**
+ * 在 [at] 处匹配 `https?://`，返回方案长度；不匹配返回 -1。
+ *
+ * `_URL_RE` 里的 `s` 是 `re.I` 下的字面量，按 Python 的等价类还能匹配 `ſ`（U+017F），
+ * 所以 `httpſ://` 也算链接（与 `https://` 一样会被 [subUrls] 删掉）。
+ */
 private fun matchHttpScheme(text: String, at: Int): Int {
     if (!text.regionMatches(at, "http", 0, 4, ignoreCase = true)) return -1
     var index = at + 4
-    if (index < text.length && (text[index] == 's' || text[index] == 'S')) index++
+    if (index < text.length && isSchemeS(text[index])) index++
     if (index + 3 <= text.length && text[index] == ':' && text[index + 1] == '/' && text[index + 2] == '/') {
         return index + 3 - at
     }
     return -1
 }
+
+/** `s` 在 `re.I` 下的等价类：`s`、`S`、`ſ`。 */
+private fun isSchemeS(ch: Char): Boolean = ch == 's' || ch == 'S' || ch == '\u017f'

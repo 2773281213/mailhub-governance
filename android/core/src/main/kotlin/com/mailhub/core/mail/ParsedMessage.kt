@@ -142,7 +142,8 @@ private fun parseMessageOrThrow(raw: ByteArray, clock: Clock?, zone: TimeZone): 
         }
         val text = try {
             val payload = payloadBytes(part)
-            val charset = MimeParams.contentCharset(part.headers) ?: "utf-8"
+            // Python：`part.get_content_charset() or "utf-8"`——charset="" 与没有 charset 一样按 utf-8 解
+            val charset = MimeParams.contentCharset(part.headers).takeUnless { it.isNullOrEmpty() } ?: "utf-8"
             // charset 不认识时 Python 抛 LookupError，被下面的 except 吃掉，跳过这一部分
             PyCodecs.decode(payload, charset) ?: return
         } catch (_: Exception) {

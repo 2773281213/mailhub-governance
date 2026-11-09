@@ -1,0 +1,14 @@
+From: Notice <notice@shop.example>
+To: bob@corp.example
+Subject: Delivery last block
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+Content-Type: multipart/mixed; boundary="b9"
+
+--b9
+Content-Type: message/delivery-status
+
+not a header line
+
+not a header line 2
+
+--b9--

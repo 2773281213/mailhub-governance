@@ -445,6 +445,37 @@
   {
    "args": {
     "clock": 1700000000.0,
+    "file": "b64_line_break_classes.eml"
+   },
+   "expected": {
+    "attach_names": [],
+    "auth_results": "",
+    "body_html": "",
+    "body_text": "\u0000\u0010",
+    "date_ts": 1730773800.0,
+    "has_attach": 0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "Notice",
+    "snippet": "\u0000\u0010",
+    "subject": "Base64 line break classes",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_message",
+   "id": "parse-b64_line_break_classes"
+  },
+  {
+   "args": {
+    "clock": 1700000000.0,
     "file": "b64_missing_padding.eml"
    },
    "expected": {
@@ -472,6 +503,68 @@
    },
    "fn": "parse_message",
    "id": "parse-b64_missing_padding"
+  },
+  {
+   "args": {
+    "clock": 1700000000.0,
+    "file": "b64_other_line_breaks.eml"
+   },
+   "expected": {
+    "attach_names": [],
+    "auth_results": "",
+    "body_html": "",
+    "body_text": "ABCD",
+    "date_ts": 1730773800.0,
+    "has_attach": 0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "Notice",
+    "snippet": "ABCD",
+    "subject": "Base64 other line breaks",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_message",
+   "id": "parse-b64_other_line_breaks"
+  },
+  {
+   "args": {
+    "clock": 1700000000.0,
+    "file": "b64_strict_padding.eml"
+   },
+   "expected": {
+    "attach_names": [],
+    "auth_results": "",
+    "body_html": "",
+    "body_text": "ABCD\u0000",
+    "date_ts": 1730773800.0,
+    "has_attach": 0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "Notice",
+    "snippet": "ABCD\u0000",
+    "subject": "Base64 strict padding",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_message",
+   "id": "parse-b64_strict_padding"
   },
   {
    "args": {
@@ -658,6 +751,68 @@
    },
    "fn": "parse_message",
    "id": "parse-body_emoji_nbsp"
+  },
+  {
+   "args": {
+    "clock": 1700000000.0,
+    "file": "boundary_non_ascii.eml"
+   },
+   "expected": {
+    "attach_names": [],
+    "auth_results": "",
+    "body_html": "",
+    "body_text": "",
+    "date_ts": 1730773800.0,
+    "has_attach": 0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "Notice",
+    "snippet": "",
+    "subject": "Non ascii boundary",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_message",
+   "id": "parse-boundary_non_ascii"
+  },
+  {
+   "args": {
+    "clock": 1700000000.0,
+    "file": "charset_empty.eml"
+   },
+   "expected": {
+    "attach_names": [],
+    "auth_results": "",
+    "body_html": "",
+    "body_text": "空 charset 也按 utf-8 解。",
+    "date_ts": 1730773800.0,
+    "has_attach": 0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "Notice",
+    "snippet": "空 charset 也按 utf-8 解。",
+    "subject": "Empty charset",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_message",
+   "id": "parse-charset_empty"
   },
   {
    "args": {
@@ -1245,6 +1400,70 @@
   {
    "args": {
     "clock": 1700000000.0,
+    "file": "delivery_status_blocks.eml"
+   },
+   "expected": {
+    "attach_names": [
+     "report.txt"
+    ],
+    "auth_results": "",
+    "body_html": "",
+    "body_text": "投递失败通知。not a header line",
+    "date_ts": 1730773800.0,
+    "has_attach": 1,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "Notice",
+    "snippet": "投递失败通知。not a header line",
+    "subject": "Delivery status blocks",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_message",
+   "id": "parse-delivery_status_blocks"
+  },
+  {
+   "args": {
+    "clock": 1700000000.0,
+    "file": "delivery_status_last_block.eml"
+   },
+   "expected": {
+    "attach_names": [],
+    "auth_results": "",
+    "body_html": "",
+    "body_text": "not a header line \nnot a header line 2",
+    "date_ts": 1730773800.0,
+    "has_attach": 0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "Notice",
+    "snippet": "not a header line not a header line 2",
+    "subject": "Delivery last block",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_message",
+   "id": "parse-delivery_status_last_block"
+  },
+  {
+   "args": {
+    "clock": 1700000000.0,
     "file": "dkim_domain_only.eml"
    },
    "expected": {
@@ -1551,6 +1770,37 @@
    },
    "fn": "parse_message",
    "id": "parse-from_8bit"
+  },
+  {
+   "args": {
+    "clock": 1700000000.0,
+    "file": "from_at_last_header.eml"
+   },
+   "expected": {
+    "attach_names": [],
+    "auth_results": "",
+    "body_html": "",
+    "body_text": "From evil \nrest",
+    "date_ts": 1700000000.0,
+    "has_attach": 0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "Notice",
+    "snippet": "From evil rest",
+    "subject": "x",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_message",
+   "id": "parse-from_at_last_header"
   },
   {
    "args": {
@@ -2175,6 +2425,37 @@
   {
    "args": {
     "clock": 1700000000.0,
+    "file": "message_rfc822_nested_multipart.eml"
+   },
+   "expected": {
+    "attach_names": [],
+    "auth_results": "",
+    "body_html": "",
+    "body_text": "DEEP \nTAIL",
+    "date_ts": 1730773800.0,
+    "has_attach": 0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "Notice",
+    "snippet": "DEEP TAIL",
+    "subject": "Message with multipart",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_message",
+   "id": "parse-message_rfc822_nested_multipart"
+  },
+  {
+   "args": {
+    "clock": 1700000000.0,
     "file": "message_rfc822_part.eml"
    },
    "expected": {
@@ -2202,6 +2483,101 @@
    },
    "fn": "parse_message",
    "id": "parse-message_rfc822_part"
+  },
+  {
+   "args": {
+    "clock": 1700000000.0,
+    "file": "message_rfc822_then_tail.eml"
+   },
+   "expected": {
+    "attach_names": [],
+    "auth_results": "",
+    "body_html": "",
+    "body_text": "INNER \nTAIL",
+    "date_ts": 1730773800.0,
+    "has_attach": 0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "Notice",
+    "snippet": "INNER TAIL",
+    "subject": "Message then tail",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_message",
+   "id": "parse-message_rfc822_then_tail"
+  },
+  {
+   "args": {
+    "clock": 1700000000.0,
+    "file": "mime_param_double_unquote.eml"
+   },
+   "expected": {
+    "attach_names": [
+     "invoice.exe"
+    ],
+    "auth_results": "",
+    "body_html": "",
+    "body_text": "正文。",
+    "date_ts": 1730773800.0,
+    "has_attach": 1,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "Notice",
+    "snippet": "正文。",
+    "subject": "Double unquote",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_message",
+   "id": "parse-mime_param_double_unquote"
+  },
+  {
+   "args": {
+    "clock": 1700000000.0,
+    "file": "mime_param_quote_parity.eml"
+   },
+   "expected": {
+    "attach_names": [],
+    "auth_results": "",
+    "body_html": "",
+    "body_text": "引号奇偶不能吃掉 charset。",
+    "date_ts": 1730773800.0,
+    "has_attach": 0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "Notice",
+    "snippet": "引号奇偶不能吃掉 charset。",
+    "subject": "Quote parity",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_message",
+   "id": "parse-mime_param_quote_parity"
   },
   {
    "args": {
@@ -2417,6 +2793,37 @@
   {
    "args": {
     "clock": 1700000000.0,
+    "file": "multipart_end_after_sep.eml"
+   },
+   "expected": {
+    "attach_names": [],
+    "auth_results": "",
+    "body_html": "",
+    "body_text": "HIDDEN",
+    "date_ts": 1730773800.0,
+    "has_attach": 0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "Notice",
+    "snippet": "HIDDEN",
+    "subject": "End after separator",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_message",
+   "id": "parse-multipart_end_after_sep"
+  },
+  {
+   "args": {
+    "clock": 1700000000.0,
     "file": "multipart_mixed_related.eml"
    },
    "expected": {
@@ -2539,6 +2946,37 @@
    },
    "fn": "parse_message",
    "id": "parse-multipart_related_inline_image"
+  },
+  {
+   "args": {
+    "clock": 1700000000.0,
+    "file": "multipart_unclosed_inner.eml"
+   },
+   "expected": {
+    "attach_names": [],
+    "auth_results": "",
+    "body_html": "",
+    "body_text": "TEXT \nTAIL",
+    "date_ts": 1730773800.0,
+    "has_attach": 0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "Notice",
+    "snippet": "TEXT TAIL",
+    "subject": "Unclosed inner",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_message",
+   "id": "parse-multipart_unclosed_inner"
   },
   {
    "args": {
@@ -2725,6 +3163,37 @@
    },
    "fn": "parse_message",
    "id": "parse-precedence_other"
+  },
+  {
+   "args": {
+    "clock": 1700000000.0,
+    "file": "qp_double_equals.eml"
+   },
+   "expected": {
+    "attach_names": [],
+    "auth_results": "",
+    "body_html": "",
+    "body_text": "=41 ==4 =4 =ZZ",
+    "date_ts": 1730773800.0,
+    "has_attach": 0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "Notice",
+    "snippet": "=41 ==4 =4 =ZZ",
+    "subject": "QP double equals",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_message",
+   "id": "parse-qp_double_equals"
   },
   {
    "args": {
@@ -2973,6 +3442,39 @@
    },
    "fn": "parse_message",
    "id": "parse-return_path_esp"
+  },
+  {
+   "args": {
+    "clock": 1700000000.0,
+    "file": "rfc2231_sort_by_value.eml"
+   },
+   "expected": {
+    "attach_names": [
+     "ab"
+    ],
+    "auth_results": "",
+    "body_html": "",
+    "body_text": "see attachment",
+    "date_ts": 1730773800.0,
+    "has_attach": 1,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "Notice",
+    "snippet": "see attachment",
+    "subject": "RFC 2231 sort",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_message",
+   "id": "parse-rfc2231_sort_by_value"
   },
   {
    "args": {
@@ -3535,6 +4037,68 @@
   {
    "args": {
     "clock": 1700000000.0,
+    "file": "uuencode_body.eml"
+   },
+   "expected": {
+    "attach_names": [],
+    "auth_results": "",
+    "body_html": "",
+    "body_text": "abc",
+    "date_ts": 1730773800.0,
+    "has_attach": 0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "Notice",
+    "snippet": "abc",
+    "subject": "Uuencoded body",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_message",
+   "id": "parse-uuencode_body"
+  },
+  {
+   "args": {
+    "clock": 1700000000.0,
+    "file": "uuencode_broken.eml"
+   },
+   "expected": {
+    "attach_names": [],
+    "auth_results": "",
+    "body_html": "",
+    "body_text": "this is not uuencoded",
+    "date_ts": 1730773800.0,
+    "has_attach": 0,
+    "header_signals": {
+     "auto_submitted": false,
+     "esp": false,
+     "feedback_id": false,
+     "list_id": false,
+     "precedence_bulk": false
+    },
+    "msg_id": "",
+    "reply_to": "",
+    "sender_addr": "notice@shop.example",
+    "sender_name": "Notice",
+    "snippet": "this is not uuencoded",
+    "subject": "Broken uuencoded body",
+    "to_addr": "bob@corp.example",
+    "unsubscribe": 0
+   },
+   "fn": "parse_message",
+   "id": "parse-uuencode_broken"
+  },
+  {
+   "args": {
+    "clock": 1700000000.0,
     "file": "value_starts_with_newline.eml"
    },
    "expected": {
@@ -3765,6 +4329,86 @@
   },
   {
    "args": {
+    "html": "<ſcript>BUY NOW</script>tail"
+   },
+   "expected": " BUY NOW tail",
+   "fn": "html_to_text",
+   "id": "html-to-text-25"
+  },
+  {
+   "args": {
+    "html": "<script>x</ſcript>"
+   },
+   "expected": " x ",
+   "fn": "html_to_text",
+   "id": "html-to-text-26"
+  },
+  {
+   "args": {
+    "html": "<ſcript>x</ſcript>after"
+   },
+   "expected": " after",
+   "fn": "html_to_text",
+   "id": "html-to-text-27"
+  },
+  {
+   "args": {
+    "html": "<scrİpt>HIDDEN</scrİpt>tail"
+   },
+   "expected": " tail",
+   "fn": "html_to_text",
+   "id": "html-to-text-28"
+  },
+  {
+   "args": {
+    "html": "<scrıpt>x</scrıpt>"
+   },
+   "expected": " ",
+   "fn": "html_to_text",
+   "id": "html-to-text-29"
+  },
+  {
+   "args": {
+    "html": "<SCRIPT>x</script>tail"
+   },
+   "expected": " tail",
+   "fn": "html_to_text",
+   "id": "html-to-text-30"
+  },
+  {
+   "args": {
+    "html": "<script>x</SCRIPT>tail"
+   },
+   "expected": " tail",
+   "fn": "html_to_text",
+   "id": "html-to-text-31"
+  },
+  {
+   "args": {
+    "html": "<ſtyle>a</sTYLE>b"
+   },
+   "expected": " a b",
+   "fn": "html_to_text",
+   "id": "html-to-text-32"
+  },
+  {
+   "args": {
+    "html": "<ſcript>x</script><script>y</script>z"
+   },
+   "expected": " x  z",
+   "fn": "html_to_text",
+   "id": "html-to-text-33"
+  },
+  {
+   "args": {
+    "html": "<script>y</script><ſcript>x</script>z"
+   },
+   "expected": "  x z",
+   "fn": "html_to_text",
+   "id": "html-to-text-34"
+  },
+  {
+   "args": {
     "html_text": "",
     "text": ""
    },
@@ -3951,6 +4595,42 @@
    "expected": true,
    "fn": "is_stub_text",
    "id": "is-stub-text-20"
+  },
+  {
+   "args": {
+    "html_text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "text": "httpſ://shop.example/a httpſ://shop.example/b"
+   },
+   "expected": true,
+   "fn": "is_stub_text",
+   "id": "is-stub-text-21"
+  },
+  {
+   "args": {
+    "html_text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "text": "httpſ://shop.example/a"
+   },
+   "expected": false,
+   "fn": "is_stub_text",
+   "id": "is-stub-text-22"
+  },
+  {
+   "args": {
+    "html_text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "text": "<httpſ://shop.example/a>"
+   },
+   "expected": true,
+   "fn": "is_stub_text",
+   "id": "is-stub-text-23"
+  },
+  {
+   "args": {
+    "html_text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "text": "httpſſ://shop.example/a"
+   },
+   "expected": true,
+   "fn": "is_stub_text",
+   "id": "is-stub-text-24"
   },
   {
    "args": {
@@ -4351,6 +5031,134 @@
    "expected": "带&amp;实体的纯文本",
    "fn": "readable_body",
    "id": "readable-body-15"
+  },
+  {
+   "args": {
+    "text": ""
+   },
+   "expected": "",
+   "fn": "url_unquote_latin1",
+   "id": "unquote-latin1-00"
+  },
+  {
+   "args": {
+    "text": "abc"
+   },
+   "expected": "abc",
+   "fn": "url_unquote_latin1",
+   "id": "unquote-latin1-01"
+  },
+  {
+   "args": {
+    "text": "%41"
+   },
+   "expected": "A",
+   "fn": "url_unquote_latin1",
+   "id": "unquote-latin1-02"
+  },
+  {
+   "args": {
+    "text": "%e9"
+   },
+   "expected": "é",
+   "fn": "url_unquote_latin1",
+   "id": "unquote-latin1-03"
+  },
+  {
+   "args": {
+    "text": "%E9%41"
+   },
+   "expected": "éA",
+   "fn": "url_unquote_latin1",
+   "id": "unquote-latin1-04"
+  },
+  {
+   "args": {
+    "text": "utf-8''%41"
+   },
+   "expected": "utf-8''A",
+   "fn": "url_unquote_latin1",
+   "id": "unquote-latin1-05"
+  },
+  {
+   "args": {
+    "text": "é%41"
+   },
+   "expected": "éA",
+   "fn": "url_unquote_latin1",
+   "id": "unquote-latin1-06"
+  },
+  {
+   "args": {
+    "text": "%C3%A9 é"
+   },
+   "expected": "Ã© é",
+   "fn": "url_unquote_latin1",
+   "id": "unquote-latin1-07"
+  },
+  {
+   "args": {
+    "text": "你%20好"
+   },
+   "expected": "你 好",
+   "fn": "url_unquote_latin1",
+   "id": "unquote-latin1-08"
+  },
+  {
+   "args": {
+    "text": "%zz%"
+   },
+   "expected": "%zz%",
+   "fn": "url_unquote_latin1",
+   "id": "unquote-latin1-09"
+  },
+  {
+   "args": {
+    "text": "100%"
+   },
+   "expected": "100%",
+   "fn": "url_unquote_latin1",
+   "id": "unquote-latin1-10"
+  },
+  {
+   "args": {
+    "text": "%"
+   },
+   "expected": "%",
+   "fn": "url_unquote_latin1",
+   "id": "unquote-latin1-11"
+  },
+  {
+   "args": {
+    "text": "%%41"
+   },
+   "expected": "%A",
+   "fn": "url_unquote_latin1",
+   "id": "unquote-latin1-12"
+  },
+  {
+   "args": {
+    "text": "%4"
+   },
+   "expected": "%4",
+   "fn": "url_unquote_latin1",
+   "id": "unquote-latin1-13"
+  },
+  {
+   "args": {
+    "text": "a%2"
+   },
+   "expected": "a%2",
+   "fn": "url_unquote_latin1",
+   "id": "unquote-latin1-14"
+  },
+  {
+   "args": {
+    "text": "%25"
+   },
+   "expected": "%",
+   "fn": "url_unquote_latin1",
+   "id": "unquote-latin1-15"
   }
  ],
  "generator": "scripts/golden/mail_body.py",

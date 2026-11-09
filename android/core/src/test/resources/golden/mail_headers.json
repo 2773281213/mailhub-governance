@@ -2353,6 +2353,238 @@
   },
   {
    "args": {
+    "raw": "=?x?q?A"
+   },
+   "expected": "=?x?q?A",
+   "fn": "decode_header",
+   "id": "decode-header-50"
+  },
+  {
+   "args": {
+    "raw": "=?x?q?A=?x?q?B?="
+   },
+   "expected": "=?x?q?A=?x?q?B?=",
+   "fn": "decode_header",
+   "id": "decode-header-51"
+  },
+  {
+   "args": {
+    "raw": "=?x?q?A tail"
+   },
+   "expected": "=?x?q?A tail",
+   "fn": "decode_header",
+   "id": "decode-header-52"
+  },
+  {
+   "args": {
+    "raw": "=?a?q??="
+   },
+   "expected": "",
+   "fn": "decode_header",
+   "id": "decode-header-53"
+  },
+  {
+   "args": {
+    "raw": "=?a?q?=?="
+   },
+   "expected": "=?a?q?=?=",
+   "fn": "decode_header",
+   "id": "decode-header-54"
+  },
+  {
+   "args": {
+    "raw": "=?a?q?x?==?a?q?y?="
+   },
+   "expected": "=?a?q?x?==?a?q?y?=",
+   "fn": "decode_header",
+   "id": "decode-header-55"
+  },
+  {
+   "args": {
+    "raw": "=?a?b?QQ==?="
+   },
+   "expected": "=?a?b?QQ==?=",
+   "fn": "decode_header",
+   "id": "decode-header-56"
+  },
+  {
+   "args": {
+    "raw": "=?a?Q?x?= =?a?q?y?="
+   },
+   "expected": "=?a?Q?x?= =?a?q?y?=",
+   "fn": "decode_header",
+   "id": "decode-header-57"
+  },
+  {
+   "args": {
+    "raw": "=?a b?q?x?="
+   },
+   "expected": "=?a b?q?x?=",
+   "fn": "decode_header",
+   "id": "decode-header-58"
+  },
+  {
+   "args": {
+    "raw": "=?a?x?q?a?="
+   },
+   "expected": "=?a?x?q?a?=",
+   "fn": "decode_header",
+   "id": "decode-header-59"
+  },
+  {
+   "args": {
+    "raw": "=?a?q?x\r?= tail"
+   },
+   "expected": "=?a?q?x ?= tail",
+   "fn": "decode_header",
+   "id": "decode-header-60"
+  },
+  {
+   "args": {
+    "raw": "=?a?q?x\ny?= tail"
+   },
+   "expected": "=?a?q?x\ny?= tail",
+   "fn": "decode_header",
+   "id": "decode-header-61"
+  },
+  {
+   "args": {
+    "raw": "=?a?q?x ?= tail"
+   },
+   "expected": "=?a?q?x ?= tail",
+   "fn": "decode_header",
+   "id": "decode-header-62"
+  },
+  {
+   "args": {
+    "raw": "=?a?q?x ?= tail"
+   },
+   "expected": "=?a?q?x ?= tail",
+   "fn": "decode_header",
+   "id": "decode-header-63"
+  },
+  {
+   "args": {
+    "raw": "=?a?q?x?=?a?q?y?="
+   },
+   "expected": "=?a?q?x?=?a?q?y?=",
+   "fn": "decode_header",
+   "id": "decode-header-64"
+  },
+  {
+   "args": {
+    "raw": "=?=?q?x?="
+   },
+   "expected": "=?=?q?x?=",
+   "fn": "decode_header",
+   "id": "decode-header-65"
+  },
+  {
+   "args": {
+    "raw": "=?a??x?="
+   },
+   "expected": "=?a??x?=",
+   "fn": "decode_header",
+   "id": "decode-header-66"
+  },
+  {
+   "args": {
+    "raw": "=?a?q?x?="
+   },
+   "expected": "=?a?q?x?=",
+   "fn": "decode_header",
+   "id": "decode-header-67"
+  },
+  {
+   "args": {
+    "raw": "  =?a?q?x?=  "
+   },
+   "expected": "  =?a?q?x?=  ",
+   "fn": "decode_header",
+   "id": "decode-header-68"
+  },
+  {
+   "args": {
+    "raw": "=?utf-8?q?A"
+   },
+   "expected": "=?utf-8?q?A",
+   "fn": "decode_header",
+   "id": "decode-header-69"
+  },
+  {
+   "args": {
+    "raw": "=?utf-8?q?A=?utf-8?q?B?="
+   },
+   "expected": "A=?utf-8?q?B",
+   "fn": "decode_header",
+   "id": "decode-header-70"
+  },
+  {
+   "args": {
+    "raw": "=?utf-8?q??="
+   },
+   "expected": "",
+   "fn": "decode_header",
+   "id": "decode-header-71"
+  },
+  {
+   "args": {
+    "raw": "=?utf-8?q?=?="
+   },
+   "expected": "=",
+   "fn": "decode_header",
+   "id": "decode-header-72"
+  },
+  {
+   "args": {
+    "raw": "=?utf-8?b?QQ==?="
+   },
+   "expected": "A",
+   "fn": "decode_header",
+   "id": "decode-header-73"
+  },
+  {
+   "args": {
+    "raw": "=?utf-8?Q?x?= =?utf-8?q?y?="
+   },
+   "expected": "xy",
+   "fn": "decode_header",
+   "id": "decode-header-74"
+  },
+  {
+   "args": {
+    "raw": "=?utf-8?x?q?a?="
+   },
+   "expected": "=?utf-8?x?q?a?=",
+   "fn": "decode_header",
+   "id": "decode-header-75"
+  },
+  {
+   "args": {
+    "raw": "=?utf-8?b?QUJD?=tail=?utf-8?q?z?="
+   },
+   "expected": "ABCtailz",
+   "fn": "decode_header",
+   "id": "decode-header-76"
+  },
+  {
+   "args": {
+    "raw": "=?utf-8?q?x\r?= tail"
+   },
+   "expected": "=?utf-8?q?x ?= tail",
+   "fn": "decode_header",
+   "id": "decode-header-77"
+  },
+  {
+   "args": {
+    "raw": "=?utf-8?q?x ?= tail"
+   },
+   "expected": "=?utf-8?q?x ?= tail",
+   "fn": "decode_header",
+   "id": "decode-header-78"
+  },
+  {
+   "args": {
     "addr": "Alice <alice@shop.example>"
    },
    "expected": [

@@ -1,0 +1,7 @@
+From: Notice <notice@shop.example>
+To: bob@corp.example
+Subject: Empty charset
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+Content-Type: text/plain; charset=""
+
+空 charset 也按 utf-8 解。

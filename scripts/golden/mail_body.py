@@ -21,6 +21,7 @@
 from __future__ import annotations
 
 import sys
+import urllib.parse
 from pathlib import Path
 from unittest import mock
 
@@ -557,6 +558,200 @@ NEW_FIXTURES: list[tuple[str, bytes]] = [
             ]),
         ),
     ),
+    # ---- L5b-fix：审核提出的差异，逐条钉住 Python 3.13.3 的实际行为 ----
+    (
+        "mime_param_quote_parity.eml",
+        # `_parseparam` 的引号奇偶：`x="\""` 里的 `\"` 只算一次转义，
+        # 所以参数要正确切开，`boundary` 与 `charset` 都要取到
+        mail(
+            text_head("Quote parity") + ['Content-Type: multipart/mixed; x="\\""; boundary=b'],
+            multipart(b"b", [
+                mail(['Content-Type: text/plain; y="\\""; charset=gbk'],
+                     "引号奇偶不能吃掉 charset。".encode("gbk")),
+            ]),
+        ),
+    ),
+    (
+        "mime_param_double_unquote.eml",
+        # `collapse_rfc2231_value` 对普通参数再 unquote 一次：文件名去掉外层的 `"`，
+        # 所以扩展名仍是 `exe`；`boundary="<b>"` 同理退成 `b`
+        mail(
+            text_head("Double unquote") + ['Content-Type: multipart/mixed; boundary="<b>"'],
+            multipart(b"b", [
+                mail(["Content-Type: text/plain; charset=utf-8"], "正文。".encode("utf-8")),
+                mail(["Content-Type: application/octet-stream",
+                      'Content-Disposition: attachment; filename="\\"invoice.exe\\""'],
+                     b"BLOB"),
+            ]),
+        ),
+    ),
+    (
+        "charset_empty.eml",
+        # `charset=""`：Python 的 `get_content_charset() or "utf-8"` 走 utf-8
+        mail(text_head("Empty charset") + ['Content-Type: text/plain; charset=""'],
+             "空 charset 也按 utf-8 解。".encode("utf-8")),
+    ),
+    (
+        "b64_strict_padding.eml",
+        # 严格模式拒绝的 padding：Python 严格解码失败后走宽松解码（再补 `==`）
+        mail(
+            text_head("Base64 strict padding") + [
+                "Content-Type: text/plain; charset=ascii",
+                "Content-Transfer-Encoding: base64",
+            ],
+            b"QUJDRA=A",
+        ),
+    ),
+    (
+        "b64_line_break_classes.eml",
+        # `bytes.splitlines()` 只删 CR / LF：正文里的 VT、FF、FS 不是行尾，
+        # 保留后会让严格解码失败，最终只解出一个字节
+        mail(
+            text_head("Base64 line break classes") + [
+                "Content-Type: text/plain; charset=ascii",
+                "Content-Transfer-Encoding: base64",
+            ],
+            b"AB\x0bC",
+        ),
+    ),
+    (
+        "b64_other_line_breaks.eml",
+        # FF 与 FS 同理
+        mail(
+            text_head("Base64 other line breaks") + [
+                "Content-Type: text/plain; charset=ascii",
+                "Content-Transfer-Encoding: base64",
+            ],
+            b"QUJD\x0cRA\x1c",
+        ),
+    ),
+    (
+        "multipart_end_after_sep.eml",
+        # 紧跟分隔行的结束分隔行：Python 把它当成「多重边界」吃掉，后面的内容仍是子 part
+        mail(
+            text_head("End after separator") + ['Content-Type: multipart/mixed; boundary="b"'],
+            b"--b\n--b--\nHIDDEN\n",
+        ),
+    ),
+    (
+        "from_at_last_header.eml",
+        # 头部末行的 `From ` 要退回正文（Python 的 unreadline）
+        mail([FROM, TO, "Subject: x", "From evil"], b"rest"),
+    ),
+    (
+        "qp_double_equals.eml",
+        # quoted-printable 的 `==` 分支：只保留一个 `=`
+        mail(
+            text_head("QP double equals") + [
+                "Content-Type: text/plain; charset=ascii",
+                "Content-Transfer-Encoding: quoted-printable",
+            ],
+            b"==41 ====4 ==4 =ZZ",
+        ),
+    ),
+    (
+        "delivery_status_blocks.eml",
+        # message/delivery-status 的每个块都要走完整解析：
+        # 块头的 Content-Disposition 计附件，块内的非头部行进正文
+        mail(
+            text_head("Delivery status blocks") + ['Content-Type: multipart/report; boundary="r2"'],
+            multipart(b"r2", [
+                mail(["Content-Type: text/plain; charset=utf-8"], "投递失败通知。".encode("utf-8")),
+                mail(["Content-Type: message/delivery-status"],
+                     b"Reporting-MTA: dns; mx.shop.example\r\n"
+                     b"Content-Disposition: attachment; filename=\"report.txt\"\r\n"
+                     b"\r\n"
+                     b"not a header line\r\n"
+                     b"\r\n"
+                     b"Final-Recipient: rfc822; bob@corp.example\r\n"),
+            ]),
+        ),
+    ),
+    (
+        "boundary_non_ascii.eml",
+        # boundary 含 >=0x80 的字符：Python 的 startswith 永不匹配，按「没有起始分隔行」处理
+        mail(
+            text_head("Non ascii boundary") + ["Content-Type: multipart/mixed; boundary*=utf-8''a%E4%BD%A0b"],
+            b'--a\xe4\xbd\xa0b\r\nContent-Type: text/plain\r\n\r\nSHOULD NOT APPEAR\r\n--a\xe4\xbd\xa0b--\r\n',
+        ),
+    ),
+    (
+        "multipart_unclosed_inner.eml",
+        # 未闭合的内层 multipart：子 part 的行尾只裁一次
+        mail(
+            text_head("Unclosed inner") + ['Content-Type: multipart/mixed; boundary="outer"'],
+            b"--outer\r\nContent-Type: multipart/alternative; boundary=\"inner\"\r\n\r\n"
+            b"--inner\r\nContent-Type: text/plain\r\n\r\nTEXT\r\n\r\n"
+            b"--outer\r\nContent-Type: text/plain\r\n\r\nTAIL\r\n--outer--\r\n",
+        ),
+    ),
+    (
+        "message_rfc822_then_tail.eml",
+        # message/rfc822 的子消息不裁行尾：内层正文保留自己的换行
+        mail(
+            text_head("Message then tail") + ['Content-Type: multipart/mixed; boundary="outer"'],
+            b"--outer\r\nContent-Type: message/rfc822\r\n\r\n"
+            b"Content-Type: text/plain\r\n\r\nINNER\r\n\r\n"
+            b"--outer\r\nContent-Type: text/plain\r\n\r\nTAIL\r\n--outer--\r\n",
+        ),
+    ),
+    (
+        "message_rfc822_nested_multipart.eml",
+        # message/rfc822 里再套 multipart：行尾只由内层 multipart 自己裁一次
+        mail(
+            text_head("Message with multipart") + ['Content-Type: multipart/mixed; boundary="outer"'],
+            b"--outer\r\nContent-Type: message/rfc822\r\n\r\n"
+            b"Content-Type: multipart/alternative; boundary=\"inner\"\r\n\r\n"
+            b"--inner\r\nContent-Type: text/plain\r\n\r\nDEEP\r\n\r\n"
+            b"--inner--\r\n\r\n"
+            b"--outer\r\nContent-Type: text/plain\r\n\r\nTAIL\r\n--outer--\r\n",
+        ),
+    ),
+    (
+        "delivery_status_last_block.eml",
+        # delivery-status 的块：只有最后一块会被裁一次行尾
+        mail(
+            text_head("Delivery last block") + ['Content-Type: multipart/mixed; boundary="b9"'],
+            b"--b9\r\nContent-Type: message/delivery-status\r\n\r\n"
+            b"not a header line\r\n\r\n"
+            b"not a header line 2\r\n\r\n"
+            b"--b9--\r\n",
+        ),
+    ),
+    (
+        "rfc2231_sort_by_value.eml",
+        # RFC 2231 续行按 (编号, 值, 是否编码) 排序：同编号时按值排，结果是 `ab`
+        mail(
+            text_head("RFC 2231 sort") + ['Content-Type: multipart/mixed; boundary="a8"'],
+            multipart(b"a8", [
+                mail(["Content-Type: text/plain"], b"see attachment"),
+                mail(["Content-Type: application/octet-stream",
+                      'Content-Disposition: attachment; filename*0="b"; filename*0="a"'],
+                     b"BLOB"),
+            ]),
+        ),
+    ),
+    (
+        "uuencode_body.eml",
+        # x-uuencode 正文：Python 会做 uudecode
+        mail(
+            text_head("Uuencoded body") + ["Content-Type: text/plain; charset=utf-8",
+                                           "Content-Transfer-Encoding: x-uuencode"],
+            b"begin 644 note.txt\r\n"
+            b"#86)C\r\n"
+            b"`\r\n"
+            b"end\r\n",
+        ),
+    ),
+    (
+        "uuencode_broken.eml",
+        # uuencode 内容坏了（没有 begin 行）：Python 把正文原样返回
+        mail(
+            text_head("Broken uuencoded body") + ["Content-Type: text/plain; charset=ascii",
+                                                  "Content-Transfer-Encoding: uuencode"],
+            b"this is not uuencoded\r\n",
+        ),
+    ),
     (
         "deep_nested_recursion.eml",
         # 1100 层嵌套：Python 抛 RecursionError，整封走 unparsable_message()
@@ -590,6 +785,18 @@ HTML_TO_TEXT_SAMPLES = [
     "<table><tr><td>格</td></tr></table>",
     "<p>a</p><br>",
     ">>>",
+    # L5b-fix：闭合标签按捕获文本比较（Python 的 `\1` 用逐码点 lower 比较），
+    # 而开始标签的字面量 `script` 在 `re.I` 下能匹配 `ſ`、`İ`、`ı`
+    "<\u017fcript>BUY NOW</script>tail",
+    "<script>x</\u017fcript>",
+    "<\u017fcript>x</\u017fcript>after",
+    "<scr\u0130pt>HIDDEN</scr\u0130pt>tail",
+    "<scr\u0131pt>x</scr\u0131pt>",
+    "<SCRIPT>x</script>tail",
+    "<script>x</SCRIPT>tail",
+    "<\u017ftyle>a</sTYLE>b",
+    "<\u017fcript>x</script><script>y</script>z",
+    "<script>y</script><\u017fcript>x</script>z",
 ]
 
 IS_STUB_SAMPLES = [
@@ -614,6 +821,32 @@ IS_STUB_SAMPLES = [
     ("x" * 600, "y" * 1200),
     ("短文本", "y" * 199),
     ("短文本", "y" * 200),
+    # L5b-fix：`https?` 的字面量 `s` 在 `re.I` 下也匹配 `ſ`（U+017F）
+    ("http\u017f://shop.example/a http\u017f://shop.example/b", "x" * 300),
+    ("http\u017f://shop.example/a", "x" * 100),
+    ("<http\u017f://shop.example/a>", "x" * 300),
+    ("http\u017f\u017f://shop.example/a", "x" * 300),
+]
+
+# L5b-fix：`urllib.parse.unquote(s, encoding="latin-1")`（RFC 2231 的百分号解码）。
+# Python 用 `re.compile('([\x00-\x7f]+)')` 切分，只解 ASCII 段，非 ASCII 字符原样保留。
+UNQUOTE_LATIN1_SAMPLES = [
+    "",
+    "abc",
+    "%41",
+    "%e9",
+    "%E9%41",
+    "utf-8''%41",
+    "\u00e9%41",
+    "%C3%A9 \u00e9",
+    "\u4f60%20\u597d",
+    "%zz%",
+    "100%",
+    "%",
+    "%%41",
+    "%4",
+    "a%2",
+    "%25",
 ]
 
 TIDY_SAMPLES = [
@@ -770,6 +1003,14 @@ def build_cases() -> list[dict]:
             "fn": "readable_body",
             "args": {"body_text": body_text, "body_html": body_html},
             "expected": mail_client.readable_body(body_text, body_html),
+        })
+
+    for index, sample in enumerate(UNQUOTE_LATIN1_SAMPLES):
+        cases.append({
+            "id": f"unquote-latin1-{index:02d}",
+            "fn": "url_unquote_latin1",
+            "args": {"text": sample},
+            "expected": urllib.parse.unquote(sample, encoding="latin-1"),
         })
 
     return cases
