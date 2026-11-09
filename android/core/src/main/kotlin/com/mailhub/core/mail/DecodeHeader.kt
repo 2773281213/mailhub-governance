@@ -236,8 +236,13 @@ internal class Base64DecodeError(message: String) : Exception(message)
  * 需要注意的点：第一个 `=` 之后的数据字符仍会继续解码（例如 `QUJD=REVG` 得到 `ABCDEF`），
  * 这与「`=` 之后全部丢弃」的旧实现不同。
  */
-internal fun a2bBase64Lenient(text: String): ByteArray {
-    val bytes = rawUnicodeEscapeEncode(text)
+internal fun a2bBase64Lenient(text: String): ByteArray = a2bBase64LenientBytes(rawUnicodeEscapeEncode(text))
+
+/**
+ * 同 [a2bBase64Lenient]，输入已经是字节（邮件正文用：正文按 ascii + surrogateescape 变成字符串，
+ * 再变回字节仍是原来的字节，所以直接喂字节即可）。
+ */
+internal fun a2bBase64LenientBytes(bytes: ByteArray): ByteArray {
     val out = ByteArrayOutputStream(bytes.size / 4 * 3 + 3)
     var quadPos = 0
     var leftChar = 0
@@ -289,7 +294,7 @@ internal fun a2bBase64Lenient(text: String): ByteArray {
 }
 
 /** `table_a2b_base64`：字母表内返回 0–63，其余返回 -1。 */
-private fun base64Value(ch: Int): Int = when (ch) {
+internal fun base64Value(ch: Int): Int = when (ch) {
     in 'A'.code..'Z'.code -> ch - 'A'.code
     in 'a'.code..'z'.code -> ch - 'a'.code + 26
     in '0'.code..'9'.code -> ch - '0'.code + 52

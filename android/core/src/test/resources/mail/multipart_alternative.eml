@@ -1,0 +1,15 @@
+From: Notice <notice@shop.example>
+To: bob@corp.example
+Subject: Multipart alternative
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+Content-Type: multipart/alternative; boundary="alt1"
+
+--alt1
+Content-Type: text/plain; charset=utf-8
+
+Your order has shipped. Track the parcel at https://shop.example/orders/1 or reply to this message if you need help from our support team.
+--alt1
+Content-Type: text/html; charset=utf-8
+
+<html><body><p>Your order has shipped.</p></body></html>
+--alt1--

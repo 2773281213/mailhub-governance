@@ -1,0 +1,18 @@
+From: Notice <notice@shop.example>
+To: bob@corp.example
+Subject: Double boundary
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+Content-Type: multipart/mixed; boundary="d1"
+
+preamble text
+--d1
+Content-Type: text/plain
+
+first
+--d1
+--d1
+Content-Type: text/plain
+
+second
+--d1--
+epilogue text

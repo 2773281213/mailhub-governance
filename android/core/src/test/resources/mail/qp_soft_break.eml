@@ -1,0 +1,14 @@
+From: Notice <notice@shop.example>
+To: bob@corp.example
+Subject: Quoted printable
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+=E4=BD=A0=E5=A5=BD=EF=BC=8C
+=E8=BF=99=E6=98=AF
+=e6=ad=A3=e6=96=87=E3=80=82
+bad=ZZ keep=4 lower=e4
+soft=
+break=
+end=

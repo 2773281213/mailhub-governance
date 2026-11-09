@@ -1,0 +1,17 @@
+From: Notice <notice@shop.example>
+To: bob@corp.example
+Subject: Nested message
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+Content-Type: multipart/mixed; boundary="m1"
+
+--m1
+Content-Type: text/plain
+
+outer text
+--m1
+Content-Type: message/rfc822
+
+Content-Type: text/plain
+
+inner text
+--m1--

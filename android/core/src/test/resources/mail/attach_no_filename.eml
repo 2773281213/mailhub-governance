@@ -1,0 +1,16 @@
+From: Notice <notice@shop.example>
+To: bob@corp.example
+Subject: Attachment without name
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+Content-Type: multipart/mixed; boundary="a3"
+
+--a3
+Content-Type: text/plain
+
+body
+--a3
+Content-Type: application/octet-stream
+Content-Disposition: attachment
+
+BLOB
+--a3--

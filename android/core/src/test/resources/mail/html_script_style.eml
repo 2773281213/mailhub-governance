@@ -1,0 +1,7 @@
+From: Notice <notice@shop.example>
+To: bob@corp.example
+Subject: Script and style
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+Content-Type: text/html; charset=utf-8
+
+<html><head><style>p{color:red}</style><script type="text/javascript">alert('x>y');</script></head><body><p>第一段&amp;实体</p><div>第二段&#36;价格</div><table><tr><td>格&amp;子</td></tr></table><p>a&nbsp;b &lt;tag&gt; &copy;</p></body></html>

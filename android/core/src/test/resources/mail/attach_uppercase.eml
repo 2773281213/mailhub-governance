@@ -1,0 +1,16 @@
+From: Notice <notice@shop.example>
+To: bob@corp.example
+Subject: Uppercase attachment
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+Content-Type: multipart/mixed; boundary="a5"
+
+--a5
+Content-Type: text/plain
+
+text
+--a5
+Content-Type: application/pdf
+Content-Disposition: ATTACHMENT; filename=UP.PDF
+
+PDFDATA
+--a5--

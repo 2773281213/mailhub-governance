@@ -1,0 +1,7 @@
+From: Notice <notice@shop.example>
+To: bob@corp.example
+Subject: Entities and emoji
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+Content-Type: text/html; charset=utf-8
+
+<div>表情：😀 &#x1F680;</div><div>空格：a&nbsp;b　c&ensp;d</div><div>符号：&amp;lt; &lt;b&gt; &quot;q&quot; &apos;a&apos; &#39;</div>

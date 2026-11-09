@@ -27,6 +27,14 @@ data class HeaderField(val name: String, val value: String, val has8Bit: Boolean
  * 再在取值时（`policy._sanitize_header` → `Header.__str__`）把每个 8 位字节换成 `\ufffd`，
  * 这里在解析阶段就做了这一步，所以结果与 `str(msg.get(name))` 相同。
  */
+/**
+ * 一段字节里的头部块与正文起点。
+ *
+ * [bodyStart] 是正文第一个字节在整段字节里的下标（头部/正文分隔行本身不算正文，已经跳过）；
+ * 头部一直到最后一行时等于整段的末尾。
+ */
+internal class HeaderBlock(val headers: MimeHeaders, val bodyStart: Int)
+
 class MimeHeaders(val fields: List<HeaderField>) {
 
     /** 对应 `Message.get(name)`：没有这个头返回 null。 */
@@ -56,15 +64,48 @@ class MimeHeaders(val fields: List<HeaderField>) {
          *   开头的行结束（`email.feedparser.headerRE`）；
          * - 首行是续行、缺头名（冒号在第 0 列）、位置异常的 `From ` 行都按缺陷丢弃，后续头部继续解析。
          */
-        fun parse(raw: ByteArray): MimeHeaders {
-            val text = decodeAsciiDisplay(raw)
-            val lines = splitLines(text)
+        fun parse(raw: ByteArray): MimeHeaders = parsePart(raw).headers
+
+        /**
+         * 同 [parse]，另外给出正文起点，供 MIME 结构解析使用。
+         *
+         * 与 Python 的 `FeedParser._parsegen` 一致：逐行读，直到某一行不匹配 `headerRE`
+         * （`^(From |[\041-\071\073-\176]*:|[\t ])`）。这一行如果是空行（以换行符开头），
+         * 它就是 RFC 规定的头部/正文分隔行，丢掉；否则按缺陷处理，算作正文的第一行（`unreadline`）。
+         * 字节到字符是一对一的（8 位字节变成 U+FFFD），所以这里直接按字节扫描，
+         * 只把头部那几行解码成字符串。
+         */
+        internal fun parsePart(raw: ByteArray, start: Int = 0, end: Int = raw.size): HeaderBlock {
             val headerLines = ArrayList<String>()
-            for (line in lines) {
-                if (!matchesHeaderLine(line)) break
-                headerLines += line
+            var pos = start
+            var bodyStart = end
+            while (pos < end) {
+                val lineEnd = lineEnd(raw, pos, end)
+                if (!matchesHeaderLine(raw, pos, lineEnd)) {
+                    bodyStart = pos
+                    val first = raw[pos].toInt() and 0xFF
+                    // 只有空行（以 \r\n、\r 或 \n 开头）才是分隔行；其余不匹配的行属于正文
+                    if (first == 0x0D || first == 0x0A) bodyStart = lineEnd
+                    break
+                }
+                headerLines += decodeAsciiDisplay(raw, pos, lineEnd)
+                pos = lineEnd
             }
-            return MimeHeaders(parseHeaderLines(headerLines))
+            return HeaderBlock(MimeHeaders(parseHeaderLines(headerLines)), bodyStart)
+        }
+
+        /** 一行（含行尾）的结束位置，行尾按 `\r\n|\r|\n` 认，与 `BufferedSubFile` 相同。 */
+        internal fun lineEnd(raw: ByteArray, start: Int, end: Int): Int {
+            var index = start
+            while (index < end) {
+                val byte = raw[index].toInt() and 0xFF
+                if (byte == 0x0A) return index + 1
+                if (byte == 0x0D) {
+                    return if (index + 1 < end && (raw[index + 1].toInt() and 0xFF) == 0x0A) index + 2 else index + 1
+                }
+                index++
+            }
+            return end
         }
 
         /**
@@ -124,47 +165,28 @@ class MimeHeaders(val fields: List<HeaderField>) {
             return builder.toString().trimStart(' ', '\t', '\r', '\n').trimEnd('\r', '\n')
         }
 
-        /** `email.feedparser.headerRE`：`^(From |[\041-\071\073-\176]*:|[\t ])`。 */
-        private fun matchesHeaderLine(line: String): Boolean {
-            if (line.isEmpty()) return false
-            if (line.startsWith("From ")) return true
-            if (line[0] == ' ' || line[0] == '\t') return true
-            var index = 0
-            while (index < line.length) {
-                val ch = line[index]
-                val fieldText = ch in '\u0021'..'\u0039' || ch in '\u003B'..'\u007E'
+        /** `email.feedparser.headerRE`：`^(From |[\041-\071\073-\176]*:|[\t ])`，按字节判断。 */
+        private fun matchesHeaderLine(raw: ByteArray, start: Int, end: Int): Boolean {
+            if (start >= end) return false
+            val first = raw[start].toInt() and 0xFF
+            if (first == 0x20 || first == 0x09) return true
+            if (startsWithAscii(raw, start, end, "From ")) return true
+            var index = start
+            while (index < end) {
+                val byte = raw[index].toInt() and 0xFF
+                val fieldText = byte in 0x21..0x39 || byte in 0x3B..0x7E
                 if (!fieldText) break
                 index++
             }
-            return index < line.length && line[index] == ':'
+            return index < end && (raw[index].toInt() and 0xFF) == 0x3A
         }
 
-        /**
-         * 与 `BufferedSubFile` 的 `StringIO(newline='').readlines()` 相同：按 `\r\n|\r|\n`
-         * 三种行尾断行并保留行尾；末尾没有行尾的残行也算一行。
-         */
-        private fun splitLines(text: String): List<String> {
-            val lines = ArrayList<String>()
-            var start = 0
-            var index = 0
-            while (index < text.length) {
-                when (text[index]) {
-                    '\r' -> {
-                        val end = if (index + 1 < text.length && text[index + 1] == '\n') index + 2 else index + 1
-                        lines += text.substring(start, end)
-                        start = end
-                        index = end
-                    }
-                    '\n' -> {
-                        lines += text.substring(start, index + 1)
-                        start = index + 1
-                        index++
-                    }
-                    else -> index++
-                }
+        private fun startsWithAscii(raw: ByteArray, start: Int, end: Int, text: String): Boolean {
+            if (end - start < text.length) return false
+            for (offset in text.indices) {
+                if ((raw[start + offset].toInt() and 0xFF) != text[offset].code) return false
             }
-            if (start < text.length) lines += text.substring(start)
-            return lines
+            return true
         }
 
         /**
@@ -172,10 +194,10 @@ class MimeHeaders(val fields: List<HeaderField>) {
          * （`Header.__str__` 的 `encode('ascii', 'surrogateescape').decode('ascii', 'replace')`）
          * 等价于把每个 8 位字节直接换成 `\ufffd`，其余字节原样。
          */
-        private fun decodeAsciiDisplay(raw: ByteArray): String {
-            val out = StringBuilder(raw.size)
-            for (byte in raw) {
-                val value = byte.toInt() and 0xFF
+        private fun decodeAsciiDisplay(raw: ByteArray, start: Int, end: Int): String {
+            val out = StringBuilder(end - start)
+            for (index in start until end) {
+                val value = raw[index].toInt() and 0xFF
                 if (value < 0x80) out.append(value.toChar()) else out.append('\uFFFD')
             }
             return out.toString()

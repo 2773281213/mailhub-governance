@@ -1,0 +1,7 @@
+From: Notice <notice@shop.example>
+To: bob@corp.example
+Subject: Uppercase tags
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+Content-Type: text/html; charset=utf-8
+
+<HTML><HEAD><STYLE>body{margin:0}</STYLE><SCRIPT type="text/javascript">var a = 1 < 2;</SCRIPT></HEAD><BODY>第一行<BR/>第二行<BR />第三行</P>第四行</DIV>第五行</TR>第六行</BODY></HTML>

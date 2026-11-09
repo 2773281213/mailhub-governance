@@ -1,0 +1,15 @@
+From: Notice <notice@shop.example>
+To: bob@corp.example
+Subject: Two text parts
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+Content-Type: multipart/mixed; boundary="p1"
+
+--p1
+Content-Type: text/plain
+
+first line
+--p1
+Content-Type: text/plain
+
+second line
+--p1--

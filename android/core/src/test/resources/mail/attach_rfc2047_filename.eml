@@ -1,0 +1,16 @@
+From: Notice <notice@shop.example>
+To: bob@corp.example
+Subject: RFC 2047 filename
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+Content-Type: multipart/mixed; boundary="a2"
+
+--a2
+Content-Type: text/plain
+
+see attachment
+--a2
+Content-Type: application/pdf
+Content-Disposition: attachment; filename="=?UTF-8?B?5oql6KGoLnBkZg==?="
+
+PDFDATA
+--a2--

@@ -1,0 +1,15 @@
+From: Notice <notice@shop.example>
+To: bob@corp.example
+Subject: Stub no hint
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+Content-Type: multipart/alternative; boundary="s3"
+
+--s3
+Content-Type: text/plain; charset=utf-8
+
+这是一段完整的纯文本通知，说明订单已经发出，物流单号在附件里，如果有问题可以直接回复这封邮件联系客服。本段文字没有任何「浏览器查看」之类的占位提示，也没有链接。
+--s3
+Content-Type: text/html; charset=utf-8
+
+<html><body><p>短 HTML。</p></body></html>
+--s3--

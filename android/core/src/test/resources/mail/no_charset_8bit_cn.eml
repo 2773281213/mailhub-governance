@@ -1,0 +1,8 @@
+From: Notice <notice@shop.example>
+To: bob@corp.example
+Subject: No charset 8bit
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+Content-Type: text/plain
+Content-Transfer-Encoding: 8bit
+
+没有 charset 的中文正文。

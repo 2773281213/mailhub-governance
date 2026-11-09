@@ -1,0 +1,16 @@
+From: Notice <notice@shop.example>
+To: bob@corp.example
+Subject: RFC 2231 continuation
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+Content-Type: multipart/mixed; boundary="a1"
+
+--a1
+Content-Type: text/plain; charset=utf-8
+
+正文在附件前面。
+--a1
+Content-Type: application/octet-stream
+Content-Disposition: attachment; filename*0*=UTF-8''%E8%B4%A6%E5%8D%95; filename*1*=%2Epdf
+
+PDFDATA
+--a1--
