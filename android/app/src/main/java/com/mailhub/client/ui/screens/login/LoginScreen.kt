@@ -48,7 +48,7 @@ import java.time.Year
  * 大标题压在左侧，表单单栏排开，主按钮只占左侧 6 栏。
  * 提交中显示加载条；失败时出错的输入框画红色下划线，说明一律用黑色正文。
  *
- * 「连接」下方隔一个段落另有次要按钮「本机独立使用」和一行说明（`LOCAL_MODE.md` 第二节）：
+ * 「连接」右边并排的次要按钮是「本机独立使用」，下面一行说明（`LOCAL_MODE.md` 第二节）：
  * 本机模式不需要服务器，邮件和授权码只保存在这台手机上。
  */
 @Composable
@@ -179,30 +179,27 @@ fun LoginScreen(
                 enabled = !state.submitting,
                 modifier = Modifier.cols(1, 6),
             )
-        }
-        if (state.submitting) {
-            Spacer(modifier = Modifier.height(SwissSpace.S))
-            LoadingRule()
-        }
-        // 本机入口是一个段落之后另起的一段：与「连接」分开，不抢主按钮的位置
-        Spacer(modifier = Modifier.height(SwissSpace.Xxl))
-        GridRow {
+            // 和「连接」并排：放到下面的话，常见手机要滚动才看得到，没有服务器的用户找不到它
             SwissButton(
                 text = "本机独立使用",
                 onClick = { onEvent(LoginEvent.EnterLocal) },
                 kind = SwissButtonKind.Outline,
                 enabled = !state.submitting,
-                modifier = Modifier.cols(1, 6),
+                modifier = Modifier.cols(7, 6),
             )
         }
         Spacer(modifier = Modifier.height(SwissSpace.Xs))
         GridRow {
             SText(
-                text = "邮件和授权码只保存在这台手机上，不需要服务器",
+                text = "本机独立使用：邮件和授权码只存在这台手机上，无需服务器",
                 style = SwissType.caption(),
-                modifier = Modifier.cols(1, 10),
+                modifier = Modifier.cols(1, 12),
                 color = colors.foreground,
             )
+        }
+        if (state.submitting) {
+            Spacer(modifier = Modifier.height(SwissSpace.S))
+            LoadingRule()
         }
         Spacer(modifier = Modifier.height(SwissSpace.Xxxl))
     }
