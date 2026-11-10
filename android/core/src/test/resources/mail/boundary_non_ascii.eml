@@ -1,0 +1,11 @@
+From: Notice <notice@shop.example>
+To: bob@corp.example
+Subject: Non ascii boundary
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+Content-Type: multipart/mixed; boundary*=utf-8''a%E4%BD%A0b
+
+--a你b
+Content-Type: text/plain
+
+SHOULD NOT APPEAR
+--a你b--

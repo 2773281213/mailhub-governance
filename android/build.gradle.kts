@@ -6,4 +6,6 @@ plugins {
     alias(libs.plugins.kotlin.android) apply false
     alias(libs.plugins.kotlin.compose) apply false
     alias(libs.plugins.kotlin.serialization) apply false
+    // :core 是纯 Kotlin/JVM 模块，用它自己的 JVM 插件；这里只声明版本，不 apply。
+    alias(libs.plugins.kotlin.jvm) apply false
 }

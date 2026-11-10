@@ -1,0 +1,7 @@
+From: Notice <notice@shop.example>
+To: bob@corp.example
+Subject: GBK html
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+Content-Type: text/html; charset=gbk
+
+<div>国标编码的 HTML 正文，含 <b>加粗</b>。</div>

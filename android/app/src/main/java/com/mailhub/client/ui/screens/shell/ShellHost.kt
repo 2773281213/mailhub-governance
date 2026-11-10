@@ -27,6 +27,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mailhub.client.AppContainer
+import com.mailhub.client.data.local.isLocal
+import com.mailhub.client.data.session.SessionState
 import com.mailhub.client.ui.screens.accounts.AccountsScreenHost
 import com.mailhub.client.ui.screens.accounts.AddAccountScreenHost
 import com.mailhub.client.ui.screens.common.PageMeta
@@ -125,6 +127,9 @@ private fun ShellContent(
     val indexOpen by viewModel.indexOpen.collectAsStateWithLifecycle()
     val confirmingLogout by viewModel.confirmingLogout.collectAsStateWithLifecycle()
     val meta by viewModel.meta.collectAsStateWithLifecycle()
+    // 会话状态决定按模式分支的页面：本机会话隐藏「已登录设备」、只留「同步」，退出确认也换文案
+    val session by container.sessionState.collectAsStateWithLifecycle()
+    val localMode = (session as? SessionState.LoggedIn)?.session?.isLocal == true
     // 收件箱和详情共用一个收件箱 ViewModel：详情返回时那一行的已读状态和删除结果直接写回列表
     val inboxViewModel: InboxViewModel = viewModel(
         factory = InboxViewModelFactory(container.mailRepository),
@@ -223,6 +228,7 @@ private fun ShellContent(
                     header = header,
                     meta = pageMeta,
                     categories = meta?.displayCategories.orEmpty(),
+                    localMode = localMode,
                     selectedTab = tabIndexFor(stack),
                     onSelectTab = viewModel::selectTab,
                     onOpenIndex = viewModel::openIndex,
@@ -271,6 +277,7 @@ private fun ShellContent(
                     SettingsScreenHost(
                         sessionManager = container.sessionManager,
                         modifier = Modifier.fillMaxSize(),
+                        localMode = localMode,
                         header = { PageTitle(text = header.title) },
                     )
                 }
@@ -285,13 +292,10 @@ private fun ShellContent(
             )
         }
         if (confirmingLogout) {
-            ConfirmPanel(
-                title = "退出登录？",
-                message = "退出后需要重新输入管理密码才能连回这台服务器。",
-                confirmText = "退出",
+            LogoutConfirmPanel(
+                localMode = localMode,
                 onConfirm = viewModel::confirmLogout,
                 onCancel = viewModel::dismissLogout,
-                danger = true,
             )
         }
     }
@@ -304,6 +308,7 @@ private fun SecurityPage(
     header: PageHeader,
     meta: PageMeta,
     categories: List<String>,
+    localMode: Boolean,
     selectedTab: Int,
     onSelectTab: (Int) -> Unit,
     onOpenIndex: () -> Unit,
@@ -325,6 +330,7 @@ private fun SecurityPage(
             sessionManager = container.sessionManager,
             zoneId = meta.zoneId,
             categories = categories,
+            localMode = localMode,
             onOpenMessage = onOpenMessage,
             modifier = Modifier.fillMaxSize(),
             header = { PageTitle(text = header.title) },
@@ -358,6 +364,47 @@ private fun SecondaryPage(
  * 入口本身由各页面的 SwissScaffold 画（见 PageHeader），这里只放文字。
  */
 const val IndexActionLabel: String = "索引"
+
+/** 退出确认的三段文案：标题、说明、确认按钮。 */
+data class LogoutConfirmTexts(val title: String, val message: String, val confirmText: String)
+
+/**
+ * 退出确认按模式给文案（`LOCAL_MODE.md` 3.1）。
+ *
+ * - 服务器模式：退出后要重新输入管理密码，与以前完全一致；
+ * - 本机模式：只清会话，本机数据库和凭据都还在，再点一次「本机独立使用」就能回来。
+ */
+fun logoutConfirmTexts(localMode: Boolean): LogoutConfirmTexts = if (localMode) {
+    LogoutConfirmTexts(
+        title = "退出本机模式？",
+        message = "本机的邮件和账户都会保留，再次选择「本机独立使用」就能回来。",
+        confirmText = "退出",
+    )
+} else {
+    LogoutConfirmTexts(
+        title = "退出登录？",
+        message = "退出后需要重新输入管理密码才能连回这台服务器。",
+        confirmText = "退出",
+    )
+}
+
+/** 退出确认面板；[localMode] 只影响文案，按钮与危险色不变。 */
+@Composable
+internal fun LogoutConfirmPanel(
+    localMode: Boolean,
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    val texts = logoutConfirmTexts(localMode)
+    ConfirmPanel(
+        title = texts.title,
+        message = texts.message,
+        confirmText = texts.confirmText,
+        onConfirm = onConfirm,
+        onCancel = onCancel,
+        danger = true,
+    )
+}
 
 /**
  * 全屏索引层：编号用 label，名称用 headline，行间用 1dp 细线分隔。

@@ -38,6 +38,18 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
+     * 回到前台：本机会话时触发一次前台同步（`LOCAL_MODE.md` 第五节）。
+     *
+     * 判断放在 [AppContainer.onForeground] 里：冷启动时这里拿到的会话状态可能还是恢复中，
+     * 容器会先 `restore()` 再判断；60 秒的节流在 `LocalSync` 里。服务器模式什么都不做。
+     * 不新增 lifecycle 依赖，只在 Activity 的生命周期回调里转给容器。
+     */
+    override fun onStart() {
+        super.onStart()
+        (application as MailHubApp).container.onForeground()
+    }
+
+    /**
      * 处理 `mailhub://oauth/done?tx=…` 深链。
      *
      * 深链里只有事务 id：这里只把它交给 [OAuthReturnBus]，由等待中的添加账户流程判断

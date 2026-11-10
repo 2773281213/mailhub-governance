@@ -1,0 +1,12 @@
+From: Notice <notice@shop.example>
+To: bob@corp.example
+Subject: Inline filename
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+Content-Type: multipart/mixed; boundary="a4"
+
+--a4
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline; filename="note.txt"
+
+inline 的正文要算正文。
+--a4--

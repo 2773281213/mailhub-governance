@@ -1,0 +1,8 @@
+DKIM-Signature: v=1; a=rsa-sha256; d=mailchimp.example; s=sel; b=abc
+DKIM-Signature: v=1; a=rsa-sha256; d=shop.example; s=sel2; b=def
+From: promo@shop.example
+To: bob@corp.example
+Subject: Two DKIM signatures
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+
+这是正文。

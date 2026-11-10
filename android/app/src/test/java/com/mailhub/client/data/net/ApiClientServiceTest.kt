@@ -45,7 +45,7 @@ class ApiClientServiceTest {
     fun setUp() {
         server = MockWebServer()
         server.start()
-        client = ApiClient(server.url("/"), "tok-1") { unauthorizedCount++ }
+        client = ApiClient(server.url("/"), "tok-1", onUnauthorized = { unauthorizedCount++ })
     }
 
     @After

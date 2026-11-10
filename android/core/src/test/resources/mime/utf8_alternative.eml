@@ -1,0 +1,24 @@
+From: =?UTF-8?B?6LSi5Yqh6YOo?= <finance@corp.example>
+To: user@mail.example
+Subject: =?UTF-8?B?5pys5a2j5bqm6LSm5Y2V5rGH5oC7?=
+Date: Mon, 02 Nov 2026 09:30:00 +0800
+Message-ID: <l1-alt-0001@mail.example>
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="l1-alt-0001"
+
+--l1-alt-0001
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: base64
+
+5oKo5aW977yaDQrmnKzlraPluqbotKbljZXlt7LnlJ/miJDvvIzor7fnmbvlvZXoh6rliqnmnI3l
+iqHmn6XnnIvmmI7nu4bjgIINCuacrOmCruS7tueUseezu+e7n+iHquWKqOWPkemAge+8jOivt+WL
+v+ebtOaOpeWbnuWkjeOAgg0K
+--l1-alt-0001
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: base64
+
+PGh0bWw+PGJvZHk+PHA+5oKo5aW977yaPC9wPjxwPuacrOWto+W6pui0puWNleW3sueUn+aIkO+8
+jOivt+eZu+W9leiHquWKqeacjeWKoeafpeeci+aYjue7huOAgjwvcD48cD7mnKzpgq7ku7bnlLHn
+s7vnu5/oh6rliqjlj5HpgIHvvIzor7fli7/nm7TmjqXlm57lpI3jgII8L3A+PC9ib2R5PjwvaHRt
+bD4=
+--l1-alt-0001--

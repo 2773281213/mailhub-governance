@@ -1,0 +1,98 @@
+{
+  "name": "retier",
+  "now": 1760000000.0,
+  "limit": 0,
+  "runs": [],
+  "post": [
+    {"op": "set_settings", "values": {"bill_routine_count": "2"}},
+    {"op": "retier_bills", "only_missing": true},
+    {"op": "retier_bills", "template": "example.com|高额消费", "only_missing": false}
+  ],
+  "accounts": [
+    {
+      "id": 1,
+      "name": "账单邮箱",
+      "provider": "custom",
+      "email": "retier@example.test",
+      "imap_host": "imap.example.test"
+    }
+  ],
+  "settings": {
+    "ai_enabled": "0",
+    "bill_amount_threshold": "200",
+    "bill_routine_count": "3",
+    "bill_auto_renew": "重要",
+    "bill_refund": "一般"
+  },
+  "rules": [],
+  "bill_prefs": [],
+  "messages": [
+    {
+      "id": 1,
+      "account_id": 1,
+      "uid": 1,
+      "subject": "订单确认 12345",
+      "sender_addr": "shop@example.com",
+      "date_ts": 1759996400.0,
+      "snippet": "订单金额 ¥250.00",
+      "body_text": "订单金额 ¥250.00",
+      "category": "账单",
+      "template_key": "example.com|订单确认 #"
+    },
+    {
+      "id": 2,
+      "account_id": 1,
+      "uid": 2,
+      "subject": "订单确认 67890",
+      "sender_addr": "shop@example.com",
+      "date_ts": 1759992800.0,
+      "snippet": "订单金额 ¥150.00",
+      "body_text": "订单金额 ¥150.00",
+      "category": "账单",
+      "template_key": "example.com|订单确认 #"
+    },
+    {
+      "id": 3,
+      "account_id": 1,
+      "uid": 3,
+      "subject": "高额消费",
+      "sender_addr": "store@example.com",
+      "date_ts": 1759990000.0,
+      "snippet": "支付 ¥899.00",
+      "body_text": "支付 ¥899.00",
+      "category": "账单",
+      "template_key": "example.com|高额消费",
+      "bill_tier": "一般",
+      "importance": 2
+    },
+    {
+      "id": 4,
+      "account_id": 1,
+      "uid": 4,
+      "subject": "手动锁定账单",
+      "sender_addr": "locked@example.com",
+      "date_ts": 1759988000.0,
+      "snippet": "用户已手动设为一般",
+      "body_text": "支付 ¥999.00",
+      "category": "账单",
+      "template_key": "example.com|手动锁定账单",
+      "bill_tier": "一般",
+      "bill_tier_locked": 1,
+      "bill_facets": "{\"direction\": \"out\"}",
+      "importance": 4
+    },
+    {
+      "id": 5,
+      "account_id": 1,
+      "uid": 5,
+      "subject": "锁定未定级",
+      "sender_addr": "locked@example.com",
+      "date_ts": 1759986000.0,
+      "snippet": "用户锁定了但没有等级",
+      "body_text": "支付 ¥999.00",
+      "category": "账单",
+      "template_key": "example.com|锁定未定级",
+      "bill_tier_locked": 1
+    }
+  ]
+}

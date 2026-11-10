@@ -1,0 +1,7 @@
+From: notice@shop.example
+To: bob@corp.example
+Message-ID:   <spaced-id@mail.shop.example>   
+Subject: Spaced message id
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+
+这是正文。

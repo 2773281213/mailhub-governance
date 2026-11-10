@@ -7,7 +7,7 @@ import retrofit2.http.Query
 
 /**
  * 增量接口 `GET /api/changes`（app.py 的 `_changes_sync`）：
- * - `after_id = 0`：只返回当前水位 `cursor`，不补发历史邮件；
+ * - `after_id < 0`：只返回当前水位 `cursor`，不补发历史邮件（本机模式的 0 表示从头列出）；
  * - `after_id` 比服务器的最大 id 还大（服务器恢复了旧备份）：`reset = true`；
  * - 其余情况返回 id 在游标之后、已经治理完的邮件，分类是治理后的最终分类。
  */

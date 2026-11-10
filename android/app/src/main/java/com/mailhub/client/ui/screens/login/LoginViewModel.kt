@@ -24,6 +24,8 @@ class LoginViewModel(
     private val lastServer: LastServerStore,
     private val deviceName: String,
     expiredNotice: Boolean = false,
+    /** 进入本机模式；真实实现是 `AuthRepository.enterLocalMode`，不写「上次服务器」。 */
+    private val enterLocal: suspend () -> Result<Unit>,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(LoginUiState(expiredNotice = expiredNotice))
@@ -60,6 +62,7 @@ class LoginViewModel(
             }
 
             LoginEvent.Submit -> submit()
+            LoginEvent.EnterLocal -> enterLocalMode()
         }
     }
 
@@ -82,6 +85,30 @@ class LoginViewModel(
             )
         }
     }
+
+    /**
+     * 进入本机模式（`LOCAL_MODE.md` 3.1）。成功后不在这里跳转：会话状态会切到 `LoggedIn`，
+     * 根界面随之换掉；也不写「上次服务器」，那是服务器登录成功后才记的。
+     *
+     * 提交中直接返回，连点不会重复进入；失败只给一句通用说明，不指向任何输入框。
+     */
+    private fun enterLocalMode() {
+        if (_state.value.submitting) return
+        _state.update { it.copy(submitting = true, failure = null) }
+        viewModelScope.launch {
+            enterLocal().fold(
+                onSuccess = { _state.update { it.copy(submitting = false) } },
+                onFailure = {
+                    _state.update {
+                        it.copy(
+                            submitting = false,
+                            failure = LoginFailure(field = null, message = LocalModeFailureText),
+                        )
+                    }
+                },
+            )
+        }
+    }
 }
 
 /** 手工工厂：外壳在登录页里组装真实的 Gateway 与偏好存储。 */
@@ -90,10 +117,17 @@ class LoginViewModelFactory(
     private val lastServer: LastServerStore,
     private val deviceName: String,
     private val expiredNotice: Boolean,
+    private val enterLocal: suspend () -> Result<Unit>,
 ) : ViewModelProvider.Factory {
 
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         @Suppress("UNCHECKED_CAST")
-        return LoginViewModel(login, lastServer, deviceName, expiredNotice) as T
+        return LoginViewModel(
+            login = login,
+            lastServer = lastServer,
+            deviceName = deviceName,
+            expiredNotice = expiredNotice,
+            enterLocal = enterLocal,
+        ) as T
     }
 }

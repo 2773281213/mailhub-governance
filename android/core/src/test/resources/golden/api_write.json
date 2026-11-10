@@ -1,0 +1,7118 @@
+{
+ "cases": [
+  {
+   "args": {
+    "body": {
+     "color": "#22c55e",
+     "email": " New@Example.com ",
+     "enabled": true,
+     "imap_host": " imap.new.example ",
+     "imap_port": 993,
+     "name": "新账户",
+     "poll_interval": 120,
+     "provider": "custom",
+     "secret": "app-pass-123"
+    },
+    "method": "POST",
+    "path": "/api/accounts",
+    "stubs": {
+     "probe": "ok"
+    }
+   },
+   "expected": {
+    "calls": [
+     {
+      "auth_type": "password",
+      "credential_set": true,
+      "email": "new@example.com",
+      "host": "imap.new.example",
+      "kind": "probe",
+      "port": 993,
+      "provider": "custom"
+     },
+     {
+      "id": 4,
+      "kind": "trigger"
+     }
+    ],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "id": 4,
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "account_create_ok"
+  },
+  {
+   "args": {
+    "body": {
+     "color": "#38bdf8",
+     "email": "auto@qq.com",
+     "enabled": true,
+     "imap_host": "",
+     "imap_port": 993,
+     "name": "",
+     "poll_interval": 300,
+     "provider": "auto",
+     "secret": "qq-pass"
+    },
+    "method": "POST",
+    "path": "/api/accounts",
+    "stubs": {
+     "probe": "ok"
+    }
+   },
+   "expected": {
+    "calls": [
+     {
+      "auth_type": "password",
+      "credential_set": true,
+      "email": "auto@qq.com",
+      "host": "imap.qq.com",
+      "kind": "probe",
+      "port": 993,
+      "provider": "qq"
+     },
+     {
+      "id": 5,
+      "kind": "trigger"
+     }
+    ],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "id": 5,
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "account_create_auto_provider"
+  },
+  {
+   "args": {
+    "body": {
+     "color": "#38bdf8",
+     "email": "low@163.com",
+     "enabled": true,
+     "imap_host": "",
+     "imap_port": 993,
+     "name": "",
+     "poll_interval": 10,
+     "provider": "163",
+     "secret": "p"
+    },
+    "method": "POST",
+    "path": "/api/accounts",
+    "stubs": {
+     "probe": "ok"
+    }
+   },
+   "expected": {
+    "calls": [
+     {
+      "auth_type": "password",
+      "credential_set": true,
+      "email": "low@163.com",
+      "host": "imap.163.com",
+      "kind": "probe",
+      "port": 993,
+      "provider": "163"
+     },
+     {
+      "id": 6,
+      "kind": "trigger"
+     }
+    ],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "id": 6,
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "account_create_poll_clamped_low"
+  },
+  {
+   "args": {
+    "body": {
+     "color": "#38bdf8",
+     "email": "high@163.com",
+     "enabled": true,
+     "imap_host": "",
+     "imap_port": 993,
+     "name": "",
+     "poll_interval": 999999,
+     "provider": "163",
+     "secret": "p"
+    },
+    "method": "POST",
+    "path": "/api/accounts",
+    "stubs": {
+     "probe": "ok"
+    }
+   },
+   "expected": {
+    "calls": [
+     {
+      "auth_type": "password",
+      "credential_set": true,
+      "email": "high@163.com",
+      "host": "imap.163.com",
+      "kind": "probe",
+      "port": 993,
+      "provider": "163"
+     },
+     {
+      "id": 7,
+      "kind": "trigger"
+     }
+    ],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "id": 7,
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "account_create_poll_clamped_high"
+  },
+  {
+   "args": {
+    "body": {
+     "color": "red",
+     "email": "color@163.com",
+     "enabled": true,
+     "imap_host": "",
+     "imap_port": 993,
+     "name": "",
+     "poll_interval": 300,
+     "provider": "163",
+     "secret": "p"
+    },
+    "method": "POST",
+    "path": "/api/accounts",
+    "stubs": {
+     "probe": "ok"
+    }
+   },
+   "expected": {
+    "calls": [
+     {
+      "auth_type": "password",
+      "credential_set": true,
+      "email": "color@163.com",
+      "host": "imap.163.com",
+      "kind": "probe",
+      "port": 993,
+      "provider": "163"
+     },
+     {
+      "id": 8,
+      "kind": "trigger"
+     }
+    ],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "id": 8,
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "account_create_color_invalid"
+  },
+  {
+   "args": {
+    "body": {
+     "color": "#38bdf8",
+     "email": "nosecret@example.com",
+     "enabled": true,
+     "imap_host": "imap.example",
+     "imap_port": 993,
+     "name": "",
+     "poll_interval": 300,
+     "provider": "custom",
+     "secret": ""
+    },
+    "method": "POST",
+    "path": "/api/accounts",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": "缺少授权码/密码"
+    },
+    "status": 400
+   },
+   "fn": "request",
+   "id": "account_create_missing_secret"
+  },
+  {
+   "args": {
+    "body": {
+     "color": "#38bdf8",
+     "email": "nohost@example.com",
+     "enabled": true,
+     "imap_host": "",
+     "imap_port": 993,
+     "name": "",
+     "poll_interval": 300,
+     "provider": "custom",
+     "secret": "p"
+    },
+    "method": "POST",
+    "path": "/api/accounts",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": "缺少 IMAP 服务器地址"
+    },
+    "status": 400
+   },
+   "fn": "request",
+   "id": "account_create_missing_host"
+  },
+  {
+   "args": {
+    "body": {
+     "color": "#38bdf8",
+     "email": "refused@163.com",
+     "enabled": true,
+     "imap_host": "",
+     "imap_port": 993,
+     "name": "",
+     "poll_interval": 300,
+     "provider": "163",
+     "secret": "p"
+    },
+    "method": "POST",
+    "path": "/api/accounts",
+    "stubs": {
+     "probe": "text_refused"
+    }
+   },
+   "expected": {
+    "calls": [
+     {
+      "auth_type": "password",
+      "credential_set": true,
+      "email": "refused@163.com",
+      "host": "imap.163.com",
+      "kind": "probe",
+      "port": 993,
+      "provider": "163"
+     }
+    ],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": "连接测试失败: 邮箱服务器拒绝连接，请检查服务器地址和端口"
+    },
+    "status": 400
+   },
+   "fn": "request",
+   "id": "account_create_probe_refused"
+  },
+  {
+   "args": {
+    "body": {
+     "color": "#38bdf8",
+     "email": "autherr@qq.com",
+     "enabled": true,
+     "imap_host": "",
+     "imap_port": 993,
+     "name": "",
+     "poll_interval": 300,
+     "provider": "qq",
+     "secret": "web-password"
+    },
+    "method": "POST",
+    "path": "/api/accounts",
+    "stubs": {
+     "probe": "text_auth"
+    }
+   },
+   "expected": {
+    "calls": [
+     {
+      "auth_type": "password",
+      "credential_set": true,
+      "email": "autherr@qq.com",
+      "host": "imap.qq.com",
+      "kind": "probe",
+      "port": 993,
+      "provider": "qq"
+     }
+    ],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": "连接测试失败: 邮箱服务器拒绝登录（LOGIN failed），请检查授权码或密码。请确认填写的是「QQ 邮箱授权码」，不是网页登录密码"
+    },
+    "status": 400
+   },
+   "fn": "request",
+   "id": "account_create_probe_auth_failure"
+  },
+  {
+   "args": {
+    "body": {
+     "color": "#38bdf8",
+     "email": "autherr@example.com",
+     "enabled": true,
+     "imap_host": "imap.example",
+     "imap_port": 993,
+     "name": "",
+     "poll_interval": 300,
+     "provider": "custom",
+     "secret": "web-password"
+    },
+    "method": "POST",
+    "path": "/api/accounts",
+    "stubs": {
+     "probe": "text_auth"
+    }
+   },
+   "expected": {
+    "calls": [
+     {
+      "auth_type": "password",
+      "credential_set": true,
+      "email": "autherr@example.com",
+      "host": "imap.example",
+      "kind": "probe",
+      "port": 993,
+      "provider": "custom"
+     }
+    ],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": "连接测试失败: 邮箱服务器拒绝登录（LOGIN failed），请检查授权码或密码"
+    },
+    "status": 400
+   },
+   "fn": "request",
+   "id": "account_create_probe_auth_failure_custom"
+  },
+  {
+   "args": {
+    "body": {
+     "color": "#38bdf8",
+     "email": "slow@163.com",
+     "enabled": true,
+     "imap_host": "",
+     "imap_port": 993,
+     "name": "",
+     "poll_interval": 300,
+     "provider": "163",
+     "secret": "p"
+    },
+    "method": "POST",
+    "path": "/api/accounts",
+    "stubs": {
+     "probe": "text_timeout"
+    }
+   },
+   "expected": {
+    "calls": [
+     {
+      "auth_type": "password",
+      "credential_set": true,
+      "email": "slow@163.com",
+      "host": "imap.163.com",
+      "kind": "probe",
+      "port": 993,
+      "provider": "163"
+     }
+    ],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": "连接测试失败: 连接邮箱服务器超时"
+    },
+    "status": 400
+   },
+   "fn": "request",
+   "id": "account_create_probe_timeout"
+  },
+  {
+   "args": {
+    "body": {
+     "color": "#38bdf8",
+     "email": "work@corp.example",
+     "enabled": true,
+     "imap_host": "",
+     "imap_port": 993,
+     "name": "",
+     "poll_interval": 300,
+     "provider": "exmail",
+     "secret": "p"
+    },
+    "method": "POST",
+    "path": "/api/accounts",
+    "stubs": {
+     "probe": "ok"
+    }
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": "这个邮箱已经添加过了，请在账户列表里编辑或重新授权"
+    },
+    "status": 409
+   },
+   "fn": "request",
+   "id": "account_create_duplicate"
+  },
+  {
+   "args": {
+    "body": {
+     "color": "#38bdf8",
+     "email": "someone@gmail.com",
+     "enabled": true,
+     "imap_host": "",
+     "imap_port": 993,
+     "name": "",
+     "poll_interval": 300,
+     "provider": "qq",
+     "secret": "p"
+    },
+    "method": "POST",
+    "path": "/api/accounts",
+    "stubs": {
+     "probe": "ok"
+    }
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": "邮箱域名已识别为「Gmail」，请使用自动识别或选择匹配的服务商"
+    },
+    "status": 400
+   },
+   "fn": "request",
+   "id": "account_create_provider_mismatch"
+  },
+  {
+   "args": {
+    "body": {
+     "color": "#38bdf8",
+     "email": "who@example.com",
+     "enabled": true,
+     "imap_host": "",
+     "imap_port": 993,
+     "name": "",
+     "poll_interval": 300,
+     "provider": "nope",
+     "secret": "p"
+    },
+    "method": "POST",
+    "path": "/api/accounts",
+    "stubs": {
+     "probe": "ok"
+    }
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": "不支持的邮箱服务商"
+    },
+    "status": 400
+   },
+   "fn": "request",
+   "id": "account_create_unknown_provider"
+  },
+  {
+   "args": {
+    "body": {
+     "color": "#38bdf8",
+     "email": "not-an-email",
+     "enabled": true,
+     "imap_host": "imap.example",
+     "imap_port": 993,
+     "name": "",
+     "poll_interval": 300,
+     "provider": "custom",
+     "secret": "p"
+    },
+    "method": "POST",
+    "path": "/api/accounts",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": "邮箱地址格式不正确"
+    },
+    "status": 400
+   },
+   "fn": "request",
+   "id": "account_create_bad_email"
+  },
+  {
+   "args": {
+    "body": {
+     "color": "#38bdf8",
+     "email": "someone@outlook.com",
+     "enabled": true,
+     "imap_host": "",
+     "imap_port": 993,
+     "name": "",
+     "poll_interval": 300,
+     "provider": "outlook",
+     "secret": "p"
+    },
+    "method": "POST",
+    "path": "/api/accounts",
+    "stubs": {
+     "probe": "ok"
+    }
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": "Outlook / Hotmail 只能通过 OAuth 登录添加，不支持授权码或密码"
+    },
+    "status": 400
+   },
+   "fn": "request",
+   "id": "account_create_oauth_only_provider"
+  },
+  {
+   "args": {
+    "body": {
+     "provider": "custom"
+    },
+    "method": "POST",
+    "path": "/api/accounts",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": [
+      {
+       "input": {
+        "provider": "custom"
+       },
+       "loc": [
+        "body",
+        "email"
+       ],
+       "msg": "Field required",
+       "type": "missing"
+      }
+     ]
+    },
+    "status": 422
+   },
+   "fn": "request",
+   "id": "account_create_missing_email"
+  },
+  {
+   "args": {
+    "body": {
+     "color": "#38bdf8",
+     "email": "port@example.com",
+     "enabled": true,
+     "imap_host": "imap.example",
+     "imap_port": "abc",
+     "name": "",
+     "poll_interval": 300,
+     "provider": "custom",
+     "secret": ""
+    },
+    "method": "POST",
+    "path": "/api/accounts",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": [
+      {
+       "input": "abc",
+       "loc": [
+        "body",
+        "imap_port"
+       ],
+       "msg": "Input should be a valid integer, unable to parse string as an integer",
+       "type": "int_parsing"
+      }
+     ]
+    },
+    "status": 422
+   },
+   "fn": "request",
+   "id": "account_create_bad_port"
+  },
+  {
+   "args": {
+    "body": {
+     "color": "#38bdf8",
+     "email": "port2@example.com",
+     "enabled": true,
+     "imap_host": "imap.example",
+     "imap_port": 993.5,
+     "name": "",
+     "poll_interval": 300,
+     "provider": "custom",
+     "secret": ""
+    },
+    "method": "POST",
+    "path": "/api/accounts",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": [
+      {
+       "input": 993.5,
+       "loc": [
+        "body",
+        "imap_port"
+       ],
+       "msg": "Input should be a valid integer, got a number with a fractional part",
+       "type": "int_from_float"
+      }
+     ]
+    },
+    "status": 422
+   },
+   "fn": "request",
+   "id": "account_create_float_port"
+  },
+  {
+   "args": {
+    "body": {
+     "color": "#38bdf8",
+     "email": "bool@example.com",
+     "enabled": "maybe",
+     "imap_host": "imap.example",
+     "imap_port": 993,
+     "name": "",
+     "poll_interval": 300,
+     "provider": "custom",
+     "secret": ""
+    },
+    "method": "POST",
+    "path": "/api/accounts",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": [
+      {
+       "input": "maybe",
+       "loc": [
+        "body",
+        "enabled"
+       ],
+       "msg": "Input should be a valid boolean, unable to interpret input",
+       "type": "bool_parsing"
+      }
+     ]
+    },
+    "status": 422
+   },
+   "fn": "request",
+   "id": "account_create_bad_bool"
+  },
+  {
+   "args": {
+    "body": {
+     "color": "#38bdf8",
+     "email": "nullname@example.com",
+     "enabled": true,
+     "imap_host": "imap.example",
+     "imap_port": 993,
+     "name": null,
+     "poll_interval": 300,
+     "provider": "custom",
+     "secret": ""
+    },
+    "method": "POST",
+    "path": "/api/accounts",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": [
+      {
+       "input": null,
+       "loc": [
+        "body",
+        "name"
+       ],
+       "msg": "Input should be a valid string",
+       "type": "string_type"
+      }
+     ]
+    },
+    "status": 422
+   },
+   "fn": "request",
+   "id": "account_create_null_name"
+  },
+  {
+   "args": {
+    "body": {},
+    "method": "POST",
+    "path": "/api/accounts",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": [
+      {
+       "input": {},
+       "loc": [
+        "body",
+        "email"
+       ],
+       "msg": "Field required",
+       "type": "missing"
+      }
+     ]
+    },
+    "status": 422
+   },
+   "fn": "request",
+   "id": "account_create_empty_body"
+  },
+  {
+   "args": {
+    "body": {
+     "color": "#38bdf8",
+     "email": "work@corp.example",
+     "enabled": true,
+     "imap_host": "",
+     "imap_port": 993,
+     "name": "工作邮箱（改名）",
+     "poll_interval": 300,
+     "provider": "exmail",
+     "secret": "new-app-pass"
+    },
+    "method": "PUT",
+    "path": "/api/accounts/1",
+    "stubs": {
+     "probe": "ok"
+    }
+   },
+   "expected": {
+    "calls": [
+     {
+      "auth_type": "password",
+      "credential_set": true,
+      "email": "work@corp.example",
+      "host": "imap.exmail.qq.com",
+      "kind": "probe",
+      "port": 993,
+      "provider": "exmail"
+     }
+    ],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "account_update_password"
+  },
+  {
+   "args": {
+    "body": {
+     "color": "#38bdf8",
+     "email": "work@corp.example",
+     "enabled": true,
+     "imap_host": "imap2.corp.example",
+     "imap_port": 993,
+     "name": "工作邮箱",
+     "poll_interval": 300,
+     "provider": "exmail",
+     "secret": "newer-app-pass"
+    },
+    "method": "PUT",
+    "path": "/api/accounts/1",
+    "stubs": {
+     "probe": "ok"
+    }
+   },
+   "expected": {
+    "calls": [
+     {
+      "auth_type": "password",
+      "credential_set": true,
+      "email": "work@corp.example",
+      "host": "imap.exmail.qq.com",
+      "kind": "probe",
+      "port": 993,
+      "provider": "exmail"
+     }
+    ],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "account_update_host"
+  },
+  {
+   "args": {
+    "body": {
+     "color": "#38bdf8",
+     "email": "off@example.com",
+     "enabled": true,
+     "imap_host": "imap.other.example",
+     "imap_port": 993,
+     "name": "停用邮箱",
+     "poll_interval": 300,
+     "provider": "custom",
+     "secret": ""
+    },
+    "method": "PUT",
+    "path": "/api/accounts/3",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": "修改邮箱登录信息时必须重新填写凭据"
+    },
+    "status": 400
+   },
+   "fn": "request",
+   "id": "account_update_host_without_secret"
+  },
+  {
+   "args": {
+    "body": {
+     "color": "#38bdf8",
+     "email": "WORK@corp.example",
+     "enabled": true,
+     "imap_host": "",
+     "imap_port": 993,
+     "name": "工作邮箱",
+     "poll_interval": 300,
+     "provider": "exmail",
+     "secret": ""
+    },
+    "method": "PUT",
+    "path": "/api/accounts/1",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "account_update_same_identity_no_secret"
+  },
+  {
+   "args": {
+    "body": {
+     "color": "#38bdf8",
+     "email": "work@corp.example",
+     "enabled": true,
+     "imap_host": "",
+     "imap_port": 993,
+     "name": "工作邮箱",
+     "poll_interval": 300,
+     "provider": "exmail",
+     "secret": "bad-pass"
+    },
+    "method": "PUT",
+    "path": "/api/accounts/1",
+    "stubs": {
+     "probe": "text_refused"
+    }
+   },
+   "expected": {
+    "calls": [
+     {
+      "auth_type": "password",
+      "credential_set": true,
+      "email": "work@corp.example",
+      "host": "imap.exmail.qq.com",
+      "kind": "probe",
+      "port": 993,
+      "provider": "exmail"
+     }
+    ],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": "连接测试失败: 邮箱服务器拒绝连接，请检查服务器地址和端口"
+    },
+    "status": 400
+   },
+   "fn": "request",
+   "id": "account_update_probe_fail"
+  },
+  {
+   "args": {
+    "body": {
+     "color": "#38bdf8",
+     "email": "work@corp.example",
+     "enabled": true,
+     "imap_host": "",
+     "imap_port": 993,
+     "name": "工作邮箱",
+     "poll_interval": 300,
+     "provider": "exmail",
+     "secret": "web-password"
+    },
+    "method": "PUT",
+    "path": "/api/accounts/1",
+    "stubs": {
+     "probe": "text_auth"
+    }
+   },
+   "expected": {
+    "calls": [
+     {
+      "auth_type": "password",
+      "credential_set": true,
+      "email": "work@corp.example",
+      "host": "imap.exmail.qq.com",
+      "kind": "probe",
+      "port": 993,
+      "provider": "exmail"
+     }
+    ],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": "连接测试失败: 邮箱服务器拒绝登录（LOGIN failed），请检查授权码或密码。请确认填写的是「企业邮客户端专用密码」，不是网页登录密码"
+    },
+    "status": 400
+   },
+   "fn": "request",
+   "id": "account_update_probe_auth_failure"
+  },
+  {
+   "args": {
+    "body": {
+     "color": "#38bdf8",
+     "email": "other@example.com",
+     "enabled": true,
+     "imap_host": "",
+     "imap_port": 993,
+     "name": "OAuth 账户",
+     "poll_interval": 300,
+     "provider": "gmail",
+     "secret": ""
+    },
+    "method": "PUT",
+    "path": "/api/accounts/2",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": "OAuth 账户的服务商和邮箱地址不能直接修改，请重新登录"
+    },
+    "status": 400
+   },
+   "fn": "request",
+   "id": "account_update_oauth_identity_change"
+  },
+  {
+   "args": {
+    "body": {
+     "color": "#38bdf8",
+     "email": "OAuth@Example.com",
+     "enabled": true,
+     "imap_host": "",
+     "imap_port": 993,
+     "name": "OAuth 账户（改名）",
+     "poll_interval": 300,
+     "provider": "gmail",
+     "secret": ""
+    },
+    "method": "PUT",
+    "path": "/api/accounts/2",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "account_update_oauth_same_identity"
+  },
+  {
+   "args": {
+    "body": {
+     "color": "#38bdf8",
+     "email": "oauth@example.com",
+     "enabled": true,
+     "imap_host": "",
+     "imap_port": 993,
+     "name": "",
+     "poll_interval": 300,
+     "provider": "outlook",
+     "secret": "p"
+    },
+    "method": "PUT",
+    "path": "/api/accounts/2",
+    "stubs": {
+     "probe": "ok"
+    }
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": "Outlook / Hotmail 只能通过 OAuth 登录添加，不支持授权码或密码"
+    },
+    "status": 400
+   },
+   "fn": "request",
+   "id": "account_update_oauth_with_secret"
+  },
+  {
+   "args": {
+    "body": {
+     "name": "x"
+    },
+    "method": "PUT",
+    "path": "/api/accounts/1",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": [
+      {
+       "input": {
+        "name": "x"
+       },
+       "loc": [
+        "body",
+        "email"
+       ],
+       "msg": "Field required",
+       "type": "missing"
+      }
+     ]
+    },
+    "status": 422
+   },
+   "fn": "request",
+   "id": "account_update_missing_email"
+  },
+  {
+   "args": {
+    "body": {
+     "color": "#38bdf8",
+     "email": "gone@example.com",
+     "enabled": true,
+     "imap_host": "imap.example",
+     "imap_port": 993,
+     "name": "",
+     "poll_interval": 300,
+     "provider": "custom",
+     "secret": "p"
+    },
+    "method": "PUT",
+    "path": "/api/accounts/999",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": "账户不存在"
+    },
+    "status": 404
+   },
+   "fn": "request",
+   "id": "account_update_not_found"
+  },
+  {
+   "args": {
+    "body": null,
+    "method": "POST",
+    "path": "/api/accounts/1/test",
+    "stubs": {
+     "probe": "ok"
+    }
+   },
+   "expected": {
+    "calls": [
+     {
+      "auth_type": "password",
+      "credential_set": true,
+      "email": "work@corp.example",
+      "host": "imap.exmail.qq.com",
+      "kind": "probe",
+      "port": 993,
+      "provider": "exmail"
+     }
+    ],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "msg": "连接正常",
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "account_test_ok"
+  },
+  {
+   "args": {
+    "body": null,
+    "method": "POST",
+    "path": "/api/accounts/1/test",
+    "stubs": {
+     "probe": "refused"
+    }
+   },
+   "expected": {
+    "calls": [
+     {
+      "auth_type": "password",
+      "credential_set": true,
+      "email": "work@corp.example",
+      "host": "imap.exmail.qq.com",
+      "kind": "probe",
+      "port": 993,
+      "provider": "exmail"
+     }
+    ],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "msg": "邮箱服务器拒绝连接，请检查服务器地址和端口",
+     "ok": false
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "account_test_refused"
+  },
+  {
+   "args": {
+    "body": null,
+    "method": "POST",
+    "path": "/api/accounts/1/test",
+    "stubs": {
+     "probe": "timeout"
+    }
+   },
+   "expected": {
+    "calls": [
+     {
+      "auth_type": "password",
+      "credential_set": true,
+      "email": "work@corp.example",
+      "host": "imap.exmail.qq.com",
+      "kind": "probe",
+      "port": 993,
+      "provider": "exmail"
+     }
+    ],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "msg": "连接邮箱服务器超时",
+     "ok": false
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "account_test_timeout"
+  },
+  {
+   "args": {
+    "body": null,
+    "method": "POST",
+    "path": "/api/accounts/3/test",
+    "stubs": {
+     "probe": "io"
+    }
+   },
+   "expected": {
+    "calls": [
+     {
+      "auth_type": "password",
+      "credential_set": false,
+      "email": "off@example.com",
+      "host": "imap.off.example",
+      "kind": "probe",
+      "port": 993,
+      "provider": "custom"
+     }
+    ],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "msg": "无法连接邮箱服务器",
+     "ok": false
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "account_test_io"
+  },
+  {
+   "args": {
+    "body": null,
+    "method": "POST",
+    "path": "/api/accounts/999/test",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": "账户不存在"
+    },
+    "status": 404
+   },
+   "fn": "request",
+   "id": "account_test_not_found"
+  },
+  {
+   "args": {
+    "body": null,
+    "method": "POST",
+    "path": "/api/accounts/1/sync",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [
+     {
+      "id": 1,
+      "kind": "trigger"
+     }
+    ],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "account_sync_now"
+  },
+  {
+   "args": {
+    "body": null,
+    "method": "POST",
+    "path": "/api/accounts/999/sync",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [
+     {
+      "id": 999,
+      "kind": "trigger"
+     }
+    ],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "account_sync_now_unknown"
+  },
+  {
+   "args": {
+    "body": null,
+    "method": "POST",
+    "path": "/api/sync-all",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [
+     {
+      "ids": [
+       1,
+       2,
+       4,
+       5,
+       6,
+       7,
+       8
+      ],
+      "kind": "trigger_all"
+     }
+    ],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "sync_all"
+  },
+  {
+   "args": {
+    "body": {
+     "action": "read",
+     "ids": [
+      1,
+      6
+     ]
+    },
+    "method": "POST",
+    "path": "/api/messages/batch",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "audit_id": 5,
+     "blocked": [],
+     "count": 2,
+     "errors": [],
+     "ok": true,
+     "reversible": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "batch_read"
+  },
+  {
+   "args": {
+    "body": {
+     "action": "read",
+     "ids": [
+      1
+     ]
+    },
+    "method": "POST",
+    "path": "/api/messages/batch",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "audit_id": 6,
+     "blocked": [],
+     "count": 1,
+     "errors": [],
+     "ok": true,
+     "reversible": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "batch_read_again"
+  },
+  {
+   "args": {
+    "body": {
+     "action": "unread",
+     "ids": [
+      1
+     ]
+    },
+    "method": "POST",
+    "path": "/api/messages/batch",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "audit_id": 7,
+     "blocked": [],
+     "count": 1,
+     "errors": [],
+     "ok": true,
+     "reversible": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "batch_unread"
+  },
+  {
+   "args": {
+    "body": {
+     "action": "read",
+     "ids": [
+      2
+     ]
+    },
+    "method": "POST",
+    "path": "/api/messages/batch",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "audit_id": 8,
+     "blocked": [],
+     "count": 1,
+     "errors": [],
+     "ok": true,
+     "reversible": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "batch_read_already_read"
+  },
+  {
+   "args": {
+    "body": {
+     "action": "delete",
+     "ids": [
+      2
+     ]
+    },
+    "method": "POST",
+    "path": "/api/messages/batch",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "audit_id": 9,
+     "blocked": [],
+     "count": 1,
+     "errors": [],
+     "ok": true,
+     "reversible": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "batch_soft_delete"
+  },
+  {
+   "args": {
+    "body": {
+     "action": "delete",
+     "ids": [
+      999
+     ]
+    },
+    "method": "POST",
+    "path": "/api/messages/batch",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": "操作被安全策略拦截：无可执行目标"
+    },
+    "status": 403
+   },
+   "fn": "request",
+   "id": "batch_soft_delete_missing_id"
+  },
+  {
+   "args": {
+    "body": {
+     "action": "delete",
+     "ids": [
+      3
+     ]
+    },
+    "method": "POST",
+    "path": "/api/messages/batch",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json",
+     "x-mailhub-protected": "1"
+    },
+    "json": {
+     "detail": "操作被安全策略拦截：分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+    },
+    "status": 403
+   },
+   "fn": "request",
+   "id": "batch_protected"
+  },
+  {
+   "args": {
+    "body": {
+     "action": "delete",
+     "confirmed": true,
+     "ids": [
+      5,
+      3
+     ]
+    },
+    "method": "POST",
+    "path": "/api/messages/batch",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "audit_id": 12,
+     "blocked": [
+      {
+       "id": 3,
+       "protected": true,
+       "reason": "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除"
+      }
+     ],
+     "count": 1,
+     "errors": [],
+     "ok": true,
+     "reversible": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "batch_partial_blocked"
+  },
+  {
+   "args": {
+    "body": {
+     "action": "delete",
+     "confirmed": true,
+     "ids": [
+      3
+     ],
+     "override_protection": true
+    },
+    "method": "POST",
+    "path": "/api/messages/batch",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "audit_id": 13,
+     "blocked": [],
+     "count": 1,
+     "errors": [],
+     "ok": true,
+     "reversible": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "batch_protected_confirmed"
+  },
+  {
+   "args": {
+    "body": {
+     "action": "delete",
+     "confirmed": true,
+     "ids": [
+      3,
+      4
+     ],
+     "override_protection": true
+    },
+    "method": "POST",
+    "path": "/api/messages/batch",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json",
+     "x-mailhub-protected": "1"
+    },
+    "json": {
+     "detail": "操作被安全策略拦截：邮件含附件，可能是发票或合同，禁止自动删除"
+    },
+    "status": 403
+   },
+   "fn": "request",
+   "id": "batch_two_ids_ignore_override"
+  },
+  {
+   "args": {
+    "body": {
+     "action": "delete",
+     "confirmed": true,
+     "ids": [
+      4
+     ],
+     "override_protection": true
+    },
+    "method": "POST",
+    "path": "/api/messages/batch",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "audit_id": 15,
+     "blocked": [],
+     "count": 1,
+     "errors": [],
+     "ok": true,
+     "reversible": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "batch_single_override"
+  },
+  {
+   "args": {
+    "body": {
+     "action": "nope",
+     "ids": [
+      1
+     ]
+    },
+    "method": "POST",
+    "path": "/api/messages/batch",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": "不支持的动作 nope"
+    },
+    "status": 400
+   },
+   "fn": "request",
+   "id": "batch_bad_action"
+  },
+  {
+   "args": {
+    "body": {
+     "action": "read",
+     "ids": []
+    },
+    "method": "POST",
+    "path": "/api/messages/batch",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "count": 0,
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "batch_empty_ids"
+  },
+  {
+   "args": {
+    "body": {
+     "ids": [
+      1
+     ]
+    },
+    "method": "POST",
+    "path": "/api/messages/batch",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": [
+      {
+       "input": {
+        "ids": [
+         1
+        ]
+       },
+       "loc": [
+        "body",
+        "action"
+       ],
+       "msg": "Field required",
+       "type": "missing"
+      }
+     ]
+    },
+    "status": 422
+   },
+   "fn": "request",
+   "id": "batch_missing_action"
+  },
+  {
+   "args": {
+    "body": {
+     "action": "read",
+     "ids": [
+      "x"
+     ]
+    },
+    "method": "POST",
+    "path": "/api/messages/batch",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": [
+      {
+       "input": "x",
+       "loc": [
+        "body",
+        "ids",
+        0
+       ],
+       "msg": "Input should be a valid integer, unable to parse string as an integer",
+       "type": "int_parsing"
+      }
+     ]
+    },
+    "status": 422
+   },
+   "fn": "request",
+   "id": "batch_bad_ids"
+  },
+  {
+   "args": {
+    "body": {
+     "action": "read",
+     "ids": 5
+    },
+    "method": "POST",
+    "path": "/api/messages/batch",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": [
+      {
+       "input": 5,
+       "loc": [
+        "body",
+        "ids"
+       ],
+       "msg": "Input should be a valid list",
+       "type": "list_type"
+      }
+     ]
+    },
+    "status": 422
+   },
+   "fn": "request",
+   "id": "batch_ids_not_list"
+  },
+  {
+   "args": {
+    "body": {
+     "action": "read",
+     "ids": [
+      9
+     ],
+     "server": true
+    },
+    "method": "POST",
+    "path": "/api/messages/batch",
+    "stubs": {
+     "server_action": "all_ok"
+    }
+   },
+   "expected": {
+    "calls": [
+     {
+      "action": "read",
+      "ids": [
+       9
+      ],
+      "kind": "apply_server_action"
+     }
+    ],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "audit_id": 16,
+     "blocked": [],
+     "count": 1,
+     "errors": [],
+     "ok": true,
+     "reversible": false
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "batch_server_read_all_ok"
+  },
+  {
+   "args": {
+    "body": {
+     "action": "read",
+     "ids": [
+      8,
+      9
+     ],
+     "server": true
+    },
+    "method": "POST",
+    "path": "/api/messages/batch",
+    "stubs": {
+     "server_action": "partial"
+    }
+   },
+   "expected": {
+    "calls": [
+     {
+      "action": "read",
+      "ids": [
+       8,
+       9
+      ],
+      "kind": "apply_server_action"
+     }
+    ],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "audit_id": 17,
+     "blocked": [],
+     "count": 1,
+     "errors": [
+      "账户1: 邮件服务器拒绝连接"
+     ],
+     "ok": false,
+     "reversible": false
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "batch_server_read_partial"
+  },
+  {
+   "args": {
+    "body": {
+     "action": "delete",
+     "confirmed": true,
+     "ids": [
+      8
+     ],
+     "server": true
+    },
+    "method": "POST",
+    "path": "/api/messages/batch",
+    "stubs": {
+     "server_action": "all_fail"
+    }
+   },
+   "expected": {
+    "calls": [
+     {
+      "action": "delete",
+      "ids": [
+       8
+      ],
+      "kind": "apply_server_action"
+     }
+    ],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "audit_id": 18,
+     "blocked": [],
+     "count": 0,
+     "errors": [
+      "账户1: 邮件服务器拒绝连接"
+     ],
+     "ok": false,
+     "reversible": false
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "batch_server_delete_all_fail"
+  },
+  {
+   "args": {
+    "body": {
+     "action": "delete",
+     "confirmed": true,
+     "ids": [
+      8,
+      9
+     ],
+     "server": true
+    },
+    "method": "POST",
+    "path": "/api/messages/batch",
+    "stubs": {
+     "server_action": "partial"
+    }
+   },
+   "expected": {
+    "calls": [
+     {
+      "action": "delete",
+      "ids": [
+       8,
+       9
+      ],
+      "kind": "apply_server_action"
+     }
+    ],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "audit_id": 19,
+     "blocked": [],
+     "count": 1,
+     "errors": [
+      "账户1: 邮件服务器拒绝连接"
+     ],
+     "ok": false,
+     "reversible": false
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "batch_server_delete_partial"
+  },
+  {
+   "args": {
+    "body": {
+     "ids": [
+      7,
+      2
+     ]
+    },
+    "method": "POST",
+    "path": "/api/trash/restore",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "count": 2,
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "trash_restore"
+  },
+  {
+   "args": {
+    "body": {
+     "ids": [
+      7
+     ]
+    },
+    "method": "POST",
+    "path": "/api/trash/restore",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "count": 1,
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "trash_restore_again"
+  },
+  {
+   "args": {
+    "body": {
+     "ids": []
+    },
+    "method": "POST",
+    "path": "/api/trash/restore",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "count": 0,
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "trash_restore_empty"
+  },
+  {
+   "args": {
+    "body": {},
+    "method": "POST",
+    "path": "/api/trash/restore",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": [
+      {
+       "input": {},
+       "loc": [
+        "body",
+        "ids"
+       ],
+       "msg": "Field required",
+       "type": "missing"
+      }
+     ]
+    },
+    "status": 422
+   },
+   "fn": "request",
+   "id": "trash_restore_missing_ids"
+  },
+  {
+   "args": {
+    "body": null,
+    "method": "POST",
+    "path": "/api/audit/999/undo",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": "审计记录不存在"
+    },
+    "status": 404
+   },
+   "fn": "request",
+   "id": "undo_missing"
+  },
+  {
+   "args": {
+    "body": null,
+    "method": "POST",
+    "path": "/api/audit/4/undo",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": "该操作已撤销过"
+    },
+    "status": 400
+   },
+   "fn": "request",
+   "id": "undo_already_undone"
+  },
+  {
+   "args": {
+    "body": null,
+    "method": "POST",
+    "path": "/api/audit/3/undo",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": "动作「purge」不可撤销（已在邮箱服务器上永久生效）"
+    },
+    "status": 400
+   },
+   "fn": "request",
+   "id": "undo_not_reversible"
+  },
+  {
+   "args": {
+    "body": null,
+    "method": "POST",
+    "path": "/api/audit/2/undo",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "ok": true,
+     "restored": 1
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "undo_read"
+  },
+  {
+   "args": {
+    "body": null,
+    "method": "POST",
+    "path": "/api/audit/1/undo",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "ok": true,
+     "restored": 1
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "undo_soft_delete"
+  },
+  {
+   "args": {
+    "body": null,
+    "method": "POST",
+    "path": "/api/audit/1/undo",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": "该操作已撤销过"
+    },
+    "status": 400
+   },
+   "fn": "request",
+   "id": "undo_twice"
+  },
+  {
+   "args": {},
+   "expected": {
+    "accounts": [
+     {
+      "auth_type": "password",
+      "color": "#38bdf8",
+      "created_ts": 1792000000.0,
+      "email": "work@corp.example",
+      "enabled": 1,
+      "id": 1,
+      "imap_host": "imap.exmail.qq.com",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 116,
+      "name": "工作邮箱",
+      "oauth_expires": 0.0,
+      "poll_interval": 300,
+      "provider": "exmail",
+      "secret_set": true,
+      "uidvalidity": 1701
+     },
+     {
+      "auth_type": "oauth",
+      "color": "#38bdf8",
+      "created_ts": 1792000000.0,
+      "email": "oauth@example.com",
+      "enabled": 1,
+      "id": 2,
+      "imap_host": "imap.gmail.com",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 0,
+      "name": "OAuth 账户（改名）",
+      "oauth_expires": 1792470600.0,
+      "poll_interval": 300,
+      "provider": "gmail",
+      "secret_set": false,
+      "uidvalidity": 0
+     },
+     {
+      "auth_type": "password",
+      "color": "#64748b",
+      "created_ts": 1792000000.0,
+      "email": "off@example.com",
+      "enabled": 0,
+      "id": 3,
+      "imap_host": "imap.off.example",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 0,
+      "name": "停用邮箱",
+      "oauth_expires": 0.0,
+      "poll_interval": 900,
+      "provider": "custom",
+      "secret_set": true,
+      "uidvalidity": 0
+     },
+     {
+      "auth_type": "password",
+      "color": "#22c55e",
+      "created_ts": 1792468800.0,
+      "email": "new@example.com",
+      "enabled": 1,
+      "id": 4,
+      "imap_host": "imap.new.example",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 0,
+      "name": "新账户",
+      "oauth_expires": 0.0,
+      "poll_interval": 120,
+      "provider": "custom",
+      "secret_set": true,
+      "uidvalidity": 0
+     },
+     {
+      "auth_type": "password",
+      "color": "#38bdf8",
+      "created_ts": 1792468800.0,
+      "email": "auto@qq.com",
+      "enabled": 1,
+      "id": 5,
+      "imap_host": "imap.qq.com",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 0,
+      "name": "auto@qq.com",
+      "oauth_expires": 0.0,
+      "poll_interval": 300,
+      "provider": "qq",
+      "secret_set": true,
+      "uidvalidity": 0
+     },
+     {
+      "auth_type": "password",
+      "color": "#38bdf8",
+      "created_ts": 1792468800.0,
+      "email": "low@163.com",
+      "enabled": 1,
+      "id": 6,
+      "imap_host": "imap.163.com",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 0,
+      "name": "low@163.com",
+      "oauth_expires": 0.0,
+      "poll_interval": 60,
+      "provider": "163",
+      "secret_set": true,
+      "uidvalidity": 0
+     },
+     {
+      "auth_type": "password",
+      "color": "#38bdf8",
+      "created_ts": 1792468800.0,
+      "email": "high@163.com",
+      "enabled": 1,
+      "id": 7,
+      "imap_host": "imap.163.com",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 0,
+      "name": "high@163.com",
+      "oauth_expires": 0.0,
+      "poll_interval": 86400,
+      "provider": "163",
+      "secret_set": true,
+      "uidvalidity": 0
+     },
+     {
+      "auth_type": "password",
+      "color": "#38bdf8",
+      "created_ts": 1792468800.0,
+      "email": "color@163.com",
+      "enabled": 1,
+      "id": 8,
+      "imap_host": "imap.163.com",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 0,
+      "name": "color@163.com",
+      "oauth_expires": 0.0,
+      "poll_interval": 300,
+      "provider": "163",
+      "secret_set": true,
+      "uidvalidity": 0
+     }
+    ],
+    "audit": [
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 1,
+      "id": 1,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       2
+      ],
+      "tier": "B",
+      "ts": 1792458000.0,
+      "undo_payload": {
+       "ids": [
+        2
+       ]
+      },
+      "undone": 1
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 2,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       1
+      ],
+      "tier": "A",
+      "ts": 1792461600.0,
+      "undo_payload": {
+       "unread": {
+        "1": 1
+       }
+      },
+      "undone": 1
+     },
+     {
+      "action": "purge",
+      "actor": "user",
+      "allowed": 1,
+      "id": 3,
+      "reason": "用户批量操作",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       5
+      ],
+      "tier": "C",
+      "ts": 1792463400.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 4,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       6
+      ],
+      "tier": "A",
+      "ts": 1792465200.0,
+      "undo_payload": {
+       "unread": {
+        "6": 1
+       }
+      },
+      "undone": 1
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 5,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 2,
+      "target_ids": [
+       1,
+       6
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "unread": {
+        "1": 1,
+        "6": 1
+       }
+      },
+      "undone": 0
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 6,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       1
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "unread": {
+        "1": 0
+       }
+      },
+      "undone": 0
+     },
+     {
+      "action": "unread",
+      "actor": "user",
+      "allowed": 1,
+      "id": 7,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       1
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "unread": {
+        "1": 0
+       }
+      },
+      "undone": 0
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 8,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       2
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "unread": {
+        "2": 0
+       }
+      },
+      "undone": 0
+     },
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 1,
+      "id": 9,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       2
+      ],
+      "tier": "B",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "ids": [
+        2
+       ]
+      },
+      "undone": 0
+     },
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 0,
+      "id": 10,
+      "reason": "无可执行目标",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       999
+      ],
+      "tier": "",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 0,
+      "id": 11,
+      "reason": "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       3
+      ],
+      "tier": "",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 1,
+      "id": 12,
+      "reason": "用户批量操作，1 封被策略拦截",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       5
+      ],
+      "tier": "B",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "ids": [
+        5
+       ]
+      },
+      "undone": 0
+     },
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 1,
+      "id": 13,
+      "reason": "用户对受保护邮件单封二次确认",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       3
+      ],
+      "tier": "B",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "ids": [
+        3
+       ]
+      },
+      "undone": 0
+     },
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 0,
+      "id": 14,
+      "reason": "邮件含附件，可能是发票或合同，禁止自动删除",
+      "reversible": 0,
+      "target_count": 2,
+      "target_ids": [
+       3,
+       4
+      ],
+      "tier": "",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 1,
+      "id": 15,
+      "reason": "用户对受保护邮件单封二次确认",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       4
+      ],
+      "tier": "B",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "ids": [
+        4
+       ]
+      },
+      "undone": 0
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 16,
+      "reason": "用户批量操作；已同步到邮件服务器，撤销只能恢复本地状态，因此不提供撤销",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       9
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 17,
+      "reason": "用户批量操作；1 个账户执行失败；已同步到邮件服务器，撤销只能恢复本地状态，因此不提供撤销",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       8
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "purge",
+      "actor": "user",
+      "allowed": 0,
+      "id": 18,
+      "reason": "用户批量操作；1 个账户执行失败",
+      "reversible": 0,
+      "target_count": 0,
+      "target_ids": [],
+      "tier": "C",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "purge",
+      "actor": "user",
+      "allowed": 1,
+      "id": 19,
+      "reason": "用户批量操作；1 个账户执行失败",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       8
+      ],
+      "tier": "C",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "restore",
+      "actor": "user",
+      "allowed": 1,
+      "id": 20,
+      "reason": "从回收站恢复",
+      "reversible": 0,
+      "target_count": 2,
+      "target_ids": [
+       7,
+       2
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "restore",
+      "actor": "user",
+      "allowed": 1,
+      "id": 21,
+      "reason": "从回收站恢复",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       7
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "undo",
+      "actor": "user",
+      "allowed": 1,
+      "id": 22,
+      "reason": "撤销审计 #2（read），恢复 1 封",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       2
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "undo",
+      "actor": "user",
+      "allowed": 1,
+      "id": 23,
+      "reason": "撤销审计 #1（soft_delete），恢复 1 封",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       1
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     }
+    ],
+    "messages": [
+     {
+      "account_id": 1,
+      "bill_tier": "",
+      "category": "通知",
+      "deleted_ts": 0.0,
+      "flag_push": 0,
+      "id": 1,
+      "uid": 11,
+      "unread": 1
+     },
+     {
+      "account_id": 1,
+      "bill_tier": "",
+      "category": "订阅",
+      "deleted_ts": 0.0,
+      "flag_push": 0,
+      "id": 2,
+      "uid": 12,
+      "unread": 0
+     },
+     {
+      "account_id": 1,
+      "bill_tier": "重要",
+      "category": "账单",
+      "deleted_ts": 1792468800.0,
+      "flag_push": 0,
+      "id": 3,
+      "uid": 13,
+      "unread": 1
+     },
+     {
+      "account_id": 1,
+      "bill_tier": "",
+      "category": "其他",
+      "deleted_ts": 1792468800.0,
+      "flag_push": 0,
+      "id": 4,
+      "uid": 14,
+      "unread": 1
+     },
+     {
+      "account_id": 1,
+      "bill_tier": "一般",
+      "category": "账单",
+      "deleted_ts": 1792468800.0,
+      "flag_push": 0,
+      "id": 5,
+      "uid": 15,
+      "unread": 1
+     },
+     {
+      "account_id": 1,
+      "bill_tier": "",
+      "category": "验证码",
+      "deleted_ts": 0.0,
+      "flag_push": 0,
+      "id": 6,
+      "uid": 16,
+      "unread": 0
+     },
+     {
+      "account_id": 1,
+      "bill_tier": "",
+      "category": "订阅",
+      "deleted_ts": 0.0,
+      "flag_push": 0,
+      "id": 7,
+      "uid": 17,
+      "unread": 0
+     },
+     {
+      "account_id": 3,
+      "bill_tier": "",
+      "category": "通知",
+      "deleted_ts": 0.0,
+      "flag_push": 0,
+      "id": 9,
+      "uid": 19,
+      "unread": 0
+     }
+    ],
+    "settings": {
+     "admin_hash": true,
+     "ai_backfill_days": "7",
+     "ai_enabled": "0",
+     "ai_scope": "all",
+     "bill_amount_threshold": "300",
+     "bill_routine_count": "5",
+     "body_keep_days": "30",
+     "clean_otp_days": "0",
+     "clean_server": "0",
+     "digest_hour": "8",
+     "notify_important": "1",
+     "notify_otp": "0",
+     "sync_read_state": "0"
+    }
+   },
+   "fn": "db_state",
+   "id": "db_state_after_accounts_and_batch"
+  },
+  {
+   "args": {
+    "settings": {
+     "sync_read_state": "1"
+    }
+   },
+   "expected": {
+    "ok": true
+   },
+   "fn": "settings",
+   "id": "enable_read_state_sync"
+  },
+  {
+   "args": {
+    "body": {
+     "action": "unread",
+     "ids": [
+      6
+     ]
+    },
+    "method": "POST",
+    "path": "/api/messages/batch",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [
+     {
+      "id": 1,
+      "kind": "trigger"
+     }
+    ],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "audit_id": 24,
+     "blocked": [],
+     "count": 1,
+     "errors": [],
+     "ok": true,
+     "reversible": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "batch_unread_flag_push"
+  },
+  {
+   "args": {
+    "body": {
+     "action": "read",
+     "ids": [
+      6
+     ]
+    },
+    "method": "POST",
+    "path": "/api/messages/batch",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [
+     {
+      "id": 1,
+      "kind": "trigger"
+     }
+    ],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "audit_id": 25,
+     "blocked": [],
+     "count": 1,
+     "errors": [],
+     "ok": true,
+     "reversible": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "batch_read_flag_push"
+  },
+  {
+   "args": {
+    "body": {
+     "action": "read",
+     "ids": [
+      9
+     ],
+     "server": true
+    },
+    "method": "POST",
+    "path": "/api/messages/batch",
+    "stubs": {
+     "server_action": "all_ok"
+    }
+   },
+   "expected": {
+    "calls": [
+     {
+      "action": "read",
+      "ids": [
+       9
+      ],
+      "kind": "apply_server_action"
+     }
+    ],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "audit_id": 26,
+     "blocked": [],
+     "count": 1,
+     "errors": [],
+     "ok": true,
+     "reversible": false
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "batch_server_read_no_flag_push"
+  },
+  {
+   "args": {},
+   "expected": {
+    "accounts": [
+     {
+      "auth_type": "password",
+      "color": "#38bdf8",
+      "created_ts": 1792000000.0,
+      "email": "work@corp.example",
+      "enabled": 1,
+      "id": 1,
+      "imap_host": "imap.exmail.qq.com",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 116,
+      "name": "工作邮箱",
+      "oauth_expires": 0.0,
+      "poll_interval": 300,
+      "provider": "exmail",
+      "secret_set": true,
+      "uidvalidity": 1701
+     },
+     {
+      "auth_type": "oauth",
+      "color": "#38bdf8",
+      "created_ts": 1792000000.0,
+      "email": "oauth@example.com",
+      "enabled": 1,
+      "id": 2,
+      "imap_host": "imap.gmail.com",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 0,
+      "name": "OAuth 账户（改名）",
+      "oauth_expires": 1792470600.0,
+      "poll_interval": 300,
+      "provider": "gmail",
+      "secret_set": false,
+      "uidvalidity": 0
+     },
+     {
+      "auth_type": "password",
+      "color": "#64748b",
+      "created_ts": 1792000000.0,
+      "email": "off@example.com",
+      "enabled": 0,
+      "id": 3,
+      "imap_host": "imap.off.example",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 0,
+      "name": "停用邮箱",
+      "oauth_expires": 0.0,
+      "poll_interval": 900,
+      "provider": "custom",
+      "secret_set": true,
+      "uidvalidity": 0
+     },
+     {
+      "auth_type": "password",
+      "color": "#22c55e",
+      "created_ts": 1792468800.0,
+      "email": "new@example.com",
+      "enabled": 1,
+      "id": 4,
+      "imap_host": "imap.new.example",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 0,
+      "name": "新账户",
+      "oauth_expires": 0.0,
+      "poll_interval": 120,
+      "provider": "custom",
+      "secret_set": true,
+      "uidvalidity": 0
+     },
+     {
+      "auth_type": "password",
+      "color": "#38bdf8",
+      "created_ts": 1792468800.0,
+      "email": "auto@qq.com",
+      "enabled": 1,
+      "id": 5,
+      "imap_host": "imap.qq.com",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 0,
+      "name": "auto@qq.com",
+      "oauth_expires": 0.0,
+      "poll_interval": 300,
+      "provider": "qq",
+      "secret_set": true,
+      "uidvalidity": 0
+     },
+     {
+      "auth_type": "password",
+      "color": "#38bdf8",
+      "created_ts": 1792468800.0,
+      "email": "low@163.com",
+      "enabled": 1,
+      "id": 6,
+      "imap_host": "imap.163.com",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 0,
+      "name": "low@163.com",
+      "oauth_expires": 0.0,
+      "poll_interval": 60,
+      "provider": "163",
+      "secret_set": true,
+      "uidvalidity": 0
+     },
+     {
+      "auth_type": "password",
+      "color": "#38bdf8",
+      "created_ts": 1792468800.0,
+      "email": "high@163.com",
+      "enabled": 1,
+      "id": 7,
+      "imap_host": "imap.163.com",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 0,
+      "name": "high@163.com",
+      "oauth_expires": 0.0,
+      "poll_interval": 86400,
+      "provider": "163",
+      "secret_set": true,
+      "uidvalidity": 0
+     },
+     {
+      "auth_type": "password",
+      "color": "#38bdf8",
+      "created_ts": 1792468800.0,
+      "email": "color@163.com",
+      "enabled": 1,
+      "id": 8,
+      "imap_host": "imap.163.com",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 0,
+      "name": "color@163.com",
+      "oauth_expires": 0.0,
+      "poll_interval": 300,
+      "provider": "163",
+      "secret_set": true,
+      "uidvalidity": 0
+     }
+    ],
+    "audit": [
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 1,
+      "id": 1,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       2
+      ],
+      "tier": "B",
+      "ts": 1792458000.0,
+      "undo_payload": {
+       "ids": [
+        2
+       ]
+      },
+      "undone": 1
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 2,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       1
+      ],
+      "tier": "A",
+      "ts": 1792461600.0,
+      "undo_payload": {
+       "unread": {
+        "1": 1
+       }
+      },
+      "undone": 1
+     },
+     {
+      "action": "purge",
+      "actor": "user",
+      "allowed": 1,
+      "id": 3,
+      "reason": "用户批量操作",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       5
+      ],
+      "tier": "C",
+      "ts": 1792463400.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 4,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       6
+      ],
+      "tier": "A",
+      "ts": 1792465200.0,
+      "undo_payload": {
+       "unread": {
+        "6": 1
+       }
+      },
+      "undone": 1
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 5,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 2,
+      "target_ids": [
+       1,
+       6
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "unread": {
+        "1": 1,
+        "6": 1
+       }
+      },
+      "undone": 0
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 6,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       1
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "unread": {
+        "1": 0
+       }
+      },
+      "undone": 0
+     },
+     {
+      "action": "unread",
+      "actor": "user",
+      "allowed": 1,
+      "id": 7,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       1
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "unread": {
+        "1": 0
+       }
+      },
+      "undone": 0
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 8,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       2
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "unread": {
+        "2": 0
+       }
+      },
+      "undone": 0
+     },
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 1,
+      "id": 9,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       2
+      ],
+      "tier": "B",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "ids": [
+        2
+       ]
+      },
+      "undone": 0
+     },
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 0,
+      "id": 10,
+      "reason": "无可执行目标",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       999
+      ],
+      "tier": "",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 0,
+      "id": 11,
+      "reason": "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       3
+      ],
+      "tier": "",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 1,
+      "id": 12,
+      "reason": "用户批量操作，1 封被策略拦截",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       5
+      ],
+      "tier": "B",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "ids": [
+        5
+       ]
+      },
+      "undone": 0
+     },
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 1,
+      "id": 13,
+      "reason": "用户对受保护邮件单封二次确认",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       3
+      ],
+      "tier": "B",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "ids": [
+        3
+       ]
+      },
+      "undone": 0
+     },
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 0,
+      "id": 14,
+      "reason": "邮件含附件，可能是发票或合同，禁止自动删除",
+      "reversible": 0,
+      "target_count": 2,
+      "target_ids": [
+       3,
+       4
+      ],
+      "tier": "",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 1,
+      "id": 15,
+      "reason": "用户对受保护邮件单封二次确认",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       4
+      ],
+      "tier": "B",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "ids": [
+        4
+       ]
+      },
+      "undone": 0
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 16,
+      "reason": "用户批量操作；已同步到邮件服务器，撤销只能恢复本地状态，因此不提供撤销",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       9
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 17,
+      "reason": "用户批量操作；1 个账户执行失败；已同步到邮件服务器，撤销只能恢复本地状态，因此不提供撤销",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       8
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "purge",
+      "actor": "user",
+      "allowed": 0,
+      "id": 18,
+      "reason": "用户批量操作；1 个账户执行失败",
+      "reversible": 0,
+      "target_count": 0,
+      "target_ids": [],
+      "tier": "C",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "purge",
+      "actor": "user",
+      "allowed": 1,
+      "id": 19,
+      "reason": "用户批量操作；1 个账户执行失败",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       8
+      ],
+      "tier": "C",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "restore",
+      "actor": "user",
+      "allowed": 1,
+      "id": 20,
+      "reason": "从回收站恢复",
+      "reversible": 0,
+      "target_count": 2,
+      "target_ids": [
+       7,
+       2
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "restore",
+      "actor": "user",
+      "allowed": 1,
+      "id": 21,
+      "reason": "从回收站恢复",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       7
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "undo",
+      "actor": "user",
+      "allowed": 1,
+      "id": 22,
+      "reason": "撤销审计 #2（read），恢复 1 封",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       2
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "undo",
+      "actor": "user",
+      "allowed": 1,
+      "id": 23,
+      "reason": "撤销审计 #1（soft_delete），恢复 1 封",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       1
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "unread",
+      "actor": "user",
+      "allowed": 1,
+      "id": 24,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       6
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "unread": {
+        "6": 0
+       }
+      },
+      "undone": 0
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 25,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       6
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "unread": {
+        "6": 1
+       }
+      },
+      "undone": 0
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 26,
+      "reason": "用户批量操作；已同步到邮件服务器，撤销只能恢复本地状态，因此不提供撤销",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       9
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     }
+    ],
+    "messages": [
+     {
+      "account_id": 1,
+      "bill_tier": "",
+      "category": "通知",
+      "deleted_ts": 0.0,
+      "flag_push": 0,
+      "id": 1,
+      "uid": 11,
+      "unread": 1
+     },
+     {
+      "account_id": 1,
+      "bill_tier": "",
+      "category": "订阅",
+      "deleted_ts": 0.0,
+      "flag_push": 0,
+      "id": 2,
+      "uid": 12,
+      "unread": 0
+     },
+     {
+      "account_id": 1,
+      "bill_tier": "重要",
+      "category": "账单",
+      "deleted_ts": 1792468800.0,
+      "flag_push": 0,
+      "id": 3,
+      "uid": 13,
+      "unread": 1
+     },
+     {
+      "account_id": 1,
+      "bill_tier": "",
+      "category": "其他",
+      "deleted_ts": 1792468800.0,
+      "flag_push": 0,
+      "id": 4,
+      "uid": 14,
+      "unread": 1
+     },
+     {
+      "account_id": 1,
+      "bill_tier": "一般",
+      "category": "账单",
+      "deleted_ts": 1792468800.0,
+      "flag_push": 0,
+      "id": 5,
+      "uid": 15,
+      "unread": 1
+     },
+     {
+      "account_id": 1,
+      "bill_tier": "",
+      "category": "验证码",
+      "deleted_ts": 0.0,
+      "flag_push": 1,
+      "id": 6,
+      "uid": 16,
+      "unread": 0
+     },
+     {
+      "account_id": 1,
+      "bill_tier": "",
+      "category": "订阅",
+      "deleted_ts": 0.0,
+      "flag_push": 0,
+      "id": 7,
+      "uid": 17,
+      "unread": 0
+     },
+     {
+      "account_id": 3,
+      "bill_tier": "",
+      "category": "通知",
+      "deleted_ts": 0.0,
+      "flag_push": 0,
+      "id": 9,
+      "uid": 19,
+      "unread": 0
+     }
+    ],
+    "settings": {
+     "admin_hash": true,
+     "ai_backfill_days": "7",
+     "ai_enabled": "0",
+     "ai_scope": "all",
+     "bill_amount_threshold": "300",
+     "bill_routine_count": "5",
+     "body_keep_days": "30",
+     "clean_otp_days": "0",
+     "clean_server": "0",
+     "digest_hour": "8",
+     "notify_important": "1",
+     "notify_otp": "0",
+     "sync_read_state": "1"
+    }
+   },
+   "fn": "db_state",
+   "id": "db_state_after_read_state"
+  },
+  {
+   "args": {
+    "body": {
+     "ai_enabled": true
+    },
+    "method": "PUT",
+    "path": "/api/settings",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "settings_ai_enabled_true"
+  },
+  {
+   "args": {
+    "body": {
+     "ai_enabled": false
+    },
+    "method": "PUT",
+    "path": "/api/settings",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "settings_ai_enabled_false"
+  },
+  {
+   "args": {
+    "body": {
+     "ai_send_body": false
+    },
+    "method": "PUT",
+    "path": "/api/settings",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "settings_ai_send_body_false"
+  },
+  {
+   "args": {
+    "body": {
+     "ai_scope": "uncertain"
+    },
+    "method": "PUT",
+    "path": "/api/settings",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "settings_ai_scope_uncertain"
+  },
+  {
+   "args": {
+    "body": {
+     "ai_scope": "other"
+    },
+    "method": "PUT",
+    "path": "/api/settings",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "settings_ai_scope_other"
+  },
+  {
+   "args": {
+    "body": {
+     "ai_scope": "nope"
+    },
+    "method": "PUT",
+    "path": "/api/settings",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": "AI 判定范围必须是 all / uncertain / other"
+    },
+    "status": 400
+   },
+   "fn": "request",
+   "id": "settings_ai_scope_invalid"
+  },
+  {
+   "args": {
+    "body": {
+     "ai_backfill_days": 120
+    },
+    "method": "PUT",
+    "path": "/api/settings",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "settings_ai_backfill_days_120"
+  },
+  {
+   "args": {
+    "body": {
+     "ai_backfill_days": 100000
+    },
+    "method": "PUT",
+    "path": "/api/settings",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "settings_ai_backfill_days_high"
+  },
+  {
+   "args": {
+    "body": {
+     "ai_backfill_days": -5
+    },
+    "method": "PUT",
+    "path": "/api/settings",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "settings_ai_backfill_days_negative"
+  },
+  {
+   "args": {
+    "body": {
+     "ai_backfill_days": "many"
+    },
+    "method": "PUT",
+    "path": "/api/settings",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": [
+      {
+       "input": "many",
+       "loc": [
+        "body",
+        "ai_backfill_days"
+       ],
+       "msg": "Input should be a valid integer, unable to parse string as an integer",
+       "type": "int_parsing"
+      }
+     ]
+    },
+    "status": 422
+   },
+   "fn": "request",
+   "id": "settings_ai_backfill_days_invalid"
+  },
+  {
+   "args": {
+    "body": {
+     "clean_otp_days": 14
+    },
+    "method": "PUT",
+    "path": "/api/settings",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "settings_clean_otp_days_14"
+  },
+  {
+   "args": {
+    "body": {
+     "clean_otp_days": -1
+    },
+    "method": "PUT",
+    "path": "/api/settings",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "settings_clean_otp_days_negative"
+  },
+  {
+   "args": {
+    "body": {
+     "clean_server": true
+    },
+    "method": "PUT",
+    "path": "/api/settings",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "settings_clean_server_true"
+  },
+  {
+   "args": {
+    "body": {
+     "clean_bill_minor_days": 7
+    },
+    "method": "PUT",
+    "path": "/api/settings",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "settings_clean_bill_minor_days_7"
+  },
+  {
+   "args": {
+    "body": {
+     "sync_read_state": false
+    },
+    "method": "PUT",
+    "path": "/api/settings",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "settings_sync_read_state_false"
+  },
+  {
+   "args": {
+    "body": {
+     "digest_hour": 23
+    },
+    "method": "PUT",
+    "path": "/api/settings",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "settings_digest_hour_23"
+  },
+  {
+   "args": {
+    "body": {
+     "digest_hour": 99
+    },
+    "method": "PUT",
+    "path": "/api/settings",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "settings_digest_hour_high"
+  },
+  {
+   "args": {
+    "body": {
+     "digest_hour": -2
+    },
+    "method": "PUT",
+    "path": "/api/settings",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "settings_digest_hour_negative"
+  },
+  {
+   "args": {
+    "body": {
+     "digest_hour": "早上"
+    },
+    "method": "PUT",
+    "path": "/api/settings",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": [
+      {
+       "input": "早上",
+       "loc": [
+        "body",
+        "digest_hour"
+       ],
+       "msg": "Input should be a valid integer, unable to parse string as an integer",
+       "type": "int_parsing"
+      }
+     ]
+    },
+    "status": 422
+   },
+   "fn": "request",
+   "id": "settings_digest_hour_invalid"
+  },
+  {
+   "args": {
+    "body": {
+     "notify_important": false
+    },
+    "method": "PUT",
+    "path": "/api/settings",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "settings_notify_important_false"
+  },
+  {
+   "args": {
+    "body": {
+     "notify_otp": true
+    },
+    "method": "PUT",
+    "path": "/api/settings",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "settings_notify_otp_true"
+  },
+  {
+   "args": {
+    "body": {
+     "body_keep_days": 0
+    },
+    "method": "PUT",
+    "path": "/api/settings",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "settings_body_keep_days_0"
+  },
+  {
+   "args": {
+    "body": {
+     "body_keep_days": -30
+    },
+    "method": "PUT",
+    "path": "/api/settings",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "settings_body_keep_days_negative"
+  },
+  {
+   "args": {
+    "body": {
+     "old_password": "whatever"
+    },
+    "method": "PUT",
+    "path": "/api/settings",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "settings_old_password_alone"
+  },
+  {
+   "args": {
+    "body": {
+     "ai_enabled": true,
+     "unknown_field": 1
+    },
+    "method": "PUT",
+    "path": "/api/settings",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "settings_unknown_field_ignored"
+  },
+  {
+   "args": {
+    "body": {
+     "ai_enabled": false,
+     "ai_scope": "all",
+     "body_keep_days": 60,
+     "clean_bill_minor_days": 0,
+     "clean_otp_days": 3,
+     "digest_hour": 6,
+     "notify_important": true,
+     "notify_otp": false
+    },
+    "method": "PUT",
+    "path": "/api/settings",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "settings_combined"
+  },
+  {
+   "args": {
+    "body": {
+     "ai_enabled": null,
+     "digest_hour": null
+    },
+    "method": "PUT",
+    "path": "/api/settings",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "settings_null_all"
+  },
+  {
+   "args": {
+    "body": {
+     "clean_server": "perhaps"
+    },
+    "method": "PUT",
+    "path": "/api/settings",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": [
+      {
+       "input": "perhaps",
+       "loc": [
+        "body",
+        "clean_server"
+       ],
+       "msg": "Input should be a valid boolean, unable to interpret input",
+       "type": "bool_parsing"
+      }
+     ]
+    },
+    "status": 422
+   },
+   "fn": "request",
+   "id": "settings_bool_invalid"
+  },
+  {
+   "args": {
+    "body": {},
+    "method": "PUT",
+    "path": "/api/settings",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "settings_empty_body"
+  },
+  {
+   "args": {},
+   "expected": {
+    "accounts": [
+     {
+      "auth_type": "password",
+      "color": "#38bdf8",
+      "created_ts": 1792000000.0,
+      "email": "work@corp.example",
+      "enabled": 1,
+      "id": 1,
+      "imap_host": "imap.exmail.qq.com",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 116,
+      "name": "工作邮箱",
+      "oauth_expires": 0.0,
+      "poll_interval": 300,
+      "provider": "exmail",
+      "secret_set": true,
+      "uidvalidity": 1701
+     },
+     {
+      "auth_type": "oauth",
+      "color": "#38bdf8",
+      "created_ts": 1792000000.0,
+      "email": "oauth@example.com",
+      "enabled": 1,
+      "id": 2,
+      "imap_host": "imap.gmail.com",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 0,
+      "name": "OAuth 账户（改名）",
+      "oauth_expires": 1792470600.0,
+      "poll_interval": 300,
+      "provider": "gmail",
+      "secret_set": false,
+      "uidvalidity": 0
+     },
+     {
+      "auth_type": "password",
+      "color": "#64748b",
+      "created_ts": 1792000000.0,
+      "email": "off@example.com",
+      "enabled": 0,
+      "id": 3,
+      "imap_host": "imap.off.example",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 0,
+      "name": "停用邮箱",
+      "oauth_expires": 0.0,
+      "poll_interval": 900,
+      "provider": "custom",
+      "secret_set": true,
+      "uidvalidity": 0
+     },
+     {
+      "auth_type": "password",
+      "color": "#22c55e",
+      "created_ts": 1792468800.0,
+      "email": "new@example.com",
+      "enabled": 1,
+      "id": 4,
+      "imap_host": "imap.new.example",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 0,
+      "name": "新账户",
+      "oauth_expires": 0.0,
+      "poll_interval": 120,
+      "provider": "custom",
+      "secret_set": true,
+      "uidvalidity": 0
+     },
+     {
+      "auth_type": "password",
+      "color": "#38bdf8",
+      "created_ts": 1792468800.0,
+      "email": "auto@qq.com",
+      "enabled": 1,
+      "id": 5,
+      "imap_host": "imap.qq.com",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 0,
+      "name": "auto@qq.com",
+      "oauth_expires": 0.0,
+      "poll_interval": 300,
+      "provider": "qq",
+      "secret_set": true,
+      "uidvalidity": 0
+     },
+     {
+      "auth_type": "password",
+      "color": "#38bdf8",
+      "created_ts": 1792468800.0,
+      "email": "low@163.com",
+      "enabled": 1,
+      "id": 6,
+      "imap_host": "imap.163.com",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 0,
+      "name": "low@163.com",
+      "oauth_expires": 0.0,
+      "poll_interval": 60,
+      "provider": "163",
+      "secret_set": true,
+      "uidvalidity": 0
+     },
+     {
+      "auth_type": "password",
+      "color": "#38bdf8",
+      "created_ts": 1792468800.0,
+      "email": "high@163.com",
+      "enabled": 1,
+      "id": 7,
+      "imap_host": "imap.163.com",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 0,
+      "name": "high@163.com",
+      "oauth_expires": 0.0,
+      "poll_interval": 86400,
+      "provider": "163",
+      "secret_set": true,
+      "uidvalidity": 0
+     },
+     {
+      "auth_type": "password",
+      "color": "#38bdf8",
+      "created_ts": 1792468800.0,
+      "email": "color@163.com",
+      "enabled": 1,
+      "id": 8,
+      "imap_host": "imap.163.com",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 0,
+      "name": "color@163.com",
+      "oauth_expires": 0.0,
+      "poll_interval": 300,
+      "provider": "163",
+      "secret_set": true,
+      "uidvalidity": 0
+     }
+    ],
+    "audit": [
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 1,
+      "id": 1,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       2
+      ],
+      "tier": "B",
+      "ts": 1792458000.0,
+      "undo_payload": {
+       "ids": [
+        2
+       ]
+      },
+      "undone": 1
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 2,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       1
+      ],
+      "tier": "A",
+      "ts": 1792461600.0,
+      "undo_payload": {
+       "unread": {
+        "1": 1
+       }
+      },
+      "undone": 1
+     },
+     {
+      "action": "purge",
+      "actor": "user",
+      "allowed": 1,
+      "id": 3,
+      "reason": "用户批量操作",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       5
+      ],
+      "tier": "C",
+      "ts": 1792463400.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 4,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       6
+      ],
+      "tier": "A",
+      "ts": 1792465200.0,
+      "undo_payload": {
+       "unread": {
+        "6": 1
+       }
+      },
+      "undone": 1
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 5,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 2,
+      "target_ids": [
+       1,
+       6
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "unread": {
+        "1": 1,
+        "6": 1
+       }
+      },
+      "undone": 0
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 6,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       1
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "unread": {
+        "1": 0
+       }
+      },
+      "undone": 0
+     },
+     {
+      "action": "unread",
+      "actor": "user",
+      "allowed": 1,
+      "id": 7,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       1
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "unread": {
+        "1": 0
+       }
+      },
+      "undone": 0
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 8,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       2
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "unread": {
+        "2": 0
+       }
+      },
+      "undone": 0
+     },
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 1,
+      "id": 9,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       2
+      ],
+      "tier": "B",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "ids": [
+        2
+       ]
+      },
+      "undone": 0
+     },
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 0,
+      "id": 10,
+      "reason": "无可执行目标",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       999
+      ],
+      "tier": "",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 0,
+      "id": 11,
+      "reason": "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       3
+      ],
+      "tier": "",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 1,
+      "id": 12,
+      "reason": "用户批量操作，1 封被策略拦截",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       5
+      ],
+      "tier": "B",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "ids": [
+        5
+       ]
+      },
+      "undone": 0
+     },
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 1,
+      "id": 13,
+      "reason": "用户对受保护邮件单封二次确认",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       3
+      ],
+      "tier": "B",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "ids": [
+        3
+       ]
+      },
+      "undone": 0
+     },
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 0,
+      "id": 14,
+      "reason": "邮件含附件，可能是发票或合同，禁止自动删除",
+      "reversible": 0,
+      "target_count": 2,
+      "target_ids": [
+       3,
+       4
+      ],
+      "tier": "",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 1,
+      "id": 15,
+      "reason": "用户对受保护邮件单封二次确认",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       4
+      ],
+      "tier": "B",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "ids": [
+        4
+       ]
+      },
+      "undone": 0
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 16,
+      "reason": "用户批量操作；已同步到邮件服务器，撤销只能恢复本地状态，因此不提供撤销",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       9
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 17,
+      "reason": "用户批量操作；1 个账户执行失败；已同步到邮件服务器，撤销只能恢复本地状态，因此不提供撤销",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       8
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "purge",
+      "actor": "user",
+      "allowed": 0,
+      "id": 18,
+      "reason": "用户批量操作；1 个账户执行失败",
+      "reversible": 0,
+      "target_count": 0,
+      "target_ids": [],
+      "tier": "C",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "purge",
+      "actor": "user",
+      "allowed": 1,
+      "id": 19,
+      "reason": "用户批量操作；1 个账户执行失败",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       8
+      ],
+      "tier": "C",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "restore",
+      "actor": "user",
+      "allowed": 1,
+      "id": 20,
+      "reason": "从回收站恢复",
+      "reversible": 0,
+      "target_count": 2,
+      "target_ids": [
+       7,
+       2
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "restore",
+      "actor": "user",
+      "allowed": 1,
+      "id": 21,
+      "reason": "从回收站恢复",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       7
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "undo",
+      "actor": "user",
+      "allowed": 1,
+      "id": 22,
+      "reason": "撤销审计 #2（read），恢复 1 封",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       2
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "undo",
+      "actor": "user",
+      "allowed": 1,
+      "id": 23,
+      "reason": "撤销审计 #1（soft_delete），恢复 1 封",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       1
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "unread",
+      "actor": "user",
+      "allowed": 1,
+      "id": 24,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       6
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "unread": {
+        "6": 0
+       }
+      },
+      "undone": 0
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 25,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       6
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "unread": {
+        "6": 1
+       }
+      },
+      "undone": 0
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 26,
+      "reason": "用户批量操作；已同步到邮件服务器，撤销只能恢复本地状态，因此不提供撤销",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       9
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     }
+    ],
+    "messages": [
+     {
+      "account_id": 1,
+      "bill_tier": "",
+      "category": "通知",
+      "deleted_ts": 0.0,
+      "flag_push": 0,
+      "id": 1,
+      "uid": 11,
+      "unread": 1
+     },
+     {
+      "account_id": 1,
+      "bill_tier": "",
+      "category": "订阅",
+      "deleted_ts": 0.0,
+      "flag_push": 0,
+      "id": 2,
+      "uid": 12,
+      "unread": 0
+     },
+     {
+      "account_id": 1,
+      "bill_tier": "重要",
+      "category": "账单",
+      "deleted_ts": 1792468800.0,
+      "flag_push": 0,
+      "id": 3,
+      "uid": 13,
+      "unread": 1
+     },
+     {
+      "account_id": 1,
+      "bill_tier": "",
+      "category": "其他",
+      "deleted_ts": 1792468800.0,
+      "flag_push": 0,
+      "id": 4,
+      "uid": 14,
+      "unread": 1
+     },
+     {
+      "account_id": 1,
+      "bill_tier": "一般",
+      "category": "账单",
+      "deleted_ts": 1792468800.0,
+      "flag_push": 0,
+      "id": 5,
+      "uid": 15,
+      "unread": 1
+     },
+     {
+      "account_id": 1,
+      "bill_tier": "",
+      "category": "验证码",
+      "deleted_ts": 0.0,
+      "flag_push": 1,
+      "id": 6,
+      "uid": 16,
+      "unread": 0
+     },
+     {
+      "account_id": 1,
+      "bill_tier": "",
+      "category": "订阅",
+      "deleted_ts": 0.0,
+      "flag_push": 0,
+      "id": 7,
+      "uid": 17,
+      "unread": 0
+     },
+     {
+      "account_id": 3,
+      "bill_tier": "",
+      "category": "通知",
+      "deleted_ts": 0.0,
+      "flag_push": 0,
+      "id": 9,
+      "uid": 19,
+      "unread": 0
+     }
+    ],
+    "settings": {
+     "admin_hash": true,
+     "ai_backfill_days": "0",
+     "ai_enabled": "0",
+     "ai_scope": "all",
+     "ai_send_body": "0",
+     "bill_amount_threshold": "300",
+     "bill_routine_count": "5",
+     "body_keep_days": "60",
+     "clean_bill_minor_days": "0",
+     "clean_otp_days": "3",
+     "clean_server": "1",
+     "digest_hour": "6",
+     "notify_important": "1",
+     "notify_otp": "0",
+     "sync_read_state": "0"
+    }
+   },
+   "fn": "db_state",
+   "id": "db_state_after_settings"
+  },
+  {
+   "args": {
+    "body": null,
+    "method": "POST",
+    "path": "/api/governance/run",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "busy": false,
+     "last_run": {
+      "ai_count": 0,
+      "category_counts": {
+       "验证码": 1
+      },
+      "error": "",
+      "error_count": 0,
+      "fallback_count": 0,
+      "finished_ts": 1792468800.0,
+      "id": 1,
+      "ministry_counts": {
+       "兵部": 0,
+       "刑部": 0,
+       "吏部": 0,
+       "工部": 1,
+       "户部": 0,
+       "礼部": 0
+      },
+      "processed_count": 1,
+      "selected_count": 1,
+      "started_ts": 1792468800.0,
+      "status": "completed",
+      "suspicious_count": 0,
+      "trigger": "user-one-click",
+      "version": "mailhub-three-six-v2"
+     },
+     "ministries": [
+      "吏部",
+      "户部",
+      "礼部",
+      "兵部",
+      "刑部",
+      "工部"
+     ],
+     "ok": true,
+     "pending": 0,
+     "running": false,
+     "version": "mailhub-three-six-v2"
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "governance_run"
+  },
+  {
+   "args": {
+    "body": {},
+    "method": "POST",
+    "path": "/api/governance/run",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "busy": false,
+     "last_run": {
+      "ai_count": 0,
+      "category_counts": {},
+      "error": "",
+      "error_count": 0,
+      "fallback_count": 0,
+      "finished_ts": 1792468800.0,
+      "id": 2,
+      "ministry_counts": {
+       "兵部": 0,
+       "刑部": 0,
+       "吏部": 0,
+       "工部": 0,
+       "户部": 0,
+       "礼部": 0
+      },
+      "processed_count": 0,
+      "selected_count": 0,
+      "started_ts": 1792468800.0,
+      "status": "completed",
+      "suspicious_count": 0,
+      "trigger": "user-one-click",
+      "version": "mailhub-three-six-v2"
+     },
+     "ministries": [
+      "吏部",
+      "户部",
+      "礼部",
+      "兵部",
+      "刑部",
+      "工部"
+     ],
+     "ok": true,
+     "pending": 0,
+     "running": false,
+     "version": "mailhub-three-six-v2"
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "governance_run_empty_body"
+  },
+  {
+   "args": {
+    "body": {
+     "days": 7
+    },
+    "method": "POST",
+    "path": "/api/governance/run",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "busy": false,
+     "last_run": {
+      "ai_count": 0,
+      "category_counts": {
+       "订阅": 2,
+       "通知": 2,
+       "验证码": 1
+      },
+      "error": "",
+      "error_count": 0,
+      "fallback_count": 0,
+      "finished_ts": 1792468800.0,
+      "id": 3,
+      "ministry_counts": {
+       "兵部": 0,
+       "刑部": 0,
+       "吏部": 0,
+       "工部": 1,
+       "户部": 0,
+       "礼部": 4
+      },
+      "processed_count": 5,
+      "selected_count": 5,
+      "started_ts": 1792468800.0,
+      "status": "completed",
+      "suspicious_count": 0,
+      "trigger": "user-resort",
+      "version": "mailhub-three-six-v2"
+     },
+     "ministries": [
+      "吏部",
+      "户部",
+      "礼部",
+      "兵部",
+      "刑部",
+      "工部"
+     ],
+     "ok": true,
+     "pending": 0,
+     "running": false,
+     "version": "mailhub-three-six-v2"
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "governance_run_days"
+  },
+  {
+   "args": {
+    "body": {
+     "days": 200
+    },
+    "method": "POST",
+    "path": "/api/governance/run",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": [
+      {
+       "ctx": {
+        "le": 90
+       },
+       "input": 200,
+       "loc": [
+        "body",
+        "days"
+       ],
+       "msg": "Input should be less than or equal to 90",
+       "type": "less_than_equal"
+      }
+     ]
+    },
+    "status": 422
+   },
+   "fn": "request",
+   "id": "governance_run_days_too_big"
+  },
+  {
+   "args": {
+    "body": {
+     "days": -1
+    },
+    "method": "POST",
+    "path": "/api/governance/run",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": [
+      {
+       "ctx": {
+        "ge": 0
+       },
+       "input": -1,
+       "loc": [
+        "body",
+        "days"
+       ],
+       "msg": "Input should be greater than or equal to 0",
+       "type": "greater_than_equal"
+      }
+     ]
+    },
+    "status": 422
+   },
+   "fn": "request",
+   "id": "governance_run_days_negative"
+  },
+  {
+   "args": {},
+   "expected": {
+    "accounts": [
+     {
+      "auth_type": "password",
+      "color": "#38bdf8",
+      "created_ts": 1792000000.0,
+      "email": "work@corp.example",
+      "enabled": 1,
+      "id": 1,
+      "imap_host": "imap.exmail.qq.com",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 116,
+      "name": "工作邮箱",
+      "oauth_expires": 0.0,
+      "poll_interval": 300,
+      "provider": "exmail",
+      "secret_set": true,
+      "uidvalidity": 1701
+     },
+     {
+      "auth_type": "oauth",
+      "color": "#38bdf8",
+      "created_ts": 1792000000.0,
+      "email": "oauth@example.com",
+      "enabled": 1,
+      "id": 2,
+      "imap_host": "imap.gmail.com",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 0,
+      "name": "OAuth 账户（改名）",
+      "oauth_expires": 1792470600.0,
+      "poll_interval": 300,
+      "provider": "gmail",
+      "secret_set": false,
+      "uidvalidity": 0
+     },
+     {
+      "auth_type": "password",
+      "color": "#64748b",
+      "created_ts": 1792000000.0,
+      "email": "off@example.com",
+      "enabled": 0,
+      "id": 3,
+      "imap_host": "imap.off.example",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 0,
+      "name": "停用邮箱",
+      "oauth_expires": 0.0,
+      "poll_interval": 900,
+      "provider": "custom",
+      "secret_set": true,
+      "uidvalidity": 0
+     },
+     {
+      "auth_type": "password",
+      "color": "#22c55e",
+      "created_ts": 1792468800.0,
+      "email": "new@example.com",
+      "enabled": 1,
+      "id": 4,
+      "imap_host": "imap.new.example",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 0,
+      "name": "新账户",
+      "oauth_expires": 0.0,
+      "poll_interval": 120,
+      "provider": "custom",
+      "secret_set": true,
+      "uidvalidity": 0
+     },
+     {
+      "auth_type": "password",
+      "color": "#38bdf8",
+      "created_ts": 1792468800.0,
+      "email": "auto@qq.com",
+      "enabled": 1,
+      "id": 5,
+      "imap_host": "imap.qq.com",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 0,
+      "name": "auto@qq.com",
+      "oauth_expires": 0.0,
+      "poll_interval": 300,
+      "provider": "qq",
+      "secret_set": true,
+      "uidvalidity": 0
+     },
+     {
+      "auth_type": "password",
+      "color": "#38bdf8",
+      "created_ts": 1792468800.0,
+      "email": "low@163.com",
+      "enabled": 1,
+      "id": 6,
+      "imap_host": "imap.163.com",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 0,
+      "name": "low@163.com",
+      "oauth_expires": 0.0,
+      "poll_interval": 60,
+      "provider": "163",
+      "secret_set": true,
+      "uidvalidity": 0
+     },
+     {
+      "auth_type": "password",
+      "color": "#38bdf8",
+      "created_ts": 1792468800.0,
+      "email": "high@163.com",
+      "enabled": 1,
+      "id": 7,
+      "imap_host": "imap.163.com",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 0,
+      "name": "high@163.com",
+      "oauth_expires": 0.0,
+      "poll_interval": 86400,
+      "provider": "163",
+      "secret_set": true,
+      "uidvalidity": 0
+     },
+     {
+      "auth_type": "password",
+      "color": "#38bdf8",
+      "created_ts": 1792468800.0,
+      "email": "color@163.com",
+      "enabled": 1,
+      "id": 8,
+      "imap_host": "imap.163.com",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 0,
+      "name": "color@163.com",
+      "oauth_expires": 0.0,
+      "poll_interval": 300,
+      "provider": "163",
+      "secret_set": true,
+      "uidvalidity": 0
+     }
+    ],
+    "audit": [
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 1,
+      "id": 1,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       2
+      ],
+      "tier": "B",
+      "ts": 1792458000.0,
+      "undo_payload": {
+       "ids": [
+        2
+       ]
+      },
+      "undone": 1
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 2,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       1
+      ],
+      "tier": "A",
+      "ts": 1792461600.0,
+      "undo_payload": {
+       "unread": {
+        "1": 1
+       }
+      },
+      "undone": 1
+     },
+     {
+      "action": "purge",
+      "actor": "user",
+      "allowed": 1,
+      "id": 3,
+      "reason": "用户批量操作",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       5
+      ],
+      "tier": "C",
+      "ts": 1792463400.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 4,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       6
+      ],
+      "tier": "A",
+      "ts": 1792465200.0,
+      "undo_payload": {
+       "unread": {
+        "6": 1
+       }
+      },
+      "undone": 1
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 5,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 2,
+      "target_ids": [
+       1,
+       6
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "unread": {
+        "1": 1,
+        "6": 1
+       }
+      },
+      "undone": 0
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 6,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       1
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "unread": {
+        "1": 0
+       }
+      },
+      "undone": 0
+     },
+     {
+      "action": "unread",
+      "actor": "user",
+      "allowed": 1,
+      "id": 7,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       1
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "unread": {
+        "1": 0
+       }
+      },
+      "undone": 0
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 8,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       2
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "unread": {
+        "2": 0
+       }
+      },
+      "undone": 0
+     },
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 1,
+      "id": 9,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       2
+      ],
+      "tier": "B",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "ids": [
+        2
+       ]
+      },
+      "undone": 0
+     },
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 0,
+      "id": 10,
+      "reason": "无可执行目标",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       999
+      ],
+      "tier": "",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 0,
+      "id": 11,
+      "reason": "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       3
+      ],
+      "tier": "",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 1,
+      "id": 12,
+      "reason": "用户批量操作，1 封被策略拦截",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       5
+      ],
+      "tier": "B",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "ids": [
+        5
+       ]
+      },
+      "undone": 0
+     },
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 1,
+      "id": 13,
+      "reason": "用户对受保护邮件单封二次确认",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       3
+      ],
+      "tier": "B",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "ids": [
+        3
+       ]
+      },
+      "undone": 0
+     },
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 0,
+      "id": 14,
+      "reason": "邮件含附件，可能是发票或合同，禁止自动删除",
+      "reversible": 0,
+      "target_count": 2,
+      "target_ids": [
+       3,
+       4
+      ],
+      "tier": "",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 1,
+      "id": 15,
+      "reason": "用户对受保护邮件单封二次确认",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       4
+      ],
+      "tier": "B",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "ids": [
+        4
+       ]
+      },
+      "undone": 0
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 16,
+      "reason": "用户批量操作；已同步到邮件服务器，撤销只能恢复本地状态，因此不提供撤销",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       9
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 17,
+      "reason": "用户批量操作；1 个账户执行失败；已同步到邮件服务器，撤销只能恢复本地状态，因此不提供撤销",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       8
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "purge",
+      "actor": "user",
+      "allowed": 0,
+      "id": 18,
+      "reason": "用户批量操作；1 个账户执行失败",
+      "reversible": 0,
+      "target_count": 0,
+      "target_ids": [],
+      "tier": "C",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "purge",
+      "actor": "user",
+      "allowed": 1,
+      "id": 19,
+      "reason": "用户批量操作；1 个账户执行失败",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       8
+      ],
+      "tier": "C",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "restore",
+      "actor": "user",
+      "allowed": 1,
+      "id": 20,
+      "reason": "从回收站恢复",
+      "reversible": 0,
+      "target_count": 2,
+      "target_ids": [
+       7,
+       2
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "restore",
+      "actor": "user",
+      "allowed": 1,
+      "id": 21,
+      "reason": "从回收站恢复",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       7
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "undo",
+      "actor": "user",
+      "allowed": 1,
+      "id": 22,
+      "reason": "撤销审计 #2（read），恢复 1 封",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       2
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "undo",
+      "actor": "user",
+      "allowed": 1,
+      "id": 23,
+      "reason": "撤销审计 #1（soft_delete），恢复 1 封",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       1
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "unread",
+      "actor": "user",
+      "allowed": 1,
+      "id": 24,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       6
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "unread": {
+        "6": 0
+       }
+      },
+      "undone": 0
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 25,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       6
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "unread": {
+        "6": 1
+       }
+      },
+      "undone": 0
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 26,
+      "reason": "用户批量操作；已同步到邮件服务器，撤销只能恢复本地状态，因此不提供撤销",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       9
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "governance_run",
+      "actor": "system",
+      "allowed": 1,
+      "id": 27,
+      "reason": "三省六部自动分拣完成：1 封，自动回退 0 封，可疑 0 封",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       6
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "governance_run",
+      "actor": "system",
+      "allowed": 1,
+      "id": 28,
+      "reason": "三省六部自动分拣完成：0 封，自动回退 0 封，可疑 0 封",
+      "reversible": 0,
+      "target_count": 0,
+      "target_ids": [],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "governance_run",
+      "actor": "system",
+      "allowed": 1,
+      "id": 29,
+      "reason": "三省六部自动分拣完成：5 封，自动回退 0 封，可疑 0 封",
+      "reversible": 0,
+      "target_count": 5,
+      "target_ids": [
+       1,
+       9,
+       2,
+       6,
+       7
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     }
+    ],
+    "messages": [
+     {
+      "account_id": 1,
+      "bill_tier": "",
+      "category": "通知",
+      "deleted_ts": 0.0,
+      "flag_push": 0,
+      "id": 1,
+      "uid": 11,
+      "unread": 1
+     },
+     {
+      "account_id": 1,
+      "bill_tier": "",
+      "category": "订阅",
+      "deleted_ts": 0.0,
+      "flag_push": 0,
+      "id": 2,
+      "uid": 12,
+      "unread": 0
+     },
+     {
+      "account_id": 1,
+      "bill_tier": "重要",
+      "category": "账单",
+      "deleted_ts": 1792468800.0,
+      "flag_push": 0,
+      "id": 3,
+      "uid": 13,
+      "unread": 1
+     },
+     {
+      "account_id": 1,
+      "bill_tier": "",
+      "category": "其他",
+      "deleted_ts": 1792468800.0,
+      "flag_push": 0,
+      "id": 4,
+      "uid": 14,
+      "unread": 1
+     },
+     {
+      "account_id": 1,
+      "bill_tier": "一般",
+      "category": "账单",
+      "deleted_ts": 1792468800.0,
+      "flag_push": 0,
+      "id": 5,
+      "uid": 15,
+      "unread": 1
+     },
+     {
+      "account_id": 1,
+      "bill_tier": "",
+      "category": "验证码",
+      "deleted_ts": 0.0,
+      "flag_push": 1,
+      "id": 6,
+      "uid": 16,
+      "unread": 0
+     },
+     {
+      "account_id": 1,
+      "bill_tier": "",
+      "category": "订阅",
+      "deleted_ts": 0.0,
+      "flag_push": 0,
+      "id": 7,
+      "uid": 17,
+      "unread": 0
+     },
+     {
+      "account_id": 3,
+      "bill_tier": "",
+      "category": "通知",
+      "deleted_ts": 0.0,
+      "flag_push": 0,
+      "id": 9,
+      "uid": 19,
+      "unread": 0
+     }
+    ],
+    "settings": {
+     "admin_hash": true,
+     "ai_backfill_days": "0",
+     "ai_enabled": "0",
+     "ai_scope": "all",
+     "ai_send_body": "0",
+     "bill_amount_threshold": "300",
+     "bill_routine_count": "5",
+     "body_keep_days": "60",
+     "clean_bill_minor_days": "0",
+     "clean_otp_days": "3",
+     "clean_server": "1",
+     "digest_hour": "6",
+     "notify_important": "1",
+     "notify_otp": "0",
+     "sync_read_state": "0"
+    }
+   },
+   "fn": "db_state",
+   "id": "db_state_final"
+  },
+  {
+   "args": {
+    "body": {},
+    "method": "POST",
+    "path": "/api/governance/run",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": "已有自动分拣任务正在运行"
+    },
+    "status": 409
+   },
+   "fn": "request",
+   "id": "governance_run_busy"
+  },
+  {
+   "args": {
+    "body": null,
+    "method": "DELETE",
+    "path": "/api/accounts/3",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [
+     {
+      "id": 3,
+      "kind": "forget"
+     }
+    ],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "ok": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "account_delete"
+  },
+  {
+   "args": {
+    "body": null,
+    "method": "DELETE",
+    "path": "/api/accounts/999",
+    "stubs": {}
+   },
+   "expected": {
+    "calls": [],
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": "账户不存在"
+    },
+    "status": 404
+   },
+   "fn": "request",
+   "id": "account_delete_missing"
+  },
+  {
+   "args": {},
+   "expected": {
+    "accounts": [
+     {
+      "auth_type": "password",
+      "color": "#38bdf8",
+      "created_ts": 1792000000.0,
+      "email": "work@corp.example",
+      "enabled": 1,
+      "id": 1,
+      "imap_host": "imap.exmail.qq.com",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 116,
+      "name": "工作邮箱",
+      "oauth_expires": 0.0,
+      "poll_interval": 300,
+      "provider": "exmail",
+      "secret_set": true,
+      "uidvalidity": 1701
+     },
+     {
+      "auth_type": "oauth",
+      "color": "#38bdf8",
+      "created_ts": 1792000000.0,
+      "email": "oauth@example.com",
+      "enabled": 1,
+      "id": 2,
+      "imap_host": "imap.gmail.com",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 0,
+      "name": "OAuth 账户（改名）",
+      "oauth_expires": 1792470600.0,
+      "poll_interval": 300,
+      "provider": "gmail",
+      "secret_set": false,
+      "uidvalidity": 0
+     },
+     {
+      "auth_type": "password",
+      "color": "#22c55e",
+      "created_ts": 1792468800.0,
+      "email": "new@example.com",
+      "enabled": 1,
+      "id": 4,
+      "imap_host": "imap.new.example",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 0,
+      "name": "新账户",
+      "oauth_expires": 0.0,
+      "poll_interval": 120,
+      "provider": "custom",
+      "secret_set": true,
+      "uidvalidity": 0
+     },
+     {
+      "auth_type": "password",
+      "color": "#38bdf8",
+      "created_ts": 1792468800.0,
+      "email": "auto@qq.com",
+      "enabled": 1,
+      "id": 5,
+      "imap_host": "imap.qq.com",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 0,
+      "name": "auto@qq.com",
+      "oauth_expires": 0.0,
+      "poll_interval": 300,
+      "provider": "qq",
+      "secret_set": true,
+      "uidvalidity": 0
+     },
+     {
+      "auth_type": "password",
+      "color": "#38bdf8",
+      "created_ts": 1792468800.0,
+      "email": "low@163.com",
+      "enabled": 1,
+      "id": 6,
+      "imap_host": "imap.163.com",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 0,
+      "name": "low@163.com",
+      "oauth_expires": 0.0,
+      "poll_interval": 60,
+      "provider": "163",
+      "secret_set": true,
+      "uidvalidity": 0
+     },
+     {
+      "auth_type": "password",
+      "color": "#38bdf8",
+      "created_ts": 1792468800.0,
+      "email": "high@163.com",
+      "enabled": 1,
+      "id": 7,
+      "imap_host": "imap.163.com",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 0,
+      "name": "high@163.com",
+      "oauth_expires": 0.0,
+      "poll_interval": 86400,
+      "provider": "163",
+      "secret_set": true,
+      "uidvalidity": 0
+     },
+     {
+      "auth_type": "password",
+      "color": "#38bdf8",
+      "created_ts": 1792468800.0,
+      "email": "color@163.com",
+      "enabled": 1,
+      "id": 8,
+      "imap_host": "imap.163.com",
+      "imap_port": 993,
+      "last_error": "",
+      "last_uid": 0,
+      "name": "color@163.com",
+      "oauth_expires": 0.0,
+      "poll_interval": 300,
+      "provider": "163",
+      "secret_set": true,
+      "uidvalidity": 0
+     }
+    ],
+    "audit": [
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 1,
+      "id": 1,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       2
+      ],
+      "tier": "B",
+      "ts": 1792458000.0,
+      "undo_payload": {
+       "ids": [
+        2
+       ]
+      },
+      "undone": 1
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 2,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       1
+      ],
+      "tier": "A",
+      "ts": 1792461600.0,
+      "undo_payload": {
+       "unread": {
+        "1": 1
+       }
+      },
+      "undone": 1
+     },
+     {
+      "action": "purge",
+      "actor": "user",
+      "allowed": 1,
+      "id": 3,
+      "reason": "用户批量操作",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       5
+      ],
+      "tier": "C",
+      "ts": 1792463400.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 4,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       6
+      ],
+      "tier": "A",
+      "ts": 1792465200.0,
+      "undo_payload": {
+       "unread": {
+        "6": 1
+       }
+      },
+      "undone": 1
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 5,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 2,
+      "target_ids": [
+       1,
+       6
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "unread": {
+        "1": 1,
+        "6": 1
+       }
+      },
+      "undone": 0
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 6,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       1
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "unread": {
+        "1": 0
+       }
+      },
+      "undone": 0
+     },
+     {
+      "action": "unread",
+      "actor": "user",
+      "allowed": 1,
+      "id": 7,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       1
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "unread": {
+        "1": 0
+       }
+      },
+      "undone": 0
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 8,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       2
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "unread": {
+        "2": 0
+       }
+      },
+      "undone": 0
+     },
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 1,
+      "id": 9,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       2
+      ],
+      "tier": "B",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "ids": [
+        2
+       ]
+      },
+      "undone": 0
+     },
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 0,
+      "id": 10,
+      "reason": "无可执行目标",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       999
+      ],
+      "tier": "",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 0,
+      "id": 11,
+      "reason": "分类「账单」属于受保护类别（交易/安全/重要），禁止自动删除",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       3
+      ],
+      "tier": "",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 1,
+      "id": 12,
+      "reason": "用户批量操作，1 封被策略拦截",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       5
+      ],
+      "tier": "B",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "ids": [
+        5
+       ]
+      },
+      "undone": 0
+     },
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 1,
+      "id": 13,
+      "reason": "用户对受保护邮件单封二次确认",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       3
+      ],
+      "tier": "B",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "ids": [
+        3
+       ]
+      },
+      "undone": 0
+     },
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 0,
+      "id": 14,
+      "reason": "邮件含附件，可能是发票或合同，禁止自动删除",
+      "reversible": 0,
+      "target_count": 2,
+      "target_ids": [
+       3,
+       4
+      ],
+      "tier": "",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "soft_delete",
+      "actor": "user",
+      "allowed": 1,
+      "id": 15,
+      "reason": "用户对受保护邮件单封二次确认",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       4
+      ],
+      "tier": "B",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "ids": [
+        4
+       ]
+      },
+      "undone": 0
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 16,
+      "reason": "用户批量操作；已同步到邮件服务器，撤销只能恢复本地状态，因此不提供撤销",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       9
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 17,
+      "reason": "用户批量操作；1 个账户执行失败；已同步到邮件服务器，撤销只能恢复本地状态，因此不提供撤销",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       8
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "purge",
+      "actor": "user",
+      "allowed": 0,
+      "id": 18,
+      "reason": "用户批量操作；1 个账户执行失败",
+      "reversible": 0,
+      "target_count": 0,
+      "target_ids": [],
+      "tier": "C",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "purge",
+      "actor": "user",
+      "allowed": 1,
+      "id": 19,
+      "reason": "用户批量操作；1 个账户执行失败",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       8
+      ],
+      "tier": "C",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "restore",
+      "actor": "user",
+      "allowed": 1,
+      "id": 20,
+      "reason": "从回收站恢复",
+      "reversible": 0,
+      "target_count": 2,
+      "target_ids": [
+       7,
+       2
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "restore",
+      "actor": "user",
+      "allowed": 1,
+      "id": 21,
+      "reason": "从回收站恢复",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       7
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "undo",
+      "actor": "user",
+      "allowed": 1,
+      "id": 22,
+      "reason": "撤销审计 #2（read），恢复 1 封",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       2
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "undo",
+      "actor": "user",
+      "allowed": 1,
+      "id": 23,
+      "reason": "撤销审计 #1（soft_delete），恢复 1 封",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       1
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "unread",
+      "actor": "user",
+      "allowed": 1,
+      "id": 24,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       6
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "unread": {
+        "6": 0
+       }
+      },
+      "undone": 0
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 25,
+      "reason": "用户批量操作",
+      "reversible": 1,
+      "target_count": 1,
+      "target_ids": [
+       6
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": {
+       "unread": {
+        "6": 1
+       }
+      },
+      "undone": 0
+     },
+     {
+      "action": "read",
+      "actor": "user",
+      "allowed": 1,
+      "id": 26,
+      "reason": "用户批量操作；已同步到邮件服务器，撤销只能恢复本地状态，因此不提供撤销",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       9
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "governance_run",
+      "actor": "system",
+      "allowed": 1,
+      "id": 27,
+      "reason": "三省六部自动分拣完成：1 封，自动回退 0 封，可疑 0 封",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       6
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "governance_run",
+      "actor": "system",
+      "allowed": 1,
+      "id": 28,
+      "reason": "三省六部自动分拣完成：0 封，自动回退 0 封，可疑 0 封",
+      "reversible": 0,
+      "target_count": 0,
+      "target_ids": [],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "governance_run",
+      "actor": "system",
+      "allowed": 1,
+      "id": 29,
+      "reason": "三省六部自动分拣完成：5 封，自动回退 0 封，可疑 0 封",
+      "reversible": 0,
+      "target_count": 5,
+      "target_ids": [
+       1,
+       9,
+       2,
+       6,
+       7
+      ],
+      "tier": "A",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     },
+     {
+      "action": "delete_account",
+      "actor": "user",
+      "allowed": 1,
+      "id": 30,
+      "reason": "删除账户 off@example.com，本地邮件一并删除",
+      "reversible": 0,
+      "target_count": 1,
+      "target_ids": [
+       3
+      ],
+      "tier": "C",
+      "ts": 1792468800.0,
+      "undo_payload": null,
+      "undone": 0
+     }
+    ],
+    "messages": [
+     {
+      "account_id": 1,
+      "bill_tier": "",
+      "category": "通知",
+      "deleted_ts": 0.0,
+      "flag_push": 0,
+      "id": 1,
+      "uid": 11,
+      "unread": 1
+     },
+     {
+      "account_id": 1,
+      "bill_tier": "",
+      "category": "订阅",
+      "deleted_ts": 0.0,
+      "flag_push": 0,
+      "id": 2,
+      "uid": 12,
+      "unread": 0
+     },
+     {
+      "account_id": 1,
+      "bill_tier": "重要",
+      "category": "账单",
+      "deleted_ts": 1792468800.0,
+      "flag_push": 0,
+      "id": 3,
+      "uid": 13,
+      "unread": 1
+     },
+     {
+      "account_id": 1,
+      "bill_tier": "",
+      "category": "其他",
+      "deleted_ts": 1792468800.0,
+      "flag_push": 0,
+      "id": 4,
+      "uid": 14,
+      "unread": 1
+     },
+     {
+      "account_id": 1,
+      "bill_tier": "一般",
+      "category": "账单",
+      "deleted_ts": 1792468800.0,
+      "flag_push": 0,
+      "id": 5,
+      "uid": 15,
+      "unread": 1
+     },
+     {
+      "account_id": 1,
+      "bill_tier": "",
+      "category": "验证码",
+      "deleted_ts": 0.0,
+      "flag_push": 1,
+      "id": 6,
+      "uid": 16,
+      "unread": 0
+     },
+     {
+      "account_id": 1,
+      "bill_tier": "",
+      "category": "订阅",
+      "deleted_ts": 0.0,
+      "flag_push": 0,
+      "id": 7,
+      "uid": 17,
+      "unread": 0
+     }
+    ],
+    "settings": {
+     "admin_hash": true,
+     "ai_backfill_days": "0",
+     "ai_enabled": "0",
+     "ai_scope": "all",
+     "ai_send_body": "0",
+     "bill_amount_threshold": "300",
+     "bill_routine_count": "5",
+     "body_keep_days": "60",
+     "clean_bill_minor_days": "0",
+     "clean_otp_days": "3",
+     "clean_server": "1",
+     "digest_hour": "6",
+     "notify_important": "1",
+     "notify_otp": "0",
+     "sync_read_state": "0"
+    }
+   },
+   "fn": "db_state",
+   "id": "db_state_after_account_delete"
+  }
+ ],
+ "generator": "scripts/golden/api_write.py",
+ "module": "api_write"
+}

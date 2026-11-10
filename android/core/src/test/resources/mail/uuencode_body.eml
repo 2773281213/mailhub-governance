@@ -1,0 +1,11 @@
+From: Notice <notice@shop.example>
+To: bob@corp.example
+Subject: Uuencoded body
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: x-uuencode
+
+begin 644 note.txt
+#86)C
+`
+end

@@ -16,13 +16,15 @@ import kotlinx.coroutines.launch
  *
  * - 每块的「保存 →」只提交这一块里改动过的字段；
  * - clean_server 从关到开必须先经过确认面板；
- * - 改密码先在本地校验，通过后才发请求，成功后换上新令牌。
+ * - 改密码先在本地校验，通过后才发请求，成功后换上新令牌；
+ * - [localMode] 是本机会话时只有「同步」一块，见 [SettingsUiState.sections]。
  */
 class SettingsViewModel(
     private val gateway: SettingsGateway,
+    localMode: Boolean = false,
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(SettingsUiState())
+    private val _state = MutableStateFlow(SettingsUiState(localMode = localMode))
     val state: StateFlow<SettingsUiState> = _state.asStateFlow()
 
     /** 页面每次进入调用一次。已经加载过就不重拉，免得冲掉还没保存的编辑。 */
@@ -246,10 +248,11 @@ class SettingsViewModel(
 /** 手工工厂：宿主用页面自己的 Repository 组装网关。 */
 class SettingsViewModelFactory(
     private val gateway: SettingsGateway,
+    private val localMode: Boolean = false,
 ) : ViewModelProvider.Factory {
 
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         @Suppress("UNCHECKED_CAST")
-        return SettingsViewModel(gateway) as T
+        return SettingsViewModel(gateway, localMode) as T
     }
 }

@@ -1,0 +1,7058 @@
+{
+ "cases": [
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/meta",
+    "query": {}
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "api_version": 1,
+     "bill_tiers": [
+      "重要",
+      "一般"
+     ],
+     "categories": [
+      "验证码",
+      "重要",
+      "账单",
+      "安全",
+      "可疑",
+      "订阅",
+      "通知",
+      "其他"
+     ],
+     "display_categories": [
+      "验证码",
+      "重要",
+      "重要账单",
+      "一般账单",
+      "安全",
+      "可疑",
+      "订阅",
+      "通知",
+      "其他"
+     ],
+     "features": {
+      "changes": true,
+      "cursor": true,
+      "sessions": true,
+      "token_auth": true
+     },
+     "governance_version": "mailhub-three-six-v2",
+     "ministries": [
+      "吏部",
+      "户部",
+      "礼部",
+      "兵部",
+      "刑部",
+      "工部"
+     ],
+     "ok": true,
+     "server_time": 1792468800.0,
+     "tz": "Asia/Shanghai"
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "meta"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/status",
+    "query": {}
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "1": {
+      "msg": "正在收信",
+      "new": 3,
+      "state": "syncing",
+      "ts": 1792468680.0
+     }
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "status"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/accounts",
+    "query": {}
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": [
+     {
+      "auth_type": "password",
+      "color": "#38bdf8",
+      "created_ts": 1792000000.0,
+      "email": "work@corp.example",
+      "enabled": 1,
+      "has_secret": true,
+      "id": 1,
+      "imap_host": "imap.corp.example",
+      "imap_port": 993,
+      "last_error": "",
+      "last_sync": 1792465200.0,
+      "last_uid": 116,
+      "name": "工作邮箱",
+      "oauth_expires": 0.0,
+      "oauth_reauth_required": 0,
+      "oauth_scope": "",
+      "poll_interval": 300,
+      "provider": "exmail",
+      "sync_state": {
+       "msg": "正在收信",
+       "new": 3,
+       "state": "syncing",
+       "ts": 1792468680.0
+      },
+      "total": 16,
+      "uidvalidity": 1701,
+      "unread": 8
+     },
+     {
+      "auth_type": "password",
+      "color": "#f97316",
+      "created_ts": 1792000000.0,
+      "email": "home@example",
+      "enabled": 1,
+      "has_secret": false,
+      "id": 2,
+      "imap_host": "imap.example",
+      "imap_port": 993,
+      "last_error": "上一次收信超时",
+      "last_sync": 1792465000.0,
+      "last_uid": 0,
+      "name": "个人邮箱",
+      "oauth_expires": 0.0,
+      "oauth_reauth_required": 0,
+      "oauth_scope": "",
+      "poll_interval": 300,
+      "provider": "custom",
+      "sync_state": {
+       "msg": "",
+       "new": 0,
+       "state": "idle",
+       "ts": 0
+      },
+      "total": 9,
+      "uidvalidity": 0,
+      "unread": 4
+     }
+    ],
+    "status": 200
+   },
+   "fn": "request",
+   "id": "accounts"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/governance/status",
+    "query": {}
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "last_run": null,
+     "ministries": [
+      "吏部",
+      "户部",
+      "礼部",
+      "兵部",
+      "刑部",
+      "工部"
+     ],
+     "pending": 4,
+     "running": false,
+     "version": "mailhub-three-six-v2"
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "governance_status"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/overview",
+    "query": {}
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "ai_enabled": false,
+     "categories": [
+      "验证码",
+      "重要",
+      "重要账单",
+      "一般账单",
+      "安全",
+      "可疑",
+      "订阅",
+      "通知",
+      "其他"
+     ],
+     "daily": [
+      {
+       "day": "10-07"
+      },
+      {
+       "day": "10-08"
+      },
+      {
+       "day": "10-09"
+      },
+      {
+       "day": "10-10"
+      },
+      {
+       "day": "10-11"
+      },
+      {
+       "day": "10-12"
+      },
+      {
+       "day": "10-13"
+      },
+      {
+       "day": "10-14"
+      },
+      {
+       "day": "10-15"
+      },
+      {
+       "day": "10-16"
+      },
+      {
+       "day": "10-17",
+       "可疑": 1,
+       "订阅": 1,
+       "重要账单": 1,
+       "验证码": 1
+      },
+      {
+       "day": "10-18",
+       "一般账单": 1,
+       "安全": 1,
+       "通知": 1,
+       "重要账单": 1
+      },
+      {
+       "day": "10-19",
+       "一般账单": 2,
+       "可疑": 2,
+       "订阅": 1,
+       "通知": 5,
+       "重要": 1,
+       "重要账单": 1,
+       "验证码": 1
+      },
+      {
+       "day": "10-20",
+       "订阅": 1,
+       "重要账单": 1,
+       "验证码": 1
+      }
+     ],
+     "days": [
+      "10-07",
+      "10-08",
+      "10-09",
+      "10-10",
+      "10-11",
+      "10-12",
+      "10-13",
+      "10-14",
+      "10-15",
+      "10-16",
+      "10-17",
+      "10-18",
+      "10-19",
+      "10-20"
+     ],
+     "digest": {
+      "content": "晨报：今日重要邮件 3 封，验证码 1 封",
+      "created_ts": 1792454400.0,
+      "day": "2026-10-20"
+     },
+     "important": [
+      {
+       "account_color": "#38bdf8",
+       "account_name": "工作邮箱",
+       "bill_tier": "重要",
+       "category": "账单",
+       "date_ts": 1792456200.0,
+       "id": 1,
+       "importance": 4,
+       "sender_addr": "billing@shop.example",
+       "subject": "季度账单通知 2026 十月",
+       "summary": "本期账单已生成，请在 30 天内缴纳",
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "可疑",
+       "date_ts": 1792422000.0,
+       "id": 7,
+       "importance": 5,
+       "sender_addr": "alert@bank.example",
+       "subject": "可疑登录提醒",
+       "summary": "",
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "重要",
+       "date_ts": 1792416600.0,
+       "id": 26,
+       "importance": 5,
+       "sender_addr": "legal@corp.example",
+       "subject": "合同签署提醒",
+       "summary": "合同已上传，请在 3 天内签署",
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_name": "个人邮箱",
+       "bill_tier": "重要",
+       "category": "账单",
+       "date_ts": 1792391400.0,
+       "id": 11,
+       "importance": 4,
+       "sender_addr": "billing@cloud.example",
+       "subject": "云盘续费账单",
+       "summary": "",
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "可疑",
+       "date_ts": 1792227600.0,
+       "id": 22,
+       "importance": 1,
+       "sender_addr": "nobody@spam.example",
+       "subject": "低价转让",
+       "summary": "",
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_name": "工作邮箱",
+       "bill_tier": "重要",
+       "category": "账单",
+       "date_ts": 1792173600.0,
+       "id": 24,
+       "importance": 4,
+       "sender_addr": "billing@utility.example",
+       "subject": "水电费账单",
+       "summary": "",
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "可疑",
+       "date_ts": 1792368000.0,
+       "id": 15,
+       "importance": 1,
+       "sender_addr": "promo@spam.example",
+       "subject": "低价促销",
+       "summary": "",
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "安全",
+       "date_ts": 1792281600.0,
+       "id": 19,
+       "importance": 5,
+       "sender_addr": "alert@bank.example",
+       "subject": "新设备登录安全提醒",
+       "summary": "",
+       "unread": 0
+      }
+     ],
+     "stats": {
+      "by_category": {
+       "一般账单": 3,
+       "其他": 1,
+       "可疑": 3,
+       "安全": 1,
+       "订阅": 3,
+       "通知": 6,
+       "重要": 1,
+       "重要账单": 4,
+       "验证码": 3
+      },
+      "important_unread": 6,
+      "today": 3,
+      "today_otp": 1,
+      "total": 25,
+      "unread": 12
+     }
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "overview"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/settings",
+    "query": {}
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "ai_backfill_days": 7,
+     "ai_base_url": "https://ai.example/v1",
+     "ai_enabled": false,
+     "ai_key_set": false,
+     "ai_model": "gemini-2.5-flash",
+     "ai_scope": "uncertain",
+     "ai_send_body": true,
+     "bill_amount_threshold": 300.0,
+     "bill_auto_renew": "重要",
+     "bill_refund": "一般",
+     "bill_routine_count": 5,
+     "body_keep_days": 30,
+     "clean_bill_minor_days": 0,
+     "clean_otp_days": 7,
+     "clean_server": true,
+     "digest_hour": 9,
+     "google_oauth_callback_url": "https://local.mailhub.invalid/api/oauth/gmail/callback",
+     "google_oauth_client_id": "",
+     "google_oauth_client_secret_set": false,
+     "google_oauth_configuration_error": "",
+     "google_oauth_configured": false,
+     "google_oauth_source": "",
+     "microsoft_oauth_callback_url": "https://local.mailhub.invalid/api/oauth/outlook/callback",
+     "microsoft_oauth_client_id": "",
+     "microsoft_oauth_client_secret_set": false,
+     "microsoft_oauth_configured": false,
+     "microsoft_oauth_device_configured": false,
+     "microsoft_oauth_source": "",
+     "notify_bark_host": "",
+     "notify_bark_set": false,
+     "notify_important": false,
+     "notify_onepush_provider": "",
+     "notify_onepush_set": false,
+     "notify_otp": true,
+     "notify_tg_chat": "",
+     "notify_tg_token_set": false,
+     "sync_read_state": false
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "settings"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/messages",
+    "query": {}
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "items": [
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "验证码",
+       "date_ts": 1792461600.0,
+       "display_category": "验证码",
+       "has_attach": 0,
+       "id": 3,
+       "importance": 3,
+       "otp_code": "482913",
+       "risk_level": "none",
+       "sender_addr": "security@bank.example",
+       "sender_name": "安全中心",
+       "snippet": "验证码 482913",
+       "subject": "登录验证码",
+       "summary": "",
+       "uid": 103,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "订阅",
+       "date_ts": 1792458000.0,
+       "display_category": "订阅",
+       "has_attach": 0,
+       "id": 2,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "deals@shop.example",
+       "sender_name": "好物商店",
+       "snippet": "全场五折",
+       "subject": "限时折扣 50% off",
+       "summary": "",
+       "uid": 102,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "重要",
+       "category": "账单",
+       "date_ts": 1792456200.0,
+       "display_category": "重要账单",
+       "has_attach": 0,
+       "id": 1,
+       "importance": 4,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@shop.example",
+       "sender_name": "财务部",
+       "snippet": "本期应缴 128.00 元",
+       "subject": "季度账单通知 2026 十月",
+       "summary": "本期账单已生成，请在 30 天内缴纳",
+       "uid": 101,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "可疑",
+       "date_ts": 1792422000.0,
+       "display_category": "可疑",
+       "has_attach": 0,
+       "id": 7,
+       "importance": 5,
+       "otp_code": "",
+       "risk_level": "medium",
+       "sender_addr": "alert@bank.example",
+       "sender_name": "安全中心",
+       "snippet": "检测到异常登录",
+       "subject": "可疑登录提醒",
+       "summary": "",
+       "uid": 107,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "一般",
+       "category": "账单",
+       "date_ts": 1792418400.0,
+       "display_category": "一般账单",
+       "has_attach": 0,
+       "id": 6,
+       "importance": 1,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@shop.example",
+       "sender_name": "财务部",
+       "snippet": "电子发票已开具",
+       "subject": "发票 5\" 屏 已开",
+       "summary": "",
+       "uid": 106,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "重要",
+       "date_ts": 1792416600.0,
+       "display_category": "重要",
+       "has_attach": 1,
+       "id": 26,
+       "importance": 5,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "legal@corp.example",
+       "sender_name": "法务",
+       "snippet": "请尽快签署",
+       "subject": "合同签署提醒",
+       "summary": "合同已上传，请在 3 天内签署",
+       "uid": 116,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792414800.0,
+       "display_category": "通知",
+       "has_attach": 1,
+       "id": 4,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "data@corp.example",
+       "sender_name": "数据组",
+       "snippet": "月报已生成",
+       "subject": "a_b 报表",
+       "summary": "",
+       "uid": 104,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792413000.0,
+       "display_category": "通知",
+       "has_attach": 0,
+       "id": 5,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "data@corp.example",
+       "sender_name": "数据组",
+       "snippet": "旧版报表",
+       "subject": "axb 报表",
+       "summary": "",
+       "uid": 105,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792407600.0,
+       "display_category": "通知",
+       "has_attach": 0,
+       "id": 8,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "ops@corp.example",
+       "sender_name": "运维",
+       "snippet": "周六凌晨维护",
+       "subject": "系统维护通知",
+       "summary": "",
+       "uid": 108,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "一般",
+       "category": "账单",
+       "date_ts": 1792404000.0,
+       "display_category": "一般账单",
+       "has_attach": 0,
+       "id": 9,
+       "importance": 2,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "deals@shop.example",
+       "sender_name": "商店",
+       "snippet": "退款 30.00 元",
+       "subject": "退款已到账",
+       "summary": "",
+       "uid": 109,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "订阅",
+       "date_ts": 1792396800.0,
+       "display_category": "订阅",
+       "has_attach": 0,
+       "id": 10,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "news@corp.example",
+       "sender_name": "编辑部",
+       "snippet": "本周精选",
+       "subject": "订阅周刊 第 41 期",
+       "summary": "",
+       "uid": 110,
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "重要",
+       "category": "账单",
+       "date_ts": 1792391400.0,
+       "display_category": "重要账单",
+       "has_attach": 0,
+       "id": 11,
+       "importance": 4,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@cloud.example",
+       "sender_name": "云盘",
+       "snippet": "自动续费 99 元",
+       "subject": "云盘续费账单",
+       "summary": "",
+       "uid": 201,
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792382400.0,
+       "display_category": "通知",
+       "has_attach": 0,
+       "id": 12,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "orders@shop.example",
+       "sender_name": "商城",
+       "snippet": "您的订单已发货",
+       "subject": "订单发货通知",
+       "summary": "",
+       "uid": 202,
+       "unread": 0
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792378800.0,
+       "display_category": "通知",
+       "has_attach": 0,
+       "id": 13,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "me@corp.example",
+       "sender_name": "同事",
+       "snippet": "周三上午十点",
+       "subject": "会议邀请",
+       "summary": "",
+       "uid": 203,
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "验证码",
+       "date_ts": 1792373400.0,
+       "display_category": "验证码",
+       "has_attach": 0,
+       "id": 14,
+       "importance": 3,
+       "otp_code": "734156",
+       "risk_level": "none",
+       "sender_addr": "security@bank.example",
+       "sender_name": "安全中心",
+       "snippet": "验证码 734156",
+       "subject": "密码修改验证码",
+       "summary": "",
+       "uid": 204,
+       "unread": 0
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "可疑",
+       "date_ts": 1792368000.0,
+       "display_category": "可疑",
+       "has_attach": 0,
+       "id": 15,
+       "importance": 1,
+       "otp_code": "",
+       "risk_level": "high",
+       "sender_addr": "promo@spam.example",
+       "sender_name": "广告",
+       "snippet": "点击领取",
+       "subject": "低价促销",
+       "summary": "",
+       "uid": 205,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "账单",
+       "date_ts": 1792317600.0,
+       "display_category": "重要账单",
+       "has_attach": 0,
+       "id": 17,
+       "importance": 3,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@video.example",
+       "sender_name": "视频",
+       "snippet": "年费 198 元",
+       "subject": "会员年费账单",
+       "summary": "",
+       "uid": 111,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792297800.0,
+       "display_category": "通知",
+       "has_attach": 0,
+       "id": 18,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "data@corp.example",
+       "sender_name": "数据组",
+       "snippet": "本周进展",
+       "subject": "周报 第 30 周",
+       "summary": "",
+       "uid": 112,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "安全",
+       "date_ts": 1792281600.0,
+       "display_category": "安全",
+       "has_attach": 0,
+       "id": 19,
+       "importance": 5,
+       "otp_code": "",
+       "risk_level": "medium",
+       "sender_addr": "alert@bank.example",
+       "sender_name": "安全中心",
+       "snippet": "新设备登录",
+       "subject": "新设备登录安全提醒",
+       "summary": "",
+       "uid": 113,
+       "unread": 0
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "一般",
+       "category": "账单",
+       "date_ts": 1792263600.0,
+       "display_category": "一般账单",
+       "has_attach": 0,
+       "id": 20,
+       "importance": 2,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "orders@shop.example",
+       "sender_name": "商店",
+       "snippet": "退款已处理",
+       "subject": "退款通知",
+       "summary": "",
+       "uid": 207,
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "订阅",
+       "date_ts": 1792245600.0,
+       "display_category": "订阅",
+       "has_attach": 0,
+       "id": 21,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "promo@shop.example",
+       "sender_name": "商城",
+       "snippet": "活动即将结束",
+       "subject": "促销活动 最后一天",
+       "summary": "",
+       "uid": 208,
+       "unread": 0
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "可疑",
+       "date_ts": 1792227600.0,
+       "display_category": "可疑",
+       "has_attach": 0,
+       "id": 22,
+       "importance": 1,
+       "otp_code": "",
+       "risk_level": "low",
+       "sender_addr": "nobody@spam.example",
+       "sender_name": "陌生",
+       "snippet": "低价转让",
+       "subject": "低价转让",
+       "summary": "",
+       "uid": 209,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "验证码",
+       "date_ts": 1792209600.0,
+       "display_category": "验证码",
+       "has_attach": 0,
+       "id": 23,
+       "importance": 3,
+       "otp_code": "111222",
+       "risk_level": "none",
+       "sender_addr": "security@bank.example",
+       "sender_name": "安全中心",
+       "snippet": "旧验证码 111222",
+       "subject": "旧验证码",
+       "summary": "",
+       "uid": 114,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "重要",
+       "category": "账单",
+       "date_ts": 1792173600.0,
+       "display_category": "重要账单",
+       "has_attach": 0,
+       "id": 24,
+       "importance": 4,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@utility.example",
+       "sender_name": "缴费",
+       "snippet": "本月水电 66 元",
+       "subject": "水电费账单",
+       "summary": "",
+       "uid": 115,
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "其他",
+       "date_ts": 1790625600.0,
+       "display_category": "其他",
+       "has_attach": 0,
+       "id": 25,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "friend@example",
+       "sender_name": "老朋友",
+       "snippet": "在 14 天窗口之外",
+       "subject": "很久以前的邮件",
+       "summary": "",
+       "uid": 210,
+       "unread": 0
+      }
+     ],
+     "next_cursor": null,
+     "page": 1,
+     "total": 25
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "messages_default"
+  },
+  {
+   "args": {
+    "capture": {
+     "cursor1_id": "next_cursor.before_id",
+     "cursor1_token": "next_cursor.token",
+     "cursor1_ts": "next_cursor.before_ts"
+    },
+    "method": "GET",
+    "path": "/api/messages",
+    "query": {
+     "page_size": "10"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "items": [
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "验证码",
+       "date_ts": 1792461600.0,
+       "display_category": "验证码",
+       "has_attach": 0,
+       "id": 3,
+       "importance": 3,
+       "otp_code": "482913",
+       "risk_level": "none",
+       "sender_addr": "security@bank.example",
+       "sender_name": "安全中心",
+       "snippet": "验证码 482913",
+       "subject": "登录验证码",
+       "summary": "",
+       "uid": 103,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "订阅",
+       "date_ts": 1792458000.0,
+       "display_category": "订阅",
+       "has_attach": 0,
+       "id": 2,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "deals@shop.example",
+       "sender_name": "好物商店",
+       "snippet": "全场五折",
+       "subject": "限时折扣 50% off",
+       "summary": "",
+       "uid": 102,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "重要",
+       "category": "账单",
+       "date_ts": 1792456200.0,
+       "display_category": "重要账单",
+       "has_attach": 0,
+       "id": 1,
+       "importance": 4,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@shop.example",
+       "sender_name": "财务部",
+       "snippet": "本期应缴 128.00 元",
+       "subject": "季度账单通知 2026 十月",
+       "summary": "本期账单已生成，请在 30 天内缴纳",
+       "uid": 101,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "可疑",
+       "date_ts": 1792422000.0,
+       "display_category": "可疑",
+       "has_attach": 0,
+       "id": 7,
+       "importance": 5,
+       "otp_code": "",
+       "risk_level": "medium",
+       "sender_addr": "alert@bank.example",
+       "sender_name": "安全中心",
+       "snippet": "检测到异常登录",
+       "subject": "可疑登录提醒",
+       "summary": "",
+       "uid": 107,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "一般",
+       "category": "账单",
+       "date_ts": 1792418400.0,
+       "display_category": "一般账单",
+       "has_attach": 0,
+       "id": 6,
+       "importance": 1,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@shop.example",
+       "sender_name": "财务部",
+       "snippet": "电子发票已开具",
+       "subject": "发票 5\" 屏 已开",
+       "summary": "",
+       "uid": 106,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "重要",
+       "date_ts": 1792416600.0,
+       "display_category": "重要",
+       "has_attach": 1,
+       "id": 26,
+       "importance": 5,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "legal@corp.example",
+       "sender_name": "法务",
+       "snippet": "请尽快签署",
+       "subject": "合同签署提醒",
+       "summary": "合同已上传，请在 3 天内签署",
+       "uid": 116,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792414800.0,
+       "display_category": "通知",
+       "has_attach": 1,
+       "id": 4,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "data@corp.example",
+       "sender_name": "数据组",
+       "snippet": "月报已生成",
+       "subject": "a_b 报表",
+       "summary": "",
+       "uid": 104,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792413000.0,
+       "display_category": "通知",
+       "has_attach": 0,
+       "id": 5,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "data@corp.example",
+       "sender_name": "数据组",
+       "snippet": "旧版报表",
+       "subject": "axb 报表",
+       "summary": "",
+       "uid": 105,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792407600.0,
+       "display_category": "通知",
+       "has_attach": 0,
+       "id": 8,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "ops@corp.example",
+       "sender_name": "运维",
+       "snippet": "周六凌晨维护",
+       "subject": "系统维护通知",
+       "summary": "",
+       "uid": 108,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "一般",
+       "category": "账单",
+       "date_ts": 1792404000.0,
+       "display_category": "一般账单",
+       "has_attach": 0,
+       "id": 9,
+       "importance": 2,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "deals@shop.example",
+       "sender_name": "商店",
+       "snippet": "退款 30.00 元",
+       "subject": "退款已到账",
+       "summary": "",
+       "uid": 109,
+       "unread": 0
+      }
+     ],
+     "next_cursor": {
+      "before_id": 9,
+      "before_ts": 1792404000.0,
+      "token": "MTc5MjQwNDAwMC4wfDk"
+     },
+     "page": 1,
+     "total": 25
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "messages_page1"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/messages",
+    "query": {
+     "cursor": "MTc5MjQwNDAwMC4wfDk",
+     "page_size": "10"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "items": [
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "订阅",
+       "date_ts": 1792396800.0,
+       "display_category": "订阅",
+       "has_attach": 0,
+       "id": 10,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "news@corp.example",
+       "sender_name": "编辑部",
+       "snippet": "本周精选",
+       "subject": "订阅周刊 第 41 期",
+       "summary": "",
+       "uid": 110,
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "重要",
+       "category": "账单",
+       "date_ts": 1792391400.0,
+       "display_category": "重要账单",
+       "has_attach": 0,
+       "id": 11,
+       "importance": 4,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@cloud.example",
+       "sender_name": "云盘",
+       "snippet": "自动续费 99 元",
+       "subject": "云盘续费账单",
+       "summary": "",
+       "uid": 201,
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792382400.0,
+       "display_category": "通知",
+       "has_attach": 0,
+       "id": 12,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "orders@shop.example",
+       "sender_name": "商城",
+       "snippet": "您的订单已发货",
+       "subject": "订单发货通知",
+       "summary": "",
+       "uid": 202,
+       "unread": 0
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792378800.0,
+       "display_category": "通知",
+       "has_attach": 0,
+       "id": 13,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "me@corp.example",
+       "sender_name": "同事",
+       "snippet": "周三上午十点",
+       "subject": "会议邀请",
+       "summary": "",
+       "uid": 203,
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "验证码",
+       "date_ts": 1792373400.0,
+       "display_category": "验证码",
+       "has_attach": 0,
+       "id": 14,
+       "importance": 3,
+       "otp_code": "734156",
+       "risk_level": "none",
+       "sender_addr": "security@bank.example",
+       "sender_name": "安全中心",
+       "snippet": "验证码 734156",
+       "subject": "密码修改验证码",
+       "summary": "",
+       "uid": 204,
+       "unread": 0
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "可疑",
+       "date_ts": 1792368000.0,
+       "display_category": "可疑",
+       "has_attach": 0,
+       "id": 15,
+       "importance": 1,
+       "otp_code": "",
+       "risk_level": "high",
+       "sender_addr": "promo@spam.example",
+       "sender_name": "广告",
+       "snippet": "点击领取",
+       "subject": "低价促销",
+       "summary": "",
+       "uid": 205,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "账单",
+       "date_ts": 1792317600.0,
+       "display_category": "重要账单",
+       "has_attach": 0,
+       "id": 17,
+       "importance": 3,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@video.example",
+       "sender_name": "视频",
+       "snippet": "年费 198 元",
+       "subject": "会员年费账单",
+       "summary": "",
+       "uid": 111,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792297800.0,
+       "display_category": "通知",
+       "has_attach": 0,
+       "id": 18,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "data@corp.example",
+       "sender_name": "数据组",
+       "snippet": "本周进展",
+       "subject": "周报 第 30 周",
+       "summary": "",
+       "uid": 112,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "安全",
+       "date_ts": 1792281600.0,
+       "display_category": "安全",
+       "has_attach": 0,
+       "id": 19,
+       "importance": 5,
+       "otp_code": "",
+       "risk_level": "medium",
+       "sender_addr": "alert@bank.example",
+       "sender_name": "安全中心",
+       "snippet": "新设备登录",
+       "subject": "新设备登录安全提醒",
+       "summary": "",
+       "uid": 113,
+       "unread": 0
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "一般",
+       "category": "账单",
+       "date_ts": 1792263600.0,
+       "display_category": "一般账单",
+       "has_attach": 0,
+       "id": 20,
+       "importance": 2,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "orders@shop.example",
+       "sender_name": "商店",
+       "snippet": "退款已处理",
+       "subject": "退款通知",
+       "summary": "",
+       "uid": 207,
+       "unread": 1
+      }
+     ],
+     "next_cursor": {
+      "before_id": 20,
+      "before_ts": 1792263600.0,
+      "token": "MTc5MjI2MzYwMC4wfDIw"
+     },
+     "page": 1,
+     "total": null
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "messages_page2_cursor"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/messages",
+    "query": {
+     "before_id": "9",
+     "before_ts": "1792404000.0",
+     "page_size": "10"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "items": [
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "订阅",
+       "date_ts": 1792396800.0,
+       "display_category": "订阅",
+       "has_attach": 0,
+       "id": 10,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "news@corp.example",
+       "sender_name": "编辑部",
+       "snippet": "本周精选",
+       "subject": "订阅周刊 第 41 期",
+       "summary": "",
+       "uid": 110,
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "重要",
+       "category": "账单",
+       "date_ts": 1792391400.0,
+       "display_category": "重要账单",
+       "has_attach": 0,
+       "id": 11,
+       "importance": 4,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@cloud.example",
+       "sender_name": "云盘",
+       "snippet": "自动续费 99 元",
+       "subject": "云盘续费账单",
+       "summary": "",
+       "uid": 201,
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792382400.0,
+       "display_category": "通知",
+       "has_attach": 0,
+       "id": 12,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "orders@shop.example",
+       "sender_name": "商城",
+       "snippet": "您的订单已发货",
+       "subject": "订单发货通知",
+       "summary": "",
+       "uid": 202,
+       "unread": 0
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792378800.0,
+       "display_category": "通知",
+       "has_attach": 0,
+       "id": 13,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "me@corp.example",
+       "sender_name": "同事",
+       "snippet": "周三上午十点",
+       "subject": "会议邀请",
+       "summary": "",
+       "uid": 203,
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "验证码",
+       "date_ts": 1792373400.0,
+       "display_category": "验证码",
+       "has_attach": 0,
+       "id": 14,
+       "importance": 3,
+       "otp_code": "734156",
+       "risk_level": "none",
+       "sender_addr": "security@bank.example",
+       "sender_name": "安全中心",
+       "snippet": "验证码 734156",
+       "subject": "密码修改验证码",
+       "summary": "",
+       "uid": 204,
+       "unread": 0
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "可疑",
+       "date_ts": 1792368000.0,
+       "display_category": "可疑",
+       "has_attach": 0,
+       "id": 15,
+       "importance": 1,
+       "otp_code": "",
+       "risk_level": "high",
+       "sender_addr": "promo@spam.example",
+       "sender_name": "广告",
+       "snippet": "点击领取",
+       "subject": "低价促销",
+       "summary": "",
+       "uid": 205,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "账单",
+       "date_ts": 1792317600.0,
+       "display_category": "重要账单",
+       "has_attach": 0,
+       "id": 17,
+       "importance": 3,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@video.example",
+       "sender_name": "视频",
+       "snippet": "年费 198 元",
+       "subject": "会员年费账单",
+       "summary": "",
+       "uid": 111,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792297800.0,
+       "display_category": "通知",
+       "has_attach": 0,
+       "id": 18,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "data@corp.example",
+       "sender_name": "数据组",
+       "snippet": "本周进展",
+       "subject": "周报 第 30 周",
+       "summary": "",
+       "uid": 112,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "安全",
+       "date_ts": 1792281600.0,
+       "display_category": "安全",
+       "has_attach": 0,
+       "id": 19,
+       "importance": 5,
+       "otp_code": "",
+       "risk_level": "medium",
+       "sender_addr": "alert@bank.example",
+       "sender_name": "安全中心",
+       "snippet": "新设备登录",
+       "subject": "新设备登录安全提醒",
+       "summary": "",
+       "uid": 113,
+       "unread": 0
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "一般",
+       "category": "账单",
+       "date_ts": 1792263600.0,
+       "display_category": "一般账单",
+       "has_attach": 0,
+       "id": 20,
+       "importance": 2,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "orders@shop.example",
+       "sender_name": "商店",
+       "snippet": "退款已处理",
+       "subject": "退款通知",
+       "summary": "",
+       "uid": 207,
+       "unread": 1
+      }
+     ],
+     "next_cursor": {
+      "before_id": 20,
+      "before_ts": 1792263600.0,
+      "token": "MTc5MjI2MzYwMC4wfDIw"
+     },
+     "page": 1,
+     "total": null
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "messages_legacy_before"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/messages",
+    "query": {
+     "page": "3",
+     "page_size": "10"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "items": [
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "订阅",
+       "date_ts": 1792245600.0,
+       "display_category": "订阅",
+       "has_attach": 0,
+       "id": 21,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "promo@shop.example",
+       "sender_name": "商城",
+       "snippet": "活动即将结束",
+       "subject": "促销活动 最后一天",
+       "summary": "",
+       "uid": 208,
+       "unread": 0
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "可疑",
+       "date_ts": 1792227600.0,
+       "display_category": "可疑",
+       "has_attach": 0,
+       "id": 22,
+       "importance": 1,
+       "otp_code": "",
+       "risk_level": "low",
+       "sender_addr": "nobody@spam.example",
+       "sender_name": "陌生",
+       "snippet": "低价转让",
+       "subject": "低价转让",
+       "summary": "",
+       "uid": 209,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "验证码",
+       "date_ts": 1792209600.0,
+       "display_category": "验证码",
+       "has_attach": 0,
+       "id": 23,
+       "importance": 3,
+       "otp_code": "111222",
+       "risk_level": "none",
+       "sender_addr": "security@bank.example",
+       "sender_name": "安全中心",
+       "snippet": "旧验证码 111222",
+       "subject": "旧验证码",
+       "summary": "",
+       "uid": 114,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "重要",
+       "category": "账单",
+       "date_ts": 1792173600.0,
+       "display_category": "重要账单",
+       "has_attach": 0,
+       "id": 24,
+       "importance": 4,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@utility.example",
+       "sender_name": "缴费",
+       "snippet": "本月水电 66 元",
+       "subject": "水电费账单",
+       "summary": "",
+       "uid": 115,
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "其他",
+       "date_ts": 1790625600.0,
+       "display_category": "其他",
+       "has_attach": 0,
+       "id": 25,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "friend@example",
+       "sender_name": "老朋友",
+       "snippet": "在 14 天窗口之外",
+       "subject": "很久以前的邮件",
+       "summary": "",
+       "uid": 210,
+       "unread": 0
+      }
+     ],
+     "next_cursor": null,
+     "page": 3,
+     "total": 25
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "messages_page3"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/messages",
+    "query": {
+     "page_size": "1"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "items": [
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "验证码",
+       "date_ts": 1792461600.0,
+       "display_category": "验证码",
+       "has_attach": 0,
+       "id": 3,
+       "importance": 3,
+       "otp_code": "482913",
+       "risk_level": "none",
+       "sender_addr": "security@bank.example",
+       "sender_name": "安全中心",
+       "snippet": "验证码 482913",
+       "subject": "登录验证码",
+       "summary": "",
+       "uid": 103,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "订阅",
+       "date_ts": 1792458000.0,
+       "display_category": "订阅",
+       "has_attach": 0,
+       "id": 2,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "deals@shop.example",
+       "sender_name": "好物商店",
+       "snippet": "全场五折",
+       "subject": "限时折扣 50% off",
+       "summary": "",
+       "uid": 102,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "重要",
+       "category": "账单",
+       "date_ts": 1792456200.0,
+       "display_category": "重要账单",
+       "has_attach": 0,
+       "id": 1,
+       "importance": 4,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@shop.example",
+       "sender_name": "财务部",
+       "snippet": "本期应缴 128.00 元",
+       "subject": "季度账单通知 2026 十月",
+       "summary": "本期账单已生成，请在 30 天内缴纳",
+       "uid": 101,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "可疑",
+       "date_ts": 1792422000.0,
+       "display_category": "可疑",
+       "has_attach": 0,
+       "id": 7,
+       "importance": 5,
+       "otp_code": "",
+       "risk_level": "medium",
+       "sender_addr": "alert@bank.example",
+       "sender_name": "安全中心",
+       "snippet": "检测到异常登录",
+       "subject": "可疑登录提醒",
+       "summary": "",
+       "uid": 107,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "一般",
+       "category": "账单",
+       "date_ts": 1792418400.0,
+       "display_category": "一般账单",
+       "has_attach": 0,
+       "id": 6,
+       "importance": 1,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@shop.example",
+       "sender_name": "财务部",
+       "snippet": "电子发票已开具",
+       "subject": "发票 5\" 屏 已开",
+       "summary": "",
+       "uid": 106,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "重要",
+       "date_ts": 1792416600.0,
+       "display_category": "重要",
+       "has_attach": 1,
+       "id": 26,
+       "importance": 5,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "legal@corp.example",
+       "sender_name": "法务",
+       "snippet": "请尽快签署",
+       "subject": "合同签署提醒",
+       "summary": "合同已上传，请在 3 天内签署",
+       "uid": 116,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792414800.0,
+       "display_category": "通知",
+       "has_attach": 1,
+       "id": 4,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "data@corp.example",
+       "sender_name": "数据组",
+       "snippet": "月报已生成",
+       "subject": "a_b 报表",
+       "summary": "",
+       "uid": 104,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792413000.0,
+       "display_category": "通知",
+       "has_attach": 0,
+       "id": 5,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "data@corp.example",
+       "sender_name": "数据组",
+       "snippet": "旧版报表",
+       "subject": "axb 报表",
+       "summary": "",
+       "uid": 105,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792407600.0,
+       "display_category": "通知",
+       "has_attach": 0,
+       "id": 8,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "ops@corp.example",
+       "sender_name": "运维",
+       "snippet": "周六凌晨维护",
+       "subject": "系统维护通知",
+       "summary": "",
+       "uid": 108,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "一般",
+       "category": "账单",
+       "date_ts": 1792404000.0,
+       "display_category": "一般账单",
+       "has_attach": 0,
+       "id": 9,
+       "importance": 2,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "deals@shop.example",
+       "sender_name": "商店",
+       "snippet": "退款 30.00 元",
+       "subject": "退款已到账",
+       "summary": "",
+       "uid": 109,
+       "unread": 0
+      }
+     ],
+     "next_cursor": {
+      "before_id": 9,
+      "before_ts": 1792404000.0,
+      "token": "MTc5MjQwNDAwMC4wfDk"
+     },
+     "page": 1,
+     "total": 25
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "messages_page_size_low"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/messages",
+    "query": {
+     "page_size": "500"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "items": [
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "验证码",
+       "date_ts": 1792461600.0,
+       "display_category": "验证码",
+       "has_attach": 0,
+       "id": 3,
+       "importance": 3,
+       "otp_code": "482913",
+       "risk_level": "none",
+       "sender_addr": "security@bank.example",
+       "sender_name": "安全中心",
+       "snippet": "验证码 482913",
+       "subject": "登录验证码",
+       "summary": "",
+       "uid": 103,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "订阅",
+       "date_ts": 1792458000.0,
+       "display_category": "订阅",
+       "has_attach": 0,
+       "id": 2,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "deals@shop.example",
+       "sender_name": "好物商店",
+       "snippet": "全场五折",
+       "subject": "限时折扣 50% off",
+       "summary": "",
+       "uid": 102,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "重要",
+       "category": "账单",
+       "date_ts": 1792456200.0,
+       "display_category": "重要账单",
+       "has_attach": 0,
+       "id": 1,
+       "importance": 4,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@shop.example",
+       "sender_name": "财务部",
+       "snippet": "本期应缴 128.00 元",
+       "subject": "季度账单通知 2026 十月",
+       "summary": "本期账单已生成，请在 30 天内缴纳",
+       "uid": 101,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "可疑",
+       "date_ts": 1792422000.0,
+       "display_category": "可疑",
+       "has_attach": 0,
+       "id": 7,
+       "importance": 5,
+       "otp_code": "",
+       "risk_level": "medium",
+       "sender_addr": "alert@bank.example",
+       "sender_name": "安全中心",
+       "snippet": "检测到异常登录",
+       "subject": "可疑登录提醒",
+       "summary": "",
+       "uid": 107,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "一般",
+       "category": "账单",
+       "date_ts": 1792418400.0,
+       "display_category": "一般账单",
+       "has_attach": 0,
+       "id": 6,
+       "importance": 1,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@shop.example",
+       "sender_name": "财务部",
+       "snippet": "电子发票已开具",
+       "subject": "发票 5\" 屏 已开",
+       "summary": "",
+       "uid": 106,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "重要",
+       "date_ts": 1792416600.0,
+       "display_category": "重要",
+       "has_attach": 1,
+       "id": 26,
+       "importance": 5,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "legal@corp.example",
+       "sender_name": "法务",
+       "snippet": "请尽快签署",
+       "subject": "合同签署提醒",
+       "summary": "合同已上传，请在 3 天内签署",
+       "uid": 116,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792414800.0,
+       "display_category": "通知",
+       "has_attach": 1,
+       "id": 4,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "data@corp.example",
+       "sender_name": "数据组",
+       "snippet": "月报已生成",
+       "subject": "a_b 报表",
+       "summary": "",
+       "uid": 104,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792413000.0,
+       "display_category": "通知",
+       "has_attach": 0,
+       "id": 5,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "data@corp.example",
+       "sender_name": "数据组",
+       "snippet": "旧版报表",
+       "subject": "axb 报表",
+       "summary": "",
+       "uid": 105,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792407600.0,
+       "display_category": "通知",
+       "has_attach": 0,
+       "id": 8,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "ops@corp.example",
+       "sender_name": "运维",
+       "snippet": "周六凌晨维护",
+       "subject": "系统维护通知",
+       "summary": "",
+       "uid": 108,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "一般",
+       "category": "账单",
+       "date_ts": 1792404000.0,
+       "display_category": "一般账单",
+       "has_attach": 0,
+       "id": 9,
+       "importance": 2,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "deals@shop.example",
+       "sender_name": "商店",
+       "snippet": "退款 30.00 元",
+       "subject": "退款已到账",
+       "summary": "",
+       "uid": 109,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "订阅",
+       "date_ts": 1792396800.0,
+       "display_category": "订阅",
+       "has_attach": 0,
+       "id": 10,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "news@corp.example",
+       "sender_name": "编辑部",
+       "snippet": "本周精选",
+       "subject": "订阅周刊 第 41 期",
+       "summary": "",
+       "uid": 110,
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "重要",
+       "category": "账单",
+       "date_ts": 1792391400.0,
+       "display_category": "重要账单",
+       "has_attach": 0,
+       "id": 11,
+       "importance": 4,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@cloud.example",
+       "sender_name": "云盘",
+       "snippet": "自动续费 99 元",
+       "subject": "云盘续费账单",
+       "summary": "",
+       "uid": 201,
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792382400.0,
+       "display_category": "通知",
+       "has_attach": 0,
+       "id": 12,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "orders@shop.example",
+       "sender_name": "商城",
+       "snippet": "您的订单已发货",
+       "subject": "订单发货通知",
+       "summary": "",
+       "uid": 202,
+       "unread": 0
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792378800.0,
+       "display_category": "通知",
+       "has_attach": 0,
+       "id": 13,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "me@corp.example",
+       "sender_name": "同事",
+       "snippet": "周三上午十点",
+       "subject": "会议邀请",
+       "summary": "",
+       "uid": 203,
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "验证码",
+       "date_ts": 1792373400.0,
+       "display_category": "验证码",
+       "has_attach": 0,
+       "id": 14,
+       "importance": 3,
+       "otp_code": "734156",
+       "risk_level": "none",
+       "sender_addr": "security@bank.example",
+       "sender_name": "安全中心",
+       "snippet": "验证码 734156",
+       "subject": "密码修改验证码",
+       "summary": "",
+       "uid": 204,
+       "unread": 0
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "可疑",
+       "date_ts": 1792368000.0,
+       "display_category": "可疑",
+       "has_attach": 0,
+       "id": 15,
+       "importance": 1,
+       "otp_code": "",
+       "risk_level": "high",
+       "sender_addr": "promo@spam.example",
+       "sender_name": "广告",
+       "snippet": "点击领取",
+       "subject": "低价促销",
+       "summary": "",
+       "uid": 205,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "账单",
+       "date_ts": 1792317600.0,
+       "display_category": "重要账单",
+       "has_attach": 0,
+       "id": 17,
+       "importance": 3,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@video.example",
+       "sender_name": "视频",
+       "snippet": "年费 198 元",
+       "subject": "会员年费账单",
+       "summary": "",
+       "uid": 111,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792297800.0,
+       "display_category": "通知",
+       "has_attach": 0,
+       "id": 18,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "data@corp.example",
+       "sender_name": "数据组",
+       "snippet": "本周进展",
+       "subject": "周报 第 30 周",
+       "summary": "",
+       "uid": 112,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "安全",
+       "date_ts": 1792281600.0,
+       "display_category": "安全",
+       "has_attach": 0,
+       "id": 19,
+       "importance": 5,
+       "otp_code": "",
+       "risk_level": "medium",
+       "sender_addr": "alert@bank.example",
+       "sender_name": "安全中心",
+       "snippet": "新设备登录",
+       "subject": "新设备登录安全提醒",
+       "summary": "",
+       "uid": 113,
+       "unread": 0
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "一般",
+       "category": "账单",
+       "date_ts": 1792263600.0,
+       "display_category": "一般账单",
+       "has_attach": 0,
+       "id": 20,
+       "importance": 2,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "orders@shop.example",
+       "sender_name": "商店",
+       "snippet": "退款已处理",
+       "subject": "退款通知",
+       "summary": "",
+       "uid": 207,
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "订阅",
+       "date_ts": 1792245600.0,
+       "display_category": "订阅",
+       "has_attach": 0,
+       "id": 21,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "promo@shop.example",
+       "sender_name": "商城",
+       "snippet": "活动即将结束",
+       "subject": "促销活动 最后一天",
+       "summary": "",
+       "uid": 208,
+       "unread": 0
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "可疑",
+       "date_ts": 1792227600.0,
+       "display_category": "可疑",
+       "has_attach": 0,
+       "id": 22,
+       "importance": 1,
+       "otp_code": "",
+       "risk_level": "low",
+       "sender_addr": "nobody@spam.example",
+       "sender_name": "陌生",
+       "snippet": "低价转让",
+       "subject": "低价转让",
+       "summary": "",
+       "uid": 209,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "验证码",
+       "date_ts": 1792209600.0,
+       "display_category": "验证码",
+       "has_attach": 0,
+       "id": 23,
+       "importance": 3,
+       "otp_code": "111222",
+       "risk_level": "none",
+       "sender_addr": "security@bank.example",
+       "sender_name": "安全中心",
+       "snippet": "旧验证码 111222",
+       "subject": "旧验证码",
+       "summary": "",
+       "uid": 114,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "重要",
+       "category": "账单",
+       "date_ts": 1792173600.0,
+       "display_category": "重要账单",
+       "has_attach": 0,
+       "id": 24,
+       "importance": 4,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@utility.example",
+       "sender_name": "缴费",
+       "snippet": "本月水电 66 元",
+       "subject": "水电费账单",
+       "summary": "",
+       "uid": 115,
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "其他",
+       "date_ts": 1790625600.0,
+       "display_category": "其他",
+       "has_attach": 0,
+       "id": 25,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "friend@example",
+       "sender_name": "老朋友",
+       "snippet": "在 14 天窗口之外",
+       "subject": "很久以前的邮件",
+       "summary": "",
+       "uid": 210,
+       "unread": 0
+      }
+     ],
+     "next_cursor": null,
+     "page": 1,
+     "total": 25
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "messages_page_size_high"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/messages",
+    "query": {
+     "category": "验证码"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "items": [
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "验证码",
+       "date_ts": 1792461600.0,
+       "display_category": "验证码",
+       "has_attach": 0,
+       "id": 3,
+       "importance": 3,
+       "otp_code": "482913",
+       "risk_level": "none",
+       "sender_addr": "security@bank.example",
+       "sender_name": "安全中心",
+       "snippet": "验证码 482913",
+       "subject": "登录验证码",
+       "summary": "",
+       "uid": 103,
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "验证码",
+       "date_ts": 1792373400.0,
+       "display_category": "验证码",
+       "has_attach": 0,
+       "id": 14,
+       "importance": 3,
+       "otp_code": "734156",
+       "risk_level": "none",
+       "sender_addr": "security@bank.example",
+       "sender_name": "安全中心",
+       "snippet": "验证码 734156",
+       "subject": "密码修改验证码",
+       "summary": "",
+       "uid": 204,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "验证码",
+       "date_ts": 1792209600.0,
+       "display_category": "验证码",
+       "has_attach": 0,
+       "id": 23,
+       "importance": 3,
+       "otp_code": "111222",
+       "risk_level": "none",
+       "sender_addr": "security@bank.example",
+       "sender_name": "安全中心",
+       "snippet": "旧验证码 111222",
+       "subject": "旧验证码",
+       "summary": "",
+       "uid": 114,
+       "unread": 0
+      }
+     ],
+     "next_cursor": null,
+     "page": 1,
+     "total": 3
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "messages_category_otp"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/messages",
+    "query": {
+     "account": "2"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "items": [
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "重要",
+       "category": "账单",
+       "date_ts": 1792391400.0,
+       "display_category": "重要账单",
+       "has_attach": 0,
+       "id": 11,
+       "importance": 4,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@cloud.example",
+       "sender_name": "云盘",
+       "snippet": "自动续费 99 元",
+       "subject": "云盘续费账单",
+       "summary": "",
+       "uid": 201,
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792382400.0,
+       "display_category": "通知",
+       "has_attach": 0,
+       "id": 12,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "orders@shop.example",
+       "sender_name": "商城",
+       "snippet": "您的订单已发货",
+       "subject": "订单发货通知",
+       "summary": "",
+       "uid": 202,
+       "unread": 0
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792378800.0,
+       "display_category": "通知",
+       "has_attach": 0,
+       "id": 13,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "me@corp.example",
+       "sender_name": "同事",
+       "snippet": "周三上午十点",
+       "subject": "会议邀请",
+       "summary": "",
+       "uid": 203,
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "验证码",
+       "date_ts": 1792373400.0,
+       "display_category": "验证码",
+       "has_attach": 0,
+       "id": 14,
+       "importance": 3,
+       "otp_code": "734156",
+       "risk_level": "none",
+       "sender_addr": "security@bank.example",
+       "sender_name": "安全中心",
+       "snippet": "验证码 734156",
+       "subject": "密码修改验证码",
+       "summary": "",
+       "uid": 204,
+       "unread": 0
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "可疑",
+       "date_ts": 1792368000.0,
+       "display_category": "可疑",
+       "has_attach": 0,
+       "id": 15,
+       "importance": 1,
+       "otp_code": "",
+       "risk_level": "high",
+       "sender_addr": "promo@spam.example",
+       "sender_name": "广告",
+       "snippet": "点击领取",
+       "subject": "低价促销",
+       "summary": "",
+       "uid": 205,
+       "unread": 0
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "一般",
+       "category": "账单",
+       "date_ts": 1792263600.0,
+       "display_category": "一般账单",
+       "has_attach": 0,
+       "id": 20,
+       "importance": 2,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "orders@shop.example",
+       "sender_name": "商店",
+       "snippet": "退款已处理",
+       "subject": "退款通知",
+       "summary": "",
+       "uid": 207,
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "订阅",
+       "date_ts": 1792245600.0,
+       "display_category": "订阅",
+       "has_attach": 0,
+       "id": 21,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "promo@shop.example",
+       "sender_name": "商城",
+       "snippet": "活动即将结束",
+       "subject": "促销活动 最后一天",
+       "summary": "",
+       "uid": 208,
+       "unread": 0
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "可疑",
+       "date_ts": 1792227600.0,
+       "display_category": "可疑",
+       "has_attach": 0,
+       "id": 22,
+       "importance": 1,
+       "otp_code": "",
+       "risk_level": "low",
+       "sender_addr": "nobody@spam.example",
+       "sender_name": "陌生",
+       "snippet": "低价转让",
+       "subject": "低价转让",
+       "summary": "",
+       "uid": 209,
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "其他",
+       "date_ts": 1790625600.0,
+       "display_category": "其他",
+       "has_attach": 0,
+       "id": 25,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "friend@example",
+       "sender_name": "老朋友",
+       "snippet": "在 14 天窗口之外",
+       "subject": "很久以前的邮件",
+       "summary": "",
+       "uid": 210,
+       "unread": 0
+      }
+     ],
+     "next_cursor": null,
+     "page": 1,
+     "total": 9
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "messages_account2"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/messages",
+    "query": {
+     "unread": "1"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "items": [
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "验证码",
+       "date_ts": 1792461600.0,
+       "display_category": "验证码",
+       "has_attach": 0,
+       "id": 3,
+       "importance": 3,
+       "otp_code": "482913",
+       "risk_level": "none",
+       "sender_addr": "security@bank.example",
+       "sender_name": "安全中心",
+       "snippet": "验证码 482913",
+       "subject": "登录验证码",
+       "summary": "",
+       "uid": 103,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "订阅",
+       "date_ts": 1792458000.0,
+       "display_category": "订阅",
+       "has_attach": 0,
+       "id": 2,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "deals@shop.example",
+       "sender_name": "好物商店",
+       "snippet": "全场五折",
+       "subject": "限时折扣 50% off",
+       "summary": "",
+       "uid": 102,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "重要",
+       "category": "账单",
+       "date_ts": 1792456200.0,
+       "display_category": "重要账单",
+       "has_attach": 0,
+       "id": 1,
+       "importance": 4,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@shop.example",
+       "sender_name": "财务部",
+       "snippet": "本期应缴 128.00 元",
+       "subject": "季度账单通知 2026 十月",
+       "summary": "本期账单已生成，请在 30 天内缴纳",
+       "uid": 101,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "可疑",
+       "date_ts": 1792422000.0,
+       "display_category": "可疑",
+       "has_attach": 0,
+       "id": 7,
+       "importance": 5,
+       "otp_code": "",
+       "risk_level": "medium",
+       "sender_addr": "alert@bank.example",
+       "sender_name": "安全中心",
+       "snippet": "检测到异常登录",
+       "subject": "可疑登录提醒",
+       "summary": "",
+       "uid": 107,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "重要",
+       "date_ts": 1792416600.0,
+       "display_category": "重要",
+       "has_attach": 1,
+       "id": 26,
+       "importance": 5,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "legal@corp.example",
+       "sender_name": "法务",
+       "snippet": "请尽快签署",
+       "subject": "合同签署提醒",
+       "summary": "合同已上传，请在 3 天内签署",
+       "uid": 116,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "订阅",
+       "date_ts": 1792396800.0,
+       "display_category": "订阅",
+       "has_attach": 0,
+       "id": 10,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "news@corp.example",
+       "sender_name": "编辑部",
+       "snippet": "本周精选",
+       "subject": "订阅周刊 第 41 期",
+       "summary": "",
+       "uid": 110,
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "重要",
+       "category": "账单",
+       "date_ts": 1792391400.0,
+       "display_category": "重要账单",
+       "has_attach": 0,
+       "id": 11,
+       "importance": 4,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@cloud.example",
+       "sender_name": "云盘",
+       "snippet": "自动续费 99 元",
+       "subject": "云盘续费账单",
+       "summary": "",
+       "uid": 201,
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792378800.0,
+       "display_category": "通知",
+       "has_attach": 0,
+       "id": 13,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "me@corp.example",
+       "sender_name": "同事",
+       "snippet": "周三上午十点",
+       "subject": "会议邀请",
+       "summary": "",
+       "uid": 203,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792297800.0,
+       "display_category": "通知",
+       "has_attach": 0,
+       "id": 18,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "data@corp.example",
+       "sender_name": "数据组",
+       "snippet": "本周进展",
+       "subject": "周报 第 30 周",
+       "summary": "",
+       "uid": 112,
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "一般",
+       "category": "账单",
+       "date_ts": 1792263600.0,
+       "display_category": "一般账单",
+       "has_attach": 0,
+       "id": 20,
+       "importance": 2,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "orders@shop.example",
+       "sender_name": "商店",
+       "snippet": "退款已处理",
+       "subject": "退款通知",
+       "summary": "",
+       "uid": 207,
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "可疑",
+       "date_ts": 1792227600.0,
+       "display_category": "可疑",
+       "has_attach": 0,
+       "id": 22,
+       "importance": 1,
+       "otp_code": "",
+       "risk_level": "low",
+       "sender_addr": "nobody@spam.example",
+       "sender_name": "陌生",
+       "snippet": "低价转让",
+       "subject": "低价转让",
+       "summary": "",
+       "uid": 209,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "重要",
+       "category": "账单",
+       "date_ts": 1792173600.0,
+       "display_category": "重要账单",
+       "has_attach": 0,
+       "id": 24,
+       "importance": 4,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@utility.example",
+       "sender_name": "缴费",
+       "snippet": "本月水电 66 元",
+       "subject": "水电费账单",
+       "summary": "",
+       "uid": 115,
+       "unread": 1
+      }
+     ],
+     "next_cursor": null,
+     "page": 1,
+     "total": 12
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "messages_unread1"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/messages",
+    "query": {
+     "unread": "0"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "items": [
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "一般",
+       "category": "账单",
+       "date_ts": 1792418400.0,
+       "display_category": "一般账单",
+       "has_attach": 0,
+       "id": 6,
+       "importance": 1,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@shop.example",
+       "sender_name": "财务部",
+       "snippet": "电子发票已开具",
+       "subject": "发票 5\" 屏 已开",
+       "summary": "",
+       "uid": 106,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792414800.0,
+       "display_category": "通知",
+       "has_attach": 1,
+       "id": 4,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "data@corp.example",
+       "sender_name": "数据组",
+       "snippet": "月报已生成",
+       "subject": "a_b 报表",
+       "summary": "",
+       "uid": 104,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792413000.0,
+       "display_category": "通知",
+       "has_attach": 0,
+       "id": 5,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "data@corp.example",
+       "sender_name": "数据组",
+       "snippet": "旧版报表",
+       "subject": "axb 报表",
+       "summary": "",
+       "uid": 105,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792407600.0,
+       "display_category": "通知",
+       "has_attach": 0,
+       "id": 8,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "ops@corp.example",
+       "sender_name": "运维",
+       "snippet": "周六凌晨维护",
+       "subject": "系统维护通知",
+       "summary": "",
+       "uid": 108,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "一般",
+       "category": "账单",
+       "date_ts": 1792404000.0,
+       "display_category": "一般账单",
+       "has_attach": 0,
+       "id": 9,
+       "importance": 2,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "deals@shop.example",
+       "sender_name": "商店",
+       "snippet": "退款 30.00 元",
+       "subject": "退款已到账",
+       "summary": "",
+       "uid": 109,
+       "unread": 0
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792382400.0,
+       "display_category": "通知",
+       "has_attach": 0,
+       "id": 12,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "orders@shop.example",
+       "sender_name": "商城",
+       "snippet": "您的订单已发货",
+       "subject": "订单发货通知",
+       "summary": "",
+       "uid": 202,
+       "unread": 0
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "验证码",
+       "date_ts": 1792373400.0,
+       "display_category": "验证码",
+       "has_attach": 0,
+       "id": 14,
+       "importance": 3,
+       "otp_code": "734156",
+       "risk_level": "none",
+       "sender_addr": "security@bank.example",
+       "sender_name": "安全中心",
+       "snippet": "验证码 734156",
+       "subject": "密码修改验证码",
+       "summary": "",
+       "uid": 204,
+       "unread": 0
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "可疑",
+       "date_ts": 1792368000.0,
+       "display_category": "可疑",
+       "has_attach": 0,
+       "id": 15,
+       "importance": 1,
+       "otp_code": "",
+       "risk_level": "high",
+       "sender_addr": "promo@spam.example",
+       "sender_name": "广告",
+       "snippet": "点击领取",
+       "subject": "低价促销",
+       "summary": "",
+       "uid": 205,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "账单",
+       "date_ts": 1792317600.0,
+       "display_category": "重要账单",
+       "has_attach": 0,
+       "id": 17,
+       "importance": 3,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@video.example",
+       "sender_name": "视频",
+       "snippet": "年费 198 元",
+       "subject": "会员年费账单",
+       "summary": "",
+       "uid": 111,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "安全",
+       "date_ts": 1792281600.0,
+       "display_category": "安全",
+       "has_attach": 0,
+       "id": 19,
+       "importance": 5,
+       "otp_code": "",
+       "risk_level": "medium",
+       "sender_addr": "alert@bank.example",
+       "sender_name": "安全中心",
+       "snippet": "新设备登录",
+       "subject": "新设备登录安全提醒",
+       "summary": "",
+       "uid": 113,
+       "unread": 0
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "订阅",
+       "date_ts": 1792245600.0,
+       "display_category": "订阅",
+       "has_attach": 0,
+       "id": 21,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "promo@shop.example",
+       "sender_name": "商城",
+       "snippet": "活动即将结束",
+       "subject": "促销活动 最后一天",
+       "summary": "",
+       "uid": 208,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "验证码",
+       "date_ts": 1792209600.0,
+       "display_category": "验证码",
+       "has_attach": 0,
+       "id": 23,
+       "importance": 3,
+       "otp_code": "111222",
+       "risk_level": "none",
+       "sender_addr": "security@bank.example",
+       "sender_name": "安全中心",
+       "snippet": "旧验证码 111222",
+       "subject": "旧验证码",
+       "summary": "",
+       "uid": 114,
+       "unread": 0
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "其他",
+       "date_ts": 1790625600.0,
+       "display_category": "其他",
+       "has_attach": 0,
+       "id": 25,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "friend@example",
+       "sender_name": "老朋友",
+       "snippet": "在 14 天窗口之外",
+       "subject": "很久以前的邮件",
+       "summary": "",
+       "uid": 210,
+       "unread": 0
+      }
+     ],
+     "next_cursor": null,
+     "page": 1,
+     "total": 13
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "messages_unread0"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/messages",
+    "query": {
+     "bill_tier": "重要"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "items": [
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "重要",
+       "category": "账单",
+       "date_ts": 1792456200.0,
+       "display_category": "重要账单",
+       "has_attach": 0,
+       "id": 1,
+       "importance": 4,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@shop.example",
+       "sender_name": "财务部",
+       "snippet": "本期应缴 128.00 元",
+       "subject": "季度账单通知 2026 十月",
+       "summary": "本期账单已生成，请在 30 天内缴纳",
+       "uid": 101,
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "重要",
+       "category": "账单",
+       "date_ts": 1792391400.0,
+       "display_category": "重要账单",
+       "has_attach": 0,
+       "id": 11,
+       "importance": 4,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@cloud.example",
+       "sender_name": "云盘",
+       "snippet": "自动续费 99 元",
+       "subject": "云盘续费账单",
+       "summary": "",
+       "uid": 201,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "重要",
+       "category": "账单",
+       "date_ts": 1792173600.0,
+       "display_category": "重要账单",
+       "has_attach": 0,
+       "id": 24,
+       "importance": 4,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@utility.example",
+       "sender_name": "缴费",
+       "snippet": "本月水电 66 元",
+       "subject": "水电费账单",
+       "summary": "",
+       "uid": 115,
+       "unread": 1
+      }
+     ],
+     "next_cursor": null,
+     "page": 1,
+     "total": 3
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "messages_bill_important"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/messages",
+    "query": {
+     "bill_tier": "一般"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "items": [
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "一般",
+       "category": "账单",
+       "date_ts": 1792418400.0,
+       "display_category": "一般账单",
+       "has_attach": 0,
+       "id": 6,
+       "importance": 1,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@shop.example",
+       "sender_name": "财务部",
+       "snippet": "电子发票已开具",
+       "subject": "发票 5\" 屏 已开",
+       "summary": "",
+       "uid": 106,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "一般",
+       "category": "账单",
+       "date_ts": 1792404000.0,
+       "display_category": "一般账单",
+       "has_attach": 0,
+       "id": 9,
+       "importance": 2,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "deals@shop.example",
+       "sender_name": "商店",
+       "snippet": "退款 30.00 元",
+       "subject": "退款已到账",
+       "summary": "",
+       "uid": 109,
+       "unread": 0
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "一般",
+       "category": "账单",
+       "date_ts": 1792263600.0,
+       "display_category": "一般账单",
+       "has_attach": 0,
+       "id": 20,
+       "importance": 2,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "orders@shop.example",
+       "sender_name": "商店",
+       "snippet": "退款已处理",
+       "subject": "退款通知",
+       "summary": "",
+       "uid": 207,
+       "unread": 1
+      }
+     ],
+     "next_cursor": null,
+     "page": 1,
+     "total": 3
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "messages_bill_minor"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/messages",
+    "query": {
+     "bill_tier": "紧急"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "items": [
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "验证码",
+       "date_ts": 1792461600.0,
+       "display_category": "验证码",
+       "has_attach": 0,
+       "id": 3,
+       "importance": 3,
+       "otp_code": "482913",
+       "risk_level": "none",
+       "sender_addr": "security@bank.example",
+       "sender_name": "安全中心",
+       "snippet": "验证码 482913",
+       "subject": "登录验证码",
+       "summary": "",
+       "uid": 103,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "订阅",
+       "date_ts": 1792458000.0,
+       "display_category": "订阅",
+       "has_attach": 0,
+       "id": 2,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "deals@shop.example",
+       "sender_name": "好物商店",
+       "snippet": "全场五折",
+       "subject": "限时折扣 50% off",
+       "summary": "",
+       "uid": 102,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "重要",
+       "category": "账单",
+       "date_ts": 1792456200.0,
+       "display_category": "重要账单",
+       "has_attach": 0,
+       "id": 1,
+       "importance": 4,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@shop.example",
+       "sender_name": "财务部",
+       "snippet": "本期应缴 128.00 元",
+       "subject": "季度账单通知 2026 十月",
+       "summary": "本期账单已生成，请在 30 天内缴纳",
+       "uid": 101,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "可疑",
+       "date_ts": 1792422000.0,
+       "display_category": "可疑",
+       "has_attach": 0,
+       "id": 7,
+       "importance": 5,
+       "otp_code": "",
+       "risk_level": "medium",
+       "sender_addr": "alert@bank.example",
+       "sender_name": "安全中心",
+       "snippet": "检测到异常登录",
+       "subject": "可疑登录提醒",
+       "summary": "",
+       "uid": 107,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "一般",
+       "category": "账单",
+       "date_ts": 1792418400.0,
+       "display_category": "一般账单",
+       "has_attach": 0,
+       "id": 6,
+       "importance": 1,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@shop.example",
+       "sender_name": "财务部",
+       "snippet": "电子发票已开具",
+       "subject": "发票 5\" 屏 已开",
+       "summary": "",
+       "uid": 106,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "重要",
+       "date_ts": 1792416600.0,
+       "display_category": "重要",
+       "has_attach": 1,
+       "id": 26,
+       "importance": 5,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "legal@corp.example",
+       "sender_name": "法务",
+       "snippet": "请尽快签署",
+       "subject": "合同签署提醒",
+       "summary": "合同已上传，请在 3 天内签署",
+       "uid": 116,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792414800.0,
+       "display_category": "通知",
+       "has_attach": 1,
+       "id": 4,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "data@corp.example",
+       "sender_name": "数据组",
+       "snippet": "月报已生成",
+       "subject": "a_b 报表",
+       "summary": "",
+       "uid": 104,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792413000.0,
+       "display_category": "通知",
+       "has_attach": 0,
+       "id": 5,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "data@corp.example",
+       "sender_name": "数据组",
+       "snippet": "旧版报表",
+       "subject": "axb 报表",
+       "summary": "",
+       "uid": 105,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792407600.0,
+       "display_category": "通知",
+       "has_attach": 0,
+       "id": 8,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "ops@corp.example",
+       "sender_name": "运维",
+       "snippet": "周六凌晨维护",
+       "subject": "系统维护通知",
+       "summary": "",
+       "uid": 108,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "一般",
+       "category": "账单",
+       "date_ts": 1792404000.0,
+       "display_category": "一般账单",
+       "has_attach": 0,
+       "id": 9,
+       "importance": 2,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "deals@shop.example",
+       "sender_name": "商店",
+       "snippet": "退款 30.00 元",
+       "subject": "退款已到账",
+       "summary": "",
+       "uid": 109,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "订阅",
+       "date_ts": 1792396800.0,
+       "display_category": "订阅",
+       "has_attach": 0,
+       "id": 10,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "news@corp.example",
+       "sender_name": "编辑部",
+       "snippet": "本周精选",
+       "subject": "订阅周刊 第 41 期",
+       "summary": "",
+       "uid": 110,
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "重要",
+       "category": "账单",
+       "date_ts": 1792391400.0,
+       "display_category": "重要账单",
+       "has_attach": 0,
+       "id": 11,
+       "importance": 4,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@cloud.example",
+       "sender_name": "云盘",
+       "snippet": "自动续费 99 元",
+       "subject": "云盘续费账单",
+       "summary": "",
+       "uid": 201,
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792382400.0,
+       "display_category": "通知",
+       "has_attach": 0,
+       "id": 12,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "orders@shop.example",
+       "sender_name": "商城",
+       "snippet": "您的订单已发货",
+       "subject": "订单发货通知",
+       "summary": "",
+       "uid": 202,
+       "unread": 0
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792378800.0,
+       "display_category": "通知",
+       "has_attach": 0,
+       "id": 13,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "me@corp.example",
+       "sender_name": "同事",
+       "snippet": "周三上午十点",
+       "subject": "会议邀请",
+       "summary": "",
+       "uid": 203,
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "验证码",
+       "date_ts": 1792373400.0,
+       "display_category": "验证码",
+       "has_attach": 0,
+       "id": 14,
+       "importance": 3,
+       "otp_code": "734156",
+       "risk_level": "none",
+       "sender_addr": "security@bank.example",
+       "sender_name": "安全中心",
+       "snippet": "验证码 734156",
+       "subject": "密码修改验证码",
+       "summary": "",
+       "uid": 204,
+       "unread": 0
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "可疑",
+       "date_ts": 1792368000.0,
+       "display_category": "可疑",
+       "has_attach": 0,
+       "id": 15,
+       "importance": 1,
+       "otp_code": "",
+       "risk_level": "high",
+       "sender_addr": "promo@spam.example",
+       "sender_name": "广告",
+       "snippet": "点击领取",
+       "subject": "低价促销",
+       "summary": "",
+       "uid": 205,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "账单",
+       "date_ts": 1792317600.0,
+       "display_category": "重要账单",
+       "has_attach": 0,
+       "id": 17,
+       "importance": 3,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@video.example",
+       "sender_name": "视频",
+       "snippet": "年费 198 元",
+       "subject": "会员年费账单",
+       "summary": "",
+       "uid": 111,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792297800.0,
+       "display_category": "通知",
+       "has_attach": 0,
+       "id": 18,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "data@corp.example",
+       "sender_name": "数据组",
+       "snippet": "本周进展",
+       "subject": "周报 第 30 周",
+       "summary": "",
+       "uid": 112,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "安全",
+       "date_ts": 1792281600.0,
+       "display_category": "安全",
+       "has_attach": 0,
+       "id": 19,
+       "importance": 5,
+       "otp_code": "",
+       "risk_level": "medium",
+       "sender_addr": "alert@bank.example",
+       "sender_name": "安全中心",
+       "snippet": "新设备登录",
+       "subject": "新设备登录安全提醒",
+       "summary": "",
+       "uid": 113,
+       "unread": 0
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "一般",
+       "category": "账单",
+       "date_ts": 1792263600.0,
+       "display_category": "一般账单",
+       "has_attach": 0,
+       "id": 20,
+       "importance": 2,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "orders@shop.example",
+       "sender_name": "商店",
+       "snippet": "退款已处理",
+       "subject": "退款通知",
+       "summary": "",
+       "uid": 207,
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "订阅",
+       "date_ts": 1792245600.0,
+       "display_category": "订阅",
+       "has_attach": 0,
+       "id": 21,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "promo@shop.example",
+       "sender_name": "商城",
+       "snippet": "活动即将结束",
+       "subject": "促销活动 最后一天",
+       "summary": "",
+       "uid": 208,
+       "unread": 0
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "可疑",
+       "date_ts": 1792227600.0,
+       "display_category": "可疑",
+       "has_attach": 0,
+       "id": 22,
+       "importance": 1,
+       "otp_code": "",
+       "risk_level": "low",
+       "sender_addr": "nobody@spam.example",
+       "sender_name": "陌生",
+       "snippet": "低价转让",
+       "subject": "低价转让",
+       "summary": "",
+       "uid": 209,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "验证码",
+       "date_ts": 1792209600.0,
+       "display_category": "验证码",
+       "has_attach": 0,
+       "id": 23,
+       "importance": 3,
+       "otp_code": "111222",
+       "risk_level": "none",
+       "sender_addr": "security@bank.example",
+       "sender_name": "安全中心",
+       "snippet": "旧验证码 111222",
+       "subject": "旧验证码",
+       "summary": "",
+       "uid": 114,
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "重要",
+       "category": "账单",
+       "date_ts": 1792173600.0,
+       "display_category": "重要账单",
+       "has_attach": 0,
+       "id": 24,
+       "importance": 4,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@utility.example",
+       "sender_name": "缴费",
+       "snippet": "本月水电 66 元",
+       "subject": "水电费账单",
+       "summary": "",
+       "uid": 115,
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "其他",
+       "date_ts": 1790625600.0,
+       "display_category": "其他",
+       "has_attach": 0,
+       "id": 25,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "friend@example",
+       "sender_name": "老朋友",
+       "snippet": "在 14 天窗口之外",
+       "subject": "很久以前的邮件",
+       "summary": "",
+       "uid": 210,
+       "unread": 0
+      }
+     ],
+     "next_cursor": null,
+     "page": 1,
+     "total": 25
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "messages_bill_unknown"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/messages",
+    "query": {
+     "q": "限时折扣"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "items": [
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "订阅",
+       "date_ts": 1792458000.0,
+       "display_category": "订阅",
+       "has_attach": 0,
+       "id": 2,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "deals@shop.example",
+       "sender_name": "好物商店",
+       "snippet": "全场五折",
+       "subject": "限时折扣 50% off",
+       "summary": "",
+       "uid": 102,
+       "unread": 1
+      }
+     ],
+     "next_cursor": null,
+     "page": 1,
+     "total": 1
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "messages_search_fts"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/messages",
+    "query": {
+     "q": "折扣"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "items": [
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "订阅",
+       "date_ts": 1792458000.0,
+       "display_category": "订阅",
+       "has_attach": 0,
+       "id": 2,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "deals@shop.example",
+       "sender_name": "好物商店",
+       "snippet": "全场五折",
+       "subject": "限时折扣 50% off",
+       "summary": "",
+       "uid": 102,
+       "unread": 1
+      }
+     ],
+     "next_cursor": null,
+     "page": 1,
+     "total": 1
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "messages_search_like_short"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/messages",
+    "query": {
+     "q": "50%"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "items": [
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "订阅",
+       "date_ts": 1792458000.0,
+       "display_category": "订阅",
+       "has_attach": 0,
+       "id": 2,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "deals@shop.example",
+       "sender_name": "好物商店",
+       "snippet": "全场五折",
+       "subject": "限时折扣 50% off",
+       "summary": "",
+       "uid": 102,
+       "unread": 1
+      }
+     ],
+     "next_cursor": null,
+     "page": 1,
+     "total": 1
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "messages_search_percent_fts"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/messages",
+    "query": {
+     "q": "%"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "items": [
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "订阅",
+       "date_ts": 1792458000.0,
+       "display_category": "订阅",
+       "has_attach": 0,
+       "id": 2,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "deals@shop.example",
+       "sender_name": "好物商店",
+       "snippet": "全场五折",
+       "subject": "限时折扣 50% off",
+       "summary": "",
+       "uid": 102,
+       "unread": 1
+      }
+     ],
+     "next_cursor": null,
+     "page": 1,
+     "total": 1
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "messages_search_percent_like"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/messages",
+    "query": {
+     "q": "_b"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "items": [
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792414800.0,
+       "display_category": "通知",
+       "has_attach": 1,
+       "id": 4,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "data@corp.example",
+       "sender_name": "数据组",
+       "snippet": "月报已生成",
+       "subject": "a_b 报表",
+       "summary": "",
+       "uid": 104,
+       "unread": 0
+      }
+     ],
+     "next_cursor": null,
+     "page": 1,
+     "total": 1
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "messages_search_underscore_like"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/messages",
+    "query": {
+     "q": "a_b"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "items": [
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792414800.0,
+       "display_category": "通知",
+       "has_attach": 1,
+       "id": 4,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "data@corp.example",
+       "sender_name": "数据组",
+       "snippet": "月报已生成",
+       "subject": "a_b 报表",
+       "summary": "",
+       "uid": 104,
+       "unread": 0
+      }
+     ],
+     "next_cursor": null,
+     "page": 1,
+     "total": 1
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "messages_search_underscore_fts"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/messages",
+    "query": {
+     "q": "5\" 屏"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "items": [
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "一般",
+       "category": "账单",
+       "date_ts": 1792418400.0,
+       "display_category": "一般账单",
+       "has_attach": 0,
+       "id": 6,
+       "importance": 1,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@shop.example",
+       "sender_name": "财务部",
+       "snippet": "电子发票已开具",
+       "subject": "发票 5\" 屏 已开",
+       "summary": "",
+       "uid": 106,
+       "unread": 0
+      }
+     ],
+     "next_cursor": null,
+     "page": 1,
+     "total": 1
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "messages_search_quote_fts"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/messages",
+    "query": {
+     "q": "财务"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "items": [
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "重要",
+       "category": "账单",
+       "date_ts": 1792456200.0,
+       "display_category": "重要账单",
+       "has_attach": 0,
+       "id": 1,
+       "importance": 4,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@shop.example",
+       "sender_name": "财务部",
+       "snippet": "本期应缴 128.00 元",
+       "subject": "季度账单通知 2026 十月",
+       "summary": "本期账单已生成，请在 30 天内缴纳",
+       "uid": 101,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "一般",
+       "category": "账单",
+       "date_ts": 1792418400.0,
+       "display_category": "一般账单",
+       "has_attach": 0,
+       "id": 6,
+       "importance": 1,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@shop.example",
+       "sender_name": "财务部",
+       "snippet": "电子发票已开具",
+       "subject": "发票 5\" 屏 已开",
+       "summary": "",
+       "uid": 106,
+       "unread": 0
+      }
+     ],
+     "next_cursor": null,
+     "page": 1,
+     "total": 2
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "messages_search_sender_like"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/messages",
+    "query": {
+     "q": "zzz无匹配"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "items": [],
+     "next_cursor": null,
+     "page": 1,
+     "total": 0
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "messages_search_none"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/messages",
+    "query": {
+     "cursor": "abc"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": "无效的分页游标"
+    },
+    "status": 400
+   },
+   "fn": "request",
+   "id": "messages_cursor_not_base64"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/messages",
+    "query": {
+     "cursor": "===="
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": "无效的分页游标"
+    },
+    "status": 400
+   },
+   "fn": "request",
+   "id": "messages_cursor_only_padding"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/messages",
+    "query": {
+     "cursor": "MTc5Mjk1MTQ5Ni41fDA"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": "无效的分页游标"
+    },
+    "status": 400
+   },
+   "fn": "request",
+   "id": "messages_cursor_zero_id"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/messages",
+    "query": {
+     "cursor": "fA"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": "无效的分页游标"
+    },
+    "status": 400
+   },
+   "fn": "request",
+   "id": "messages_cursor_no_fields"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/nope",
+    "query": {}
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": "Not Found"
+    },
+    "status": 404
+   },
+   "fn": "request",
+   "id": "unknown_route"
+  },
+  {
+   "args": {
+    "method": "POST",
+    "path": "/api/messages",
+    "query": {}
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": "Method Not Allowed"
+    },
+    "status": 405
+   },
+   "fn": "request",
+   "id": "method_not_allowed"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/messages/1",
+    "query": {
+     "mark_read": "false"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "account_color": "#38bdf8",
+     "account_id": 1,
+     "account_name": "工作邮箱",
+     "ai_done": 1,
+     "ai_reason": "",
+     "ai_retry_count": 0,
+     "ai_retry_ts": 0.0,
+     "alert_ts": 0.0,
+     "bill_facets": "{}",
+     "bill_tier": "重要",
+     "bill_tier_locked": 0,
+     "body_html": "",
+     "body_text": "",
+     "body_truncated": 0,
+     "category": "账单",
+     "confidence": 0.0,
+     "created_ts": 1792296000.0,
+     "date_ts": 1792456200.0,
+     "deleted_ts": 0.0,
+     "flag_push": 0,
+     "governance_action": "label_only",
+     "governance_ministry": "礼部",
+     "governance_reason": "本地规则分类",
+     "governance_source": "rule",
+     "governance_ts": 1792425600.0,
+     "governance_version": "mailhub-three-six-v2",
+     "has_attach": 0,
+     "header_signals": "{}",
+     "id": 1,
+     "importance": 4,
+     "msg_id": "",
+     "needs_review": 0,
+     "otp_code": "",
+     "risk_level": "none",
+     "risk_reasons": "",
+     "sender_addr": "billing@shop.example",
+     "sender_name": "财务部",
+     "snippet": "本期应缴 128.00 元",
+     "subject": "季度账单通知 2026 十月",
+     "summary": "本期账单已生成，请在 30 天内缴纳",
+     "template_key": "shop.example|季度账单通知",
+     "to_addr": "me@example",
+     "uid": 101,
+     "unread": 1,
+     "unsubscribe": 0
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "message_preview"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/messages/1",
+    "query": {}
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "account_color": "#38bdf8",
+     "account_id": 1,
+     "account_name": "工作邮箱",
+     "ai_done": 1,
+     "ai_reason": "",
+     "ai_retry_count": 0,
+     "ai_retry_ts": 0.0,
+     "alert_ts": 0.0,
+     "bill_facets": "{}",
+     "bill_tier": "重要",
+     "bill_tier_locked": 0,
+     "body_html": "",
+     "body_text": "",
+     "body_truncated": 0,
+     "category": "账单",
+     "confidence": 0.0,
+     "created_ts": 1792296000.0,
+     "date_ts": 1792456200.0,
+     "deleted_ts": 0.0,
+     "flag_push": 0,
+     "governance_action": "label_only",
+     "governance_ministry": "礼部",
+     "governance_reason": "本地规则分类",
+     "governance_source": "rule",
+     "governance_ts": 1792425600.0,
+     "governance_version": "mailhub-three-six-v2",
+     "has_attach": 0,
+     "header_signals": "{}",
+     "id": 1,
+     "importance": 4,
+     "msg_id": "",
+     "needs_review": 0,
+     "otp_code": "",
+     "risk_level": "none",
+     "risk_reasons": "",
+     "sender_addr": "billing@shop.example",
+     "sender_name": "财务部",
+     "snippet": "本期应缴 128.00 元",
+     "subject": "季度账单通知 2026 十月",
+     "summary": "本期账单已生成，请在 30 天内缴纳",
+     "template_key": "shop.example|季度账单通知",
+     "to_addr": "me@example",
+     "uid": 101,
+     "unread": 1,
+     "unsubscribe": 0
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "message_mark_read"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/messages/1",
+    "query": {}
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "account_color": "#38bdf8",
+     "account_id": 1,
+     "account_name": "工作邮箱",
+     "ai_done": 1,
+     "ai_reason": "",
+     "ai_retry_count": 0,
+     "ai_retry_ts": 0.0,
+     "alert_ts": 0.0,
+     "bill_facets": "{}",
+     "bill_tier": "重要",
+     "bill_tier_locked": 0,
+     "body_html": "",
+     "body_text": "",
+     "body_truncated": 0,
+     "category": "账单",
+     "confidence": 0.0,
+     "created_ts": 1792296000.0,
+     "date_ts": 1792456200.0,
+     "deleted_ts": 0.0,
+     "flag_push": 0,
+     "governance_action": "label_only",
+     "governance_ministry": "礼部",
+     "governance_reason": "本地规则分类",
+     "governance_source": "rule",
+     "governance_ts": 1792425600.0,
+     "governance_version": "mailhub-three-six-v2",
+     "has_attach": 0,
+     "header_signals": "{}",
+     "id": 1,
+     "importance": 4,
+     "msg_id": "",
+     "needs_review": 0,
+     "otp_code": "",
+     "risk_level": "none",
+     "risk_reasons": "",
+     "sender_addr": "billing@shop.example",
+     "sender_name": "财务部",
+     "snippet": "本期应缴 128.00 元",
+     "subject": "季度账单通知 2026 十月",
+     "summary": "本期账单已生成，请在 30 天内缴纳",
+     "template_key": "shop.example|季度账单通知",
+     "to_addr": "me@example",
+     "uid": 101,
+     "unread": 0,
+     "unsubscribe": 0
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "message_already_read"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/messages/9999",
+    "query": {}
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": "邮件不存在"
+    },
+    "status": 404
+   },
+   "fn": "request",
+   "id": "message_missing"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/messages/16",
+    "query": {}
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "detail": "邮件不存在"
+    },
+    "status": 404
+   },
+   "fn": "request",
+   "id": "message_deleted"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/changes",
+    "query": {
+     "after_id": "10"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "cursor": 26,
+     "items": [
+      {
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "重要",
+       "category": "账单",
+       "date_ts": 1792391400.0,
+       "display_category": "重要账单",
+       "id": 11,
+       "importance": 4,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@cloud.example",
+       "sender_name": "云盘",
+       "subject": "云盘续费账单",
+       "unread": 1
+      },
+      {
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792382400.0,
+       "display_category": "通知",
+       "id": 12,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "orders@shop.example",
+       "sender_name": "商城",
+       "subject": "订单发货通知",
+       "unread": 0
+      },
+      {
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792378800.0,
+       "display_category": "通知",
+       "id": 13,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "me@corp.example",
+       "sender_name": "同事",
+       "subject": "会议邀请",
+       "unread": 1
+      },
+      {
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "验证码",
+       "date_ts": 1792373400.0,
+       "display_category": "验证码",
+       "id": 14,
+       "importance": 3,
+       "otp_code": "734156",
+       "risk_level": "none",
+       "sender_addr": "security@bank.example",
+       "sender_name": "安全中心",
+       "subject": "密码修改验证码",
+       "unread": 0
+      },
+      {
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "可疑",
+       "date_ts": 1792368000.0,
+       "display_category": "可疑",
+       "id": 15,
+       "importance": 1,
+       "otp_code": "",
+       "risk_level": "high",
+       "sender_addr": "promo@spam.example",
+       "sender_name": "广告",
+       "subject": "低价促销",
+       "unread": 0
+      },
+      {
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "账单",
+       "date_ts": 1792317600.0,
+       "display_category": "重要账单",
+       "id": 17,
+       "importance": 3,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@video.example",
+       "sender_name": "视频",
+       "subject": "会员年费账单",
+       "unread": 0
+      },
+      {
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792297800.0,
+       "display_category": "通知",
+       "id": 18,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "data@corp.example",
+       "sender_name": "数据组",
+       "subject": "周报 第 30 周",
+       "unread": 1
+      },
+      {
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "安全",
+       "date_ts": 1792281600.0,
+       "display_category": "安全",
+       "id": 19,
+       "importance": 5,
+       "otp_code": "",
+       "risk_level": "medium",
+       "sender_addr": "alert@bank.example",
+       "sender_name": "安全中心",
+       "subject": "新设备登录安全提醒",
+       "unread": 0
+      },
+      {
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "一般",
+       "category": "账单",
+       "date_ts": 1792263600.0,
+       "display_category": "一般账单",
+       "id": 20,
+       "importance": 2,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "orders@shop.example",
+       "sender_name": "商店",
+       "subject": "退款通知",
+       "unread": 1
+      },
+      {
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "订阅",
+       "date_ts": 1792245600.0,
+       "display_category": "订阅",
+       "id": 21,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "promo@shop.example",
+       "sender_name": "商城",
+       "subject": "促销活动 最后一天",
+       "unread": 0
+      },
+      {
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "可疑",
+       "date_ts": 1792227600.0,
+       "display_category": "可疑",
+       "id": 22,
+       "importance": 1,
+       "otp_code": "",
+       "risk_level": "low",
+       "sender_addr": "nobody@spam.example",
+       "sender_name": "陌生",
+       "subject": "低价转让",
+       "unread": 1
+      },
+      {
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "验证码",
+       "date_ts": 1792209600.0,
+       "display_category": "验证码",
+       "id": 23,
+       "importance": 3,
+       "otp_code": "111222",
+       "risk_level": "none",
+       "sender_addr": "security@bank.example",
+       "sender_name": "安全中心",
+       "subject": "旧验证码",
+       "unread": 0
+      },
+      {
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "重要",
+       "category": "账单",
+       "date_ts": 1792173600.0,
+       "display_category": "重要账单",
+       "id": 24,
+       "importance": 4,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@utility.example",
+       "sender_name": "缴费",
+       "subject": "水电费账单",
+       "unread": 1
+      },
+      {
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "其他",
+       "date_ts": 1790625600.0,
+       "display_category": "其他",
+       "id": 25,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "friend@example",
+       "sender_name": "老朋友",
+       "subject": "很久以前的邮件",
+       "unread": 0
+      },
+      {
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "重要",
+       "date_ts": 1792416600.0,
+       "display_category": "重要",
+       "id": 26,
+       "importance": 5,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "legal@corp.example",
+       "sender_name": "法务",
+       "subject": "合同签署提醒",
+       "unread": 1
+      }
+     ],
+     "reset": false
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "changes_after10"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/changes",
+    "query": {
+     "after_id": "3"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "cursor": 5,
+     "items": [
+      {
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792414800.0,
+       "display_category": "通知",
+       "id": 4,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "data@corp.example",
+       "sender_name": "数据组",
+       "subject": "a_b 报表",
+       "unread": 0
+      },
+      {
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792413000.0,
+       "display_category": "通知",
+       "id": 5,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "data@corp.example",
+       "sender_name": "数据组",
+       "subject": "axb 报表",
+       "unread": 0
+      }
+     ],
+     "reset": false
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "changes_barrier"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/changes",
+    "query": {
+     "after_id": "5"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "cursor": 5,
+     "items": [],
+     "reset": false
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "changes_barrier_empty"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/changes",
+    "query": {
+     "after_id": "99"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "cursor": 27,
+     "items": [],
+     "reset": true
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "changes_reset"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/changes",
+    "query": {
+     "after_id": "10",
+     "limit": "0"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "cursor": 11,
+     "items": [
+      {
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "重要",
+       "category": "账单",
+       "date_ts": 1792391400.0,
+       "display_category": "重要账单",
+       "id": 11,
+       "importance": 4,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@cloud.example",
+       "sender_name": "云盘",
+       "subject": "云盘续费账单",
+       "unread": 1
+      }
+     ],
+     "reset": false
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "changes_limit_zero"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/changes",
+    "query": {
+     "after_id": "10",
+     "limit": "500"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "cursor": 26,
+     "items": [
+      {
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "重要",
+       "category": "账单",
+       "date_ts": 1792391400.0,
+       "display_category": "重要账单",
+       "id": 11,
+       "importance": 4,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@cloud.example",
+       "sender_name": "云盘",
+       "subject": "云盘续费账单",
+       "unread": 1
+      },
+      {
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792382400.0,
+       "display_category": "通知",
+       "id": 12,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "orders@shop.example",
+       "sender_name": "商城",
+       "subject": "订单发货通知",
+       "unread": 0
+      },
+      {
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792378800.0,
+       "display_category": "通知",
+       "id": 13,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "me@corp.example",
+       "sender_name": "同事",
+       "subject": "会议邀请",
+       "unread": 1
+      },
+      {
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "验证码",
+       "date_ts": 1792373400.0,
+       "display_category": "验证码",
+       "id": 14,
+       "importance": 3,
+       "otp_code": "734156",
+       "risk_level": "none",
+       "sender_addr": "security@bank.example",
+       "sender_name": "安全中心",
+       "subject": "密码修改验证码",
+       "unread": 0
+      },
+      {
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "可疑",
+       "date_ts": 1792368000.0,
+       "display_category": "可疑",
+       "id": 15,
+       "importance": 1,
+       "otp_code": "",
+       "risk_level": "high",
+       "sender_addr": "promo@spam.example",
+       "sender_name": "广告",
+       "subject": "低价促销",
+       "unread": 0
+      },
+      {
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "账单",
+       "date_ts": 1792317600.0,
+       "display_category": "重要账单",
+       "id": 17,
+       "importance": 3,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@video.example",
+       "sender_name": "视频",
+       "subject": "会员年费账单",
+       "unread": 0
+      },
+      {
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792297800.0,
+       "display_category": "通知",
+       "id": 18,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "data@corp.example",
+       "sender_name": "数据组",
+       "subject": "周报 第 30 周",
+       "unread": 1
+      },
+      {
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "安全",
+       "date_ts": 1792281600.0,
+       "display_category": "安全",
+       "id": 19,
+       "importance": 5,
+       "otp_code": "",
+       "risk_level": "medium",
+       "sender_addr": "alert@bank.example",
+       "sender_name": "安全中心",
+       "subject": "新设备登录安全提醒",
+       "unread": 0
+      },
+      {
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "一般",
+       "category": "账单",
+       "date_ts": 1792263600.0,
+       "display_category": "一般账单",
+       "id": 20,
+       "importance": 2,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "orders@shop.example",
+       "sender_name": "商店",
+       "subject": "退款通知",
+       "unread": 1
+      },
+      {
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "订阅",
+       "date_ts": 1792245600.0,
+       "display_category": "订阅",
+       "id": 21,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "promo@shop.example",
+       "sender_name": "商城",
+       "subject": "促销活动 最后一天",
+       "unread": 0
+      },
+      {
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "可疑",
+       "date_ts": 1792227600.0,
+       "display_category": "可疑",
+       "id": 22,
+       "importance": 1,
+       "otp_code": "",
+       "risk_level": "low",
+       "sender_addr": "nobody@spam.example",
+       "sender_name": "陌生",
+       "subject": "低价转让",
+       "unread": 1
+      },
+      {
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "验证码",
+       "date_ts": 1792209600.0,
+       "display_category": "验证码",
+       "id": 23,
+       "importance": 3,
+       "otp_code": "111222",
+       "risk_level": "none",
+       "sender_addr": "security@bank.example",
+       "sender_name": "安全中心",
+       "subject": "旧验证码",
+       "unread": 0
+      },
+      {
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "重要",
+       "category": "账单",
+       "date_ts": 1792173600.0,
+       "display_category": "重要账单",
+       "id": 24,
+       "importance": 4,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@utility.example",
+       "sender_name": "缴费",
+       "subject": "水电费账单",
+       "unread": 1
+      },
+      {
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "其他",
+       "date_ts": 1790625600.0,
+       "display_category": "其他",
+       "id": 25,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "friend@example",
+       "sender_name": "老朋友",
+       "subject": "很久以前的邮件",
+       "unread": 0
+      },
+      {
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "重要",
+       "date_ts": 1792416600.0,
+       "display_category": "重要",
+       "id": 26,
+       "importance": 5,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "legal@corp.example",
+       "sender_name": "法务",
+       "subject": "合同签署提醒",
+       "unread": 1
+      }
+     ],
+     "reset": false
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "changes_limit_high"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/changes",
+    "query": {
+     "after_id": "27"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "cursor": 27,
+     "items": [],
+     "reset": false
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "changes_at_max"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/otp",
+    "query": {}
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": [
+     {
+      "account_color": "#38bdf8",
+      "account_email": "work@corp.example",
+      "account_name": "工作邮箱",
+      "date_ts": 1792461600.0,
+      "id": 3,
+      "otp_code": "482913",
+      "risk_level": "none",
+      "sender_addr": "security@bank.example",
+      "sender_name": "安全中心",
+      "subject": "登录验证码",
+      "unread": 1
+     },
+     {
+      "account_color": "#f97316",
+      "account_email": "home@example",
+      "account_name": "个人邮箱",
+      "date_ts": 1792373400.0,
+      "id": 14,
+      "otp_code": "734156",
+      "risk_level": "none",
+      "sender_addr": "security@bank.example",
+      "sender_name": "安全中心",
+      "subject": "密码修改验证码",
+      "unread": 0
+     },
+     {
+      "account_color": "#38bdf8",
+      "account_email": "work@corp.example",
+      "account_name": "工作邮箱",
+      "date_ts": 1792209600.0,
+      "id": 23,
+      "otp_code": "111222",
+      "risk_level": "none",
+      "sender_addr": "security@bank.example",
+      "sender_name": "安全中心",
+      "subject": "旧验证码",
+      "unread": 0
+     }
+    ],
+    "status": 200
+   },
+   "fn": "request",
+   "id": "otp_default"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/otp",
+    "query": {
+     "limit": "2"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": [
+     {
+      "account_color": "#38bdf8",
+      "account_email": "work@corp.example",
+      "account_name": "工作邮箱",
+      "date_ts": 1792461600.0,
+      "id": 3,
+      "otp_code": "482913",
+      "risk_level": "none",
+      "sender_addr": "security@bank.example",
+      "sender_name": "安全中心",
+      "subject": "登录验证码",
+      "unread": 1
+     },
+     {
+      "account_color": "#f97316",
+      "account_email": "home@example",
+      "account_name": "个人邮箱",
+      "date_ts": 1792373400.0,
+      "id": 14,
+      "otp_code": "734156",
+      "risk_level": "none",
+      "sender_addr": "security@bank.example",
+      "sender_name": "安全中心",
+      "subject": "密码修改验证码",
+      "unread": 0
+     }
+    ],
+    "status": 200
+   },
+   "fn": "request",
+   "id": "otp_limit"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/otp",
+    "query": {
+     "limit": "0"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": [
+     {
+      "account_color": "#38bdf8",
+      "account_email": "work@corp.example",
+      "account_name": "工作邮箱",
+      "date_ts": 1792461600.0,
+      "id": 3,
+      "otp_code": "482913",
+      "risk_level": "none",
+      "sender_addr": "security@bank.example",
+      "sender_name": "安全中心",
+      "subject": "登录验证码",
+      "unread": 1
+     }
+    ],
+    "status": 200
+   },
+   "fn": "request",
+   "id": "otp_limit_zero"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/review",
+    "query": {}
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": [
+     {
+      "account_color": "#f97316",
+      "account_name": "个人邮箱",
+      "ai_reason": "",
+      "category": "可疑",
+      "confidence": 0.0,
+      "date_ts": 1792368000.0,
+      "governance_ministry": "礼部",
+      "governance_reason": "本地规则分类",
+      "governance_source": "rule",
+      "id": 15,
+      "needs_review": 0,
+      "risk_level": "high",
+      "risk_reasons": "群发广告",
+      "sender_addr": "promo@spam.example",
+      "sender_name": "广告",
+      "subject": "低价促销"
+     },
+     {
+      "account_color": "#38bdf8",
+      "account_name": "工作邮箱",
+      "ai_reason": "",
+      "category": "可疑",
+      "confidence": 0.0,
+      "date_ts": 1792422000.0,
+      "governance_ministry": "礼部",
+      "governance_reason": "本地规则分类",
+      "governance_source": "rule",
+      "id": 7,
+      "needs_review": 0,
+      "risk_level": "medium",
+      "risk_reasons": "链接域名可疑",
+      "sender_addr": "alert@bank.example",
+      "sender_name": "安全中心",
+      "subject": "可疑登录提醒"
+     },
+     {
+      "account_color": "#38bdf8",
+      "account_name": "工作邮箱",
+      "ai_reason": "",
+      "category": "安全",
+      "confidence": 0.0,
+      "date_ts": 1792281600.0,
+      "governance_ministry": "礼部",
+      "governance_reason": "本地规则分类",
+      "governance_source": "rule",
+      "id": 19,
+      "needs_review": 0,
+      "risk_level": "medium",
+      "risk_reasons": "异地登录",
+      "sender_addr": "alert@bank.example",
+      "sender_name": "安全中心",
+      "subject": "新设备登录安全提醒"
+     },
+     {
+      "account_color": "#f97316",
+      "account_name": "个人邮箱",
+      "ai_reason": "",
+      "category": "可疑",
+      "confidence": 0.0,
+      "date_ts": 1792227600.0,
+      "governance_ministry": "礼部",
+      "governance_reason": "本地规则分类",
+      "governance_source": "rule",
+      "id": 22,
+      "needs_review": 1,
+      "risk_level": "low",
+      "risk_reasons": "",
+      "sender_addr": "nobody@spam.example",
+      "sender_name": "陌生",
+      "subject": "低价转让"
+     }
+    ],
+    "status": 200
+   },
+   "fn": "request",
+   "id": "review_default"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/review",
+    "query": {
+     "limit": "2"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": [
+     {
+      "account_color": "#f97316",
+      "account_name": "个人邮箱",
+      "ai_reason": "",
+      "category": "可疑",
+      "confidence": 0.0,
+      "date_ts": 1792368000.0,
+      "governance_ministry": "礼部",
+      "governance_reason": "本地规则分类",
+      "governance_source": "rule",
+      "id": 15,
+      "needs_review": 0,
+      "risk_level": "high",
+      "risk_reasons": "群发广告",
+      "sender_addr": "promo@spam.example",
+      "sender_name": "广告",
+      "subject": "低价促销"
+     },
+     {
+      "account_color": "#38bdf8",
+      "account_name": "工作邮箱",
+      "ai_reason": "",
+      "category": "可疑",
+      "confidence": 0.0,
+      "date_ts": 1792422000.0,
+      "governance_ministry": "礼部",
+      "governance_reason": "本地规则分类",
+      "governance_source": "rule",
+      "id": 7,
+      "needs_review": 0,
+      "risk_level": "medium",
+      "risk_reasons": "链接域名可疑",
+      "sender_addr": "alert@bank.example",
+      "sender_name": "安全中心",
+      "subject": "可疑登录提醒"
+     }
+    ],
+    "status": 200
+   },
+   "fn": "request",
+   "id": "review_limit"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/trash",
+    "query": {}
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": [
+     {
+      "account_color": "#f97316",
+      "account_name": "个人邮箱",
+      "category": "其他",
+      "date_ts": 1792353600.0,
+      "deleted_ts": 1792398600.0,
+      "id": 16,
+      "sender_addr": "friend@example",
+      "subject": "已删除的旧邮件"
+     },
+     {
+      "account_color": "#f97316",
+      "account_name": "个人邮箱",
+      "category": "订阅",
+      "date_ts": 1792335600.0,
+      "deleted_ts": 1792382400.0,
+      "id": 27,
+      "sender_addr": "promo@spam.example",
+      "subject": "已删除的广告"
+     }
+    ],
+    "status": 200
+   },
+   "fn": "request",
+   "id": "trash_default"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/trash",
+    "query": {
+     "limit": "1"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": [
+     {
+      "account_color": "#f97316",
+      "account_name": "个人邮箱",
+      "category": "其他",
+      "date_ts": 1792353600.0,
+      "deleted_ts": 1792398600.0,
+      "id": 16,
+      "sender_addr": "friend@example",
+      "subject": "已删除的旧邮件"
+     }
+    ],
+    "status": 200
+   },
+   "fn": "request",
+   "id": "trash_limit"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/audit",
+    "query": {}
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "items": [
+      {
+       "action": "read",
+       "actor": "user",
+       "allowed": 1,
+       "id": 1,
+       "reason": "用户批量操作",
+       "reversible": 1,
+       "target_count": 2,
+       "tier": "A",
+       "ts": 1792465200.0,
+       "undone": 0
+      },
+      {
+       "action": "governance_run",
+       "actor": "system",
+       "allowed": 1,
+       "id": 2,
+       "reason": "三省六部自动分拣完成：3 封，自动回退 0 封，可疑 0 封",
+       "reversible": 0,
+       "target_count": 3,
+       "tier": "A",
+       "ts": 1792450800.0,
+       "undone": 0
+      },
+      {
+       "action": "soft_delete",
+       "actor": "user",
+       "allowed": 1,
+       "id": 3,
+       "reason": "用户批量操作",
+       "reversible": 1,
+       "target_count": 1,
+       "tier": "B",
+       "ts": 1792396800.0,
+       "undone": 0
+      },
+      {
+       "action": "purge",
+       "actor": "user",
+       "allowed": 0,
+       "id": 4,
+       "reason": "操作被安全策略拦截：受保护邮件",
+       "reversible": 0,
+       "target_count": 1,
+       "tier": "C",
+       "ts": 1792360800.0,
+       "undone": 0
+      },
+      {
+       "action": "undo",
+       "actor": "user",
+       "allowed": 1,
+       "id": 5,
+       "reason": "撤销审计 #3（soft_delete），恢复 1 封",
+       "reversible": 0,
+       "target_count": 1,
+       "tier": "A",
+       "ts": 1792324800.0,
+       "undone": 1
+      }
+     ],
+     "total": 5
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "audit_default"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/audit",
+    "query": {
+     "limit": "2",
+     "offset": "1"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "items": [
+      {
+       "action": "governance_run",
+       "actor": "system",
+       "allowed": 1,
+       "id": 2,
+       "reason": "三省六部自动分拣完成：3 封，自动回退 0 封，可疑 0 封",
+       "reversible": 0,
+       "target_count": 3,
+       "tier": "A",
+       "ts": 1792450800.0,
+       "undone": 0
+      },
+      {
+       "action": "soft_delete",
+       "actor": "user",
+       "allowed": 1,
+       "id": 3,
+       "reason": "用户批量操作",
+       "reversible": 1,
+       "target_count": 1,
+       "tier": "B",
+       "ts": 1792396800.0,
+       "undone": 0
+      }
+     ],
+     "total": 5
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "audit_page"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/audit",
+    "query": {
+     "limit": "0",
+     "offset": "-5"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "items": [
+      {
+       "action": "read",
+       "actor": "user",
+       "allowed": 1,
+       "id": 1,
+       "reason": "用户批量操作",
+       "reversible": 1,
+       "target_count": 2,
+       "tier": "A",
+       "ts": 1792465200.0,
+       "undone": 0
+      }
+     ],
+     "total": 5
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "audit_clamped"
+  },
+  {
+   "args": {
+    "settings": {
+     "sync_read_state": "1"
+    }
+   },
+   "expected": {
+    "ok": true
+   },
+   "fn": "settings",
+   "id": "enable_read_state_sync"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/messages/2",
+    "query": {}
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "account_color": "#38bdf8",
+     "account_id": 1,
+     "account_name": "工作邮箱",
+     "ai_done": 1,
+     "ai_reason": "",
+     "ai_retry_count": 0,
+     "ai_retry_ts": 0.0,
+     "alert_ts": 0.0,
+     "bill_facets": "{}",
+     "bill_tier": "",
+     "bill_tier_locked": 0,
+     "body_html": "",
+     "body_text": "",
+     "body_truncated": 0,
+     "category": "订阅",
+     "confidence": 0.0,
+     "created_ts": 1792296000.0,
+     "date_ts": 1792458000.0,
+     "deleted_ts": 0.0,
+     "flag_push": 0,
+     "governance_action": "label_only",
+     "governance_ministry": "礼部",
+     "governance_reason": "本地规则分类",
+     "governance_source": "rule",
+     "governance_ts": 1792425600.0,
+     "governance_version": "mailhub-three-six-v2",
+     "has_attach": 0,
+     "header_signals": "{}",
+     "id": 2,
+     "importance": 0,
+     "msg_id": "",
+     "needs_review": 0,
+     "otp_code": "",
+     "risk_level": "none",
+     "risk_reasons": "",
+     "sender_addr": "deals@shop.example",
+     "sender_name": "好物商店",
+     "snippet": "全场五折",
+     "subject": "限时折扣 50% off",
+     "summary": "",
+     "template_key": "",
+     "to_addr": "me@example",
+     "uid": 102,
+     "unread": 1,
+     "unsubscribe": 0
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "message_push_register"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/messages/3",
+    "query": {
+     "mark_read": "false"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "account_color": "#38bdf8",
+     "account_id": 1,
+     "account_name": "工作邮箱",
+     "ai_done": 1,
+     "ai_reason": "",
+     "ai_retry_count": 0,
+     "ai_retry_ts": 0.0,
+     "alert_ts": 0.0,
+     "bill_facets": "{}",
+     "bill_tier": "",
+     "bill_tier_locked": 0,
+     "body_html": "",
+     "body_text": "",
+     "body_truncated": 0,
+     "category": "验证码",
+     "confidence": 0.0,
+     "created_ts": 1792296000.0,
+     "date_ts": 1792461600.0,
+     "deleted_ts": 0.0,
+     "flag_push": 0,
+     "governance_action": "label_only",
+     "governance_ministry": "礼部",
+     "governance_reason": "本地规则分类",
+     "governance_source": "rule",
+     "governance_ts": 1792425600.0,
+     "governance_version": "mailhub-three-six-v2",
+     "has_attach": 0,
+     "header_signals": "{}",
+     "id": 3,
+     "importance": 3,
+     "msg_id": "",
+     "needs_review": 0,
+     "otp_code": "482913",
+     "risk_level": "none",
+     "risk_reasons": "",
+     "sender_addr": "security@bank.example",
+     "sender_name": "安全中心",
+     "snippet": "验证码 482913",
+     "subject": "登录验证码",
+     "summary": "",
+     "template_key": "",
+     "to_addr": "me@example",
+     "uid": 103,
+     "unread": 1,
+     "unsubscribe": 0
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "message_push_preview"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/messages/2",
+    "query": {}
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "account_color": "#38bdf8",
+     "account_id": 1,
+     "account_name": "工作邮箱",
+     "ai_done": 1,
+     "ai_reason": "",
+     "ai_retry_count": 0,
+     "ai_retry_ts": 0.0,
+     "alert_ts": 0.0,
+     "bill_facets": "{}",
+     "bill_tier": "",
+     "bill_tier_locked": 0,
+     "body_html": "",
+     "body_text": "",
+     "body_truncated": 0,
+     "category": "订阅",
+     "confidence": 0.0,
+     "created_ts": 1792296000.0,
+     "date_ts": 1792458000.0,
+     "deleted_ts": 0.0,
+     "flag_push": 1,
+     "governance_action": "label_only",
+     "governance_ministry": "礼部",
+     "governance_reason": "本地规则分类",
+     "governance_source": "rule",
+     "governance_ts": 1792425600.0,
+     "governance_version": "mailhub-three-six-v2",
+     "has_attach": 0,
+     "header_signals": "{}",
+     "id": 2,
+     "importance": 0,
+     "msg_id": "",
+     "needs_review": 0,
+     "otp_code": "",
+     "risk_level": "none",
+     "risk_reasons": "",
+     "sender_addr": "deals@shop.example",
+     "sender_name": "好物商店",
+     "snippet": "全场五折",
+     "subject": "限时折扣 50% off",
+     "summary": "",
+     "template_key": "",
+     "to_addr": "me@example",
+     "uid": 102,
+     "unread": 0,
+     "unsubscribe": 0
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "message_push_again"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/messages/7",
+    "query": {}
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "account_color": "#38bdf8",
+     "account_id": 1,
+     "account_name": "工作邮箱",
+     "ai_done": 1,
+     "ai_reason": "",
+     "ai_retry_count": 0,
+     "ai_retry_ts": 0.0,
+     "alert_ts": 0.0,
+     "bill_facets": "{}",
+     "bill_tier": "",
+     "bill_tier_locked": 0,
+     "body_html": "",
+     "body_text": "",
+     "body_truncated": 0,
+     "category": "可疑",
+     "confidence": 0.0,
+     "created_ts": 1792296000.0,
+     "date_ts": 1792422000.0,
+     "deleted_ts": 0.0,
+     "flag_push": 0,
+     "governance_action": "label_only",
+     "governance_ministry": "礼部",
+     "governance_reason": "本地规则分类",
+     "governance_source": "rule",
+     "governance_ts": 1792425600.0,
+     "governance_version": "mailhub-three-six-v2",
+     "has_attach": 0,
+     "header_signals": "{}",
+     "id": 7,
+     "importance": 5,
+     "msg_id": "",
+     "needs_review": 0,
+     "otp_code": "",
+     "risk_level": "medium",
+     "risk_reasons": "链接域名可疑",
+     "sender_addr": "alert@bank.example",
+     "sender_name": "安全中心",
+     "snippet": "检测到异常登录",
+     "subject": "可疑登录提醒",
+     "summary": "",
+     "template_key": "",
+     "to_addr": "me@example",
+     "uid": 107,
+     "unread": 1,
+     "unsubscribe": 0
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "message_push_second"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/overview",
+    "query": {}
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "ai_enabled": false,
+     "categories": [
+      "验证码",
+      "重要",
+      "重要账单",
+      "一般账单",
+      "安全",
+      "可疑",
+      "订阅",
+      "通知",
+      "其他"
+     ],
+     "daily": [
+      {
+       "day": "10-07"
+      },
+      {
+       "day": "10-08"
+      },
+      {
+       "day": "10-09"
+      },
+      {
+       "day": "10-10"
+      },
+      {
+       "day": "10-11"
+      },
+      {
+       "day": "10-12"
+      },
+      {
+       "day": "10-13"
+      },
+      {
+       "day": "10-14"
+      },
+      {
+       "day": "10-15"
+      },
+      {
+       "day": "10-16"
+      },
+      {
+       "day": "10-17",
+       "可疑": 1,
+       "订阅": 1,
+       "重要账单": 1,
+       "验证码": 1
+      },
+      {
+       "day": "10-18",
+       "一般账单": 1,
+       "安全": 1,
+       "通知": 1,
+       "重要账单": 1
+      },
+      {
+       "day": "10-19",
+       "一般账单": 2,
+       "可疑": 2,
+       "订阅": 1,
+       "通知": 5,
+       "重要": 1,
+       "重要账单": 1,
+       "验证码": 1
+      },
+      {
+       "day": "10-20",
+       "订阅": 1,
+       "重要账单": 1,
+       "验证码": 1
+      }
+     ],
+     "days": [
+      "10-07",
+      "10-08",
+      "10-09",
+      "10-10",
+      "10-11",
+      "10-12",
+      "10-13",
+      "10-14",
+      "10-15",
+      "10-16",
+      "10-17",
+      "10-18",
+      "10-19",
+      "10-20"
+     ],
+     "digest": {
+      "content": "晨报：今日重要邮件 3 封，验证码 1 封",
+      "created_ts": 1792454400.0,
+      "day": "2026-10-20"
+     },
+     "important": [
+      {
+       "account_color": "#38bdf8",
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "重要",
+       "date_ts": 1792416600.0,
+       "id": 26,
+       "importance": 5,
+       "sender_addr": "legal@corp.example",
+       "subject": "合同签署提醒",
+       "summary": "合同已上传，请在 3 天内签署",
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_name": "个人邮箱",
+       "bill_tier": "重要",
+       "category": "账单",
+       "date_ts": 1792391400.0,
+       "id": 11,
+       "importance": 4,
+       "sender_addr": "billing@cloud.example",
+       "subject": "云盘续费账单",
+       "summary": "",
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "可疑",
+       "date_ts": 1792227600.0,
+       "id": 22,
+       "importance": 1,
+       "sender_addr": "nobody@spam.example",
+       "subject": "低价转让",
+       "summary": "",
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_name": "工作邮箱",
+       "bill_tier": "重要",
+       "category": "账单",
+       "date_ts": 1792173600.0,
+       "id": 24,
+       "importance": 4,
+       "sender_addr": "billing@utility.example",
+       "subject": "水电费账单",
+       "summary": "",
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_name": "工作邮箱",
+       "bill_tier": "重要",
+       "category": "账单",
+       "date_ts": 1792456200.0,
+       "id": 1,
+       "importance": 4,
+       "sender_addr": "billing@shop.example",
+       "subject": "季度账单通知 2026 十月",
+       "summary": "本期账单已生成，请在 30 天内缴纳",
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "可疑",
+       "date_ts": 1792422000.0,
+       "id": 7,
+       "importance": 5,
+       "sender_addr": "alert@bank.example",
+       "subject": "可疑登录提醒",
+       "summary": "",
+       "unread": 0
+      },
+      {
+       "account_color": "#f97316",
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "可疑",
+       "date_ts": 1792368000.0,
+       "id": 15,
+       "importance": 1,
+       "sender_addr": "promo@spam.example",
+       "subject": "低价促销",
+       "summary": "",
+       "unread": 0
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "安全",
+       "date_ts": 1792281600.0,
+       "id": 19,
+       "importance": 5,
+       "sender_addr": "alert@bank.example",
+       "subject": "新设备登录安全提醒",
+       "summary": "",
+       "unread": 0
+      }
+     ],
+     "stats": {
+      "by_category": {
+       "一般账单": 3,
+       "其他": 1,
+       "可疑": 3,
+       "安全": 1,
+       "订阅": 3,
+       "通知": 6,
+       "重要": 1,
+       "重要账单": 4,
+       "验证码": 3
+      },
+      "important_unread": 4,
+      "today": 3,
+      "today_otp": 1,
+      "total": 25,
+      "unread": 9
+     }
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "overview_after_writes"
+  },
+  {
+   "args": {
+    "method": "GET",
+    "path": "/api/messages",
+    "query": {
+     "unread": "1"
+    }
+   },
+   "expected": {
+    "headers": {
+     "content-type": "application/json"
+    },
+    "json": {
+     "items": [
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "验证码",
+       "date_ts": 1792461600.0,
+       "display_category": "验证码",
+       "has_attach": 0,
+       "id": 3,
+       "importance": 3,
+       "otp_code": "482913",
+       "risk_level": "none",
+       "sender_addr": "security@bank.example",
+       "sender_name": "安全中心",
+       "snippet": "验证码 482913",
+       "subject": "登录验证码",
+       "summary": "",
+       "uid": 103,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "重要",
+       "date_ts": 1792416600.0,
+       "display_category": "重要",
+       "has_attach": 1,
+       "id": 26,
+       "importance": 5,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "legal@corp.example",
+       "sender_name": "法务",
+       "snippet": "请尽快签署",
+       "subject": "合同签署提醒",
+       "summary": "合同已上传，请在 3 天内签署",
+       "uid": 116,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "订阅",
+       "date_ts": 1792396800.0,
+       "display_category": "订阅",
+       "has_attach": 0,
+       "id": 10,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "news@corp.example",
+       "sender_name": "编辑部",
+       "snippet": "本周精选",
+       "subject": "订阅周刊 第 41 期",
+       "summary": "",
+       "uid": 110,
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "重要",
+       "category": "账单",
+       "date_ts": 1792391400.0,
+       "display_category": "重要账单",
+       "has_attach": 0,
+       "id": 11,
+       "importance": 4,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@cloud.example",
+       "sender_name": "云盘",
+       "snippet": "自动续费 99 元",
+       "subject": "云盘续费账单",
+       "summary": "",
+       "uid": 201,
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792378800.0,
+       "display_category": "通知",
+       "has_attach": 0,
+       "id": 13,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "me@corp.example",
+       "sender_name": "同事",
+       "snippet": "周三上午十点",
+       "subject": "会议邀请",
+       "summary": "",
+       "uid": 203,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "",
+       "category": "通知",
+       "date_ts": 1792297800.0,
+       "display_category": "通知",
+       "has_attach": 0,
+       "id": 18,
+       "importance": 0,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "data@corp.example",
+       "sender_name": "数据组",
+       "snippet": "本周进展",
+       "subject": "周报 第 30 周",
+       "summary": "",
+       "uid": 112,
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "一般",
+       "category": "账单",
+       "date_ts": 1792263600.0,
+       "display_category": "一般账单",
+       "has_attach": 0,
+       "id": 20,
+       "importance": 2,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "orders@shop.example",
+       "sender_name": "商店",
+       "snippet": "退款已处理",
+       "subject": "退款通知",
+       "summary": "",
+       "uid": 207,
+       "unread": 1
+      },
+      {
+       "account_color": "#f97316",
+       "account_id": 2,
+       "account_name": "个人邮箱",
+       "bill_tier": "",
+       "category": "可疑",
+       "date_ts": 1792227600.0,
+       "display_category": "可疑",
+       "has_attach": 0,
+       "id": 22,
+       "importance": 1,
+       "otp_code": "",
+       "risk_level": "low",
+       "sender_addr": "nobody@spam.example",
+       "sender_name": "陌生",
+       "snippet": "低价转让",
+       "subject": "低价转让",
+       "summary": "",
+       "uid": 209,
+       "unread": 1
+      },
+      {
+       "account_color": "#38bdf8",
+       "account_id": 1,
+       "account_name": "工作邮箱",
+       "bill_tier": "重要",
+       "category": "账单",
+       "date_ts": 1792173600.0,
+       "display_category": "重要账单",
+       "has_attach": 0,
+       "id": 24,
+       "importance": 4,
+       "otp_code": "",
+       "risk_level": "none",
+       "sender_addr": "billing@utility.example",
+       "sender_name": "缴费",
+       "snippet": "本月水电 66 元",
+       "subject": "水电费账单",
+       "summary": "",
+       "uid": 115,
+       "unread": 1
+      }
+     ],
+     "next_cursor": null,
+     "page": 1,
+     "total": 9
+    },
+    "status": 200
+   },
+   "fn": "request",
+   "id": "messages_unread_after_writes"
+  },
+  {
+   "args": {},
+   "expected": {
+    "messages": [
+     {
+      "flag_push": 0,
+      "id": 1,
+      "unread": 0
+     },
+     {
+      "flag_push": 1,
+      "id": 2,
+      "unread": 0
+     },
+     {
+      "flag_push": 0,
+      "id": 3,
+      "unread": 1
+     },
+     {
+      "flag_push": 0,
+      "id": 4,
+      "unread": 0
+     },
+     {
+      "flag_push": 0,
+      "id": 5,
+      "unread": 0
+     },
+     {
+      "flag_push": 0,
+      "id": 6,
+      "unread": 0
+     },
+     {
+      "flag_push": 1,
+      "id": 7,
+      "unread": 0
+     },
+     {
+      "flag_push": 0,
+      "id": 8,
+      "unread": 0
+     },
+     {
+      "flag_push": 0,
+      "id": 9,
+      "unread": 0
+     },
+     {
+      "flag_push": 0,
+      "id": 10,
+      "unread": 1
+     },
+     {
+      "flag_push": 0,
+      "id": 11,
+      "unread": 1
+     },
+     {
+      "flag_push": 0,
+      "id": 12,
+      "unread": 0
+     },
+     {
+      "flag_push": 0,
+      "id": 13,
+      "unread": 1
+     },
+     {
+      "flag_push": 0,
+      "id": 14,
+      "unread": 0
+     },
+     {
+      "flag_push": 0,
+      "id": 15,
+      "unread": 0
+     },
+     {
+      "flag_push": 0,
+      "id": 16,
+      "unread": 0
+     },
+     {
+      "flag_push": 0,
+      "id": 17,
+      "unread": 0
+     },
+     {
+      "flag_push": 0,
+      "id": 18,
+      "unread": 1
+     },
+     {
+      "flag_push": 0,
+      "id": 19,
+      "unread": 0
+     },
+     {
+      "flag_push": 0,
+      "id": 20,
+      "unread": 1
+     },
+     {
+      "flag_push": 0,
+      "id": 21,
+      "unread": 0
+     },
+     {
+      "flag_push": 0,
+      "id": 22,
+      "unread": 1
+     },
+     {
+      "flag_push": 0,
+      "id": 23,
+      "unread": 0
+     },
+     {
+      "flag_push": 0,
+      "id": 24,
+      "unread": 1
+     },
+     {
+      "flag_push": 0,
+      "id": 25,
+      "unread": 0
+     },
+     {
+      "flag_push": 0,
+      "id": 26,
+      "unread": 1
+     },
+     {
+      "flag_push": 0,
+      "id": 27,
+      "unread": 0
+     }
+    ]
+   },
+   "fn": "db_state",
+   "id": "db_state"
+  }
+ ],
+ "generator": "scripts/golden/api_read.py",
+ "module": "api_read"
+}

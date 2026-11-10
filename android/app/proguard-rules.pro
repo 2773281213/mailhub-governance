@@ -46,3 +46,34 @@
     public static ** INSTANCE;
     public <methods>;
 }
+
+# L1 先整体保留，让 R8 现在就追踪 :core 用到的 Angus Mail 与 SQLite 类，提前暴露缺类问题；
+# L10 接入后再收窄。
+-keep class com.mailhub.core.** { *; }
+
+# Angus Mail 与 Jakarta Activation 按资源文件里写的类名反射创建对象，R8 看不到这些引用，必须显式保留
+# （R1 审核指出；类名取自 angus-mail-2.0.5.jar 与 angus-activation-2.0.3.jar 里的注册文件）：
+# - META-INF/javamail.default.providers：协议到 Store 类，用 (Session, URLName) 构造。本机模式只用 imap / imaps。
+# - META-INF/mailcap：MIME 类型到 DataContentHandler，用无参构造。
+# - META-INF/services/*：ServiceLoader 加载的提供者，用无参构造。jakarta.mail.Provider 的注册文件里
+#   六个提供者都列着，ServiceLoader 遍历时会逐个实例化，所以全部保留，不能只留 IMAP 的。
+# 这些规则只有在 release 包里真正收信时才能验证，见 LOCAL_MODE.md 的 L11 真机验收。
+-keep class org.eclipse.angus.mail.imap.IMAPStore { <init>(jakarta.mail.Session, jakarta.mail.URLName); }
+-keep class org.eclipse.angus.mail.imap.IMAPSSLStore { <init>(jakarta.mail.Session, jakarta.mail.URLName); }
+# mailcap 只注册了下面五个处理器。不要写成 `* implements DataContentHandler`：那会把 image_gif 一类
+# 引用 java.awt.Image 的处理器也留下来，Android 上没有 AWT，R8 会报缺类。
+-keep class org.eclipse.angus.mail.handlers.text_plain { public <init>(); }
+-keep class org.eclipse.angus.mail.handlers.text_html { public <init>(); }
+-keep class org.eclipse.angus.mail.handlers.text_xml { public <init>(); }
+-keep class org.eclipse.angus.mail.handlers.multipart_mixed { public <init>(); }
+-keep class org.eclipse.angus.mail.handlers.message_rfc822 { public <init>(); }
+-keep class * extends jakarta.mail.Provider { public <init>(); }
+-keep class org.eclipse.angus.mail.util.MailStreamProvider { public <init>(); }
+-keep class org.eclipse.angus.activation.MailcapRegistryProviderImpl { public <init>(); }
+-keep class org.eclipse.angus.activation.MimeTypeRegistryProviderImpl { public <init>(); }
+
+# Android 没有 javax.security.sasl 和 NameCallback，只有 Angus 的 SASL 认证器引用它们。
+# 这段代码只在 mail.imaps.sasl.enable=true 时才会执行，而 ImapSession 从不开启它
+# （登录用 mail.imaps.auth.mechanisms 指定的 PLAIN / LOGIN / XOAUTH2）。
+-dontwarn javax.security.sasl.**
+-dontwarn javax.security.auth.callback.NameCallback

@@ -1,0 +1,26 @@
+From: Notice <notice@shop.example>
+To: bob@corp.example
+Subject: Mixed with related
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+Content-Type: multipart/mixed; boundary="mix1"
+
+--mix1
+Content-Type: text/plain; charset=utf-8
+
+纯文本正文，长度足够。
+--mix1
+Content-Type: multipart/related; boundary="rel1"
+
+--rel1
+Content-Type: text/html; charset=utf-8
+
+<div>HTML 正文，带 <b>粗体</b>。</div>
+--rel1
+Content-Type: image/png
+Content-Disposition: attachment; filename="logo.png"
+Content-Transfer-Encoding: base64
+
+iVBORw0KGgo=
+--rel1--
+
+--mix1--

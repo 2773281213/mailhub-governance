@@ -1,0 +1,42 @@
+{
+  "name": "all_otp",
+  "now": 1760000000.0,
+  "limit": 0,
+  "runs": [
+    {"trigger": "system", "force": false, "since_days": 0}
+  ],
+  "accounts": [
+    {"id": 1, "name": "登录邮箱", "provider": "custom", "email": "login@example.test",
+     "imap_host": "imap.example.test"}
+  ],
+  "settings": {"ai_enabled": "0"},
+  "rules": [],
+  "bill_prefs": [],
+  "messages": [
+    {"id": 1, "account_id": 1, "uid": 1, "subject": "验证码 111111",
+     "sender_addr": "noreply@shop.example", "date_ts": 1759999000.0,
+     "snippet": "验证码 111111", "body_text": "您的验证码为 111111",
+     "category": "验证码", "otp_code": "111111", "created_ts": 1759999500.0},
+    {"id": 2, "account_id": 1, "uid": 2, "subject": "验证码已发送",
+     "sender_addr": "noreply@shop.example", "date_ts": 1759998000.0,
+     "snippet": "验证码已发送至手机", "body_text": "您的验证码已发送至手机，请查收",
+     "category": "验证码", "created_ts": 1759998200.0},
+    {"id": 3, "account_id": 1, "uid": 3, "subject": "您的校验码 999999",
+     "sender_addr": "robot@bank.example", "date_ts": 1759997000.0,
+     "snippet": "校验码 999999", "body_text": "校验码 999999，请勿泄露",
+     "category": "验证码", "otp_code": "999999", "created_ts": 1759997500.0},
+    {"id": 4, "account_id": 1, "uid": 4, "subject": "登录验证码 222333",
+     "sender_addr": "no-reply@mail.example", "date_ts": 1759996000.0,
+     "snippet": "登录验证码", "body_text": "登录验证码 222333",
+     "category": "验证码", "otp_code": "222333", "risk_level": "low"},
+    {"id": 5, "account_id": 1, "uid": 5, "subject": "验证码 555555",
+     "sender_addr": "support@service.example", "date_ts": 1759995000.0,
+     "snippet": "验证码 555555", "body_text": "验证码 555555",
+     "category": "未分类", "otp_code": "555555"},
+    {"id": 6, "account_id": 1, "uid": 6, "subject": "验证码提醒",
+     "sender_addr": "notification@service.example", "date_ts": 1759994000.0,
+     "snippet": "请使用验证码登录", "body_text": "请使用验证码登录",
+     "category": "验证码", "unsubscribe": 1, "header_signals": "{\"list_id\": true}",
+     "created_ts": 1759994500.0}
+  ]
+}

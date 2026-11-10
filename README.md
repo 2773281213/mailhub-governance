@@ -199,7 +199,9 @@ data:
 
 **登录**：填服务器地址和管理密码。正式版只接受 HTTPS；debug 版额外允许 `10.0.2.2`、`127.0.0.1`、`localhost` 的明文地址，便于本机联调。
 
-**凭据只在网页端修改**：AI Key、推送地址与令牌、Onepush 配置、OAuth 客户端在 App 里只显示「已配置 / 未配置」。安卓端的安全边界见 [SECURITY.md](SECURITY.md)「安卓客户端」一节。
+**本机独立使用**：不想部署服务器时，在登录页选「本机独立使用」。邮件、规则和治理都在手机上运行，同一个 APK 两种模式都支持。目前只支持授权码 / 密码类账户，AI 判定、OAuth、推送、清理与晨报暂不可用，收信靠前台同步和每 15 分钟的后台任务，不是实时的。邮箱授权码和邮件内容都保存在手机上，风险说明见 [SECURITY.md](SECURITY.md)「安卓本机模式」一节，设计见 [LOCAL_MODE.md](LOCAL_MODE.md)。
+
+**连接服务器时，凭据只在网页端修改**：AI Key、推送地址与令牌、Onepush 配置、OAuth 客户端在 App 里只显示「已配置 / 未配置」。安卓端的安全边界见 [SECURITY.md](SECURITY.md)「安卓客户端」一节。
 
 **构建**：需要 JDK 21 和 Android SDK（compileSdk 36）。在 `android/` 下：
 

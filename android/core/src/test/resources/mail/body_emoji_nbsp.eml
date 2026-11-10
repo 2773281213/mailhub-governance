@@ -1,0 +1,8 @@
+From: Notice <notice@shop.example>
+To: bob@corp.example
+Subject: Emoji and spaces
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+Content-Type: text/plain; charset=utf-8
+
+第一行😀
+第二行&nbsp;与　全角空格第三行

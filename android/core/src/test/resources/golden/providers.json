@@ -1,0 +1,3445 @@
+{
+ "cases": [
+  {
+   "args": {
+    "key": "qq"
+   },
+   "expected": {
+    "device_flow": false,
+    "domains": [
+     "qq.com",
+     "foxmail.com"
+    ],
+    "host_for_oauth": "imap.qq.com",
+    "host_for_password": "imap.qq.com",
+    "imap_host": "imap.qq.com",
+    "imap_port": 993,
+    "key": "qq",
+    "label": "QQ 邮箱",
+    "netease_authorize_url": "",
+    "netease_web": "",
+    "note": "QQ 邮箱的 IMAP 只接受授权码；QQ 密码和 QQ 互联登录都不能用于 IMAP。",
+    "oauth": "",
+    "oauth_imap_host": "",
+    "oauth_label": "",
+    "oauth_missing_hint": "",
+    "secret": {
+     "input_label": "QQ 邮箱授权码",
+     "kind": "app_password",
+     "prereq_links": [],
+     "setup_label": "打开 QQ 邮箱",
+     "setup_url": "https://mail.qq.com/",
+     "steps": [
+      "登录网页版 QQ 邮箱 → 设置 → 账号，开启 IMAP/SMTP 服务",
+      "按提示生成 16 位「授权码」"
+     ],
+     "troubleshoot": ""
+    },
+    "send_imap_id": false
+   },
+   "fn": "provider",
+   "id": "provider-qq"
+  },
+  {
+   "args": {
+    "key": "163"
+   },
+   "expected": {
+    "device_flow": false,
+    "domains": [
+     "163.com"
+    ],
+    "host_for_oauth": "imapmail.163.com",
+    "host_for_password": "imap.163.com",
+    "imap_host": "imap.163.com",
+    "imap_port": 993,
+    "key": "163",
+    "label": "网易 163",
+    "netease_authorize_url": "https://mail.163.com/fgw/mailsrv-oauth2-fapi/oauth2/authorize/entry",
+    "netease_web": "https://mail.163.com",
+    "note": "",
+    "oauth": "netease",
+    "oauth_imap_host": "imapmail.163.com",
+    "oauth_label": "使用网易邮箱登录",
+    "oauth_missing_hint": "",
+    "secret": {
+     "input_label": "网易客户端授权密码",
+     "kind": "app_password",
+     "prereq_links": [],
+     "setup_label": "打开网易邮箱设置",
+     "setup_url": "https://mail.163.com/",
+     "steps": [
+      "登录网页版邮箱 → 设置 → POP3/SMTP/IMAP，开启 IMAP/SMTP 服务",
+      "按提示生成「客户端授权密码」（不是网页登录密码）",
+      "回到这里，用完整邮箱地址和授权密码登录"
+     ],
+     "troubleshoot": ""
+    },
+    "send_imap_id": true
+   },
+   "fn": "provider",
+   "id": "provider-163"
+  },
+  {
+   "args": {
+    "key": "126"
+   },
+   "expected": {
+    "device_flow": false,
+    "domains": [
+     "126.com"
+    ],
+    "host_for_oauth": "imapmail.126.com",
+    "host_for_password": "imap.126.com",
+    "imap_host": "imap.126.com",
+    "imap_port": 993,
+    "key": "126",
+    "label": "网易 126",
+    "netease_authorize_url": "https://mail.126.com/fgw/mailsrv-oauth2-fapi/oauth2/authorize/entry",
+    "netease_web": "https://mail.126.com",
+    "note": "",
+    "oauth": "netease",
+    "oauth_imap_host": "imapmail.126.com",
+    "oauth_label": "使用网易邮箱登录",
+    "oauth_missing_hint": "",
+    "secret": {
+     "input_label": "网易客户端授权密码",
+     "kind": "app_password",
+     "prereq_links": [],
+     "setup_label": "打开网易邮箱设置",
+     "setup_url": "https://mail.126.com/",
+     "steps": [
+      "登录网页版邮箱 → 设置 → POP3/SMTP/IMAP，开启 IMAP/SMTP 服务",
+      "按提示生成「客户端授权密码」（不是网页登录密码）",
+      "回到这里，用完整邮箱地址和授权密码登录"
+     ],
+     "troubleshoot": ""
+    },
+    "send_imap_id": true
+   },
+   "fn": "provider",
+   "id": "provider-126"
+  },
+  {
+   "args": {
+    "key": "yeah"
+   },
+   "expected": {
+    "device_flow": false,
+    "domains": [
+     "yeah.net"
+    ],
+    "host_for_oauth": "imapmail.yeah.net",
+    "host_for_password": "imap.yeah.net",
+    "imap_host": "imap.yeah.net",
+    "imap_port": 993,
+    "key": "yeah",
+    "label": "网易 yeah.net",
+    "netease_authorize_url": "https://mail.yeah.net/fgw/mailsrv-oauth2-fapi/oauth2/authorize/entry",
+    "netease_web": "https://mail.yeah.net",
+    "note": "",
+    "oauth": "netease",
+    "oauth_imap_host": "imapmail.yeah.net",
+    "oauth_label": "使用网易邮箱登录",
+    "oauth_missing_hint": "",
+    "secret": {
+     "input_label": "网易客户端授权密码",
+     "kind": "app_password",
+     "prereq_links": [],
+     "setup_label": "打开网易邮箱设置",
+     "setup_url": "https://mail.yeah.net/",
+     "steps": [
+      "登录网页版邮箱 → 设置 → POP3/SMTP/IMAP，开启 IMAP/SMTP 服务",
+      "按提示生成「客户端授权密码」（不是网页登录密码）",
+      "回到这里，用完整邮箱地址和授权密码登录"
+     ],
+     "troubleshoot": ""
+    },
+    "send_imap_id": true
+   },
+   "fn": "provider",
+   "id": "provider-yeah"
+  },
+  {
+   "args": {
+    "key": "188"
+   },
+   "expected": {
+    "device_flow": false,
+    "domains": [
+     "188.com"
+    ],
+    "host_for_oauth": "imapmail.188.com",
+    "host_for_password": "imap.188.com",
+    "imap_host": "imap.188.com",
+    "imap_port": 993,
+    "key": "188",
+    "label": "网易 188",
+    "netease_authorize_url": "https://mail.188.com/fgw/mailsrv-oauth2-fapi/oauth2/authorize/entry",
+    "netease_web": "https://mail.188.com",
+    "note": "",
+    "oauth": "netease",
+    "oauth_imap_host": "imapmail.188.com",
+    "oauth_label": "使用网易邮箱登录",
+    "oauth_missing_hint": "",
+    "secret": {
+     "input_label": "网易客户端授权密码",
+     "kind": "app_password",
+     "prereq_links": [],
+     "setup_label": "打开网易邮箱设置",
+     "setup_url": "https://mail.188.com/",
+     "steps": [
+      "登录网页版邮箱 → 设置 → POP3/SMTP/IMAP，开启 IMAP/SMTP 服务",
+      "按提示生成「客户端授权密码」（不是网页登录密码）",
+      "回到这里，用完整邮箱地址和授权密码登录"
+     ],
+     "troubleshoot": ""
+    },
+    "send_imap_id": true
+   },
+   "fn": "provider",
+   "id": "provider-188"
+  },
+  {
+   "args": {
+    "key": "vip163"
+   },
+   "expected": {
+    "device_flow": false,
+    "domains": [
+     "vip.163.com"
+    ],
+    "host_for_oauth": "imapmail.vip.163.com",
+    "host_for_password": "imap.vip.163.com",
+    "imap_host": "imap.vip.163.com",
+    "imap_port": 993,
+    "key": "vip163",
+    "label": "网易 VIP 163",
+    "netease_authorize_url": "https://vip.163.com/fgw/mailsrv-oauth2-fapi/oauth2/authorize/entry",
+    "netease_web": "https://vip.163.com",
+    "note": "",
+    "oauth": "netease",
+    "oauth_imap_host": "imapmail.vip.163.com",
+    "oauth_label": "使用网易邮箱登录",
+    "oauth_missing_hint": "",
+    "secret": {
+     "input_label": "网易客户端授权密码",
+     "kind": "app_password",
+     "prereq_links": [],
+     "setup_label": "打开网易邮箱设置",
+     "setup_url": "https://vip.163.com/",
+     "steps": [
+      "登录网页版邮箱 → 设置 → POP3/SMTP/IMAP，开启 IMAP/SMTP 服务",
+      "按提示生成「客户端授权密码」（不是网页登录密码）",
+      "回到这里，用完整邮箱地址和授权密码登录"
+     ],
+     "troubleshoot": ""
+    },
+    "send_imap_id": true
+   },
+   "fn": "provider",
+   "id": "provider-vip163"
+  },
+  {
+   "args": {
+    "key": "vip126"
+   },
+   "expected": {
+    "device_flow": false,
+    "domains": [
+     "vip.126.com"
+    ],
+    "host_for_oauth": "imapmail.vip.126.com",
+    "host_for_password": "imap.vip.126.com",
+    "imap_host": "imap.vip.126.com",
+    "imap_port": 993,
+    "key": "vip126",
+    "label": "网易 VIP 126",
+    "netease_authorize_url": "https://vip.126.com/fgw/mailsrv-oauth2-fapi/oauth2/authorize/entry",
+    "netease_web": "https://vip.126.com",
+    "note": "",
+    "oauth": "netease",
+    "oauth_imap_host": "imapmail.vip.126.com",
+    "oauth_label": "使用网易邮箱登录",
+    "oauth_missing_hint": "",
+    "secret": {
+     "input_label": "网易客户端授权密码",
+     "kind": "app_password",
+     "prereq_links": [],
+     "setup_label": "打开网易邮箱设置",
+     "setup_url": "https://vip.126.com/",
+     "steps": [
+      "登录网页版邮箱 → 设置 → POP3/SMTP/IMAP，开启 IMAP/SMTP 服务",
+      "按提示生成「客户端授权密码」（不是网页登录密码）",
+      "回到这里，用完整邮箱地址和授权密码登录"
+     ],
+     "troubleshoot": ""
+    },
+    "send_imap_id": true
+   },
+   "fn": "provider",
+   "id": "provider-vip126"
+  },
+  {
+   "args": {
+    "key": "vip188"
+   },
+   "expected": {
+    "device_flow": false,
+    "domains": [
+     "vip.188.com"
+    ],
+    "host_for_oauth": "imapmail.188.com",
+    "host_for_password": "imap.vip.188.com",
+    "imap_host": "imap.vip.188.com",
+    "imap_port": 993,
+    "key": "vip188",
+    "label": "网易 VIP 188",
+    "netease_authorize_url": "https://vip.188.com/fgw/mailsrv-oauth2-fapi/oauth2/authorize/entry",
+    "netease_web": "https://vip.188.com",
+    "note": "",
+    "oauth": "netease",
+    "oauth_imap_host": "imapmail.188.com",
+    "oauth_label": "使用网易邮箱登录",
+    "oauth_missing_hint": "",
+    "secret": {
+     "input_label": "网易客户端授权密码",
+     "kind": "app_password",
+     "prereq_links": [],
+     "setup_label": "打开网易邮箱设置",
+     "setup_url": "https://vip.188.com/",
+     "steps": [
+      "登录网页版邮箱 → 设置 → POP3/SMTP/IMAP，开启 IMAP/SMTP 服务",
+      "按提示生成「客户端授权密码」（不是网页登录密码）",
+      "回到这里，用完整邮箱地址和授权密码登录"
+     ],
+     "troubleshoot": ""
+    },
+    "send_imap_id": true
+   },
+   "fn": "provider",
+   "id": "provider-vip188"
+  },
+  {
+   "args": {
+    "key": "exmail"
+   },
+   "expected": {
+    "device_flow": false,
+    "domains": [],
+    "host_for_oauth": "imap.exmail.qq.com",
+    "host_for_password": "imap.exmail.qq.com",
+    "imap_host": "imap.exmail.qq.com",
+    "imap_port": 993,
+    "key": "exmail",
+    "label": "腾讯企业邮",
+    "netease_authorize_url": "",
+    "netease_web": "",
+    "note": "企业自有域名无法自动识别，请在服务商里手动选择「腾讯企业邮」。",
+    "oauth": "",
+    "oauth_imap_host": "",
+    "oauth_label": "",
+    "oauth_missing_hint": "",
+    "secret": {
+     "input_label": "企业邮客户端专用密码",
+     "kind": "app_password",
+     "prereq_links": [],
+     "setup_label": "打开腾讯企业邮",
+     "setup_url": "https://exmail.qq.com/",
+     "steps": [
+      "登录企业邮网页版 → 设置 → 客户端专用密码，生成一个专用密码",
+      "回到这里，用完整邮箱地址和专用密码登录"
+     ],
+     "troubleshoot": ""
+    },
+    "send_imap_id": false
+   },
+   "fn": "provider",
+   "id": "provider-exmail"
+  },
+  {
+   "args": {
+    "key": "qiye163"
+   },
+   "expected": {
+    "device_flow": false,
+    "domains": [],
+    "host_for_oauth": "imap.qiye.163.com",
+    "host_for_password": "imap.qiye.163.com",
+    "imap_host": "imap.qiye.163.com",
+    "imap_port": 993,
+    "key": "qiye163",
+    "label": "网易企业邮",
+    "netease_authorize_url": "",
+    "netease_web": "",
+    "note": "企业自有域名无法自动识别，请在服务商里手动选择「网易企业邮」。",
+    "oauth": "",
+    "oauth_imap_host": "",
+    "oauth_label": "",
+    "oauth_missing_hint": "",
+    "secret": {
+     "input_label": "企业邮客户端授权密码",
+     "kind": "app_password",
+     "prereq_links": [],
+     "setup_label": "打开网易企业邮",
+     "setup_url": "https://qiye.163.com/",
+     "steps": [
+      "请管理员在网易企业邮后台开启 IMAP/SMTP",
+      "在邮箱设置里生成客户端授权密码",
+      "回到这里，用完整邮箱地址和授权密码登录"
+     ],
+     "troubleshoot": ""
+    },
+    "send_imap_id": true
+   },
+   "fn": "provider",
+   "id": "provider-qiye163"
+  },
+  {
+   "args": {
+    "key": "gmail"
+   },
+   "expected": {
+    "device_flow": false,
+    "domains": [
+     "gmail.com",
+     "googlemail.com"
+    ],
+    "host_for_oauth": "imap.gmail.com",
+    "host_for_password": "imap.gmail.com",
+    "imap_host": "imap.gmail.com",
+    "imap_port": 993,
+    "key": "gmail",
+    "label": "Gmail",
+    "netease_authorize_url": "",
+    "netease_web": "",
+    "note": "",
+    "oauth": "standard",
+    "oauth_imap_host": "",
+    "oauth_label": "使用 Google 登录",
+    "oauth_missing_hint": "不想开两步验证？管理员在「设置 → Google 登录导入」填写本站的 Google OAuth 客户端后，这里会出现「使用 Google 登录」，直接用 Google 账号授权即可添加。",
+    "secret": {
+     "input_label": "Google 应用专用密码（16 位）",
+     "kind": "app_password",
+     "prereq_links": [
+      [
+       "开启两步验证",
+       "https://myaccount.google.com/signinoptions/twosv"
+      ]
+     ],
+     "setup_label": "创建应用专用密码",
+     "setup_url": "https://myaccount.google.com/apppasswords",
+     "steps": [
+      "先为 Google 账号开启两步验证（没开时创建页面会提示「您的账号不支持您正在尝试的设置」）",
+      "在应用专用密码页面随便填一个名称（如 MailHub）并创建",
+      "把显示的 16 位密码粘贴到下方，空格可以不删"
+     ],
+     "troubleshoot": "开启两步验证后仍提示不支持：工作或学校账号可能被管理员禁用了应用专用密码；两步验证只用安全密钥、或开启了高级保护的账号也无法创建。这些账号请改用 Google 登录。"
+    },
+    "send_imap_id": false
+   },
+   "fn": "provider",
+   "id": "provider-gmail"
+  },
+  {
+   "args": {
+    "key": "yahoo"
+   },
+   "expected": {
+    "device_flow": false,
+    "domains": [
+     "yahoo.com",
+     "ymail.com",
+     "rocketmail.com",
+     "myyahoo.com",
+     "yahoo.co.uk",
+     "yahoo.ca",
+     "yahoo.com.au",
+     "yahoo.co.nz",
+     "yahoo.ie",
+     "yahoo.co.in",
+     "yahoo.com.sg",
+     "yahoo.com.my",
+     "yahoo.com.ph",
+     "yahoo.co.id",
+     "yahoo.com.vn",
+     "yahoo.com.hk",
+     "yahoo.com.tw",
+     "yahoo.co.th",
+     "yahoo.fr",
+     "yahoo.de",
+     "yahoo.it",
+     "yahoo.es",
+     "yahoo.se",
+     "yahoo.gr",
+     "yahoo.com.br",
+     "yahoo.com.mx",
+     "yahoo.com.ar"
+    ],
+    "host_for_oauth": "imap.mail.yahoo.com",
+    "host_for_password": "imap.mail.yahoo.com",
+    "imap_host": "imap.mail.yahoo.com",
+    "imap_port": 993,
+    "key": "yahoo",
+    "label": "Yahoo 邮箱",
+    "netease_authorize_url": "",
+    "netease_web": "",
+    "note": "Yahoo 的 IMAP 只接受应用专用密码，账户登录密码不能用于 IMAP。",
+    "oauth": "",
+    "oauth_imap_host": "",
+    "oauth_label": "",
+    "oauth_missing_hint": "",
+    "secret": {
+     "input_label": "Yahoo 应用专用密码",
+     "kind": "app_password",
+     "prereq_links": [],
+     "setup_label": "打开 Yahoo 账户安全",
+     "setup_url": "https://login.yahoo.com/account/security",
+     "steps": [
+      "登录 Yahoo 账户安全页面，在「外部连接」中选择「生成应用专用密码」",
+      "随便填一个应用名称（如 MailHub）并生成",
+      "把生成的密码粘贴到下方（不是 Yahoo 登录密码）"
+     ],
+     "troubleshoot": "生成页面打不开或提示异常时，换一个最近常用、已登录 Yahoo 的浏览器再试，不要用无痕模式。"
+    },
+    "send_imap_id": false
+   },
+   "fn": "provider",
+   "id": "provider-yahoo"
+  },
+  {
+   "args": {
+    "key": "outlook"
+   },
+   "expected": {
+    "device_flow": true,
+    "domains": [
+     "outlook.com",
+     "hotmail.com",
+     "live.com",
+     "msn.com"
+    ],
+    "host_for_oauth": "outlook.office365.com",
+    "host_for_password": "outlook.office365.com",
+    "imap_host": "outlook.office365.com",
+    "imap_port": 993,
+    "key": "outlook",
+    "label": "Outlook / Hotmail",
+    "netease_authorize_url": "",
+    "netease_web": "",
+    "note": "Microsoft 已停用个人邮箱的 IMAP 密码登录，只能通过 OAuth 添加。",
+    "oauth": "standard",
+    "oauth_imap_host": "",
+    "oauth_label": "使用 Microsoft 登录",
+    "oauth_missing_hint": "管理员在「设置 → Microsoft 登录导入」填写自己在 Microsoft Entra 注册的应用后即可添加；只填 Client ID 就能用设备码登录，不需要 Client Secret。",
+    "secret": null,
+    "send_imap_id": false
+   },
+   "fn": "provider",
+   "id": "provider-outlook"
+  },
+  {
+   "args": {
+    "key": "custom"
+   },
+   "expected": {
+    "device_flow": false,
+    "domains": [],
+    "host_for_oauth": "",
+    "host_for_password": "",
+    "imap_host": "",
+    "imap_port": 993,
+    "key": "custom",
+    "label": "自定义 IMAP",
+    "netease_authorize_url": "",
+    "netease_web": "",
+    "note": "填写支持 IMAP SSL 的服务器地址和端口。",
+    "oauth": "",
+    "oauth_imap_host": "",
+    "oauth_label": "",
+    "oauth_missing_hint": "",
+    "secret": {
+     "input_label": "邮箱密码或服务商要求的应用专用密码",
+     "kind": "password",
+     "prereq_links": [],
+     "setup_label": "",
+     "setup_url": "",
+     "steps": [],
+     "troubleshoot": ""
+    },
+    "send_imap_id": false
+   },
+   "fn": "provider",
+   "id": "provider-custom"
+  },
+  {
+   "args": {
+    "email": "user@qq.com"
+   },
+   "expected": "qq",
+   "fn": "detect",
+   "id": "detect-qq-qq.com-lower"
+  },
+  {
+   "args": {
+    "email": "USER@QQ.COM"
+   },
+   "expected": "qq",
+   "fn": "detect",
+   "id": "detect-qq-qq.com-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Qq.Com"
+   },
+   "expected": "qq",
+   "fn": "detect",
+   "id": "detect-qq-qq.com-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.qq.com"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-qq-qq.com-subdomain"
+  },
+  {
+   "args": {
+    "email": "@qq.com"
+   },
+   "expected": "qq",
+   "fn": "detect",
+   "id": "detect-qq-qq.com-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@qq.com"
+   },
+   "expected": "qq",
+   "fn": "detect",
+   "id": "detect-qq-qq.com-two-at"
+  },
+  {
+   "args": {
+    "email": "user@foxmail.com"
+   },
+   "expected": "qq",
+   "fn": "detect",
+   "id": "detect-qq-foxmail.com-lower"
+  },
+  {
+   "args": {
+    "email": "USER@FOXMAIL.COM"
+   },
+   "expected": "qq",
+   "fn": "detect",
+   "id": "detect-qq-foxmail.com-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Foxmail.Com"
+   },
+   "expected": "qq",
+   "fn": "detect",
+   "id": "detect-qq-foxmail.com-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.foxmail.com"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-qq-foxmail.com-subdomain"
+  },
+  {
+   "args": {
+    "email": "@foxmail.com"
+   },
+   "expected": "qq",
+   "fn": "detect",
+   "id": "detect-qq-foxmail.com-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@foxmail.com"
+   },
+   "expected": "qq",
+   "fn": "detect",
+   "id": "detect-qq-foxmail.com-two-at"
+  },
+  {
+   "args": {
+    "email": "user@163.com"
+   },
+   "expected": "163",
+   "fn": "detect",
+   "id": "detect-163-163.com-lower"
+  },
+  {
+   "args": {
+    "email": "USER@163.COM"
+   },
+   "expected": "163",
+   "fn": "detect",
+   "id": "detect-163-163.com-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@163.Com"
+   },
+   "expected": "163",
+   "fn": "detect",
+   "id": "detect-163-163.com-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.163.com"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-163-163.com-subdomain"
+  },
+  {
+   "args": {
+    "email": "@163.com"
+   },
+   "expected": "163",
+   "fn": "detect",
+   "id": "detect-163-163.com-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@163.com"
+   },
+   "expected": "163",
+   "fn": "detect",
+   "id": "detect-163-163.com-two-at"
+  },
+  {
+   "args": {
+    "email": "user@126.com"
+   },
+   "expected": "126",
+   "fn": "detect",
+   "id": "detect-126-126.com-lower"
+  },
+  {
+   "args": {
+    "email": "USER@126.COM"
+   },
+   "expected": "126",
+   "fn": "detect",
+   "id": "detect-126-126.com-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@126.Com"
+   },
+   "expected": "126",
+   "fn": "detect",
+   "id": "detect-126-126.com-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.126.com"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-126-126.com-subdomain"
+  },
+  {
+   "args": {
+    "email": "@126.com"
+   },
+   "expected": "126",
+   "fn": "detect",
+   "id": "detect-126-126.com-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@126.com"
+   },
+   "expected": "126",
+   "fn": "detect",
+   "id": "detect-126-126.com-two-at"
+  },
+  {
+   "args": {
+    "email": "user@yeah.net"
+   },
+   "expected": "yeah",
+   "fn": "detect",
+   "id": "detect-yeah-yeah.net-lower"
+  },
+  {
+   "args": {
+    "email": "USER@YEAH.NET"
+   },
+   "expected": "yeah",
+   "fn": "detect",
+   "id": "detect-yeah-yeah.net-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Yeah.Net"
+   },
+   "expected": "yeah",
+   "fn": "detect",
+   "id": "detect-yeah-yeah.net-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.yeah.net"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-yeah-yeah.net-subdomain"
+  },
+  {
+   "args": {
+    "email": "@yeah.net"
+   },
+   "expected": "yeah",
+   "fn": "detect",
+   "id": "detect-yeah-yeah.net-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@yeah.net"
+   },
+   "expected": "yeah",
+   "fn": "detect",
+   "id": "detect-yeah-yeah.net-two-at"
+  },
+  {
+   "args": {
+    "email": "user@188.com"
+   },
+   "expected": "188",
+   "fn": "detect",
+   "id": "detect-188-188.com-lower"
+  },
+  {
+   "args": {
+    "email": "USER@188.COM"
+   },
+   "expected": "188",
+   "fn": "detect",
+   "id": "detect-188-188.com-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@188.Com"
+   },
+   "expected": "188",
+   "fn": "detect",
+   "id": "detect-188-188.com-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.188.com"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-188-188.com-subdomain"
+  },
+  {
+   "args": {
+    "email": "@188.com"
+   },
+   "expected": "188",
+   "fn": "detect",
+   "id": "detect-188-188.com-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@188.com"
+   },
+   "expected": "188",
+   "fn": "detect",
+   "id": "detect-188-188.com-two-at"
+  },
+  {
+   "args": {
+    "email": "user@vip.163.com"
+   },
+   "expected": "vip163",
+   "fn": "detect",
+   "id": "detect-vip163-vip.163.com-lower"
+  },
+  {
+   "args": {
+    "email": "USER@VIP.163.COM"
+   },
+   "expected": "vip163",
+   "fn": "detect",
+   "id": "detect-vip163-vip.163.com-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Vip.163.Com"
+   },
+   "expected": "vip163",
+   "fn": "detect",
+   "id": "detect-vip163-vip.163.com-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.vip.163.com"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-vip163-vip.163.com-subdomain"
+  },
+  {
+   "args": {
+    "email": "@vip.163.com"
+   },
+   "expected": "vip163",
+   "fn": "detect",
+   "id": "detect-vip163-vip.163.com-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@vip.163.com"
+   },
+   "expected": "vip163",
+   "fn": "detect",
+   "id": "detect-vip163-vip.163.com-two-at"
+  },
+  {
+   "args": {
+    "email": "user@vip.126.com"
+   },
+   "expected": "vip126",
+   "fn": "detect",
+   "id": "detect-vip126-vip.126.com-lower"
+  },
+  {
+   "args": {
+    "email": "USER@VIP.126.COM"
+   },
+   "expected": "vip126",
+   "fn": "detect",
+   "id": "detect-vip126-vip.126.com-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Vip.126.Com"
+   },
+   "expected": "vip126",
+   "fn": "detect",
+   "id": "detect-vip126-vip.126.com-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.vip.126.com"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-vip126-vip.126.com-subdomain"
+  },
+  {
+   "args": {
+    "email": "@vip.126.com"
+   },
+   "expected": "vip126",
+   "fn": "detect",
+   "id": "detect-vip126-vip.126.com-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@vip.126.com"
+   },
+   "expected": "vip126",
+   "fn": "detect",
+   "id": "detect-vip126-vip.126.com-two-at"
+  },
+  {
+   "args": {
+    "email": "user@vip.188.com"
+   },
+   "expected": "vip188",
+   "fn": "detect",
+   "id": "detect-vip188-vip.188.com-lower"
+  },
+  {
+   "args": {
+    "email": "USER@VIP.188.COM"
+   },
+   "expected": "vip188",
+   "fn": "detect",
+   "id": "detect-vip188-vip.188.com-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Vip.188.Com"
+   },
+   "expected": "vip188",
+   "fn": "detect",
+   "id": "detect-vip188-vip.188.com-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.vip.188.com"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-vip188-vip.188.com-subdomain"
+  },
+  {
+   "args": {
+    "email": "@vip.188.com"
+   },
+   "expected": "vip188",
+   "fn": "detect",
+   "id": "detect-vip188-vip.188.com-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@vip.188.com"
+   },
+   "expected": "vip188",
+   "fn": "detect",
+   "id": "detect-vip188-vip.188.com-two-at"
+  },
+  {
+   "args": {
+    "email": "user@gmail.com"
+   },
+   "expected": "gmail",
+   "fn": "detect",
+   "id": "detect-gmail-gmail.com-lower"
+  },
+  {
+   "args": {
+    "email": "USER@GMAIL.COM"
+   },
+   "expected": "gmail",
+   "fn": "detect",
+   "id": "detect-gmail-gmail.com-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Gmail.Com"
+   },
+   "expected": "gmail",
+   "fn": "detect",
+   "id": "detect-gmail-gmail.com-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.gmail.com"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-gmail-gmail.com-subdomain"
+  },
+  {
+   "args": {
+    "email": "@gmail.com"
+   },
+   "expected": "gmail",
+   "fn": "detect",
+   "id": "detect-gmail-gmail.com-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@gmail.com"
+   },
+   "expected": "gmail",
+   "fn": "detect",
+   "id": "detect-gmail-gmail.com-two-at"
+  },
+  {
+   "args": {
+    "email": "user@googlemail.com"
+   },
+   "expected": "gmail",
+   "fn": "detect",
+   "id": "detect-gmail-googlemail.com-lower"
+  },
+  {
+   "args": {
+    "email": "USER@GOOGLEMAIL.COM"
+   },
+   "expected": "gmail",
+   "fn": "detect",
+   "id": "detect-gmail-googlemail.com-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Googlemail.Com"
+   },
+   "expected": "gmail",
+   "fn": "detect",
+   "id": "detect-gmail-googlemail.com-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.googlemail.com"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-gmail-googlemail.com-subdomain"
+  },
+  {
+   "args": {
+    "email": "@googlemail.com"
+   },
+   "expected": "gmail",
+   "fn": "detect",
+   "id": "detect-gmail-googlemail.com-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@googlemail.com"
+   },
+   "expected": "gmail",
+   "fn": "detect",
+   "id": "detect-gmail-googlemail.com-two-at"
+  },
+  {
+   "args": {
+    "email": "user@yahoo.com"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com-lower"
+  },
+  {
+   "args": {
+    "email": "USER@YAHOO.COM"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Yahoo.Com"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.yahoo.com"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com-subdomain"
+  },
+  {
+   "args": {
+    "email": "@yahoo.com"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@yahoo.com"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com-two-at"
+  },
+  {
+   "args": {
+    "email": "user@ymail.com"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-ymail.com-lower"
+  },
+  {
+   "args": {
+    "email": "USER@YMAIL.COM"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-ymail.com-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Ymail.Com"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-ymail.com-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.ymail.com"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-yahoo-ymail.com-subdomain"
+  },
+  {
+   "args": {
+    "email": "@ymail.com"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-ymail.com-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@ymail.com"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-ymail.com-two-at"
+  },
+  {
+   "args": {
+    "email": "user@rocketmail.com"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-rocketmail.com-lower"
+  },
+  {
+   "args": {
+    "email": "USER@ROCKETMAIL.COM"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-rocketmail.com-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Rocketmail.Com"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-rocketmail.com-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.rocketmail.com"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-yahoo-rocketmail.com-subdomain"
+  },
+  {
+   "args": {
+    "email": "@rocketmail.com"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-rocketmail.com-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@rocketmail.com"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-rocketmail.com-two-at"
+  },
+  {
+   "args": {
+    "email": "user@myyahoo.com"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-myyahoo.com-lower"
+  },
+  {
+   "args": {
+    "email": "USER@MYYAHOO.COM"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-myyahoo.com-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Myyahoo.Com"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-myyahoo.com-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.myyahoo.com"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-yahoo-myyahoo.com-subdomain"
+  },
+  {
+   "args": {
+    "email": "@myyahoo.com"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-myyahoo.com-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@myyahoo.com"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-myyahoo.com-two-at"
+  },
+  {
+   "args": {
+    "email": "user@yahoo.co.uk"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.co.uk-lower"
+  },
+  {
+   "args": {
+    "email": "USER@YAHOO.CO.UK"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.co.uk-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Yahoo.Co.Uk"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.co.uk-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.yahoo.co.uk"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.co.uk-subdomain"
+  },
+  {
+   "args": {
+    "email": "@yahoo.co.uk"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.co.uk-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@yahoo.co.uk"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.co.uk-two-at"
+  },
+  {
+   "args": {
+    "email": "user@yahoo.ca"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.ca-lower"
+  },
+  {
+   "args": {
+    "email": "USER@YAHOO.CA"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.ca-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Yahoo.Ca"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.ca-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.yahoo.ca"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.ca-subdomain"
+  },
+  {
+   "args": {
+    "email": "@yahoo.ca"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.ca-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@yahoo.ca"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.ca-two-at"
+  },
+  {
+   "args": {
+    "email": "user@yahoo.com.au"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.au-lower"
+  },
+  {
+   "args": {
+    "email": "USER@YAHOO.COM.AU"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.au-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Yahoo.Com.Au"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.au-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.yahoo.com.au"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.au-subdomain"
+  },
+  {
+   "args": {
+    "email": "@yahoo.com.au"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.au-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@yahoo.com.au"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.au-two-at"
+  },
+  {
+   "args": {
+    "email": "user@yahoo.co.nz"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.co.nz-lower"
+  },
+  {
+   "args": {
+    "email": "USER@YAHOO.CO.NZ"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.co.nz-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Yahoo.Co.Nz"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.co.nz-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.yahoo.co.nz"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.co.nz-subdomain"
+  },
+  {
+   "args": {
+    "email": "@yahoo.co.nz"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.co.nz-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@yahoo.co.nz"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.co.nz-two-at"
+  },
+  {
+   "args": {
+    "email": "user@yahoo.ie"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.ie-lower"
+  },
+  {
+   "args": {
+    "email": "USER@YAHOO.IE"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.ie-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Yahoo.Ie"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.ie-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.yahoo.ie"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.ie-subdomain"
+  },
+  {
+   "args": {
+    "email": "@yahoo.ie"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.ie-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@yahoo.ie"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.ie-two-at"
+  },
+  {
+   "args": {
+    "email": "user@yahoo.co.in"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.co.in-lower"
+  },
+  {
+   "args": {
+    "email": "USER@YAHOO.CO.IN"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.co.in-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Yahoo.Co.In"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.co.in-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.yahoo.co.in"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.co.in-subdomain"
+  },
+  {
+   "args": {
+    "email": "@yahoo.co.in"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.co.in-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@yahoo.co.in"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.co.in-two-at"
+  },
+  {
+   "args": {
+    "email": "user@yahoo.com.sg"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.sg-lower"
+  },
+  {
+   "args": {
+    "email": "USER@YAHOO.COM.SG"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.sg-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Yahoo.Com.Sg"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.sg-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.yahoo.com.sg"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.sg-subdomain"
+  },
+  {
+   "args": {
+    "email": "@yahoo.com.sg"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.sg-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@yahoo.com.sg"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.sg-two-at"
+  },
+  {
+   "args": {
+    "email": "user@yahoo.com.my"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.my-lower"
+  },
+  {
+   "args": {
+    "email": "USER@YAHOO.COM.MY"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.my-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Yahoo.Com.My"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.my-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.yahoo.com.my"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.my-subdomain"
+  },
+  {
+   "args": {
+    "email": "@yahoo.com.my"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.my-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@yahoo.com.my"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.my-two-at"
+  },
+  {
+   "args": {
+    "email": "user@yahoo.com.ph"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.ph-lower"
+  },
+  {
+   "args": {
+    "email": "USER@YAHOO.COM.PH"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.ph-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Yahoo.Com.Ph"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.ph-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.yahoo.com.ph"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.ph-subdomain"
+  },
+  {
+   "args": {
+    "email": "@yahoo.com.ph"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.ph-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@yahoo.com.ph"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.ph-two-at"
+  },
+  {
+   "args": {
+    "email": "user@yahoo.co.id"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.co.id-lower"
+  },
+  {
+   "args": {
+    "email": "USER@YAHOO.CO.ID"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.co.id-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Yahoo.Co.Id"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.co.id-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.yahoo.co.id"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.co.id-subdomain"
+  },
+  {
+   "args": {
+    "email": "@yahoo.co.id"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.co.id-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@yahoo.co.id"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.co.id-two-at"
+  },
+  {
+   "args": {
+    "email": "user@yahoo.com.vn"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.vn-lower"
+  },
+  {
+   "args": {
+    "email": "USER@YAHOO.COM.VN"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.vn-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Yahoo.Com.Vn"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.vn-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.yahoo.com.vn"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.vn-subdomain"
+  },
+  {
+   "args": {
+    "email": "@yahoo.com.vn"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.vn-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@yahoo.com.vn"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.vn-two-at"
+  },
+  {
+   "args": {
+    "email": "user@yahoo.com.hk"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.hk-lower"
+  },
+  {
+   "args": {
+    "email": "USER@YAHOO.COM.HK"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.hk-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Yahoo.Com.Hk"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.hk-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.yahoo.com.hk"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.hk-subdomain"
+  },
+  {
+   "args": {
+    "email": "@yahoo.com.hk"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.hk-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@yahoo.com.hk"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.hk-two-at"
+  },
+  {
+   "args": {
+    "email": "user@yahoo.com.tw"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.tw-lower"
+  },
+  {
+   "args": {
+    "email": "USER@YAHOO.COM.TW"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.tw-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Yahoo.Com.Tw"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.tw-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.yahoo.com.tw"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.tw-subdomain"
+  },
+  {
+   "args": {
+    "email": "@yahoo.com.tw"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.tw-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@yahoo.com.tw"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.tw-two-at"
+  },
+  {
+   "args": {
+    "email": "user@yahoo.co.th"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.co.th-lower"
+  },
+  {
+   "args": {
+    "email": "USER@YAHOO.CO.TH"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.co.th-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Yahoo.Co.Th"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.co.th-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.yahoo.co.th"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.co.th-subdomain"
+  },
+  {
+   "args": {
+    "email": "@yahoo.co.th"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.co.th-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@yahoo.co.th"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.co.th-two-at"
+  },
+  {
+   "args": {
+    "email": "user@yahoo.fr"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.fr-lower"
+  },
+  {
+   "args": {
+    "email": "USER@YAHOO.FR"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.fr-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Yahoo.Fr"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.fr-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.yahoo.fr"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.fr-subdomain"
+  },
+  {
+   "args": {
+    "email": "@yahoo.fr"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.fr-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@yahoo.fr"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.fr-two-at"
+  },
+  {
+   "args": {
+    "email": "user@yahoo.de"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.de-lower"
+  },
+  {
+   "args": {
+    "email": "USER@YAHOO.DE"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.de-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Yahoo.De"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.de-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.yahoo.de"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.de-subdomain"
+  },
+  {
+   "args": {
+    "email": "@yahoo.de"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.de-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@yahoo.de"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.de-two-at"
+  },
+  {
+   "args": {
+    "email": "user@yahoo.it"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.it-lower"
+  },
+  {
+   "args": {
+    "email": "USER@YAHOO.IT"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.it-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Yahoo.It"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.it-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.yahoo.it"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.it-subdomain"
+  },
+  {
+   "args": {
+    "email": "@yahoo.it"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.it-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@yahoo.it"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.it-two-at"
+  },
+  {
+   "args": {
+    "email": "user@yahoo.es"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.es-lower"
+  },
+  {
+   "args": {
+    "email": "USER@YAHOO.ES"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.es-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Yahoo.Es"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.es-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.yahoo.es"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.es-subdomain"
+  },
+  {
+   "args": {
+    "email": "@yahoo.es"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.es-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@yahoo.es"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.es-two-at"
+  },
+  {
+   "args": {
+    "email": "user@yahoo.se"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.se-lower"
+  },
+  {
+   "args": {
+    "email": "USER@YAHOO.SE"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.se-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Yahoo.Se"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.se-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.yahoo.se"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.se-subdomain"
+  },
+  {
+   "args": {
+    "email": "@yahoo.se"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.se-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@yahoo.se"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.se-two-at"
+  },
+  {
+   "args": {
+    "email": "user@yahoo.gr"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.gr-lower"
+  },
+  {
+   "args": {
+    "email": "USER@YAHOO.GR"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.gr-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Yahoo.Gr"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.gr-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.yahoo.gr"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.gr-subdomain"
+  },
+  {
+   "args": {
+    "email": "@yahoo.gr"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.gr-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@yahoo.gr"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.gr-two-at"
+  },
+  {
+   "args": {
+    "email": "user@yahoo.com.br"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.br-lower"
+  },
+  {
+   "args": {
+    "email": "USER@YAHOO.COM.BR"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.br-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Yahoo.Com.Br"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.br-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.yahoo.com.br"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.br-subdomain"
+  },
+  {
+   "args": {
+    "email": "@yahoo.com.br"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.br-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@yahoo.com.br"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.br-two-at"
+  },
+  {
+   "args": {
+    "email": "user@yahoo.com.mx"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.mx-lower"
+  },
+  {
+   "args": {
+    "email": "USER@YAHOO.COM.MX"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.mx-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Yahoo.Com.Mx"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.mx-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.yahoo.com.mx"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.mx-subdomain"
+  },
+  {
+   "args": {
+    "email": "@yahoo.com.mx"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.mx-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@yahoo.com.mx"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.mx-two-at"
+  },
+  {
+   "args": {
+    "email": "user@yahoo.com.ar"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.ar-lower"
+  },
+  {
+   "args": {
+    "email": "USER@YAHOO.COM.AR"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.ar-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Yahoo.Com.Ar"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.ar-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.yahoo.com.ar"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.ar-subdomain"
+  },
+  {
+   "args": {
+    "email": "@yahoo.com.ar"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.ar-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@yahoo.com.ar"
+   },
+   "expected": "yahoo",
+   "fn": "detect",
+   "id": "detect-yahoo-yahoo.com.ar-two-at"
+  },
+  {
+   "args": {
+    "email": "user@outlook.com"
+   },
+   "expected": "outlook",
+   "fn": "detect",
+   "id": "detect-outlook-outlook.com-lower"
+  },
+  {
+   "args": {
+    "email": "USER@OUTLOOK.COM"
+   },
+   "expected": "outlook",
+   "fn": "detect",
+   "id": "detect-outlook-outlook.com-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Outlook.Com"
+   },
+   "expected": "outlook",
+   "fn": "detect",
+   "id": "detect-outlook-outlook.com-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.outlook.com"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-outlook-outlook.com-subdomain"
+  },
+  {
+   "args": {
+    "email": "@outlook.com"
+   },
+   "expected": "outlook",
+   "fn": "detect",
+   "id": "detect-outlook-outlook.com-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@outlook.com"
+   },
+   "expected": "outlook",
+   "fn": "detect",
+   "id": "detect-outlook-outlook.com-two-at"
+  },
+  {
+   "args": {
+    "email": "user@hotmail.com"
+   },
+   "expected": "outlook",
+   "fn": "detect",
+   "id": "detect-outlook-hotmail.com-lower"
+  },
+  {
+   "args": {
+    "email": "USER@HOTMAIL.COM"
+   },
+   "expected": "outlook",
+   "fn": "detect",
+   "id": "detect-outlook-hotmail.com-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Hotmail.Com"
+   },
+   "expected": "outlook",
+   "fn": "detect",
+   "id": "detect-outlook-hotmail.com-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.hotmail.com"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-outlook-hotmail.com-subdomain"
+  },
+  {
+   "args": {
+    "email": "@hotmail.com"
+   },
+   "expected": "outlook",
+   "fn": "detect",
+   "id": "detect-outlook-hotmail.com-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@hotmail.com"
+   },
+   "expected": "outlook",
+   "fn": "detect",
+   "id": "detect-outlook-hotmail.com-two-at"
+  },
+  {
+   "args": {
+    "email": "user@live.com"
+   },
+   "expected": "outlook",
+   "fn": "detect",
+   "id": "detect-outlook-live.com-lower"
+  },
+  {
+   "args": {
+    "email": "USER@LIVE.COM"
+   },
+   "expected": "outlook",
+   "fn": "detect",
+   "id": "detect-outlook-live.com-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Live.Com"
+   },
+   "expected": "outlook",
+   "fn": "detect",
+   "id": "detect-outlook-live.com-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.live.com"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-outlook-live.com-subdomain"
+  },
+  {
+   "args": {
+    "email": "@live.com"
+   },
+   "expected": "outlook",
+   "fn": "detect",
+   "id": "detect-outlook-live.com-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@live.com"
+   },
+   "expected": "outlook",
+   "fn": "detect",
+   "id": "detect-outlook-live.com-two-at"
+  },
+  {
+   "args": {
+    "email": "user@msn.com"
+   },
+   "expected": "outlook",
+   "fn": "detect",
+   "id": "detect-outlook-msn.com-lower"
+  },
+  {
+   "args": {
+    "email": "USER@MSN.COM"
+   },
+   "expected": "outlook",
+   "fn": "detect",
+   "id": "detect-outlook-msn.com-upper"
+  },
+  {
+   "args": {
+    "email": "User.Name+tag@Msn.Com"
+   },
+   "expected": "outlook",
+   "fn": "detect",
+   "id": "detect-outlook-msn.com-mixed"
+  },
+  {
+   "args": {
+    "email": "user@mail.msn.com"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-outlook-msn.com-subdomain"
+  },
+  {
+   "args": {
+    "email": "@msn.com"
+   },
+   "expected": "outlook",
+   "fn": "detect",
+   "id": "detect-outlook-msn.com-no-local"
+  },
+  {
+   "args": {
+    "email": "a@b@msn.com"
+   },
+   "expected": "outlook",
+   "fn": "detect",
+   "id": "detect-outlook-msn.com-two-at"
+  },
+  {
+   "args": {
+    "email": "plainaddress"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-extra-no-at"
+  },
+  {
+   "args": {
+    "email": ""
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-extra-empty"
+  },
+  {
+   "args": {
+    "email": "   "
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-extra-whitespace"
+  },
+  {
+   "args": {
+    "email": "user@unknown.example"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-extra-unknown-domain"
+  },
+  {
+   "args": {
+    "email": "User@Unknown.Example"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-extra-unknown-tld-mix"
+  },
+  {
+   "args": {
+    "email": "@"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-extra-only-at"
+  },
+  {
+   "args": {
+    "email": "  user@qq.com  "
+   },
+   "expected": "qq",
+   "fn": "detect",
+   "id": "detect-extra-trailing-space"
+  },
+  {
+   "args": {
+    "email": "USER@QQ.COM"
+   },
+   "expected": "qq",
+   "fn": "detect",
+   "id": "detect-extra-uppercase-full"
+  },
+  {
+   "args": {
+    "email": "user@qq.com.example"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-extra-dots"
+  },
+  {
+   "args": {
+    "email": "qq.com"
+   },
+   "expected": "qq",
+   "fn": "detect",
+   "id": "detect-extra-no-at-qq-domain"
+  },
+  {
+   "args": {
+    "email": "gmail.com"
+   },
+   "expected": "gmail",
+   "fn": "detect",
+   "id": "detect-extra-no-at-gmail-domain"
+  },
+  {
+   "args": {
+    "email": "mail.qq.com"
+   },
+   "expected": "custom",
+   "fn": "detect",
+   "id": "detect-extra-no-at-subdomain"
+  },
+  {
+   "args": {
+    "key": "qq"
+   },
+   "expected": false,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-qq-exact"
+  },
+  {
+   "args": {
+    "key": "QQ"
+   },
+   "expected": false,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-qq-upper"
+  },
+  {
+   "args": {
+    "key": " qq "
+   },
+   "expected": false,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-qq-padded"
+  },
+  {
+   "args": {
+    "key": "163"
+   },
+   "expected": true,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-163-exact"
+  },
+  {
+   "args": {
+    "key": "163"
+   },
+   "expected": true,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-163-upper"
+  },
+  {
+   "args": {
+    "key": " 163 "
+   },
+   "expected": true,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-163-padded"
+  },
+  {
+   "args": {
+    "key": "126"
+   },
+   "expected": true,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-126-exact"
+  },
+  {
+   "args": {
+    "key": "126"
+   },
+   "expected": true,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-126-upper"
+  },
+  {
+   "args": {
+    "key": " 126 "
+   },
+   "expected": true,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-126-padded"
+  },
+  {
+   "args": {
+    "key": "yeah"
+   },
+   "expected": true,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-yeah-exact"
+  },
+  {
+   "args": {
+    "key": "YEAH"
+   },
+   "expected": true,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-yeah-upper"
+  },
+  {
+   "args": {
+    "key": " yeah "
+   },
+   "expected": true,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-yeah-padded"
+  },
+  {
+   "args": {
+    "key": "188"
+   },
+   "expected": true,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-188-exact"
+  },
+  {
+   "args": {
+    "key": "188"
+   },
+   "expected": true,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-188-upper"
+  },
+  {
+   "args": {
+    "key": " 188 "
+   },
+   "expected": true,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-188-padded"
+  },
+  {
+   "args": {
+    "key": "vip163"
+   },
+   "expected": true,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-vip163-exact"
+  },
+  {
+   "args": {
+    "key": "VIP163"
+   },
+   "expected": true,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-vip163-upper"
+  },
+  {
+   "args": {
+    "key": " vip163 "
+   },
+   "expected": true,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-vip163-padded"
+  },
+  {
+   "args": {
+    "key": "vip126"
+   },
+   "expected": true,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-vip126-exact"
+  },
+  {
+   "args": {
+    "key": "VIP126"
+   },
+   "expected": true,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-vip126-upper"
+  },
+  {
+   "args": {
+    "key": " vip126 "
+   },
+   "expected": true,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-vip126-padded"
+  },
+  {
+   "args": {
+    "key": "vip188"
+   },
+   "expected": true,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-vip188-exact"
+  },
+  {
+   "args": {
+    "key": "VIP188"
+   },
+   "expected": true,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-vip188-upper"
+  },
+  {
+   "args": {
+    "key": " vip188 "
+   },
+   "expected": true,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-vip188-padded"
+  },
+  {
+   "args": {
+    "key": "exmail"
+   },
+   "expected": false,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-exmail-exact"
+  },
+  {
+   "args": {
+    "key": "EXMAIL"
+   },
+   "expected": false,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-exmail-upper"
+  },
+  {
+   "args": {
+    "key": " exmail "
+   },
+   "expected": false,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-exmail-padded"
+  },
+  {
+   "args": {
+    "key": "qiye163"
+   },
+   "expected": true,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-qiye163-exact"
+  },
+  {
+   "args": {
+    "key": "QIYE163"
+   },
+   "expected": true,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-qiye163-upper"
+  },
+  {
+   "args": {
+    "key": " qiye163 "
+   },
+   "expected": true,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-qiye163-padded"
+  },
+  {
+   "args": {
+    "key": "gmail"
+   },
+   "expected": false,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-gmail-exact"
+  },
+  {
+   "args": {
+    "key": "GMAIL"
+   },
+   "expected": false,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-gmail-upper"
+  },
+  {
+   "args": {
+    "key": " gmail "
+   },
+   "expected": false,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-gmail-padded"
+  },
+  {
+   "args": {
+    "key": "yahoo"
+   },
+   "expected": false,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-yahoo-exact"
+  },
+  {
+   "args": {
+    "key": "YAHOO"
+   },
+   "expected": false,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-yahoo-upper"
+  },
+  {
+   "args": {
+    "key": " yahoo "
+   },
+   "expected": false,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-yahoo-padded"
+  },
+  {
+   "args": {
+    "key": "outlook"
+   },
+   "expected": false,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-outlook-exact"
+  },
+  {
+   "args": {
+    "key": "OUTLOOK"
+   },
+   "expected": false,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-outlook-upper"
+  },
+  {
+   "args": {
+    "key": " outlook "
+   },
+   "expected": false,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-outlook-padded"
+  },
+  {
+   "args": {
+    "key": "custom"
+   },
+   "expected": false,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-custom-exact"
+  },
+  {
+   "args": {
+    "key": "CUSTOM"
+   },
+   "expected": false,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-custom-upper"
+  },
+  {
+   "args": {
+    "key": " custom "
+   },
+   "expected": false,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-custom-padded"
+  },
+  {
+   "args": {
+    "key": "nonexistent"
+   },
+   "expected": false,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-unknown"
+  },
+  {
+   "args": {
+    "key": ""
+   },
+   "expected": false,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-empty"
+  },
+  {
+   "args": {
+    "key": "   "
+   },
+   "expected": false,
+   "fn": "needs_imap_id",
+   "id": "needs-imap-id-blank"
+  },
+  {
+   "args": {
+    "key": "qq"
+   },
+   "expected": "qq",
+   "fn": "get",
+   "id": "get-qq-exact"
+  },
+  {
+   "args": {
+    "key": "QQ"
+   },
+   "expected": "qq",
+   "fn": "get",
+   "id": "get-qq-upper"
+  },
+  {
+   "args": {
+    "key": "\tqq\n"
+   },
+   "expected": "qq",
+   "fn": "get",
+   "id": "get-qq-padded"
+  },
+  {
+   "args": {
+    "key": "163"
+   },
+   "expected": "163",
+   "fn": "get",
+   "id": "get-163-exact"
+  },
+  {
+   "args": {
+    "key": "163"
+   },
+   "expected": "163",
+   "fn": "get",
+   "id": "get-163-upper"
+  },
+  {
+   "args": {
+    "key": "\t163\n"
+   },
+   "expected": "163",
+   "fn": "get",
+   "id": "get-163-padded"
+  },
+  {
+   "args": {
+    "key": "126"
+   },
+   "expected": "126",
+   "fn": "get",
+   "id": "get-126-exact"
+  },
+  {
+   "args": {
+    "key": "126"
+   },
+   "expected": "126",
+   "fn": "get",
+   "id": "get-126-upper"
+  },
+  {
+   "args": {
+    "key": "\t126\n"
+   },
+   "expected": "126",
+   "fn": "get",
+   "id": "get-126-padded"
+  },
+  {
+   "args": {
+    "key": "yeah"
+   },
+   "expected": "yeah",
+   "fn": "get",
+   "id": "get-yeah-exact"
+  },
+  {
+   "args": {
+    "key": "YEAH"
+   },
+   "expected": "yeah",
+   "fn": "get",
+   "id": "get-yeah-upper"
+  },
+  {
+   "args": {
+    "key": "\tyeah\n"
+   },
+   "expected": "yeah",
+   "fn": "get",
+   "id": "get-yeah-padded"
+  },
+  {
+   "args": {
+    "key": "188"
+   },
+   "expected": "188",
+   "fn": "get",
+   "id": "get-188-exact"
+  },
+  {
+   "args": {
+    "key": "188"
+   },
+   "expected": "188",
+   "fn": "get",
+   "id": "get-188-upper"
+  },
+  {
+   "args": {
+    "key": "\t188\n"
+   },
+   "expected": "188",
+   "fn": "get",
+   "id": "get-188-padded"
+  },
+  {
+   "args": {
+    "key": "vip163"
+   },
+   "expected": "vip163",
+   "fn": "get",
+   "id": "get-vip163-exact"
+  },
+  {
+   "args": {
+    "key": "VIP163"
+   },
+   "expected": "vip163",
+   "fn": "get",
+   "id": "get-vip163-upper"
+  },
+  {
+   "args": {
+    "key": "\tvip163\n"
+   },
+   "expected": "vip163",
+   "fn": "get",
+   "id": "get-vip163-padded"
+  },
+  {
+   "args": {
+    "key": "vip126"
+   },
+   "expected": "vip126",
+   "fn": "get",
+   "id": "get-vip126-exact"
+  },
+  {
+   "args": {
+    "key": "VIP126"
+   },
+   "expected": "vip126",
+   "fn": "get",
+   "id": "get-vip126-upper"
+  },
+  {
+   "args": {
+    "key": "\tvip126\n"
+   },
+   "expected": "vip126",
+   "fn": "get",
+   "id": "get-vip126-padded"
+  },
+  {
+   "args": {
+    "key": "vip188"
+   },
+   "expected": "vip188",
+   "fn": "get",
+   "id": "get-vip188-exact"
+  },
+  {
+   "args": {
+    "key": "VIP188"
+   },
+   "expected": "vip188",
+   "fn": "get",
+   "id": "get-vip188-upper"
+  },
+  {
+   "args": {
+    "key": "\tvip188\n"
+   },
+   "expected": "vip188",
+   "fn": "get",
+   "id": "get-vip188-padded"
+  },
+  {
+   "args": {
+    "key": "exmail"
+   },
+   "expected": "exmail",
+   "fn": "get",
+   "id": "get-exmail-exact"
+  },
+  {
+   "args": {
+    "key": "EXMAIL"
+   },
+   "expected": "exmail",
+   "fn": "get",
+   "id": "get-exmail-upper"
+  },
+  {
+   "args": {
+    "key": "\texmail\n"
+   },
+   "expected": "exmail",
+   "fn": "get",
+   "id": "get-exmail-padded"
+  },
+  {
+   "args": {
+    "key": "qiye163"
+   },
+   "expected": "qiye163",
+   "fn": "get",
+   "id": "get-qiye163-exact"
+  },
+  {
+   "args": {
+    "key": "QIYE163"
+   },
+   "expected": "qiye163",
+   "fn": "get",
+   "id": "get-qiye163-upper"
+  },
+  {
+   "args": {
+    "key": "\tqiye163\n"
+   },
+   "expected": "qiye163",
+   "fn": "get",
+   "id": "get-qiye163-padded"
+  },
+  {
+   "args": {
+    "key": "gmail"
+   },
+   "expected": "gmail",
+   "fn": "get",
+   "id": "get-gmail-exact"
+  },
+  {
+   "args": {
+    "key": "GMAIL"
+   },
+   "expected": "gmail",
+   "fn": "get",
+   "id": "get-gmail-upper"
+  },
+  {
+   "args": {
+    "key": "\tgmail\n"
+   },
+   "expected": "gmail",
+   "fn": "get",
+   "id": "get-gmail-padded"
+  },
+  {
+   "args": {
+    "key": "yahoo"
+   },
+   "expected": "yahoo",
+   "fn": "get",
+   "id": "get-yahoo-exact"
+  },
+  {
+   "args": {
+    "key": "YAHOO"
+   },
+   "expected": "yahoo",
+   "fn": "get",
+   "id": "get-yahoo-upper"
+  },
+  {
+   "args": {
+    "key": "\tyahoo\n"
+   },
+   "expected": "yahoo",
+   "fn": "get",
+   "id": "get-yahoo-padded"
+  },
+  {
+   "args": {
+    "key": "outlook"
+   },
+   "expected": "outlook",
+   "fn": "get",
+   "id": "get-outlook-exact"
+  },
+  {
+   "args": {
+    "key": "OUTLOOK"
+   },
+   "expected": "outlook",
+   "fn": "get",
+   "id": "get-outlook-upper"
+  },
+  {
+   "args": {
+    "key": "\toutlook\n"
+   },
+   "expected": "outlook",
+   "fn": "get",
+   "id": "get-outlook-padded"
+  },
+  {
+   "args": {
+    "key": "custom"
+   },
+   "expected": "custom",
+   "fn": "get",
+   "id": "get-custom-exact"
+  },
+  {
+   "args": {
+    "key": "CUSTOM"
+   },
+   "expected": "custom",
+   "fn": "get",
+   "id": "get-custom-upper"
+  },
+  {
+   "args": {
+    "key": "\tcustom\n"
+   },
+   "expected": "custom",
+   "fn": "get",
+   "id": "get-custom-padded"
+  },
+  {
+   "args": {
+    "key": "nonexistent"
+   },
+   "expected": null,
+   "fn": "get",
+   "id": "get-unknown"
+  },
+  {
+   "args": {
+    "key": ""
+   },
+   "expected": null,
+   "fn": "get",
+   "id": "get-empty"
+  },
+  {
+   "args": {
+    "key": null
+   },
+   "expected": null,
+   "fn": "get",
+   "id": "get-none"
+  },
+  {
+   "args": {},
+   "expected": [
+    "163",
+    "126",
+    "yeah",
+    "188",
+    "vip163",
+    "vip126",
+    "vip188"
+   ],
+   "fn": "netease_keys",
+   "id": "netease-keys"
+  },
+  {
+   "args": {},
+   "expected": [
+    "qq",
+    "163",
+    "126",
+    "yeah",
+    "188",
+    "vip163",
+    "vip126",
+    "vip188",
+    "exmail",
+    "qiye163",
+    "gmail",
+    "yahoo",
+    "outlook",
+    "custom"
+   ],
+   "fn": "provider_order",
+   "id": "provider-order"
+  }
+ ],
+ "generator": "scripts/golden/providers.py",
+ "module": "providers"
+}

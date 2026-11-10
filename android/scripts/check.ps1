@@ -5,7 +5,7 @@
 .DESCRIPTION
     只在当前进程设置 JAVA_HOME 和 ANDROID_HOME（不改系统环境变量），
     然后在 android/ 目录里运行：
-      :app:swissGuard :app:swissGuardSelfTest :app:testDebugUnitTest
+      :core:test :app:swissGuard :app:swissGuardSelfTest :app:testDebugUnitTest
       :app:verifyRoborazziDebug :app:lintDebug :app:assembleDebug
     gradlew 的退出码原样作为本脚本的退出码。
 
@@ -44,6 +44,7 @@ if (-not (Test-Path $env:ANDROID_HOME)) {
 }
 
 $tasks = @(
+    ':core:test',
     ':app:swissGuard',
     ':app:swissGuardSelfTest',
     ':app:testDebugUnitTest',

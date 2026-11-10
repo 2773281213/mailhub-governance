@@ -1,0 +1,12 @@
+From: Notice <notice@shop.example>
+To: bob@corp.example
+Subject: Long attachment name
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+Content-Type: multipart/mixed; boundary="a6"
+
+--a6
+Content-Type: application/pdf
+Content-Disposition: attachment; filename=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+
+PDFDATA
+--a6--

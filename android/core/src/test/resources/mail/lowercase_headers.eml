@@ -1,0 +1,7 @@
+from: notice@shop.example
+to: bob@corp.example
+subject: =?utf-8?B?5bCP5YaZ5aS05ZCN?=
+date: Tue, 05 Nov 2024 10:30:00 +0800
+message-id: <lowercase-id@mail.shop.example>
+
+这是正文。

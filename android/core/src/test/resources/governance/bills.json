@@ -1,0 +1,186 @@
+{
+  "name": "bills",
+  "now": 1760000000.0,
+  "limit": 0,
+  "runs": [
+    {
+      "trigger": "system",
+      "force": false,
+      "since_days": 0
+    }
+  ],
+  "post": [
+    {"op": "set_settings", "values": {"bill_routine_count": "5"}},
+    {"op": "retier_bills", "template": "", "only_missing": false}
+  ],
+  "accounts": [
+    {
+      "id": 1,
+      "name": "账单邮箱",
+      "provider": "custom",
+      "email": "bills@example.test",
+      "imap_host": "imap.example.test"
+    }
+  ],
+  "settings": {
+    "ai_enabled": "0",
+    "bill_amount_threshold": "200",
+    "bill_routine_count": "2",
+    "bill_auto_renew": "重要",
+    "bill_refund": "一般"
+  },
+  "rules": [],
+  "bill_prefs": [
+    {
+      "template_key": "example.com|月度订阅扣款",
+      "tier": "一般",
+      "created_ts": 1759000000.0
+    },
+    {
+      "template_key": "example.com|待确认账单",
+      "tier": "普通",
+      "created_ts": 1759000000.0
+    }
+  ],
+  "messages": [
+    {
+      "id": 1,
+      "account_id": 1,
+      "uid": 1,
+      "subject": "订单确认 12345",
+      "sender_addr": "shop@example.com",
+      "date_ts": 1759996400.0,
+      "snippet": "订单金额 ¥250.00",
+      "body_text": "订单金额 ¥250.00",
+      "category": "账单",
+      "created_ts": 1759999400.0,
+      "template_key": "example.com|订单确认 #"
+    },
+    {
+      "id": 2,
+      "account_id": 1,
+      "uid": 2,
+      "subject": "订单确认 67890",
+      "sender_addr": "shop@example.com",
+      "date_ts": 1759992800.0,
+      "snippet": "订单金额 ¥150.00",
+      "body_text": "订单金额 ¥150.00",
+      "category": "账单",
+      "template_key": "example.com|订单确认 #"
+    },
+    {
+      "id": 3,
+      "account_id": 1,
+      "uid": 3,
+      "subject": "月度订阅扣款",
+      "sender_addr": "store@example.com",
+      "date_ts": 1759990000.0,
+      "snippet": "本期扣款明细",
+      "body_text": "本期扣款明细，金额 ¥30.00",
+      "category": "账单",
+      "template_key": "example.com|月度订阅扣款"
+    },
+    {
+      "id": 4,
+      "account_id": 1,
+      "uid": 4,
+      "subject": "手动锁定账单",
+      "sender_addr": "locked@example.com",
+      "date_ts": 1759988000.0,
+      "snippet": "用户已手动设为一般",
+      "body_text": "用户已手动设为一般",
+      "category": "账单",
+      "bill_tier": "一般",
+      "bill_tier_locked": 1,
+      "bill_facets": "{\"direction\": \"in\"}",
+      "importance": 4,
+      "template_key": "example.com|手动锁定账单"
+    },
+    {
+      "id": 5,
+      "account_id": 1,
+      "uid": 5,
+      "subject": "Your subscription has been renewed",
+      "sender_addr": "auto@example.com",
+      "date_ts": 1759986000.0,
+      "snippet": "We charged $9.99",
+      "body_text": "We charged $9.99 to your card. Your Premium plan renews monthly.",
+      "category": "账单",
+      "template_key": "example.com|your subscription has been renewed"
+    },
+    {
+      "id": 6,
+      "account_id": 1,
+      "uid": 6,
+      "subject": "您的购买已退款",
+      "sender_addr": "refund@example.com",
+      "date_ts": 1759984000.0,
+      "snippet": "退款总计 184₴",
+      "body_text": "我们已将款项退还到您的钱包。退款总计： 184₴",
+      "category": "账单",
+      "template_key": "example.com|您的购买已退款"
+    },
+    {
+      "id": 7,
+      "account_id": 1,
+      "uid": 7,
+      "subject": "返现已到账",
+      "sender_addr": "cash@example.com",
+      "date_ts": 1759982000.0,
+      "snippet": "返现 2.30 元",
+      "body_text": "您的账户已收到返现 2.30 元",
+      "category": "账单",
+      "template_key": "example.com|返现已到账"
+    },
+    {
+      "id": 8,
+      "account_id": 1,
+      "uid": 8,
+      "subject": "Payment failed for your subscription",
+      "sender_addr": "billing@example.com",
+      "date_ts": 1759980000.0,
+      "snippet": "Unable to charge your card",
+      "body_text": "We were unable to charge your card ending in 4242. Please update your payment method.",
+      "category": "账单",
+      "created_ts": 1759999600.0,
+      "template_key": "example.com|payment failed for your subscription"
+    },
+    {
+      "id": 9,
+      "account_id": 1,
+      "uid": 9,
+      "subject": "免费领取会员体验",
+      "sender_addr": "promo@example.com",
+      "date_ts": 1759978000.0,
+      "snippet": "无需支付",
+      "body_text": "本月免费赠送，无需支付。",
+      "category": "账单",
+      "template_key": "example.com|免费领取会员体验"
+    },
+    {
+      "id": 10,
+      "account_id": 1,
+      "uid": 10,
+      "subject": "Transaction 950178953",
+      "sender_addr": "spam@example.com",
+      "date_ts": 1759976000.0,
+      "snippet": "Reference 950178953",
+      "body_text": "Reference 950178953",
+      "category": "账单",
+      "template_key": "example.com|transaction #"
+    },
+    {
+      "id": 11,
+      "account_id": 1,
+      "uid": 11,
+      "subject": "待确认账单",
+      "sender_addr": "bad@example.com",
+      "date_ts": 1759974000.0,
+      "snippet": "请核对本期账目",
+      "body_text": "请核对本期账目",
+      "category": "账单",
+      "created_ts": 1759999700.0,
+      "template_key": "example.com|待确认账单"
+    }
+  ]
+}

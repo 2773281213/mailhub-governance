@@ -1,0 +1,126 @@
+{
+ "cases": [
+  {
+   "args": {
+    "s": "没有实体"
+   },
+   "expected": "没有实体",
+   "fn": "unescape",
+   "id": "s00"
+  },
+  {
+   "args": {
+    "s": "&amp; &lt;b&gt; &quot;x&quot; &#39;y&#39;"
+   },
+   "expected": "& <b> \"x\" 'y'",
+   "fn": "unescape",
+   "id": "s01"
+  },
+  {
+   "args": {
+    "s": "&nbsp;价格&yen;100&nbsp;"
+   },
+   "expected": " 价格¥100 ",
+   "fn": "unescape",
+   "id": "s02"
+  },
+  {
+   "args": {
+    "s": "&amp &lt3 &notit; &notin; &not"
+   },
+   "expected": "& <3 ¬it; ∉ ¬",
+   "fn": "unescape",
+   "id": "s03"
+  },
+  {
+   "args": {
+    "s": "&AMP; &Amp; &amp;amp;"
+   },
+   "expected": "& &Amp; &amp;",
+   "fn": "unescape",
+   "id": "s04"
+  },
+  {
+   "args": {
+    "s": "&#65;&#x42;&#X43;&#0067"
+   },
+   "expected": "ABCC",
+   "fn": "unescape",
+   "id": "s05"
+  },
+  {
+   "args": {
+    "s": "&#0; &#13; &#128; &#150; &#159;"
+   },
+   "expected": "� \r € – Ÿ",
+   "fn": "unescape",
+   "id": "s06"
+  },
+  {
+   "args": {
+    "s": "&#xD800; &#x110000; &#99999999999999999999;"
+   },
+   "expected": "� � �",
+   "fn": "unescape",
+   "id": "s07"
+  },
+  {
+   "args": {
+    "s": "&#1; &#x7f; &#xFFFE; &#x10FFFF;"
+   },
+   "expected": "   ",
+   "fn": "unescape",
+   "id": "s08"
+  },
+  {
+   "args": {
+    "s": "&#x1F600; &#128512;"
+   },
+   "expected": "😀 😀",
+   "fn": "unescape",
+   "id": "s09"
+  },
+  {
+   "args": {
+    "s": "& ; &# &#x; &#xG; &;"
+   },
+   "expected": "& ; &# &#x; &#xG; &;",
+   "fn": "unescape",
+   "id": "s10"
+  },
+  {
+   "args": {
+    "s": "&abcdefghijklmnopqrstuvwxyzabcdefghijklmn;"
+   },
+   "expected": "&abcdefghijklmnopqrstuvwxyzabcdefghijklmn;",
+   "fn": "unescape",
+   "id": "s11"
+  },
+  {
+   "args": {
+    "s": "&😀😀; &a😀;"
+   },
+   "expected": "&😀😀; &a😀;",
+   "fn": "unescape",
+   "id": "s12"
+  },
+  {
+   "args": {
+    "s": "&\t; &\n; a&&amp;b"
+   },
+   "expected": "&\t; &\n; a&&b",
+   "fn": "unescape",
+   "id": "s13"
+  },
+  {
+   "args": {
+    "s": "&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;"
+   },
+   "expected": "<<<<<<<<<",
+   "fn": "unescape",
+   "id": "s14"
+  }
+ ],
+ "generator": "scripts/golden/html_unescape.py",
+ "module": "html_unescape"
+}

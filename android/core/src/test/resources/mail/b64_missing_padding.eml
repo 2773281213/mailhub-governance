@@ -1,0 +1,8 @@
+From: Notice <notice@shop.example>
+To: bob@corp.example
+Subject: Base64 missing padding
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: base64
+
+5L2g5aW977yM6L+Z5piv5q2j5paH44CC

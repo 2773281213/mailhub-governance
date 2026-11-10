@@ -1,3 +1,6 @@
 *.sh text eol=lf
 android/gradlew text eol=lf
 *.bat text eol=crlf
+*.eml binary
+*.json text eol=lf
+android/core/src/main/resources/py/** -text

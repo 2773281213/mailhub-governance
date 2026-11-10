@@ -17,18 +17,21 @@ import kotlinx.coroutines.launch
  *
  * - 吊销单台设备、退出其他所有设备都必须先经过确认面板；
  * - 本机不提供吊销；
- * - 退出其他所有设备后用返回的新令牌原地换会话。
+ * - 退出其他所有设备后用返回的新令牌原地换会话；
+ * - [localMode] 是本机会话时没有「已登录设备」这一块，也不会去请求 `/api/sessions`
+ *   （见 [SecurityUiState.sections]）。
  */
 class SecurityViewModel(
     private val gateway: SecurityGateway,
+    localMode: Boolean = false,
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(SecurityUiState())
+    private val _state = MutableStateFlow(SecurityUiState(localMode = localMode))
     val state: StateFlow<SecurityUiState> = _state.asStateFlow()
 
-    /** 页面每次进入都重新拉四块：安全信息要新鲜。 */
+    /** 页面每次进入都重新拉当前模式下可见的块：安全信息要新鲜。 */
     fun onEnter() {
-        SecuritySection.entries.forEach { load(it) }
+        _state.value.sections.forEach { load(it) }
     }
 
     fun onEvent(event: SecurityEvent) {
@@ -60,6 +63,8 @@ class SecurityViewModel(
     }
 
     private fun load(section: SecuritySection) {
+        // 本机模式没有「已登录设备」：重试请求也不能把它拉回来
+        if (section !in _state.value.sections) return
         when (section) {
             SecuritySection.Review -> refresh(section, { it.review }, { s, v -> s.copy(review = v) }) {
                 gateway.review()
@@ -251,10 +256,11 @@ class SecurityViewModel(
 /** 手工工厂：宿主用页面自己的 Repository 组装网关。 */
 class SecurityViewModelFactory(
     private val gateway: SecurityGateway,
+    private val localMode: Boolean = false,
 ) : ViewModelProvider.Factory {
 
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         @Suppress("UNCHECKED_CAST")
-        return SecurityViewModel(gateway) as T
+        return SecurityViewModel(gateway, localMode) as T
     }
 }

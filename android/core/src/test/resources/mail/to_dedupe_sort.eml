@@ -1,0 +1,8 @@
+From: notice@shop.example
+To: Zed@Corp.example, amy@corp.example
+Cc: ZED@corp.example, bob@corp.example, amy@CORD.example
+Delivered-To: amy@corp.example
+Subject: Dedupe and sort
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+
+这是正文。

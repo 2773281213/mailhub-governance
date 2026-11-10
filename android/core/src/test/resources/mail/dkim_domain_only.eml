@@ -1,0 +1,7 @@
+DKIM-Signature: v=1; a=rsa-sha256; d=mandrillapp.com; s=sel; b=abc
+From: promo@shop.example
+To: bob@corp.example
+Subject: DKIM domain only
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+
+这是正文。

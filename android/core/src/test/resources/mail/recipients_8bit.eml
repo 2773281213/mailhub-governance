@@ -1,0 +1,8 @@
+From: notice@shop.example
+To: 张 <a@corp.example>
+Cc: � <c@corp.example>
+Delivered-To: � <d@corp.example>
+Subject: Eight bit recipients
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+
+这是正文。

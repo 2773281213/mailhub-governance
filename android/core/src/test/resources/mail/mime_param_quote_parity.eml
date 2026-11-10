@@ -1,0 +1,11 @@
+From: Notice <notice@shop.example>
+To: bob@corp.example
+Subject: Quote parity
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+Content-Type: multipart/mixed; x="\""; boundary=b
+
+--b
+Content-Type: text/plain; y="\""; charset=gbk
+
+ÒýºÅÆæÅ¼²»ÄÜ³Ôµô charset¡£
+--b--

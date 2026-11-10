@@ -1,0 +1,7 @@
+From: Notice <notice@shop.example>
+To: bob@corp.example
+Subject: HTML only
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+Content-Type: text/html; charset=utf-8
+
+<html><body><h1>欢迎</h1><p>这是只有 HTML 的邮件。</p></body></html>

@@ -1,0 +1,6321 @@
+{
+ "cases": [
+  {
+   "args": {
+    "body": "您在社区市场中上架的一件物品已售出。您的钱包已获得 4.07 UAH。这封电子邮件将作为您的收据。您也可以随时在线查看您的消费历史记录。总计： 4.07 UAH",
+    "subject": "您在社区市场上售出了一件物品"
+   },
+   "expected": {
+    "acquired": "virtual_item",
+    "action": false,
+    "amount": 4.07,
+    "channel": "unknown",
+    "cny": 0.69,
+    "currency": "UAH",
+    "direction": "in",
+    "initiator": "other"
+   },
+   "fn": "extract_facets",
+   "id": "corpus-facets-market-sale-cn"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "virtual_item",
+     "action": false,
+     "amount": 4.07,
+     "channel": "unknown",
+     "cny": 0.69,
+     "currency": "UAH",
+     "direction": "in",
+     "initiator": "other"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "一般",
+    "收入或到账，不需要处理"
+   ],
+   "fn": "decide_tier",
+   "id": "corpus-tier-market-sale-cn"
+  },
+  {
+   "args": {
+    "facets": {
+     "acquired": "virtual_item",
+     "action": false,
+     "amount": 4.07,
+     "channel": "unknown",
+     "cny": 0.69,
+     "currency": "UAH",
+     "direction": "in",
+     "initiator": "other"
+    }
+   },
+   "expected": {
+    "acquired": "virtual_item",
+    "action": false,
+    "amount": 4.07,
+    "channel": "unknown",
+    "cny": 0.69,
+    "currency": "UAH",
+    "direction": "in",
+    "initiator": "other"
+   },
+   "fn": "stored_facets",
+   "id": "corpus-stored-market-sale-cn"
+  },
+  {
+   "args": {
+    "body": "An item you listed has been sold. Your wallet has been credited. Total: $0.12",
+    "subject": "You have sold an item on the Community Market"
+   },
+   "expected": {
+    "acquired": "virtual_item",
+    "action": false,
+    "amount": 0.12,
+    "channel": "unknown",
+    "cny": 0.86,
+    "currency": "USD",
+    "direction": "in",
+    "initiator": "other"
+   },
+   "fn": "extract_facets",
+   "id": "corpus-facets-market-sale-en"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "virtual_item",
+     "action": false,
+     "amount": 0.12,
+     "channel": "unknown",
+     "cny": 0.86,
+     "currency": "USD",
+     "direction": "in",
+     "initiator": "other"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "一般",
+    "收入或到账，不需要处理"
+   ],
+   "fn": "decide_tier",
+   "id": "corpus-tier-market-sale-en"
+  },
+  {
+   "args": {
+    "facets": {
+     "acquired": "virtual_item",
+     "action": false,
+     "amount": 0.12,
+     "channel": "unknown",
+     "cny": 0.86,
+     "currency": "USD",
+     "direction": "in",
+     "initiator": "other"
+    }
+   },
+   "expected": {
+    "acquired": "virtual_item",
+    "action": false,
+    "amount": 0.12,
+    "channel": "unknown",
+    "cny": 0.86,
+    "currency": "USD",
+    "direction": "in",
+    "initiator": "other"
+   },
+   "fn": "stored_facets",
+   "id": "corpus-stored-market-sale-en"
+  },
+  {
+   "args": {
+    "body": "以下物品已添加到您的游戏库。您已获得商店点数 110。小计： 41₴ 总计： 49₴ 支付方式： 商店钱包 该笔交易您共计花费： 49₴",
+    "subject": "感谢您在商店的购买！"
+   },
+   "expected": {
+    "acquired": "entitlement",
+    "action": false,
+    "amount": 49.0,
+    "channel": "balance",
+    "cny": 8.33,
+    "currency": "UAH",
+    "direction": "out",
+    "initiator": "self"
+   },
+   "fn": "extract_facets",
+   "id": "corpus-facets-game-purchase-cn"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "entitlement",
+     "action": false,
+     "amount": 49.0,
+     "channel": "balance",
+     "cny": 8.33,
+     "currency": "UAH",
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "本人主动支出，获得长期权益"
+   ],
+   "fn": "decide_tier",
+   "id": "corpus-tier-game-purchase-cn"
+  },
+  {
+   "args": {
+    "facets": {
+     "acquired": "entitlement",
+     "action": false,
+     "amount": 49.0,
+     "channel": "balance",
+     "cny": 8.33,
+     "currency": "UAH",
+     "direction": "out",
+     "initiator": "self"
+    }
+   },
+   "expected": {
+    "acquired": "entitlement",
+    "action": false,
+    "amount": 49.0,
+    "channel": "balance",
+    "cny": 8.33,
+    "currency": "UAH",
+    "direction": "out",
+    "initiator": "self"
+   },
+   "fn": "stored_facets",
+   "id": "corpus-stored-game-purchase-cn"
+  },
+  {
+   "args": {
+    "body": "The following games were added to your library. Order total: €19,99. Payment method: Visa",
+    "subject": "Thank you for your purchase"
+   },
+   "expected": {
+    "acquired": "entitlement",
+    "action": false,
+    "amount": 19.99,
+    "channel": "real",
+    "cny": 155.92,
+    "currency": "EUR",
+    "direction": "out",
+    "initiator": "self"
+   },
+   "fn": "extract_facets",
+   "id": "corpus-facets-game-purchase-en"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "entitlement",
+     "action": false,
+     "amount": 19.99,
+     "channel": "real",
+     "cny": 155.92,
+     "currency": "EUR",
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "本人主动支出，获得长期权益"
+   ],
+   "fn": "decide_tier",
+   "id": "corpus-tier-game-purchase-en"
+  },
+  {
+   "args": {
+    "facets": {
+     "acquired": "entitlement",
+     "action": false,
+     "amount": 19.99,
+     "channel": "real",
+     "cny": 155.92,
+     "currency": "EUR",
+     "direction": "out",
+     "initiator": "self"
+    }
+   },
+   "expected": {
+    "acquired": "entitlement",
+    "action": false,
+    "amount": 19.99,
+    "channel": "real",
+    "cny": 155.92,
+    "currency": "EUR",
+    "direction": "out",
+    "initiator": "self"
+   },
+   "fn": "stored_facets",
+   "id": "corpus-stored-game-purchase-en"
+  },
+  {
+   "args": {
+    "body": "我们已将款项退还到您的钱包。退款总计： 184₴",
+    "subject": "您的购买已退款"
+   },
+   "expected": {
+    "acquired": "balance",
+    "action": false,
+    "amount": 184.0,
+    "channel": "unknown",
+    "cny": 31.28,
+    "currency": "UAH",
+    "direction": "refund",
+    "initiator": "self"
+   },
+   "fn": "extract_facets",
+   "id": "corpus-facets-refund"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "balance",
+     "action": false,
+     "amount": 184.0,
+     "channel": "unknown",
+     "cny": 31.28,
+     "currency": "UAH",
+     "direction": "refund",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "一般",
+    "退款（按设置）"
+   ],
+   "fn": "decide_tier",
+   "id": "corpus-tier-refund"
+  },
+  {
+   "args": {
+    "facets": {
+     "acquired": "balance",
+     "action": false,
+     "amount": 184.0,
+     "channel": "unknown",
+     "cny": 31.28,
+     "currency": "UAH",
+     "direction": "refund",
+     "initiator": "self"
+    }
+   },
+   "expected": {
+    "acquired": "balance",
+    "action": false,
+    "amount": 184.0,
+    "channel": "unknown",
+    "cny": 31.28,
+    "currency": "UAH",
+    "direction": "refund",
+    "initiator": "self"
+   },
+   "fn": "stored_facets",
+   "id": "corpus-stored-refund"
+  },
+  {
+   "args": {
+    "body": "Enjoy your free games.",
+    "subject": "Free items added to your library."
+   },
+   "expected": {
+    "acquired": "entitlement",
+    "action": false,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "none",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "corpus-facets-free-claim"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "entitlement",
+     "action": false,
+     "amount": null,
+     "channel": "unknown",
+     "cny": null,
+     "currency": null,
+     "direction": "none",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "一般",
+    "零金额（免费领取等）"
+   ],
+   "fn": "decide_tier",
+   "id": "corpus-tier-free-claim"
+  },
+  {
+   "args": {
+    "facets": {
+     "acquired": "entitlement",
+     "action": false,
+     "amount": null,
+     "channel": "unknown",
+     "cny": null,
+     "currency": null,
+     "direction": "none",
+     "initiator": "unknown"
+    }
+   },
+   "expected": {
+    "acquired": "entitlement",
+    "action": false,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "none",
+    "initiator": "unknown"
+   },
+   "fn": "stored_facets",
+   "id": "corpus-stored-free-claim"
+  },
+  {
+   "args": {
+    "body": "您已成功充值 50 元，当前余额 80 元",
+    "subject": "[Hub] 余额充值成功"
+   },
+   "expected": {
+    "acquired": "balance",
+    "action": false,
+    "amount": 80.0,
+    "channel": "unknown",
+    "cny": 80.0,
+    "currency": "CNY",
+    "direction": "out",
+    "initiator": "self"
+   },
+   "fn": "extract_facets",
+   "id": "corpus-facets-top-up"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "balance",
+     "action": false,
+     "amount": 80.0,
+     "channel": "unknown",
+     "cny": 80.0,
+     "currency": "CNY",
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "本人主动支出，获得账户余额"
+   ],
+   "fn": "decide_tier",
+   "id": "corpus-tier-top-up"
+  },
+  {
+   "args": {
+    "facets": {
+     "acquired": "balance",
+     "action": false,
+     "amount": 80.0,
+     "channel": "unknown",
+     "cny": 80.0,
+     "currency": "CNY",
+     "direction": "out",
+     "initiator": "self"
+    }
+   },
+   "expected": {
+    "acquired": "balance",
+    "action": false,
+    "amount": 80.0,
+    "channel": "unknown",
+    "cny": 80.0,
+    "currency": "CNY",
+    "direction": "out",
+    "initiator": "self"
+   },
+   "fn": "stored_facets",
+   "id": "corpus-stored-top-up"
+  },
+  {
+   "args": {
+    "body": "We were unable to charge your card ending in 4242. Please update your payment method.",
+    "subject": "Payment failed for your subscription"
+   },
+   "expected": {
+    "acquired": "service",
+    "action": true,
+    "amount": null,
+    "channel": "real",
+    "cny": null,
+    "currency": null,
+    "direction": "out",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "corpus-facets-payment-failed"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "service",
+     "action": true,
+     "amount": null,
+     "channel": "real",
+     "cny": null,
+     "currency": null,
+     "direction": "out",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "需要处理（付款失败、待支付或即将扣费等）"
+   ],
+   "fn": "decide_tier",
+   "id": "corpus-tier-payment-failed"
+  },
+  {
+   "args": {
+    "facets": {
+     "acquired": "service",
+     "action": true,
+     "amount": null,
+     "channel": "real",
+     "cny": null,
+     "currency": null,
+     "direction": "out",
+     "initiator": "unknown"
+    }
+   },
+   "expected": {
+    "acquired": "service",
+    "action": true,
+    "amount": null,
+    "channel": "real",
+    "cny": null,
+    "currency": null,
+    "direction": "out",
+    "initiator": "unknown"
+   },
+   "fn": "stored_facets",
+   "id": "corpus-stored-payment-failed"
+  },
+  {
+   "args": {
+    "body": "您的付款方式已失效，请更新付款方式。",
+    "subject": "您的订阅需要处理"
+   },
+   "expected": {
+    "acquired": "service",
+    "action": true,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "out",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "corpus-facets-subscription-attention"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "service",
+     "action": true,
+     "amount": null,
+     "channel": "unknown",
+     "cny": null,
+     "currency": null,
+     "direction": "out",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "需要处理（付款失败、待支付或即将扣费等）"
+   ],
+   "fn": "decide_tier",
+   "id": "corpus-tier-subscription-attention"
+  },
+  {
+   "args": {
+    "facets": {
+     "acquired": "service",
+     "action": true,
+     "amount": null,
+     "channel": "unknown",
+     "cny": null,
+     "currency": null,
+     "direction": "out",
+     "initiator": "unknown"
+    }
+   },
+   "expected": {
+    "acquired": "service",
+    "action": true,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "out",
+    "initiator": "unknown"
+   },
+   "fn": "stored_facets",
+   "id": "corpus-stored-subscription-attention"
+  },
+  {
+   "args": {
+    "body": "We charged $9.99 to your card. Your Premium plan renews monthly.",
+    "subject": "Your subscription has been renewed"
+   },
+   "expected": {
+    "acquired": "service",
+    "action": false,
+    "amount": 9.99,
+    "channel": "unknown",
+    "cny": 71.93,
+    "currency": "USD",
+    "direction": "out",
+    "initiator": "auto"
+   },
+   "fn": "extract_facets",
+   "id": "corpus-facets-auto-renew"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "service",
+     "action": false,
+     "amount": 9.99,
+     "channel": "unknown",
+     "cny": 71.93,
+     "currency": "USD",
+     "direction": "out",
+     "initiator": "auto"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "自动续费扣款（按设置）"
+   ],
+   "fn": "decide_tier",
+   "id": "corpus-tier-auto-renew"
+  },
+  {
+   "args": {
+    "facets": {
+     "acquired": "service",
+     "action": false,
+     "amount": 9.99,
+     "channel": "unknown",
+     "cny": 71.93,
+     "currency": "USD",
+     "direction": "out",
+     "initiator": "auto"
+    }
+   },
+   "expected": {
+    "acquired": "service",
+    "action": false,
+    "amount": 9.99,
+    "channel": "unknown",
+    "cny": 71.93,
+    "currency": "USD",
+    "direction": "out",
+    "initiator": "auto"
+   },
+   "fn": "stored_facets",
+   "id": "corpus-stored-auto-renew"
+  },
+  {
+   "args": {
+    "body": "订单金额 ¥89.00，我们会尽快发货",
+    "subject": "已收到您的订单"
+   },
+   "expected": {
+    "acquired": "physical",
+    "action": false,
+    "amount": 89.0,
+    "channel": "unknown",
+    "cny": 89.0,
+    "currency": "CNY",
+    "direction": "out",
+    "initiator": "self"
+   },
+   "fn": "extract_facets",
+   "id": "corpus-facets-order-cn"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "physical",
+     "action": false,
+     "amount": 89.0,
+     "channel": "unknown",
+     "cny": 89.0,
+     "currency": "CNY",
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "本人主动支出，获得实物商品"
+   ],
+   "fn": "decide_tier",
+   "id": "corpus-tier-order-cn"
+  },
+  {
+   "args": {
+    "facets": {
+     "acquired": "physical",
+     "action": false,
+     "amount": 89.0,
+     "channel": "unknown",
+     "cny": 89.0,
+     "currency": "CNY",
+     "direction": "out",
+     "initiator": "self"
+    }
+   },
+   "expected": {
+    "acquired": "physical",
+    "action": false,
+    "amount": 89.0,
+    "channel": "unknown",
+    "cny": 89.0,
+    "currency": "CNY",
+    "direction": "out",
+    "initiator": "self"
+   },
+   "fn": "stored_facets",
+   "id": "corpus-stored-order-cn"
+  },
+  {
+   "args": {
+    "body": "Amount due charged to your card: US$1,280.00",
+    "subject": "Your invoice is available"
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": false,
+    "amount": 1280.0,
+    "channel": "unknown",
+    "cny": 9216.0,
+    "currency": "USD",
+    "direction": "out",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "corpus-facets-cloud-bill"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "unknown",
+     "action": false,
+     "amount": 1280.0,
+     "channel": "unknown",
+     "cny": 9216.0,
+     "currency": "USD",
+     "direction": "out",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "金额约 ¥9216，不低于阈值 ¥200"
+   ],
+   "fn": "decide_tier",
+   "id": "corpus-tier-cloud-bill"
+  },
+  {
+   "args": {
+    "facets": {
+     "acquired": "unknown",
+     "action": false,
+     "amount": 1280.0,
+     "channel": "unknown",
+     "cny": 9216.0,
+     "currency": "USD",
+     "direction": "out",
+     "initiator": "unknown"
+    }
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": false,
+    "amount": 1280.0,
+    "channel": "unknown",
+    "cny": 9216.0,
+    "currency": "USD",
+    "direction": "out",
+    "initiator": "unknown"
+   },
+   "fn": "stored_facets",
+   "id": "corpus-stored-cloud-bill"
+  },
+  {
+   "args": {
+    "body": "You received a payout of $15.00 to your bank account",
+    "subject": "Your payout has been sent"
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": false,
+    "amount": 15.0,
+    "channel": "unknown",
+    "cny": 108.0,
+    "currency": "USD",
+    "direction": "in",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "corpus-facets-payout"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "unknown",
+     "action": false,
+     "amount": 15.0,
+     "channel": "unknown",
+     "cny": 108.0,
+     "currency": "USD",
+     "direction": "in",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "一般",
+    "收入或到账，不需要处理"
+   ],
+   "fn": "decide_tier",
+   "id": "corpus-tier-payout"
+  },
+  {
+   "args": {
+    "facets": {
+     "acquired": "unknown",
+     "action": false,
+     "amount": 15.0,
+     "channel": "unknown",
+     "cny": 108.0,
+     "currency": "USD",
+     "direction": "in",
+     "initiator": "unknown"
+    }
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": false,
+    "amount": 15.0,
+    "channel": "unknown",
+    "cny": 108.0,
+    "currency": "USD",
+    "direction": "in",
+    "initiator": "unknown"
+   },
+   "fn": "stored_facets",
+   "id": "corpus-stored-payout"
+  },
+  {
+   "args": {
+    "body": "您的账户已收到返现 2.30 元",
+    "subject": "返现已到账"
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": false,
+    "amount": 2.3,
+    "channel": "unknown",
+    "cny": 2.3,
+    "currency": "CNY",
+    "direction": "in",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "corpus-facets-cashback"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "unknown",
+     "action": false,
+     "amount": 2.3,
+     "channel": "unknown",
+     "cny": 2.3,
+     "currency": "CNY",
+     "direction": "in",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "一般",
+    "收入或到账，不需要处理"
+   ],
+   "fn": "decide_tier",
+   "id": "corpus-tier-cashback"
+  },
+  {
+   "args": {
+    "facets": {
+     "acquired": "unknown",
+     "action": false,
+     "amount": 2.3,
+     "channel": "unknown",
+     "cny": 2.3,
+     "currency": "CNY",
+     "direction": "in",
+     "initiator": "unknown"
+    }
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": false,
+    "amount": 2.3,
+    "channel": "unknown",
+    "cny": 2.3,
+    "currency": "CNY",
+    "direction": "in",
+    "initiator": "unknown"
+   },
+   "fn": "stored_facets",
+   "id": "corpus-stored-cashback"
+  },
+  {
+   "args": {
+    "body": "The items below have been added to your Store library. Total: $5",
+    "subject": "Thank you for your Store purchase!"
+   },
+   "expected": {
+    "acquired": "entitlement",
+    "action": false,
+    "amount": 5.0,
+    "channel": "unknown",
+    "cny": 36.0,
+    "currency": "USD",
+    "direction": "out",
+    "initiator": "self"
+   },
+   "fn": "extract_facets",
+   "id": "corpus-facets-purchase-en-brand-word"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "entitlement",
+     "action": false,
+     "amount": 5.0,
+     "channel": "unknown",
+     "cny": 36.0,
+     "currency": "USD",
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "本人主动支出，获得长期权益"
+   ],
+   "fn": "decide_tier",
+   "id": "corpus-tier-purchase-en-brand-word"
+  },
+  {
+   "args": {
+    "facets": {
+     "acquired": "entitlement",
+     "action": false,
+     "amount": 5.0,
+     "channel": "unknown",
+     "cny": 36.0,
+     "currency": "USD",
+     "direction": "out",
+     "initiator": "self"
+    }
+   },
+   "expected": {
+    "acquired": "entitlement",
+    "action": false,
+    "amount": 5.0,
+    "channel": "unknown",
+    "cny": 36.0,
+    "currency": "USD",
+    "direction": "out",
+    "initiator": "self"
+   },
+   "fn": "stored_facets",
+   "id": "corpus-stored-purchase-en-brand-word"
+  },
+  {
+   "args": {
+    "body": "Order items: Game Deluxe Edition. Order total: $20.00 Payment method: PayPal",
+    "subject": "Your receipt"
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": false,
+    "amount": 20.0,
+    "channel": "real",
+    "cny": 144.0,
+    "currency": "USD",
+    "direction": "out",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "corpus-facets-receipt-generic-items"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "unknown",
+     "action": false,
+     "amount": 20.0,
+     "channel": "real",
+     "cny": 144.0,
+     "currency": "USD",
+     "direction": "out",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "corpus-tier-receipt-generic-items"
+  },
+  {
+   "args": {
+    "facets": {
+     "acquired": "unknown",
+     "action": false,
+     "amount": 20.0,
+     "channel": "real",
+     "cny": 144.0,
+     "currency": "USD",
+     "direction": "out",
+     "initiator": "unknown"
+    }
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": false,
+    "amount": 20.0,
+    "channel": "real",
+    "cny": 144.0,
+    "currency": "USD",
+    "direction": "out",
+    "initiator": "unknown"
+   },
+   "fn": "stored_facets",
+   "id": "corpus-stored-receipt-generic-items"
+  },
+  {
+   "args": {
+    "body": "谢谢您的购买。以下是您订购的物品：价格: $88.00 HKD 折扣: 特卖折扣 - $88.00 HKD 总计: $0.00 HKD",
+    "subject": "您的商店收据"
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": false,
+    "amount": 0.0,
+    "channel": "unknown",
+    "cny": 0.0,
+    "currency": "HKD",
+    "direction": "none",
+    "initiator": "self"
+   },
+   "fn": "extract_facets",
+   "id": "corpus-facets-free-claim-zero-total"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "unknown",
+     "action": false,
+     "amount": 0.0,
+     "channel": "unknown",
+     "cny": 0.0,
+     "currency": "HKD",
+     "direction": "none",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "一般",
+    "零金额（免费领取等）"
+   ],
+   "fn": "decide_tier",
+   "id": "corpus-tier-free-claim-zero-total"
+  },
+  {
+   "args": {
+    "facets": {
+     "acquired": "unknown",
+     "action": false,
+     "amount": 0.0,
+     "channel": "unknown",
+     "cny": 0.0,
+     "currency": "HKD",
+     "direction": "none",
+     "initiator": "self"
+    }
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": false,
+    "amount": 0.0,
+    "channel": "unknown",
+    "cny": 0.0,
+    "currency": "HKD",
+    "direction": "none",
+    "initiator": "self"
+   },
+   "fn": "stored_facets",
+   "id": "corpus-stored-free-claim-zero-total"
+  },
+  {
+   "args": {
+    "body": "若欲了解退款流程详情，请前往帮助中心。您的会员将于下月续订",
+    "subject": "您已更新订阅"
+   },
+   "expected": {
+    "acquired": "service",
+    "action": false,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "unknown",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "corpus-facets-refund-policy-footer"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "service",
+     "action": false,
+     "amount": null,
+     "channel": "unknown",
+     "cny": null,
+     "currency": null,
+     "direction": "unknown",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "corpus-tier-refund-policy-footer"
+  },
+  {
+   "args": {
+    "facets": {
+     "acquired": "service",
+     "action": false,
+     "amount": null,
+     "channel": "unknown",
+     "cny": null,
+     "currency": null,
+     "direction": "unknown",
+     "initiator": "unknown"
+    }
+   },
+   "expected": {
+    "acquired": "service",
+    "action": false,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "unknown",
+    "initiator": "unknown"
+   },
+   "fn": "stored_facets",
+   "id": "corpus-stored-refund-policy-footer"
+  },
+  {
+   "args": {
+    "text": "Order total: €1.299,00"
+   },
+   "expected": [
+    1299.0,
+    "EUR"
+   ],
+   "fn": "extract_amount",
+   "id": "amount-test-eur-de"
+  },
+  {
+   "args": {
+    "text": "共计 ¥1,299.50"
+   },
+   "expected": [
+    1299.5,
+    "CNY"
+   ],
+   "fn": "extract_amount",
+   "id": "amount-test-cny-comma"
+  },
+  {
+   "args": {
+    "text": "Total 1 299,00 UAH"
+   },
+   "expected": [
+    1299.0,
+    "UAH"
+   ],
+   "fn": "extract_amount",
+   "id": "amount-test-uah-space"
+  },
+  {
+   "args": {
+    "text": "49₴"
+   },
+   "expected": [
+    49.0,
+    "UAH"
+   ],
+   "fn": "extract_amount",
+   "id": "amount-test-uah-sign"
+  },
+  {
+   "args": {
+    "text": "US$12"
+   },
+   "expected": [
+    12.0,
+    "USD"
+   ],
+   "fn": "extract_amount",
+   "id": "amount-test-usd-prefix"
+  },
+  {
+   "args": {
+    "text": "RMB 300"
+   },
+   "expected": [
+    300.0,
+    "CNY"
+   ],
+   "fn": "extract_amount",
+   "id": "amount-test-rmb-prefix"
+  },
+  {
+   "args": {
+    "text": "价格 2026 年"
+   },
+   "expected": [
+    null,
+    null
+   ],
+   "fn": "extract_amount",
+   "id": "amount-test-year-only"
+  },
+  {
+   "args": {
+    "text": "小计 10 元，总计 12 元，赠送 500 元代金券"
+   },
+   "expected": [
+    12.0,
+    "CNY"
+   ],
+   "fn": "extract_amount",
+   "id": "amount-test-hint-gift"
+  },
+  {
+   "args": {
+    "text": "价格: $88.00 HKD 折扣: - $88.00 HKD 总计: $0.00 HKD"
+   },
+   "expected": [
+    0.0,
+    "HKD"
+   ],
+   "fn": "extract_amount",
+   "id": "amount-test-zero-total"
+  },
+  {
+   "args": {
+    "text": "Total: $25.00 USD"
+   },
+   "expected": [
+    25.0,
+    "USD"
+   ],
+   "fn": "extract_amount",
+   "id": "amount-test-usd-suffix"
+  },
+  {
+   "args": {
+    "text": "Total: $1,299.00"
+   },
+   "expected": [
+    1299.0,
+    "USD"
+   ],
+   "fn": "extract_amount",
+   "id": "amount-fmt-plain-comma"
+  },
+  {
+   "args": {
+    "text": "Total: 12,5 €"
+   },
+   "expected": [
+    12.5,
+    "EUR"
+   ],
+   "fn": "extract_amount",
+   "id": "amount-fmt-decimals-short"
+  },
+  {
+   "args": {
+    "text": "价格 ¥ 88"
+   },
+   "expected": [
+    88.0,
+    "CNY"
+   ],
+   "fn": "extract_amount",
+   "id": "amount-fmt-yen-space"
+  },
+  {
+   "args": {
+    "text": "应付 HK$ 3"
+   },
+   "expected": [
+    3.0,
+    "HKD"
+   ],
+   "fn": "extract_amount",
+   "id": "amount-fmt-hkd-dollar"
+  },
+  {
+   "args": {
+    "text": "已付款 88 元"
+   },
+   "expected": [
+    88.0,
+    "CNY"
+   ],
+   "fn": "extract_amount",
+   "id": "amount-fmt-yuan-suffix"
+  },
+  {
+   "args": {
+    "text": "人民币 100"
+   },
+   "expected": [
+    100.0,
+    "CNY"
+   ],
+   "fn": "extract_amount",
+   "id": "amount-fmt-rmb-cn"
+  },
+  {
+   "args": {
+    "text": "RMB 50"
+   },
+   "expected": [
+    50.0,
+    "CNY"
+   ],
+   "fn": "extract_amount",
+   "id": "amount-fmt-rmb-space"
+  },
+  {
+   "args": {
+    "text": "50 RMB"
+   },
+   "expected": [
+    50.0,
+    "CNY"
+   ],
+   "fn": "extract_amount",
+   "id": "amount-fmt-rmb-after"
+  },
+  {
+   "args": {
+    "text": "￥９９"
+   },
+   "expected": [
+    99.0,
+    "CNY"
+   ],
+   "fn": "extract_amount",
+   "id": "amount-wide-digits-yen"
+  },
+  {
+   "args": {
+    "text": "USD １２"
+   },
+   "expected": [
+    12.0,
+    "USD"
+   ],
+   "fn": "extract_amount",
+   "id": "amount-wide-digits-code"
+  },
+  {
+   "args": {
+    "text": "Total 1 299,00 EUR"
+   },
+   "expected": [
+    1299.0,
+    "EUR"
+   ],
+   "fn": "extract_amount",
+   "id": "amount-nbsp-thousands"
+  },
+  {
+   "args": {
+    "text": "Total 1 299,00 EUR"
+   },
+   "expected": [
+    null,
+    null
+   ],
+   "fn": "extract_amount",
+   "id": "amount-thin-space-thousands"
+  },
+  {
+   "args": {
+    "text": "Total 1　299,00 EUR"
+   },
+   "expected": [
+    null,
+    null
+   ],
+   "fn": "extract_amount",
+   "id": "amount-ideographic-space-thousands"
+  },
+  {
+   "args": {
+    "text": "Total: ¥12,000,000.00"
+   },
+   "expected": [
+    null,
+    null
+   ],
+   "fn": "extract_amount",
+   "id": "amount-over-limit"
+  },
+  {
+   "args": {
+    "text": "Total: ¥9,999,999"
+   },
+   "expected": [
+    9999999.0,
+    "CNY"
+   ],
+   "fn": "extract_amount",
+   "id": "amount-just-under-limit"
+  },
+  {
+   "args": {
+    "text": "Total: 100 XYZ"
+   },
+   "expected": [
+    null,
+    null
+   ],
+   "fn": "extract_amount",
+   "id": "amount-unknown-code"
+  },
+  {
+   "args": {
+    "text": "₦500"
+   },
+   "expected": [
+    null,
+    null
+   ],
+   "fn": "extract_amount",
+   "id": "amount-unknown-symbol"
+  },
+  {
+   "args": {
+    "text": "总计 1200 元，另附赠品 500 元"
+   },
+   "expected": [
+    1200.0,
+    "CNY"
+   ],
+   "fn": "extract_amount",
+   "id": "amount-hint-first"
+  },
+  {
+   "args": {
+    "text": "总计 1200 元。以下说明与本次交易无关，请忽略后续的营销信息，赠送 500 元"
+   },
+   "expected": [
+    1200.0,
+    "CNY"
+   ],
+   "fn": "extract_amount",
+   "id": "amount-hint-far"
+  },
+  {
+   "args": {
+    "text": "赠送 500 元代金券，实付 20 元"
+   },
+   "expected": [
+    20.0,
+    "CNY"
+   ],
+   "fn": "extract_amount",
+   "id": "amount-hint-later"
+  },
+  {
+   "args": {
+    "text": "Total 1,299.00"
+   },
+   "expected": [
+    null,
+    null
+   ],
+   "fn": "extract_amount",
+   "id": "amount-no-currency"
+  },
+  {
+   "args": {
+    "amount": 100,
+    "currency": "USD"
+   },
+   "expected": 720.0,
+   "fn": "to_cny",
+   "id": "cny-usd-100"
+  },
+  {
+   "args": {
+    "amount": 1299.0,
+    "currency": "EUR"
+   },
+   "expected": 10132.2,
+   "fn": "to_cny",
+   "id": "cny-eur-float"
+  },
+  {
+   "args": {
+    "amount": 49.0,
+    "currency": "UAH"
+   },
+   "expected": 8.33,
+   "fn": "to_cny",
+   "id": "cny-uah-small"
+  },
+  {
+   "args": {
+    "amount": null,
+    "currency": "USD"
+   },
+   "expected": null,
+   "fn": "to_cny",
+   "id": "cny-none-amount"
+  },
+  {
+   "args": {
+    "amount": 100,
+    "currency": null
+   },
+   "expected": null,
+   "fn": "to_cny",
+   "id": "cny-none-currency"
+  },
+  {
+   "args": {
+    "amount": 100,
+    "currency": ""
+   },
+   "expected": null,
+   "fn": "to_cny",
+   "id": "cny-empty-currency"
+  },
+  {
+   "args": {
+    "amount": 100,
+    "currency": "XYZ"
+   },
+   "expected": null,
+   "fn": "to_cny",
+   "id": "cny-unknown-currency"
+  },
+  {
+   "args": {
+    "amount": 0.0,
+    "currency": "CNY"
+   },
+   "expected": 0.0,
+   "fn": "to_cny",
+   "id": "cny-zero-cny"
+  },
+  {
+   "args": {
+    "amount": 1.0,
+    "currency": "VND"
+   },
+   "expected": 0.0,
+   "fn": "to_cny",
+   "id": "cny-vnd-rounds-to-zero"
+  },
+  {
+   "args": {
+    "amount": 1.0,
+    "currency": "JPY"
+   },
+   "expected": 0.05,
+   "fn": "to_cny",
+   "id": "cny-jpy-two-decimals"
+  },
+  {
+   "args": {
+    "amount": 3.0,
+    "currency": "KRW"
+   },
+   "expected": 0.02,
+   "fn": "to_cny",
+   "id": "cny-krw-2-decimals"
+  },
+  {
+   "args": {
+    "amount": 1234567.89,
+    "currency": "USD"
+   },
+   "expected": 8888888.81,
+   "fn": "to_cny",
+   "id": "cny-large-usd"
+  },
+  {
+   "args": {
+    "amount": 4,
+    "currency": "UAH"
+   },
+   "expected": 0.68,
+   "fn": "to_cny",
+   "id": "cny-int-amount-uah"
+  },
+  {
+   "args": {
+    "body": "已支付 ¥120.00，订单金额 ¥120.00，感谢使用。",
+    "subject": "【订单】您的账单已出"
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": false,
+    "amount": 120.0,
+    "channel": "unknown",
+    "cny": 120.0,
+    "currency": "CNY",
+    "direction": "out",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "facets-out-cn-order"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "unknown",
+     "action": false,
+     "amount": 120.0,
+     "channel": "unknown",
+     "cny": 120.0,
+     "currency": "CNY",
+     "direction": "out",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-out-cn-order"
+  },
+  {
+   "args": {
+    "body": "实付 39 元，支付方式：银行卡",
+    "subject": "您的消费收据"
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": false,
+    "amount": 39.0,
+    "channel": "real",
+    "cny": 39.0,
+    "currency": "CNY",
+    "direction": "out",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "facets-out-cn-receipt"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "unknown",
+     "action": false,
+     "amount": 39.0,
+     "channel": "real",
+     "cny": 39.0,
+     "currency": "CNY",
+     "direction": "out",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-out-cn-receipt"
+  },
+  {
+   "args": {
+    "body": "Amount paid: $12.00. Payment method: card ending 4242.",
+    "subject": "Your receipt is ready"
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": false,
+    "amount": 12.0,
+    "channel": "real",
+    "cny": 86.4,
+    "currency": "USD",
+    "direction": "out",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "facets-out-en-receipt"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "unknown",
+     "action": false,
+     "amount": 12.0,
+     "channel": "real",
+     "cny": 86.4,
+     "currency": "USD",
+     "direction": "out",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-out-en-receipt"
+  },
+  {
+   "args": {
+    "body": "Order total: $40.00 charged to your card.",
+    "subject": "Invoice for your order"
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": false,
+    "amount": 40.0,
+    "channel": "unknown",
+    "cny": 288.0,
+    "currency": "USD",
+    "direction": "out",
+    "initiator": "self"
+   },
+   "fn": "extract_facets",
+   "id": "facets-out-en-invoice"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "unknown",
+     "action": false,
+     "amount": 40.0,
+     "channel": "unknown",
+     "cny": 288.0,
+     "currency": "USD",
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "金额约 ¥288，不低于阈值 ¥200"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-out-en-invoice"
+  },
+  {
+   "args": {
+    "body": "您在社区市场中上架的一件物品已售出。您的钱包已获得 4.07 UAH。总计： 4.07 UAH",
+    "subject": "您在社区市场上售出了一件物品"
+   },
+   "expected": {
+    "acquired": "virtual_item",
+    "action": false,
+    "amount": 4.07,
+    "channel": "unknown",
+    "cny": 0.69,
+    "currency": "UAH",
+    "direction": "in",
+    "initiator": "other"
+   },
+   "fn": "extract_facets",
+   "id": "facets-in-cn-sold"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "virtual_item",
+     "action": false,
+     "amount": 4.07,
+     "channel": "unknown",
+     "cny": 0.69,
+     "currency": "UAH",
+     "direction": "in",
+     "initiator": "other"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "一般",
+    "收入或到账，不需要处理"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-in-cn-sold"
+  },
+  {
+   "args": {
+    "body": "您的账户已收到返现 2.30 元",
+    "subject": "返现已到账"
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": false,
+    "amount": 2.3,
+    "channel": "unknown",
+    "cny": 2.3,
+    "currency": "CNY",
+    "direction": "in",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "facets-in-cn-cashback"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "unknown",
+     "action": false,
+     "amount": 2.3,
+     "channel": "unknown",
+     "cny": 2.3,
+     "currency": "CNY",
+     "direction": "in",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "一般",
+    "收入或到账，不需要处理"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-in-cn-cashback"
+  },
+  {
+   "args": {
+    "body": "You received a payout of $15.00 to your bank account",
+    "subject": "Your payout has been sent"
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": false,
+    "amount": 15.0,
+    "channel": "unknown",
+    "cny": 108.0,
+    "currency": "USD",
+    "direction": "in",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "facets-in-en-payout"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "unknown",
+     "action": false,
+     "amount": 15.0,
+     "channel": "unknown",
+     "cny": 108.0,
+     "currency": "USD",
+     "direction": "in",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "一般",
+    "收入或到账，不需要处理"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-in-en-payout"
+  },
+  {
+   "args": {
+    "body": "Your wallet has been credited with $3.00",
+    "subject": "Wallet activity"
+   },
+   "expected": {
+    "acquired": "balance",
+    "action": false,
+    "amount": 3.0,
+    "channel": "unknown",
+    "cny": 21.6,
+    "currency": "USD",
+    "direction": "in",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "facets-in-en-credited"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "balance",
+     "action": false,
+     "amount": 3.0,
+     "channel": "unknown",
+     "cny": 21.6,
+     "currency": "USD",
+     "direction": "in",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "一般",
+    "收入或到账，不需要处理"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-in-en-credited"
+  },
+  {
+   "args": {
+    "body": "我们已将款项退还到您的钱包。退款总计： 184₴",
+    "subject": "您的购买已退款"
+   },
+   "expected": {
+    "acquired": "balance",
+    "action": false,
+    "amount": 184.0,
+    "channel": "unknown",
+    "cny": 31.28,
+    "currency": "UAH",
+    "direction": "refund",
+    "initiator": "self"
+   },
+   "fn": "extract_facets",
+   "id": "facets-refund-cn"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "balance",
+     "action": false,
+     "amount": 184.0,
+     "channel": "unknown",
+     "cny": 31.28,
+     "currency": "UAH",
+     "direction": "refund",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "一般",
+    "退款（按设置）"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-refund-cn"
+  },
+  {
+   "args": {
+    "body": "We've refunded $25.00 to your card.",
+    "subject": "Your refund has been issued"
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": false,
+    "amount": 25.0,
+    "channel": "unknown",
+    "cny": 180.0,
+    "currency": "USD",
+    "direction": "refund",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "facets-refund-en"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "unknown",
+     "action": false,
+     "amount": 25.0,
+     "channel": "unknown",
+     "cny": 180.0,
+     "currency": "USD",
+     "direction": "refund",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "一般",
+    "退款（按设置）"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-refund-en"
+  },
+  {
+   "args": {
+    "body": "我们已将款项退还到您的钱包。退款总计 30 元",
+    "subject": "关于您的近期交易"
+   },
+   "expected": {
+    "acquired": "balance",
+    "action": false,
+    "amount": 30.0,
+    "channel": "unknown",
+    "cny": 30.0,
+    "currency": "CNY",
+    "direction": "refund",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "facets-refund-body-only-cn"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "balance",
+     "action": false,
+     "amount": 30.0,
+     "channel": "unknown",
+     "cny": 30.0,
+     "currency": "CNY",
+     "direction": "refund",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "一般",
+    "退款（按设置）"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-refund-body-only-cn"
+  },
+  {
+   "args": {
+    "body": "Your refund has been processed and the amount was returned.",
+    "subject": "Transaction update"
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": false,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "refund",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "facets-refund-body-only-en"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "unknown",
+     "action": false,
+     "amount": null,
+     "channel": "unknown",
+     "cny": null,
+     "currency": null,
+     "direction": "refund",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "一般",
+    "退款（按设置）"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-refund-body-only-en"
+  },
+  {
+   "args": {
+    "body": "本月免费赠送，无需支付。",
+    "subject": "免费领取会员体验"
+   },
+   "expected": {
+    "acquired": "service",
+    "action": false,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "none",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "facets-free-cn"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "service",
+     "action": false,
+     "amount": null,
+     "channel": "unknown",
+     "cny": null,
+     "currency": null,
+     "direction": "none",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "一般",
+    "零金额（免费领取等）"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-free-cn"
+  },
+  {
+   "args": {
+    "body": "本次为零元领取，无需付费",
+    "subject": "零元购活动"
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": false,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "none",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "facets-free-cn-zero"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "unknown",
+     "action": false,
+     "amount": null,
+     "channel": "unknown",
+     "cny": null,
+     "currency": null,
+     "direction": "none",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "一般",
+    "零金额（免费领取等）"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-free-cn-zero"
+  },
+  {
+   "args": {
+    "body": "Enjoy your free games.",
+    "subject": "Free items added to your library."
+   },
+   "expected": {
+    "acquired": "entitlement",
+    "action": false,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "none",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "facets-free-en"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "entitlement",
+     "action": false,
+     "amount": null,
+     "channel": "unknown",
+     "cny": null,
+     "currency": null,
+     "direction": "none",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "一般",
+    "零金额（免费领取等）"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-free-en"
+  },
+  {
+   "args": {
+    "body": "This add-on is available at no cost for a week.",
+    "subject": "A gift for you"
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": false,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "none",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "facets-free-en-no-cost"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "unknown",
+     "action": false,
+     "amount": null,
+     "channel": "unknown",
+     "cny": null,
+     "currency": null,
+     "direction": "none",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "一般",
+    "零金额（免费领取等）"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-free-en-no-cost"
+  },
+  {
+   "args": {
+    "body": "本周进展：完成了三件事",
+    "subject": "周报"
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": false,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "unknown",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "facets-unknown-cn"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "unknown",
+     "action": false,
+     "amount": null,
+     "channel": "unknown",
+     "cny": null,
+     "currency": null,
+     "direction": "unknown",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-unknown-cn"
+  },
+  {
+   "args": {
+    "body": "Here are this week's updates.",
+    "subject": "Weekly newsletter"
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": false,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "unknown",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "facets-unknown-en"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "unknown",
+     "action": false,
+     "amount": null,
+     "channel": "unknown",
+     "cny": null,
+     "currency": null,
+     "direction": "unknown",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-unknown-en"
+  },
+  {
+   "args": {
+    "body": "订单已确认，扣款成功",
+    "subject": "感谢您的购买"
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": false,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "out",
+    "initiator": "self"
+   },
+   "fn": "extract_facets",
+   "id": "facets-self-cn"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "unknown",
+     "action": false,
+     "amount": null,
+     "channel": "unknown",
+     "cny": null,
+     "currency": null,
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "本人主动支出，获得商品或服务"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-self-cn"
+  },
+  {
+   "args": {
+    "body": "您的订单已生成，请留意物流信息",
+    "subject": "感谢您在本店的惠顾"
+   },
+   "expected": {
+    "acquired": "physical",
+    "action": false,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "unknown",
+    "initiator": "self"
+   },
+   "fn": "extract_facets",
+   "id": "facets-self-cn-thanks"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "physical",
+     "action": false,
+     "amount": null,
+     "channel": "unknown",
+     "cny": null,
+     "currency": null,
+     "direction": "unknown",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-self-cn-thanks"
+  },
+  {
+   "args": {
+    "body": "Your order has been placed successfully.",
+    "subject": "Thank you for your order"
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": false,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "out",
+    "initiator": "self"
+   },
+   "fn": "extract_facets",
+   "id": "facets-self-en"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "unknown",
+     "action": false,
+     "amount": null,
+     "channel": "unknown",
+     "cny": null,
+     "currency": null,
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "本人主动支出，获得商品或服务"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-self-en"
+  },
+  {
+   "args": {
+    "body": "You purchased the annual plan.",
+    "subject": "Receipt for your purchase"
+   },
+   "expected": {
+    "acquired": "service",
+    "action": false,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "out",
+    "initiator": "self"
+   },
+   "fn": "extract_facets",
+   "id": "facets-self-en-receipt"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "service",
+     "action": false,
+     "amount": null,
+     "channel": "unknown",
+     "cny": null,
+     "currency": null,
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "本人主动支出，获得服务或会员"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-self-en-receipt"
+  },
+  {
+   "args": {
+    "body": "您的会员已自动续费，扣款 15 元",
+    "subject": "自动续费成功通知"
+   },
+   "expected": {
+    "acquired": "service",
+    "action": false,
+    "amount": 15.0,
+    "channel": "unknown",
+    "cny": 15.0,
+    "currency": "CNY",
+    "direction": "out",
+    "initiator": "auto"
+   },
+   "fn": "extract_facets",
+   "id": "facets-auto-cn-renew"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "service",
+     "action": false,
+     "amount": 15.0,
+     "channel": "unknown",
+     "cny": 15.0,
+     "currency": "CNY",
+     "direction": "out",
+     "initiator": "auto"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "自动续费扣款（按设置）"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-auto-cn-renew"
+  },
+  {
+   "args": {
+    "body": "本次为代扣，续费成功",
+    "subject": "定期扣款提醒"
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": false,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "out",
+    "initiator": "auto"
+   },
+   "fn": "extract_facets",
+   "id": "facets-auto-cn-recurring"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "unknown",
+     "action": false,
+     "amount": null,
+     "channel": "unknown",
+     "cny": null,
+     "currency": null,
+     "direction": "out",
+     "initiator": "auto"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "自动续费扣款（按设置）"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-auto-cn-recurring"
+  },
+  {
+   "args": {
+    "body": "We charged $9.99 to your card. Your Premium plan renews monthly.",
+    "subject": "Your subscription has been renewed"
+   },
+   "expected": {
+    "acquired": "service",
+    "action": false,
+    "amount": 9.99,
+    "channel": "unknown",
+    "cny": 71.93,
+    "currency": "USD",
+    "direction": "out",
+    "initiator": "auto"
+   },
+   "fn": "extract_facets",
+   "id": "facets-auto-en-renewed"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "service",
+     "action": false,
+     "amount": 9.99,
+     "channel": "unknown",
+     "cny": 71.93,
+     "currency": "USD",
+     "direction": "out",
+     "initiator": "auto"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "自动续费扣款（按设置）"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-auto-en-renewed"
+  },
+  {
+   "args": {
+    "body": "This is a recurring charge for your plan.",
+    "subject": "Your recurring payment receipt"
+   },
+   "expected": {
+    "acquired": "service",
+    "action": false,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "out",
+    "initiator": "auto"
+   },
+   "fn": "extract_facets",
+   "id": "facets-auto-en-recurring"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "service",
+     "action": false,
+     "amount": null,
+     "channel": "unknown",
+     "cny": null,
+     "currency": null,
+     "direction": "out",
+     "initiator": "auto"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "自动续费扣款（按设置）"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-auto-en-recurring"
+  },
+  {
+   "args": {
+    "body": "买家已完成付款，请尽快发货。订单金额 ¥88.00",
+    "subject": "买家已付款"
+   },
+   "expected": {
+    "acquired": "physical",
+    "action": false,
+    "amount": 88.0,
+    "channel": "unknown",
+    "cny": 88.0,
+    "currency": "CNY",
+    "direction": "out",
+    "initiator": "other"
+   },
+   "fn": "extract_facets",
+   "id": "facets-other-cn-buyer"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "physical",
+     "action": false,
+     "amount": 88.0,
+     "channel": "unknown",
+     "cny": 88.0,
+     "currency": "CNY",
+     "direction": "out",
+     "initiator": "other"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-other-cn-buyer"
+  },
+  {
+   "args": {
+    "body": "An item you listed has been sold. Total: $0.12",
+    "subject": "You have sold an item on the Community Market"
+   },
+   "expected": {
+    "acquired": "virtual_item",
+    "action": false,
+    "amount": 0.12,
+    "channel": "unknown",
+    "cny": 0.86,
+    "currency": "USD",
+    "direction": "in",
+    "initiator": "other"
+   },
+   "fn": "extract_facets",
+   "id": "facets-other-en-market"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "virtual_item",
+     "action": false,
+     "amount": 0.12,
+     "channel": "unknown",
+     "cny": 0.86,
+     "currency": "USD",
+     "direction": "in",
+     "initiator": "other"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "一般",
+    "收入或到账，不需要处理"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-other-en-market"
+  },
+  {
+   "args": {
+    "body": "以下物品已添加到您的游戏库。共计花费 49₴",
+    "subject": "游戏购买确认"
+   },
+   "expected": {
+    "acquired": "entitlement",
+    "action": false,
+    "amount": 49.0,
+    "channel": "unknown",
+    "cny": 8.33,
+    "currency": "UAH",
+    "direction": "out",
+    "initiator": "self"
+   },
+   "fn": "extract_facets",
+   "id": "facets-ent-cn-library"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "entitlement",
+     "action": false,
+     "amount": 49.0,
+     "channel": "unknown",
+     "cny": 8.33,
+     "currency": "UAH",
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "本人主动支出，获得长期权益"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-ent-cn-library"
+  },
+  {
+   "args": {
+    "body": "产品密钥：XXXX-YYYY，请在软件中兑换",
+    "subject": "您的激活码"
+   },
+   "expected": {
+    "acquired": "entitlement",
+    "action": false,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "unknown",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "facets-ent-cn-key"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "entitlement",
+     "action": false,
+     "amount": null,
+     "channel": "unknown",
+     "cny": null,
+     "currency": null,
+     "direction": "unknown",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-ent-cn-key"
+  },
+  {
+   "args": {
+    "body": "The following games were added to your library.",
+    "subject": "Thank you for your purchase"
+   },
+   "expected": {
+    "acquired": "entitlement",
+    "action": false,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "out",
+    "initiator": "self"
+   },
+   "fn": "extract_facets",
+   "id": "facets-ent-en-library"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "entitlement",
+     "action": false,
+     "amount": null,
+     "channel": "unknown",
+     "cny": null,
+     "currency": null,
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "本人主动支出，获得长期权益"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-ent-en-library"
+  },
+  {
+   "args": {
+    "body": "Activation key: ABCDE-12345. Ready to play.",
+    "subject": "Your game key is ready"
+   },
+   "expected": {
+    "acquired": "entitlement",
+    "action": false,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "unknown",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "facets-ent-en-key"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "entitlement",
+     "action": false,
+     "amount": null,
+     "channel": "unknown",
+     "cny": null,
+     "currency": null,
+     "direction": "unknown",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-ent-en-key"
+  },
+  {
+   "args": {
+    "body": "订单已发货，快递单号 123，收货地址已确认",
+    "subject": "您的订单已发货"
+   },
+   "expected": {
+    "acquired": "physical",
+    "action": false,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "out",
+    "initiator": "self"
+   },
+   "fn": "extract_facets",
+   "id": "facets-phy-cn-shipped"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "physical",
+     "action": false,
+     "amount": null,
+     "channel": "unknown",
+     "cny": null,
+     "currency": null,
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "本人主动支出，获得实物商品"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-phy-cn-shipped"
+  },
+  {
+   "args": {
+    "body": "您的包裹正在配送中，请保持电话畅通",
+    "subject": "配送通知"
+   },
+   "expected": {
+    "acquired": "physical",
+    "action": false,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "unknown",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "facets-phy-cn-delivery"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "physical",
+     "action": false,
+     "amount": null,
+     "channel": "unknown",
+     "cny": null,
+     "currency": null,
+     "direction": "unknown",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-phy-cn-delivery"
+  },
+  {
+   "args": {
+    "body": "Shipping confirmation: your package is on the way.",
+    "subject": "Your order has shipped"
+   },
+   "expected": {
+    "acquired": "physical",
+    "action": false,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "out",
+    "initiator": "self"
+   },
+   "fn": "extract_facets",
+   "id": "facets-phy-en-shipped"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "physical",
+     "action": false,
+     "amount": null,
+     "channel": "unknown",
+     "cny": null,
+     "currency": null,
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "本人主动支出，获得实物商品"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-phy-en-shipped"
+  },
+  {
+   "args": {
+    "body": "Your parcel will be delivered tomorrow.",
+    "subject": "Delivery update"
+   },
+   "expected": {
+    "acquired": "physical",
+    "action": false,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "unknown",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "facets-phy-en-delivery"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "physical",
+     "action": false,
+     "amount": null,
+     "channel": "unknown",
+     "cny": null,
+     "currency": null,
+     "direction": "unknown",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-phy-en-delivery"
+  },
+  {
+   "args": {
+    "body": "您的订阅已生效，服务期至 2027 年",
+    "subject": "会员订阅确认"
+   },
+   "expected": {
+    "acquired": "service",
+    "action": false,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "unknown",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "facets-svc-cn-member"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "service",
+     "action": false,
+     "amount": null,
+     "channel": "unknown",
+     "cny": null,
+     "currency": null,
+     "direction": "unknown",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-svc-cn-member"
+  },
+  {
+   "args": {
+    "body": "当前套餐：专业版，有效期至下月",
+    "subject": "套餐变更成功"
+   },
+   "expected": {
+    "acquired": "service",
+    "action": false,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "unknown",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "facets-svc-cn-plan"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "service",
+     "action": false,
+     "amount": null,
+     "channel": "unknown",
+     "cny": null,
+     "currency": null,
+     "direction": "unknown",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-svc-cn-plan"
+  },
+  {
+   "args": {
+    "body": "Your subscription plan is now active.",
+    "subject": "Your membership is active"
+   },
+   "expected": {
+    "acquired": "service",
+    "action": false,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "unknown",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "facets-svc-en-member"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "service",
+     "action": false,
+     "amount": null,
+     "channel": "unknown",
+     "cny": null,
+     "currency": null,
+     "direction": "unknown",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-svc-en-member"
+  },
+  {
+   "args": {
+    "body": "Your premium service starts today.",
+    "subject": "Premium plan confirmation"
+   },
+   "expected": {
+    "acquired": "service",
+    "action": false,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "unknown",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "facets-svc-en-premium"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "service",
+     "action": false,
+     "amount": null,
+     "channel": "unknown",
+     "cny": null,
+     "currency": null,
+     "direction": "unknown",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-svc-en-premium"
+  },
+  {
+   "args": {
+    "body": "您上架的饰品已售出，物品已售出",
+    "subject": "社区市场交易提醒"
+   },
+   "expected": {
+    "acquired": "virtual_item",
+    "action": false,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "in",
+    "initiator": "other"
+   },
+   "fn": "extract_facets",
+   "id": "facets-vir-cn-skin"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "virtual_item",
+     "action": false,
+     "amount": null,
+     "channel": "unknown",
+     "cny": null,
+     "currency": null,
+     "direction": "in",
+     "initiator": "other"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "一般",
+    "收入或到账，不需要处理"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-vir-cn-skin"
+  },
+  {
+   "args": {
+    "body": "您在社区市场卖出了一张卡牌",
+    "subject": "交易市场通知"
+   },
+   "expected": {
+    "acquired": "virtual_item",
+    "action": false,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "unknown",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "facets-vir-cn-market"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "virtual_item",
+     "action": false,
+     "amount": null,
+     "channel": "unknown",
+     "cny": null,
+     "currency": null,
+     "direction": "unknown",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-vir-cn-market"
+  },
+  {
+   "args": {
+    "body": "An in-game item you sold on the marketplace.",
+    "subject": "Community Market trade"
+   },
+   "expected": {
+    "acquired": "virtual_item",
+    "action": false,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "in",
+    "initiator": "other"
+   },
+   "fn": "extract_facets",
+   "id": "facets-vir-en-item"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "virtual_item",
+     "action": false,
+     "amount": null,
+     "channel": "unknown",
+     "cny": null,
+     "currency": null,
+     "direction": "in",
+     "initiator": "other"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "一般",
+    "收入或到账，不需要处理"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-vir-en-item"
+  },
+  {
+   "args": {
+    "body": "Your trading card set is complete.",
+    "subject": "Trading card completed"
+   },
+   "expected": {
+    "acquired": "virtual_item",
+    "action": false,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "unknown",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "facets-vir-en-trading"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "virtual_item",
+     "action": false,
+     "amount": null,
+     "channel": "unknown",
+     "cny": null,
+     "currency": null,
+     "direction": "unknown",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-vir-en-trading"
+  },
+  {
+   "args": {
+    "body": "您已成功充值 50 元，当前余额 80 元",
+    "subject": "[Hub] 余额充值成功"
+   },
+   "expected": {
+    "acquired": "balance",
+    "action": false,
+    "amount": 80.0,
+    "channel": "unknown",
+    "cny": 80.0,
+    "currency": "CNY",
+    "direction": "out",
+    "initiator": "self"
+   },
+   "fn": "extract_facets",
+   "id": "facets-bal-cn-topup"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "balance",
+     "action": false,
+     "amount": 80.0,
+     "channel": "unknown",
+     "cny": 80.0,
+     "currency": "CNY",
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "本人主动支出，获得账户余额"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-bal-cn-topup"
+  },
+  {
+   "args": {
+    "body": "您的钱包余额增加 20 元",
+    "subject": "钱包余额变动"
+   },
+   "expected": {
+    "acquired": "balance",
+    "action": false,
+    "amount": 20.0,
+    "channel": "unknown",
+    "cny": 20.0,
+    "currency": "CNY",
+    "direction": "in",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "facets-bal-cn-wallet"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "balance",
+     "action": false,
+     "amount": 20.0,
+     "channel": "unknown",
+     "cny": 20.0,
+     "currency": "CNY",
+     "direction": "in",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "一般",
+    "收入或到账，不需要处理"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-bal-cn-wallet"
+  },
+  {
+   "args": {
+    "body": "You added funds to your wallet. Balance: $20.00",
+    "subject": "Wallet top-up complete"
+   },
+   "expected": {
+    "acquired": "balance",
+    "action": false,
+    "amount": 20.0,
+    "channel": "unknown",
+    "cny": 144.0,
+    "currency": "USD",
+    "direction": "out",
+    "initiator": "self"
+   },
+   "fn": "extract_facets",
+   "id": "facets-bal-en-topup"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "balance",
+     "action": false,
+     "amount": 20.0,
+     "channel": "unknown",
+     "cny": 144.0,
+     "currency": "USD",
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "本人主动支出，获得账户余额"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-bal-en-topup"
+  },
+  {
+   "args": {
+    "body": "Your balance is now $12.00",
+    "subject": "Balance updated"
+   },
+   "expected": {
+    "acquired": "balance",
+    "action": false,
+    "amount": 12.0,
+    "channel": "unknown",
+    "cny": 86.4,
+    "currency": "USD",
+    "direction": "unknown",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "facets-bal-en-credits"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "balance",
+     "action": false,
+     "amount": 12.0,
+     "channel": "unknown",
+     "cny": 86.4,
+     "currency": "USD",
+     "direction": "unknown",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-bal-en-credits"
+  },
+  {
+   "args": {
+    "body": "支付方式： 商店钱包，共计花费 20₴",
+    "subject": "购买成功"
+   },
+   "expected": {
+    "acquired": "balance",
+    "action": false,
+    "amount": 20.0,
+    "channel": "balance",
+    "cny": 3.4,
+    "currency": "UAH",
+    "direction": "out",
+    "initiator": "self"
+   },
+   "fn": "extract_facets",
+   "id": "facets-chan-bal-cn"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "balance",
+     "action": false,
+     "amount": 20.0,
+     "channel": "balance",
+     "cny": 3.4,
+     "currency": "UAH",
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "本人主动支出，获得账户余额"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-chan-bal-cn"
+  },
+  {
+   "args": {
+    "body": "Paid with wallet balance: $5.00",
+    "subject": "Purchase complete"
+   },
+   "expected": {
+    "acquired": "balance",
+    "action": false,
+    "amount": 5.0,
+    "channel": "balance",
+    "cny": 36.0,
+    "currency": "USD",
+    "direction": "out",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "facets-chan-bal-en"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "balance",
+     "action": false,
+     "amount": 5.0,
+     "channel": "balance",
+     "cny": 36.0,
+     "currency": "USD",
+     "direction": "out",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-chan-bal-en"
+  },
+  {
+   "args": {
+    "body": "Paid using credits: $3.00",
+    "subject": "Order complete"
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": false,
+    "amount": 3.0,
+    "channel": "balance",
+    "cny": 21.6,
+    "currency": "USD",
+    "direction": "out",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "facets-chan-bal-en-credits"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "unknown",
+     "action": false,
+     "amount": 3.0,
+     "channel": "balance",
+     "cny": 21.6,
+     "currency": "USD",
+     "direction": "out",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-chan-bal-en-credits"
+  },
+  {
+   "args": {
+    "body": "支付方式：支付宝，实付 30 元",
+    "subject": "支付成功"
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": false,
+    "amount": 30.0,
+    "channel": "real",
+    "cny": 30.0,
+    "currency": "CNY",
+    "direction": "out",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "facets-chan-real-cn"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "unknown",
+     "action": false,
+     "amount": 30.0,
+     "channel": "real",
+     "cny": 30.0,
+     "currency": "CNY",
+     "direction": "out",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-chan-real-cn"
+  },
+  {
+   "args": {
+    "body": "Payment method: Visa, amount paid $30.00",
+    "subject": "Payment received"
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": false,
+    "amount": 30.0,
+    "channel": "real",
+    "cny": 216.0,
+    "currency": "USD",
+    "direction": "out",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "facets-chan-real-en"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "unknown",
+     "action": false,
+     "amount": 30.0,
+     "channel": "real",
+     "cny": 216.0,
+     "currency": "USD",
+     "direction": "out",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "金额约 ¥216，不低于阈值 ¥200"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-chan-real-en"
+  },
+  {
+   "args": {
+    "body": "您的付款方式已失效，请更新付款方式。",
+    "subject": "您的订阅需要处理"
+   },
+   "expected": {
+    "acquired": "service",
+    "action": true,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "out",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "facets-action-cn-attention"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "service",
+     "action": true,
+     "amount": null,
+     "channel": "unknown",
+     "cny": null,
+     "currency": null,
+     "direction": "out",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "需要处理（付款失败、待支付或即将扣费等）"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-action-cn-attention"
+  },
+  {
+   "args": {
+    "body": "您的会员将于 3 天后自动续费，请确保余额充足。",
+    "subject": "扣费提醒"
+   },
+   "expected": {
+    "acquired": "service",
+    "action": false,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "out",
+    "initiator": "auto"
+   },
+   "fn": "extract_facets",
+   "id": "facets-action-cn-upcoming"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "service",
+     "action": false,
+     "amount": null,
+     "channel": "unknown",
+     "cny": null,
+     "currency": null,
+     "direction": "out",
+     "initiator": "auto"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "自动续费扣款（按设置）"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-action-cn-upcoming"
+  },
+  {
+   "args": {
+    "body": "We were unable to charge your card ending in 4242. Please update your payment method.",
+    "subject": "Payment failed for your subscription"
+   },
+   "expected": {
+    "acquired": "service",
+    "action": true,
+    "amount": null,
+    "channel": "real",
+    "cny": null,
+    "currency": null,
+    "direction": "out",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "facets-action-en-failed"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "service",
+     "action": true,
+     "amount": null,
+     "channel": "real",
+     "cny": null,
+     "currency": null,
+     "direction": "out",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "需要处理（付款失败、待支付或即将扣费等）"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-action-en-failed"
+  },
+  {
+   "args": {
+    "body": "Action required: please pay the outstanding amount.",
+    "subject": "Your invoice is past due"
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": true,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "out",
+    "initiator": "unknown"
+   },
+   "fn": "extract_facets",
+   "id": "facets-action-en-past-due"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "unknown",
+     "action": true,
+     "amount": null,
+     "channel": "unknown",
+     "cny": null,
+     "currency": null,
+     "direction": "out",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "需要处理（付款失败、待支付或即将扣费等）"
+   ],
+   "fn": "decide_tier",
+   "id": "facets-tier-action-en-past-due"
+  },
+  {
+   "args": {
+    "ai_facets": {
+     "acquired": "bogus",
+     "action": true,
+     "direction": "in",
+     "initiator": "self"
+    },
+    "local": {
+     "acquired": "unknown",
+     "action": false,
+     "direction": "out",
+     "initiator": "unknown"
+    }
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": true,
+    "ai_filled": [
+     "initiator",
+     "action"
+    ],
+    "direction": "out",
+    "initiator": "self"
+   },
+   "fn": "merge_ai_facets",
+   "id": "merge-test-case"
+  },
+  {
+   "args": {
+    "ai_facets": {
+     "acquired": "service",
+     "direction": "in",
+     "initiator": "auto"
+    },
+    "local": {
+     "acquired": "unknown",
+     "action": false,
+     "direction": "unknown",
+     "initiator": "unknown"
+    }
+   },
+   "expected": {
+    "acquired": "service",
+    "action": false,
+    "ai_filled": [
+     "direction",
+     "initiator",
+     "acquired"
+    ],
+    "direction": "in",
+    "initiator": "auto"
+   },
+   "fn": "merge_ai_facets",
+   "id": "merge-fill-all"
+  },
+  {
+   "args": {
+    "ai_facets": {
+     "acquired": "unknown",
+     "direction": "unknown",
+     "initiator": "unknown"
+    },
+    "local": {
+     "acquired": "unknown",
+     "action": false,
+     "direction": "unknown",
+     "initiator": "unknown"
+    }
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": false,
+    "direction": "unknown",
+    "initiator": "unknown"
+   },
+   "fn": "merge_ai_facets",
+   "id": "merge-ai-unknown"
+  },
+  {
+   "args": {
+    "ai_facets": {
+     "acquired": "bogus",
+     "direction": "sideways",
+     "initiator": "hacker"
+    },
+    "local": {
+     "acquired": "unknown",
+     "action": false,
+     "direction": "unknown",
+     "initiator": "unknown"
+    }
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": false,
+    "direction": "unknown",
+    "initiator": "unknown"
+   },
+   "fn": "merge_ai_facets",
+   "id": "merge-invalid-enums"
+  },
+  {
+   "args": {
+    "ai_facets": {
+     "acquired": [
+      "service"
+     ],
+     "direction": 1,
+     "initiator": true
+    },
+    "local": {
+     "acquired": "unknown",
+     "action": false,
+     "direction": "unknown",
+     "initiator": "unknown"
+    }
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": false,
+    "direction": "unknown",
+    "initiator": "unknown"
+   },
+   "fn": "merge_ai_facets",
+   "id": "merge-wrong-types"
+  },
+  {
+   "args": {
+    "ai_facets": null,
+    "local": {
+     "acquired": "unknown",
+     "action": false,
+     "direction": "unknown",
+     "initiator": "unknown"
+    }
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": false,
+    "direction": "unknown",
+    "initiator": "unknown"
+   },
+   "fn": "merge_ai_facets",
+   "id": "merge-none"
+  },
+  {
+   "args": {
+    "ai_facets": "not a dict",
+    "local": {
+     "acquired": "unknown",
+     "action": false,
+     "direction": "unknown",
+     "initiator": "unknown"
+    }
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": false,
+    "direction": "unknown",
+    "initiator": "unknown"
+   },
+   "fn": "merge_ai_facets",
+   "id": "merge-not-dict"
+  },
+  {
+   "args": {
+    "ai_facets": [
+     [
+      "direction",
+      "in"
+     ]
+    ],
+    "local": {
+     "acquired": "unknown",
+     "action": false,
+     "direction": "unknown",
+     "initiator": "unknown"
+    }
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": false,
+    "direction": "unknown",
+    "initiator": "unknown"
+   },
+   "fn": "merge_ai_facets",
+   "id": "merge-list"
+  },
+  {
+   "args": {
+    "ai_facets": {},
+    "local": {
+     "acquired": "unknown",
+     "action": false,
+     "direction": "unknown",
+     "initiator": "unknown"
+    }
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": false,
+    "direction": "unknown",
+    "initiator": "unknown"
+   },
+   "fn": "merge_ai_facets",
+   "id": "merge-empty-ai"
+  },
+  {
+   "args": {
+    "ai_facets": {
+     "action": true
+    },
+    "local": {
+     "action": false
+    }
+   },
+   "expected": {
+    "action": true,
+    "ai_filled": [
+     "action"
+    ]
+   },
+   "fn": "merge_ai_facets",
+   "id": "merge-action-true"
+  },
+  {
+   "args": {
+    "ai_facets": {
+     "action": true
+    },
+    "local": {
+     "action": true
+    }
+   },
+   "expected": {
+    "action": true
+   },
+   "fn": "merge_ai_facets",
+   "id": "merge-action-already"
+  },
+  {
+   "args": {
+    "ai_facets": {
+     "action": "yes"
+    },
+    "local": {
+     "action": false
+    }
+   },
+   "expected": {
+    "action": false
+   },
+   "fn": "merge_ai_facets",
+   "id": "merge-action-string"
+  },
+  {
+   "args": {
+    "ai_facets": {
+     "action": 1
+    },
+    "local": {
+     "action": false
+    }
+   },
+   "expected": {
+    "action": false
+   },
+   "fn": "merge_ai_facets",
+   "id": "merge-action-one"
+  },
+  {
+   "args": {
+    "ai_facets": {
+     "action": true,
+     "direction": "in"
+    },
+    "local": {
+     "action": false,
+     "direction": "refund"
+    }
+   },
+   "expected": {
+    "action": true,
+    "ai_filled": [
+     "action"
+    ],
+    "direction": "refund"
+   },
+   "fn": "merge_ai_facets",
+   "id": "merge-keep-local"
+  },
+  {
+   "args": {
+    "ai_facets": {
+     "acquired": "service",
+     "direction": "in",
+     "initiator": "auto"
+    },
+    "local": {
+     "acquired": "unknown",
+     "ai_filled": [
+      "acquired"
+     ],
+     "direction": "unknown",
+     "initiator": "unknown"
+    }
+   },
+   "expected": {
+    "acquired": "service",
+    "ai_filled": [
+     "acquired",
+     "direction",
+     "initiator",
+     "acquired"
+    ],
+    "direction": "in",
+    "initiator": "auto"
+   },
+   "fn": "merge_ai_facets",
+   "id": "merge-existing-ai-filled"
+  },
+  {
+   "args": {
+    "sender_addr": "noreply@shop.example",
+    "subject": "Your Order Receipt from Oct 23, 2026"
+   },
+   "expected": "shop.example|your order receipt from <m> # #",
+   "fn": "template_key",
+   "id": "tpl-test-a"
+  },
+  {
+   "args": {
+    "sender_addr": "noreply@shop.example",
+    "subject": "Your Order Receipt from Sep 3, 2026"
+   },
+   "expected": "shop.example|your order receipt from <m> # #",
+   "fn": "template_key",
+   "id": "tpl-test-b"
+  },
+  {
+   "args": {
+    "sender_addr": "other@mail.example",
+    "subject": "Your Order Receipt from Oct 23, 2026"
+   },
+   "expected": "mail.example|your order receipt from <m> # #",
+   "fn": "template_key",
+   "id": "tpl-test-c"
+  },
+  {
+   "args": {
+    "sender_addr": "x@shop.example",
+    "subject": "您的订单收据(2026年10月18日)"
+   },
+   "expected": "shop.example|您的订单收据",
+   "fn": "template_key",
+   "id": "tpl-test-d"
+  },
+  {
+   "args": {
+    "sender_addr": "x@shop.example",
+    "subject": "您的订单收据(2026年9月1日)"
+   },
+   "expected": "shop.example|您的订单收据",
+   "fn": "template_key",
+   "id": "tpl-test-e"
+  },
+  {
+   "args": {
+    "sender_addr": "x@shop.example",
+    "subject": "【订单号 88231】您的订单已发货"
+   },
+   "expected": "shop.example|您的订单已发货",
+   "fn": "template_key",
+   "id": "tpl-bracket-cn"
+  },
+  {
+   "args": {
+    "sender_addr": "x@shop.example",
+    "subject": "您的账单（2026-10）已生成"
+   },
+   "expected": "shop.example|您的账单 已生成",
+   "fn": "template_key",
+   "id": "tpl-bracket-round"
+  },
+  {
+   "args": {
+    "sender_addr": "x@shop.example",
+    "subject": "Invoice [INV-2026-0007] is available"
+   },
+   "expected": "shop.example|invoice is available",
+   "fn": "template_key",
+   "id": "tpl-bracket-en"
+  },
+  {
+   "args": {
+    "sender_addr": "x@shop.example",
+    "subject": "Receipt for October"
+   },
+   "expected": "shop.example|receipt for <m>",
+   "fn": "template_key",
+   "id": "tpl-month-abbr"
+  },
+  {
+   "args": {
+    "sender_addr": "x@shop.example",
+    "subject": "Statement Sept 2026"
+   },
+   "expected": "shop.example|statement <m> #",
+   "fn": "template_key",
+   "id": "tpl-month-sept"
+  },
+  {
+   "args": {
+    "sender_addr": "x@shop.example",
+    "subject": "Your September statement"
+   },
+   "expected": "shop.example|your <m> statement",
+   "fn": "template_key",
+   "id": "tpl-month-full"
+  },
+  {
+   "args": {
+    "sender_addr": "x@shop.example",
+    "subject": "Your Jan. statement"
+   },
+   "expected": "shop.example|your <m> statement",
+   "fn": "template_key",
+   "id": "tpl-month-dot"
+  },
+  {
+   "args": {
+    "sender_addr": "x@shop.example",
+    "subject": "Tuesday digest"
+   },
+   "expected": "shop.example|<m> digest",
+   "fn": "template_key",
+   "id": "tpl-day-full"
+  },
+  {
+   "args": {
+    "sender_addr": "x@shop.example",
+    "subject": "Mon weekly summary"
+   },
+   "expected": "shop.example|<m> weekly summary",
+   "fn": "template_key",
+   "id": "tpl-day-abbr"
+  },
+  {
+   "args": {
+    "sender_addr": "x@shop.example",
+    "subject": "Thursday roundup"
+   },
+   "expected": "shop.example|<m> roundup",
+   "fn": "template_key",
+   "id": "tpl-day-thu"
+  },
+  {
+   "args": {
+    "sender_addr": "x@shop.example",
+    "subject": "Order 123456 shipped in 3 days"
+   },
+   "expected": "shop.example|order # shipped in # days",
+   "fn": "template_key",
+   "id": "tpl-numbers"
+  },
+  {
+   "args": {
+    "sender_addr": "x@shop.example",
+    "subject": "订单 １２３ 已完成"
+   },
+   "expected": "shop.example|订单 # 已完成",
+   "fn": "template_key",
+   "id": "tpl-numbers-wide"
+  },
+  {
+   "args": {
+    "sender_addr": "x@shop.example",
+    "subject": "【提醒】您的账单已出，请查看！"
+   },
+   "expected": "shop.example|您的账单已出 请查看",
+   "fn": "template_key",
+   "id": "tpl-cjk-punct"
+  },
+  {
+   "args": {
+    "sender_addr": "x@shop.example",
+    "subject": "您好：本月消费 ￥128.00（含税），谢谢。"
+   },
+   "expected": "shop.example|您好 本月消费 # # 谢谢",
+   "fn": "template_key",
+   "id": "tpl-cjk-mixed"
+  },
+  {
+   "args": {
+    "sender_addr": "NoReply@SHOP.EXAMPLE",
+    "subject": "Your receipt"
+   },
+   "expected": "shop.example|your receipt",
+   "fn": "template_key",
+   "id": "tpl-upper-domain"
+  },
+  {
+   "args": {
+    "sender_addr": "noreply@Shop.Example",
+    "subject": "  您的收据  "
+   },
+   "expected": "shop.example|您的收据",
+   "fn": "template_key",
+   "id": "tpl-mixed-domain"
+  },
+  {
+   "args": {
+    "sender_addr": "bounce",
+    "subject": "Delivery status notification"
+   },
+   "expected": "bounce|delivery status notification",
+   "fn": "template_key",
+   "id": "tpl-no-at"
+  },
+  {
+   "args": {
+    "sender_addr": "",
+    "subject": "空发件人"
+   },
+   "expected": "|空发件人",
+   "fn": "template_key",
+   "id": "tpl-empty-sender"
+  },
+  {
+   "args": {
+    "sender_addr": "x@shop.example",
+    "subject": ""
+   },
+   "expected": "shop.example|",
+   "fn": "template_key",
+   "id": "tpl-empty-subject"
+  },
+  {
+   "args": {
+    "sender_addr": "",
+    "subject": ""
+   },
+   "expected": "|",
+   "fn": "template_key",
+   "id": "tpl-none-both"
+  },
+  {
+   "args": {
+    "sender_addr": "noreply@shop.example",
+    "subject": "测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测𠀀𠀀𠀀𠀀𠀀𠀀𠀀𠀀𠀀𠀀试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试😀"
+   },
+   "expected": "shop.example|测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测𠀀𠀀𠀀𠀀𠀀𠀀𠀀𠀀𠀀𠀀试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试",
+   "fn": "template_key",
+   "id": "tpl-truncate-80"
+  },
+  {
+   "args": {
+    "sender_addr": "x@dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.example",
+    "subject": "测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测𠀀𠀀𠀀𠀀𠀀𠀀𠀀𠀀𠀀𠀀试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试试🎉🎉"
+   },
+   "expected": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.example|测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测测𠀀𠀀𠀀𠀀𠀀𠀀𠀀𠀀𠀀𠀀试",
+   "fn": "template_key",
+   "id": "tpl-truncate-160"
+  },
+  {
+   "args": {
+    "sender_addr": "x@shop.example",
+    "subject": "！！！???  ——"
+   },
+   "expected": "shop.example|",
+   "fn": "template_key",
+   "id": "tpl-only-punct"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "unknown",
+     "cny": 10,
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "本人主动支出，获得商品或服务"
+   ],
+   "fn": "decide_tier",
+   "id": "decide-out-self"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "unknown",
+     "cny": 10,
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "一般",
+    "routine_count": 0
+   },
+   "expected": [
+    "一般",
+    "按用户对同类邮件的标记"
+   ],
+   "fn": "decide_tier",
+   "id": "decide-pref-minor"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "cny": 500,
+     "direction": "in",
+     "initiator": "other"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "金额约 ¥500，不低于阈值 ¥200"
+   ],
+   "fn": "decide_tier",
+   "id": "decide-big-in"
+  },
+  {
+   "args": {
+    "cfg": {
+     "amount_threshold": 0
+    },
+    "facets": {
+     "cny": 500,
+     "direction": "in",
+     "initiator": "other"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "一般",
+    "收入或到账，不需要处理"
+   ],
+   "fn": "decide_tier",
+   "id": "decide-big-in-threshold-zero"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "cny": 10,
+     "direction": "out",
+     "initiator": "auto"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "自动续费扣款（按设置）"
+   ],
+   "fn": "decide_tier",
+   "id": "decide-renew"
+  },
+  {
+   "args": {
+    "cfg": {
+     "auto_renew": "一般"
+    },
+    "facets": {
+     "cny": 10,
+     "direction": "out",
+     "initiator": "auto"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "一般",
+    "自动续费扣款（按设置）"
+   ],
+   "fn": "decide_tier",
+   "id": "decide-renew-minor"
+  },
+  {
+   "args": {
+    "cfg": {
+     "refund": "重要"
+    },
+    "facets": {
+     "cny": 10,
+     "direction": "refund"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "退款（按设置）"
+   ],
+   "fn": "decide_tier",
+   "id": "decide-refund-important"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "virtual_item",
+     "channel": "balance",
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "一般",
+    "用平台余额买卖虚拟物品，属于余额内流转"
+   ],
+   "fn": "decide_tier",
+   "id": "decide-item-balance"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "unknown",
+     "direction": "unknown",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "decide-unknown-default"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "unknown",
+     "direction": "unknown",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 12
+   },
+   "expected": [
+    "一般",
+    "同类邮件近 30 天 12 封，属于例行流水"
+   ],
+   "fn": "decide_tier",
+   "id": "decide-unknown-routine"
+  },
+  {
+   "args": {
+    "cfg": {
+     "routine_count": 0
+    },
+    "facets": {
+     "acquired": "unknown",
+     "direction": "unknown",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 12
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "decide-unknown-routine-off"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "unknown",
+     "cny": 10,
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "重要",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "按用户对同类邮件的标记"
+   ],
+   "fn": "decide_tier",
+   "id": "pref-important"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "action": true,
+     "cny": 10,
+     "direction": "out"
+    },
+    "preference": "一般",
+    "routine_count": 0
+   },
+   "expected": [
+    "一般",
+    "按用户对同类邮件的标记"
+   ],
+   "fn": "decide_tier",
+   "id": "pref-minor-over-action"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "unknown",
+     "cny": 10,
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "本人主动支出，获得商品或服务"
+   ],
+   "fn": "decide_tier",
+   "id": "pref-empty"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "unknown",
+     "cny": 10,
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "普通",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "本人主动支出，获得商品或服务"
+   ],
+   "fn": "decide_tier",
+   "id": "pref-invalid"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "cny": 10,
+     "direction": "refund"
+    },
+    "preference": "重要",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "按用户对同类邮件的标记"
+   ],
+   "fn": "decide_tier",
+   "id": "pref-on-refund"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "action": true,
+     "direction": "none"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "需要处理（付款失败、待支付或即将扣费等）"
+   ],
+   "fn": "decide_tier",
+   "id": "action-only"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "action": false,
+     "cny": 1,
+     "direction": "in"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "一般",
+    "收入或到账，不需要处理"
+   ],
+   "fn": "decide_tier",
+   "id": "action-false"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "action": "yes",
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "需要处理（付款失败、待支付或即将扣费等）"
+   ],
+   "fn": "decide_tier",
+   "id": "action-truthy-non-bool"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "cny": 200.0,
+     "direction": "out"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "金额约 ¥200，不低于阈值 ¥200"
+   ],
+   "fn": "decide_tier",
+   "id": "amount-eq-threshold"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "cny": 199.99,
+     "direction": "out"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "amount-below-threshold"
+  },
+  {
+   "args": {
+    "cfg": {
+     "amount_threshold": 0
+    },
+    "facets": {
+     "cny": 1000,
+     "direction": "out"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "amount-zero-threshold"
+  },
+  {
+   "args": {
+    "cfg": {
+     "amount_threshold": -5
+    },
+    "facets": {
+     "cny": 1000,
+     "direction": "out"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "amount-negative-threshold"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "cny": null,
+     "direction": "out"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "amount-null"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "cny": 5000,
+     "direction": "none"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "一般",
+    "零金额（免费领取等）"
+   ],
+   "fn": "decide_tier",
+   "id": "amount-none-direction"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "cny": 1299.5,
+     "direction": "out"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "金额约 ¥1299.5，不低于阈值 ¥200"
+   ],
+   "fn": "decide_tier",
+   "id": "amount-fraction"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "cny": 12345678.0,
+     "direction": "out"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "金额约 ¥1.23457e+07，不低于阈值 ¥200"
+   ],
+   "fn": "decide_tier",
+   "id": "amount-exponent"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "cny": 9216,
+     "direction": "out"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "金额约 ¥9216，不低于阈值 ¥200"
+   ],
+   "fn": "decide_tier",
+   "id": "amount-int"
+  },
+  {
+   "args": {
+    "cfg": {
+     "amount_threshold": 100000
+    },
+    "facets": {
+     "cny": 100000,
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "金额约 ¥100000，不低于阈值 ¥100000"
+   ],
+   "fn": "decide_tier",
+   "id": "reason-g-cny-100000"
+  },
+  {
+   "args": {
+    "cfg": {
+     "amount_threshold": 100000
+    },
+    "facets": {
+     "cny": 180000,
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "金额约 ¥180000，不低于阈值 ¥100000"
+   ],
+   "fn": "decide_tier",
+   "id": "reason-g-cny-180000"
+  },
+  {
+   "args": {
+    "cfg": {
+     "amount_threshold": 100000
+    },
+    "facets": {
+     "cny": 99999.99,
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "本人主动支出，获得商品或服务"
+   ],
+   "fn": "decide_tier",
+   "id": "reason-g-cny-99999-99"
+  },
+  {
+   "args": {
+    "cfg": {
+     "amount_threshold": 100000
+    },
+    "facets": {
+     "cny": 123450.5,
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "金额约 ¥123450，不低于阈值 ¥100000"
+   ],
+   "fn": "decide_tier",
+   "id": "reason-g-cny-123450-5"
+  },
+  {
+   "args": {
+    "cfg": {
+     "amount_threshold": 100000
+    },
+    "facets": {
+     "cny": 1234565,
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "金额约 ¥1.23456e+06，不低于阈值 ¥100000"
+   ],
+   "fn": "decide_tier",
+   "id": "reason-g-cny-1234565"
+  },
+  {
+   "args": {
+    "cfg": {
+     "amount_threshold": 100000
+    },
+    "facets": {
+     "cny": 1.25e-05,
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "本人主动支出，获得商品或服务"
+   ],
+   "fn": "decide_tier",
+   "id": "reason-g-cny-0-0000125"
+  },
+  {
+   "args": {
+    "cfg": {
+     "amount_threshold": "250"
+    },
+    "facets": {
+     "cny": 260,
+     "direction": "out"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "金额约 ¥260，不低于阈值 ¥250"
+   ],
+   "fn": "decide_tier",
+   "id": "cfg-threshold-str"
+  },
+  {
+   "args": {
+    "cfg": {
+     "amount_threshold": 250
+    },
+    "facets": {
+     "cny": 260,
+     "direction": "out"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "金额约 ¥260，不低于阈值 ¥250"
+   ],
+   "fn": "decide_tier",
+   "id": "cfg-threshold-int"
+  },
+  {
+   "args": {
+    "cfg": {
+     "amount_threshold": 250.5
+    },
+    "facets": {
+     "cny": 260,
+     "direction": "out"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "金额约 ¥260，不低于阈值 ¥250.5"
+   ],
+   "fn": "decide_tier",
+   "id": "cfg-threshold-float"
+  },
+  {
+   "args": {
+    "cfg": {
+     "amount_threshold": "abc"
+    },
+    "facets": {
+     "cny": 260,
+     "direction": "out"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "金额约 ¥260，不低于阈值 ¥200"
+   ],
+   "fn": "decide_tier",
+   "id": "cfg-threshold-invalid"
+  },
+  {
+   "args": {
+    "cfg": {
+     "amount_threshold": null
+    },
+    "facets": {
+     "cny": 260,
+     "direction": "out"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "金额约 ¥260，不低于阈值 ¥200"
+   ],
+   "fn": "decide_tier",
+   "id": "cfg-threshold-none"
+  },
+  {
+   "args": {
+    "cfg": {
+     "amount_threshold": ""
+    },
+    "facets": {
+     "cny": 260,
+     "direction": "out"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "金额约 ¥260，不低于阈值 ¥200"
+   ],
+   "fn": "decide_tier",
+   "id": "cfg-threshold-empty"
+  },
+  {
+   "args": {
+    "cfg": {
+     "amount_threshold": [
+      1,
+      2
+     ]
+    },
+    "facets": {
+     "cny": 260,
+     "direction": "out"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "金额约 ¥260，不低于阈值 ¥200"
+   ],
+   "fn": "decide_tier",
+   "id": "cfg-threshold-list"
+  },
+  {
+   "args": {
+    "cfg": {
+     "amount_threshold": "inf"
+    },
+    "facets": {
+     "cny": 260,
+     "direction": "out"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "cfg-threshold-inf"
+  },
+  {
+   "args": {
+    "cfg": {
+     "amount_threshold": "nan"
+    },
+    "facets": {
+     "cny": 260,
+     "direction": "out"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "cfg-threshold-nan"
+  },
+  {
+   "args": {
+    "cfg": {
+     "auto_renew": "一般",
+     "no_such_key": 1
+    },
+    "facets": {
+     "cny": 10,
+     "direction": "out"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "cfg-unknown-key"
+  },
+  {
+   "args": {
+    "cfg": {},
+    "facets": {
+     "cny": 10,
+     "direction": "out"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "cfg-empty"
+  },
+  {
+   "args": {
+    "cfg": {
+     "auto_renew": "随便"
+    },
+    "facets": {
+     "cny": 10,
+     "direction": "out",
+     "initiator": "auto"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "自动续费扣款（按设置）"
+   ],
+   "fn": "decide_tier",
+   "id": "cfg-auto-invalid"
+  },
+  {
+   "args": {
+    "cfg": {
+     "auto_renew": null
+    },
+    "facets": {
+     "cny": 10,
+     "direction": "out",
+     "initiator": "auto"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "自动续费扣款（按设置）"
+   ],
+   "fn": "decide_tier",
+   "id": "cfg-auto-none"
+  },
+  {
+   "args": {
+    "cfg": {
+     "refund": "普通"
+    },
+    "facets": {
+     "cny": 10,
+     "direction": "refund"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "一般",
+    "退款（按设置）"
+   ],
+   "fn": "decide_tier",
+   "id": "cfg-refund-invalid"
+  },
+  {
+   "args": {
+    "cfg": {
+     "refund": 1
+    },
+    "facets": {
+     "cny": 10,
+     "direction": "refund"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "一般",
+    "退款（按设置）"
+   ],
+   "fn": "decide_tier",
+   "id": "cfg-refund-important-int"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "unknown",
+     "direction": "unknown",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 9
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "routine-below"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "unknown",
+     "direction": "unknown",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 10
+   },
+   "expected": [
+    "一般",
+    "同类邮件近 30 天 10 封，属于例行流水"
+   ],
+   "fn": "decide_tier",
+   "id": "routine-eq"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "unknown",
+     "direction": "unknown",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 11
+   },
+   "expected": [
+    "一般",
+    "同类邮件近 30 天 11 封，属于例行流水"
+   ],
+   "fn": "decide_tier",
+   "id": "routine-above"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "unknown",
+     "direction": "unknown",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "routine-zero-count"
+  },
+  {
+   "args": {
+    "cfg": {
+     "routine_count": "12"
+    },
+    "facets": {
+     "acquired": "unknown",
+     "direction": "unknown",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 12
+   },
+   "expected": [
+    "一般",
+    "同类邮件近 30 天 12 封，属于例行流水"
+   ],
+   "fn": "decide_tier",
+   "id": "routine-cfg-str"
+  },
+  {
+   "args": {
+    "cfg": {
+     "routine_count": "12.5"
+    },
+    "facets": {
+     "acquired": "unknown",
+     "direction": "unknown",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 12
+   },
+   "expected": [
+    "一般",
+    "同类邮件近 30 天 12 封，属于例行流水"
+   ],
+   "fn": "decide_tier",
+   "id": "routine-cfg-str-fraction"
+  },
+  {
+   "args": {
+    "cfg": {
+     "routine_count": 12.9
+    },
+    "facets": {
+     "acquired": "unknown",
+     "direction": "unknown",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 12
+   },
+   "expected": [
+    "一般",
+    "同类邮件近 30 天 12 封，属于例行流水"
+   ],
+   "fn": "decide_tier",
+   "id": "routine-cfg-float"
+  },
+  {
+   "args": {
+    "cfg": {
+     "routine_count": 12
+    },
+    "facets": {
+     "acquired": "unknown",
+     "direction": "unknown",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 12
+   },
+   "expected": [
+    "一般",
+    "同类邮件近 30 天 12 封，属于例行流水"
+   ],
+   "fn": "decide_tier",
+   "id": "routine-cfg-int"
+  },
+  {
+   "args": {
+    "cfg": {
+     "routine_count": "abc"
+    },
+    "facets": {
+     "acquired": "unknown",
+     "direction": "unknown",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 10
+   },
+   "expected": [
+    "一般",
+    "同类邮件近 30 天 10 封，属于例行流水"
+   ],
+   "fn": "decide_tier",
+   "id": "routine-cfg-invalid"
+  },
+  {
+   "args": {
+    "cfg": {
+     "routine_count": ""
+    },
+    "facets": {
+     "acquired": "unknown",
+     "direction": "unknown",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 10
+   },
+   "expected": [
+    "一般",
+    "同类邮件近 30 天 10 封，属于例行流水"
+   ],
+   "fn": "decide_tier",
+   "id": "routine-cfg-empty"
+  },
+  {
+   "args": {
+    "cfg": {
+     "routine_count": [
+      1,
+      2,
+      3
+     ]
+    },
+    "facets": {
+     "acquired": "unknown",
+     "direction": "unknown",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 12
+   },
+   "expected": [
+    "一般",
+    "同类邮件近 30 天 12 封，属于例行流水"
+   ],
+   "fn": "decide_tier",
+   "id": "routine-cfg-list"
+  },
+  {
+   "args": {
+    "cfg": {
+     "routine_count": "18446744073709551621"
+    },
+    "facets": {
+     "acquired": "unknown",
+     "direction": "unknown",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 12
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "routine-cfg-huge-str"
+  },
+  {
+   "args": {
+    "cfg": {
+     "routine_count": 1e+308
+    },
+    "facets": {
+     "acquired": "unknown",
+     "direction": "unknown",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 12
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "routine-cfg-huge-float"
+  },
+  {
+   "args": {
+    "cfg": {
+     "routine_count": "nan"
+    },
+    "facets": {
+     "acquired": "unknown",
+     "direction": "unknown",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 12
+   },
+   "expected": [
+    "一般",
+    "同类邮件近 30 天 12 封，属于例行流水"
+   ],
+   "fn": "decide_tier",
+   "id": "routine-cfg-nan-str"
+  },
+  {
+   "args": {
+    "cfg": {
+     "routine_count": "inf"
+    },
+    "facets": {
+     "acquired": "unknown",
+     "direction": "unknown",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 12
+   },
+   "expected": [
+    "一般",
+    "同类邮件近 30 天 12 封，属于例行流水"
+   ],
+   "fn": "decide_tier",
+   "id": "routine-cfg-inf-str"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "entitlement",
+     "cny": 10,
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "本人主动支出，获得长期权益"
+   ],
+   "fn": "decide_tier",
+   "id": "self-acquired-entitlement"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "physical",
+     "cny": 10,
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "本人主动支出，获得实物商品"
+   ],
+   "fn": "decide_tier",
+   "id": "self-acquired-physical"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "service",
+     "cny": 10,
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "本人主动支出，获得服务或会员"
+   ],
+   "fn": "decide_tier",
+   "id": "self-acquired-service"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "balance",
+     "cny": 10,
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "本人主动支出，获得账户余额"
+   ],
+   "fn": "decide_tier",
+   "id": "self-acquired-balance"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "virtual_item",
+     "cny": 10,
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "本人主动支出，获得虚拟物品"
+   ],
+   "fn": "decide_tier",
+   "id": "self-acquired-virtual_item"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "unknown",
+     "cny": 10,
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "本人主动支出，获得商品或服务"
+   ],
+   "fn": "decide_tier",
+   "id": "self-acquired-unknown"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": null,
+     "cny": 10,
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "本人主动支出，获得商品或服务"
+   ],
+   "fn": "decide_tier",
+   "id": "self-acquired-None"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "bogus",
+     "cny": 10,
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "本人主动支出，获得商品或服务"
+   ],
+   "fn": "decide_tier",
+   "id": "self-acquired-bogus"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "virtual_item",
+     "channel": "balance",
+     "direction": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "一般",
+    "平台余额内的虚拟物品流转"
+   ],
+   "fn": "decide_tier",
+   "id": "item-balance-unknown-dir"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "virtual_item",
+     "channel": "real",
+     "direction": "out",
+     "initiator": "self"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "本人主动支出，获得虚拟物品"
+   ],
+   "fn": "decide_tier",
+   "id": "item-real-channel"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "acquired": "virtual_item",
+     "action": false,
+     "channel": "balance",
+     "cny": null,
+     "direction": "unknown",
+     "initiator": "unknown"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "一般",
+    "平台余额内的虚拟物品流转"
+   ],
+   "fn": "decide_tier",
+   "id": "item-balance-later-branch"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "direction": "in"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "一般",
+    "收入或到账，不需要处理"
+   ],
+   "fn": "decide_tier",
+   "id": "in-only"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "direction": "none"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "一般",
+    "零金额（免费领取等）"
+   ],
+   "fn": "decide_tier",
+   "id": "none-only"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "direction": "refund"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "一般",
+    "退款（按设置）"
+   ],
+   "fn": "decide_tier",
+   "id": "refund-default"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {
+     "direction": "out",
+     "initiator": "auto"
+    },
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "自动续费扣款（按设置）"
+   ],
+   "fn": "decide_tier",
+   "id": "auto-default"
+  },
+  {
+   "args": {
+    "cfg": null,
+    "facets": {},
+    "preference": "",
+    "routine_count": 0
+   },
+   "expected": [
+    "重要",
+    "信息不足，保守视为重要"
+   ],
+   "fn": "decide_tier",
+   "id": "empty-facets"
+  },
+  {
+   "args": {
+    "current": 0,
+    "facets": {
+     "direction": "in"
+    },
+    "tier": "一般"
+   },
+   "expected": 2,
+   "fn": "tier_importance",
+   "id": "importance-minor-zero"
+  },
+  {
+   "args": {
+    "current": 5,
+    "facets": {
+     "direction": "in"
+    },
+    "tier": "一般"
+   },
+   "expected": 2,
+   "fn": "tier_importance",
+   "id": "importance-minor-current-high"
+  },
+  {
+   "args": {
+    "current": 2,
+    "facets": {
+     "action": true
+    },
+    "tier": "一般"
+   },
+   "expected": 2,
+   "fn": "tier_importance",
+   "id": "importance-minor-current-two"
+  },
+  {
+   "args": {
+    "current": 0,
+    "facets": {
+     "action": true
+    },
+    "tier": "重要"
+   },
+   "expected": 4,
+   "fn": "tier_importance",
+   "id": "importance-important-action-zero"
+  },
+  {
+   "args": {
+    "current": 5,
+    "facets": {
+     "action": true
+    },
+    "tier": "重要"
+   },
+   "expected": 5,
+   "fn": "tier_importance",
+   "id": "importance-important-action-high"
+  },
+  {
+   "args": {
+    "current": 2,
+    "facets": {
+     "action": true
+    },
+    "tier": "重要"
+   },
+   "expected": 4,
+   "fn": "tier_importance",
+   "id": "importance-important-action-two"
+  },
+  {
+   "args": {
+    "current": 0,
+    "facets": {
+     "action": false
+    },
+    "tier": "重要"
+   },
+   "expected": 3,
+   "fn": "tier_importance",
+   "id": "importance-important-no-action-zero"
+  },
+  {
+   "args": {
+    "current": 5,
+    "facets": {},
+    "tier": "重要"
+   },
+   "expected": 5,
+   "fn": "tier_importance",
+   "id": "importance-important-no-action-high"
+  },
+  {
+   "args": {
+    "current": 1,
+    "facets": {
+     "action": true
+    },
+    "tier": "普通"
+   },
+   "expected": 4,
+   "fn": "tier_importance",
+   "id": "importance-unknown-tier"
+  },
+  {
+   "args": {
+    "facets": {
+     "acquired": "service",
+     "action": true,
+     "amount": 9.99,
+     "channel": "balance",
+     "cny": 71.93,
+     "currency": "USD",
+     "direction": "out",
+     "initiator": "self"
+    }
+   },
+   "expected": {
+    "acquired": "service",
+    "action": true,
+    "amount": 9.99,
+    "channel": "balance",
+    "cny": 71.93,
+    "currency": "USD",
+    "direction": "out",
+    "initiator": "self"
+   },
+   "fn": "stored_facets",
+   "id": "stored-full"
+  },
+  {
+   "args": {
+    "facets": {}
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": false,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "unknown",
+    "initiator": "unknown"
+   },
+   "fn": "stored_facets",
+   "id": "stored-empty"
+  },
+  {
+   "args": {
+    "facets": {
+     "cny": 4.07,
+     "direction": "in"
+    }
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": false,
+    "amount": null,
+    "channel": "unknown",
+    "cny": 4.07,
+    "currency": null,
+    "direction": "in",
+    "initiator": "unknown"
+   },
+   "fn": "stored_facets",
+   "id": "stored-partial"
+  },
+  {
+   "args": {
+    "facets": {
+     "action": "yes"
+    }
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": true,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "unknown",
+    "initiator": "unknown"
+   },
+   "fn": "stored_facets",
+   "id": "stored-truthy-action"
+  },
+  {
+   "args": {
+    "facets": {
+     "acquired": null,
+     "action": null,
+     "amount": null,
+     "channel": null,
+     "cny": null,
+     "currency": null,
+     "direction": null,
+     "initiator": null
+    }
+   },
+   "expected": {
+    "acquired": null,
+    "action": false,
+    "amount": null,
+    "channel": null,
+    "cny": null,
+    "currency": null,
+    "direction": null,
+    "initiator": null
+   },
+   "fn": "stored_facets",
+   "id": "stored-null-values"
+  },
+  {
+   "args": {
+    "facets": {
+     "ai_filled": [
+      "direction"
+     ],
+     "direction": "refund"
+    }
+   },
+   "expected": {
+    "acquired": "unknown",
+    "action": false,
+    "amount": null,
+    "channel": "unknown",
+    "cny": null,
+    "currency": null,
+    "direction": "refund",
+    "initiator": "unknown"
+   },
+   "fn": "stored_facets",
+   "id": "stored-extra-keys"
+  }
+ ],
+ "generator": "scripts/golden/billing.py",
+ "module": "billing"
+}

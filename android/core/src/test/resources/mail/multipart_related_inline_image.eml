@@ -1,0 +1,17 @@
+From: Notice <notice@shop.example>
+To: bob@corp.example
+Subject: Related inline image
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+Content-Type: multipart/related; boundary="r1"
+
+--r1
+Content-Type: text/html; charset=utf-8
+
+<p>inline image below</p>
+--r1
+Content-Type: image/png
+Content-Disposition: inline; filename=pic.png
+Content-Transfer-Encoding: base64
+
+iVBORw0KGgo=
+--r1--

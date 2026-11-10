@@ -1,0 +1,12 @@
+From: Notice <notice@shop.example>
+To: bob@corp.example
+Subject: Name parameter
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+Content-Type: multipart/mixed; boundary="a7"
+
+--a7
+Content-Type: application/pdf; name*=gb2312''%B1%A8%B8%E6.pdf
+Content-Disposition: attachment
+
+PDFDATA
+--a7--

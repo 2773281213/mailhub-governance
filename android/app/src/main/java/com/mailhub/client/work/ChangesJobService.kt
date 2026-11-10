@@ -32,7 +32,7 @@ class ChangesJobService : JobService() {
     override fun onStartJob(params: JobParameters): Boolean {
         scope.launch {
             val outcome = try {
-                changesSyncOf(this@ChangesJobService).runOnce()
+                runOneRound()
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
@@ -42,6 +42,19 @@ class ChangesJobService : JobService() {
             jobFinished(params, outcome == ChangesOutcome.Retry)
         }
         return true
+    }
+
+    /**
+     * 一轮后台任务。
+     *
+     * 本机会话：先同步到期的账户（最多 8 分钟，[com.mailhub.client.data.local.LocalSync.syncForJob]），
+     * 再走下面原有的 `/api/changes` 拉取；服务器模式 `localSyncOrNull()` 返回 null，
+     * 路径与原来一行都不差。
+     */
+    private suspend fun runOneRound(): ChangesOutcome {
+        val container = (applicationContext as MailHubApp).container
+        container.localSyncOrNull()?.syncForJob()
+        return changesSyncOf(this).runOnce()
     }
 
     /** 系统中途叫停（比如断网）：取消这一轮，返回 true 让系统稍后重试。 */

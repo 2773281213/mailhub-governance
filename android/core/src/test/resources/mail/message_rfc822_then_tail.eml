@@ -1,0 +1,18 @@
+From: Notice <notice@shop.example>
+To: bob@corp.example
+Subject: Message then tail
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+Content-Type: multipart/mixed; boundary="outer"
+
+--outer
+Content-Type: message/rfc822
+
+Content-Type: text/plain
+
+INNER
+
+--outer
+Content-Type: text/plain
+
+TAIL
+--outer--

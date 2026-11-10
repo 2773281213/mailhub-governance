@@ -1,0 +1,19 @@
+From: Notice <notice@shop.example>
+To: bob@corp.example
+Subject: Unclosed inner
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+Content-Type: multipart/mixed; boundary="outer"
+
+--outer
+Content-Type: multipart/alternative; boundary="inner"
+
+--inner
+Content-Type: text/plain
+
+TEXT
+
+--outer
+Content-Type: text/plain
+
+TAIL
+--outer--

@@ -1,0 +1,7 @@
+From: Notice <notice@shop.example>
+To: bob@corp.example
+Subject: Unknown charset
+Date: Tue, 05 Nov 2024 10:30:00 +0800
+Content-Type: text/plain; charset=x-unknown-charset
+
+这段正文解不出来。
