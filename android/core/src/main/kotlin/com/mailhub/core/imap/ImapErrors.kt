@@ -11,6 +11,7 @@ import jakarta.mail.StoreClosedException
 import org.eclipse.angus.mail.util.SocketConnectException
 import java.io.IOException
 import java.net.ConnectException
+import java.net.NoRouteToHostException
 import java.net.SocketException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
@@ -91,6 +92,16 @@ internal fun openSession(
 /** 账户表里的 OAuth 标记。 */
 const val AUTH_TYPE_OAUTH: String = "oauth"
 
+/**
+ * 服务器对命令回了 tagged `BAD`，对应 Python `imaplib.IMAP4.error`
+ * （`IMAP4._command_complete` 里 `typ == "BAD"` 直接抛）。
+ *
+ * 单独一个类型是为了让 [connectionErrorText] 能把它与「项目自己的中文说明」
+ * （[ImapException]）和认证失败（`AuthenticationFailedException`）区分开；
+ * 文案仍按 Python 的分支走，见 [connectionErrorText] 的说明。
+ */
+class ImapCommandException(message: String, cause: Exception? = null) : MessagingException(message, cause)
+
 /** 异常链最多回溯多少层（防止异常自身成环）。 */
 private const val MAX_CAUSE_DEPTH = 8
 
@@ -105,7 +116,11 @@ private const val MAX_ERROR_CHARS = 200
  * - 项目自己抛的 [ImapException] / [IllegalArgumentException] 原文已经是中文，原样返回
  *   （对应 Python 的 `RuntimeError` / `ValueError`）；
  * - [AuthenticationFailedException] → 「邮箱服务器拒绝登录…」（对应 `imaplib.IMAP4.error`）；
- * - 超时、连接被拒、连接中断、域名解析失败、TLS 握手失败、其他 IO。
+ * - [ImapCommandException] → 同上（对应服务器回 tagged `BAD` 时 imaplib 抛的 `IMAP4.error`，
+ *   Python 的 `connection_error_text` 也把这一类归成这句文案）；
+ * - 超时、网络/主机不可达（`ENETUNREACH` 等，Python 落进 `OSError`）、连接被拒、
+ *   连接中断（`ConnectionResetError` / `ConnectionAbortedError`）、域名解析失败、
+ *   TLS 握手失败、其他 IO。
  *
  * Angus 会把底层的 socket 异常包在 `MessagingException` / `MailConnectException` /
  * `SocketConnectException` 里，所以要顺着异常链看，才能落进「超时」「拒绝连接」这类分支，
@@ -123,6 +138,10 @@ fun connectionErrorText(exc: Throwable?): String {
     if (chain.any { it is AuthenticationFailedException }) {
         return "邮箱服务器拒绝登录，请检查授权码或密码"
     }
+    // tagged BAD：Python 抛 imaplib.IMAP4.error，落在同一句文案上
+    if (chain.any { it is ImapCommandException }) {
+        return "邮箱服务器拒绝登录，请检查授权码或密码"
+    }
     // Angus 合成的 BYE 响应里带着原始 IO 异常的类名，先按它还原（见
     // [synthesizedConnectionErrorText]），否则超时会被报成「无法连接邮箱服务器」。
     chain.firstNotNullOfOrNull { synthesizedConnectionErrorText(it.message) }?.let { return it }
@@ -135,10 +154,16 @@ fun connectionErrorText(exc: Throwable?): String {
     if (chain.any { looksLikeTimeout(it.message) }) {
         return "连接邮箱服务器超时"
     }
+    // 网络/主机不可达（ENETUNREACH、EHOSTUNREACH）：Python 那边是 OSError，不是「拒绝连接」
+    if (chain.any { it is NoRouteToHostException || looksLikeUnreachable(it.message) }) {
+        return "无法连接邮箱服务器"
+    }
     if (chain.any { it is ConnectException }) {
         return "邮箱服务器拒绝连接，请检查服务器地址和端口"
     }
-    if (chain.any { it is SocketException }) {
+    // `SocketException` 有好几种：只有 reset / aborted / broken pipe 这类才算「连接被中断」
+    // （Python 的 ConnectionResetError / ConnectionAbortedError），其余按 OSError 处理。
+    if (chain.any { it is SocketException && looksLikeInterrupted(it.message) }) {
         return "连接被邮箱服务器中断，请稍后重试"
     }
     if (chain.any { it is UnknownHostException }) {
@@ -147,6 +172,7 @@ fun connectionErrorText(exc: Throwable?): String {
     if (chain.any { it is SSLException }) {
         return "与邮箱服务器建立加密连接失败"
     }
+    // SocketException 也是 IOException：走到这里包括「连接被关闭」这类普通 IO 失败
     if (chain.any { it is IOException }) {
         return "无法连接邮箱服务器"
     }
@@ -159,6 +185,47 @@ internal fun looksLikeTimeout(message: String?): Boolean {
     val text = (message ?: "").lowercase(Locale.ROOT)
     return text.contains("timed out") || text.contains("timeout")
 }
+
+/**
+ * 异常文本看起来是不是「网络/主机不可达」：`ENETUNREACH` / `EHOSTUNREACH`。
+ *
+ * Python 那边这是普通的 `OSError`，对应「无法连接邮箱服务器」；**不能**因为它出现在
+ * `ConnectException` 的文本里就报成「服务器拒绝连接」。
+ */
+internal fun looksLikeUnreachable(message: String?): Boolean = matchesTokens(message, UNREACHABLE_TOKENS)
+
+/**
+ * 异常文本看起来是不是「连接被对方中断」：Python 的 `ConnectionResetError` /
+ * `ConnectionAbortedError`，以及我们自己 [ImapSession.abort] 关 socket 之后的 "Socket closed"。
+ */
+internal fun looksLikeInterrupted(message: String?): Boolean = matchesTokens(message, INTERRUPTED_TOKENS)
+
+/** 文本里是否含列表中的任一特征词（小写比较）。 */
+private fun matchesTokens(message: String?, tokens: List<String>): Boolean {
+    val text = (message ?: "").lowercase(Locale.ROOT)
+    return tokens.any { text.contains(it) }
+}
+
+/** 网络/主机不可达的特征文本。 */
+private val UNREACHABLE_TOKENS = listOf(
+    "unreachable",
+    "no route to host",
+    "enetunreach",
+    "ehostunreach",
+)
+
+/** 连接被中断的特征文本。 */
+private val INTERRUPTED_TOKENS = listOf(
+    "connection reset",
+    "connection aborted",
+    "connection closed",
+    "broken pipe",
+    "socket closed",
+    "closed by the peer",
+    "econnreset",
+    "econnaborted",
+    "epipe",
+)
 
 /**
  * Angus 在读写失败时用 `Response.byeResponse` 造一个合成的 BYE 响应，**原始的异常类型
@@ -178,12 +245,12 @@ internal fun synthesizedConnectionErrorText(message: String?): String? {
     }
     val lower = text.lowercase(Locale.ROOT)
     return when {
-        lower.contains("sockettimeoutexception") || lower.contains("timeoutexception") ||
-            lower.contains("timed out") -> "连接邮箱服务器超时"
+        looksLikeTimeout(lower) -> "连接邮箱服务器超时"
+        // 不可达要排在「拒绝连接」前面：Android 上 ENETUNREACH 也可能包在 ConnectException 里
+        looksLikeUnreachable(lower) -> "无法连接邮箱服务器"
         lower.contains("connectexception") && !lower.contains("socketconnect") ->
             "邮箱服务器拒绝连接，请检查服务器地址和端口"
-        lower.contains("socketexception") || lower.contains("connection reset") ||
-            lower.contains("broken pipe") -> "连接被邮箱服务器中断，请稍后重试"
+        looksLikeInterrupted(lower) -> "连接被邮箱服务器中断，请稍后重试"
         lower.contains("ssl") || lower.contains("handshake") -> "与邮箱服务器建立加密连接失败"
         lower.contains("ioexception") -> "无法连接邮箱服务器"
         else -> null

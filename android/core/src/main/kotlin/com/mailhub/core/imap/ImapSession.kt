@@ -5,14 +5,12 @@ import com.mailhub.core.SystemClock
 import com.mailhub.core.mail.ParsedMessage
 import com.mailhub.core.mail.parseMessage
 import com.mailhub.core.text.cpSlice
-import jakarta.mail.Flags
 import jakarta.mail.Folder
 import jakarta.mail.MessagingException
 import jakarta.mail.Session
 import org.eclipse.angus.mail.imap.IMAPFolder
 import org.eclipse.angus.mail.imap.IMAPStore
 import org.eclipse.angus.mail.imap.protocol.BODY
-import org.eclipse.angus.mail.imap.protocol.FLAGS
 import org.eclipse.angus.mail.imap.protocol.FetchResponse
 import org.eclipse.angus.mail.imap.protocol.IMAPProtocol
 import org.eclipse.angus.mail.imap.protocol.IMAPResponse
@@ -20,12 +18,14 @@ import org.eclipse.angus.mail.imap.protocol.RFC822SIZE
 import org.eclipse.angus.mail.imap.protocol.UID
 import org.eclipse.angus.mail.iap.Response
 import java.net.Socket
+import java.net.SocketException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.Properties
 import java.util.TimeZone
 import java.util.concurrent.CopyOnWriteArrayList
+import javax.net.ssl.HostnameVerifier
 import javax.net.ssl.SSLSocketFactory
 
 // ---------- 与 mail_client.py 一一对应的常量 ----------
@@ -81,14 +81,21 @@ private const val INBOX_NAME = "INBOX"
 class ImapException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
 
 /**
- * 会话的传输层设置。[sslSocketFactory] 只允许 `:core` 内部（含同模块测试）传入，
- * 见 [ImapSession] 的构造参数说明。
+ * 会话的传输层设置。[sslSocketFactory] 与 [hostnameVerifier] 只允许 `:core` 内部
+ * （含同模块测试）传入，见 [ImapSession] 的构造参数说明。
  */
 internal data class ImapTransport(
     /** null 表示用 JDK 默认的 [SSLSocketFactory]（正式路径只会是 null）。 */
     val sslSocketFactory: SSLSocketFactory? = null,
     val connectTimeoutMillis: Int = IMAP_CONNECT_TIMEOUT_MILLIS,
     val readTimeoutMillis: Int = IMAP_READ_TIMEOUT_MILLIS,
+    /**
+     * 服务器主机名校验器，默认是严格的 [StrictHostnameVerifier]。
+     *
+     * 正式路径**没有**任何把它换成「放行一切」的开关；只有 `:core` 的测试会注入记录调用
+     * 或一律拒绝的实现，用来确认它确实被 Angus 调用、且拒绝时连接在认证之前就失败。
+     */
+    val hostnameVerifier: HostnameVerifier = StrictHostnameVerifier,
 )
 
 /**
@@ -122,6 +129,12 @@ data class FetchResult(
  * 这里**没有任何**关闭证书校验的开关：没有 `mail.imaps.ssl.trust=*`，也没有
  * `mail.imaps.ssl.checkserveridentity=false`；测试要连自签名证书时只能通过
  * [ImapTransport.sslSocketFactory] 注入一个信任该证书的工厂。
+ *
+ * **主机名校验**：`checkserveridentity` 在 Android 上等于没设（Angus 设的是 `LDAPS`
+ * 算法，Conscrypt 只认 `HTTPS`），所以一定要另外配置 `mail.imaps.ssl.hostnameverifier`，
+ * 默认值就是 [StrictHostnameVerifier]。同时显式设
+ * `mail.imaps.socketFactory.fallback=false`：连接失败后不准绕过我们的工厂（[socketFactory]）
+ * 再连一次，否则新 socket 不受 [abort] 控制。
  *
  * **构造参数的可见性**：主构造函数是 `internal`，所以 `SSLSocketFactory`、超时这些
  * 「正式代码不该碰」的开关只有 `:core` 内部（含同模块的测试）能传。生产路径统一走
@@ -247,6 +260,10 @@ class ImapSession internal constructor(
      *
      * 打开失败时给出与 Python 相同的中文说明：网易的 `Unsafe Login` 带上
      * [NETEASE_LOGIN_HELP]，其余是「无法打开收件箱：<服务器说明>」。
+     *
+     * **服务器不返回 UIDVALIDITY 时返回 0**（对应 Python 的
+     * `int(uv[0])` 失败 → 0）：Angus 的 `getUIDValidity()` 这时给的是 -1，直接往上抛会让
+     * 调用方误判「UIDVALIDITY 变了」而重建整个邮箱的 UID。
      */
     fun selectInbox(): Long {
         ensureAlive()
@@ -272,7 +289,10 @@ class ImapSession internal constructor(
             }
         }
         return try {
-            folder.uidValidity
+            val uidValidity = folder.uidValidity
+            // Angus 在服务器没返回 UIDVALIDITY 时给 -1（见 IMAPFolder 的字段初值），
+            // 与 Python 归一化成 0 的行为对齐
+            if (uidValidity < 0L) 0L else uidValidity
         } catch (_: MessagingException) {
             0L
         }
@@ -283,6 +303,11 @@ class ImapSession internal constructor(
      *
      * 增量时取 `UID <last_uid + 1>:*`；首次（`last_uid == 0`）取最近 [sinceDays] 天、
      * 最多 [firstLimit] 封（服务器返回升序，超限时保留**最新**的那一批）。
+     *
+     * **失败语义与 Python 一致**：只有 tagged `NO`（以及没有 tagged 响应）按空列表处理；
+     * tagged `BAD` 与 `BYE`（含读超时、连接断开）都抛异常，[connectionErrorText] 才能给出
+     * 「连接邮箱服务器超时」这类正确文案。返回空列表意味着「确实没有新邮件」，
+     * 调用方据此更新 `last_sync`、清掉 `last_error`。
      */
     fun searchUids(
         lastUid: Long,
@@ -296,7 +321,7 @@ class ImapSession internal constructor(
             "UID SEARCH SINCE ${imapDate(clock.now() - sinceDays * 86400.0)}"
         }
         val responses = withInboxProtocol { protocol -> protocol.command(command, null) }
-        if (!lastResponseOk(responses)) {
+        if (!commandSucceeded(responses)) {
             return emptyList()
         }
         val found = searchUidsOf(responses).filter { it > lastUid }
@@ -432,7 +457,13 @@ class ImapSession internal constructor(
         return FetchResult(out, failed)
     }
 
-    /** 整封抓取一小批邮件，对应 `_fetch_batch`。 */
+    /**
+     * 整封抓取一小批邮件，对应 `_fetch_batch`。
+     *
+     * 响应里有 UID 就入库，即使服务器把 `BODY[]` 回成 `NIL`：Python 的 `_iter_parts` 这时
+     * 拿到的是空正文字节，照样 `_collect` 一条空记录（`parse_message(b"")`）。静默跳过会让
+     * 水位越过这封邮件，之后再也取不到它。
+     */
     private fun fetchBatch(out: MutableList<FetchedMessage>, failed: MutableSet<Long>, batch: List<Long>) {
         val uidset = batch.joinToString(",")
         val responses = try {
@@ -446,16 +477,18 @@ class ImapSession internal constructor(
             return
         }
         for (response in fetchResponses(responses)) {
-            val payload = payloadOf(response)
-            if (payload == null) {
-                continue
-            }
             val uid = uidOf(response) ?: continue
+            // BODY[] NIL：Python 拿到空字节并入库一条空记录，这里同样处理
+            val payload = payloadOf(response) ?: ByteArray(0)
             collect(out, uid, flagsOf(response), payload, truncated = false)
         }
     }
 
-    /** 只取头部和正文前 1MB，对应 `_fetch_truncated`（大附件邮件不整封下载）。 */
+    /**
+     * 只取头部和正文前 1MB，对应 `_fetch_truncated`（大附件邮件不整封下载）。
+     *
+     * `BODY[...]` 回成 `NIL` 时与 [_fetch_batch 的说明][fetchBatch] 相同：照样入库空记录。
+     */
     private fun fetchTruncated(out: MutableList<FetchedMessage>, failed: MutableSet<Long>, batch: List<Long>) {
         val uidset = batch.joinToString(",")
         val query = "(UID FLAGS BODY.PEEK[HEADER] BODY.PEEK[TEXT]<0.$TRUNCATED_BODY_BYTES>)"
@@ -471,7 +504,7 @@ class ImapSession internal constructor(
         }
         for (response in fetchResponses(responses)) {
             val uid = uidOf(response) ?: continue
-            val payload = payloadOf(response) ?: continue
+            val payload = payloadOf(response) ?: ByteArray(0)
             collect(out, uid, flagsOf(response), payload, truncated = true)
         }
     }
@@ -486,6 +519,8 @@ class ImapSession internal constructor(
     ) {
         // parseMessage 自己捕获解析异常并返回 unparsableMessage，调用方不用再包
         val parsed = parseMessage(payload, clock)
+        // 标记名按 RFC 3501 大小写不敏感；Python 那边是 `"\\Seen" in flags` 的子串比较，
+        // 服务器给 `\SEEN` 时会判成未读。这里按 RFC 处理（差异写进任务总结）。
         val seen = flags.any { it.equals("\\Seen", ignoreCase = true) }
         out += FetchedMessage(
             uid = uid,
@@ -513,7 +548,8 @@ class ImapSession internal constructor(
             val responses = withInboxProtocol { protocol ->
                 protocol.command("UID STORE $uidset $op ($flag)", null)
             }
-            if (!lastResponseOk(responses)) {
+            // BAD / BYE 抛异常（对应 imaplib 的 IMAP4.error / abort），NO 才走下面这条中文说明
+            if (!commandSucceeded(responses)) {
                 val detail = responseText(responses)
                 throw ImapException(
                     "设置邮件标记失败" + (if (detail.isNotEmpty()) "：${detail.cpSlice(0, 120)}" else ""),
@@ -551,7 +587,7 @@ class ImapSession internal constructor(
                 val responses = withInboxProtocol { protocol ->
                     protocol.command("UID EXPUNGE $uidset", null)
                 }
-                if (!lastResponseOk(responses)) {
+                if (!commandSucceeded(responses)) {
                     val detail = responseText(responses)
                     throw ImapException(
                         "服务器拒绝清除邮件" + (if (detail.isNotEmpty()) "：${detail.cpSlice(0, 120)}" else ""),
@@ -563,15 +599,18 @@ class ImapSession internal constructor(
 
         // 没有 UIDPLUS：先看收件箱里所有 \Deleted 是不是都在本次目标里
         val searchResponses = withInboxProtocol { protocol -> protocol.command("UID SEARCH DELETED", null) }
-        if (!lastResponseOk(searchResponses)) {
+        // tagged NO / 没有 tagged 响应时按 Python 返回 flagged；BAD 与 BYE 直接抛异常。
+        // 绝不能把 BAD / BYE 当成「收件箱里没有别人的 \Deleted」而去做 EXPUNGE。
+        if (!commandSucceeded(searchResponses)) {
             return DELETED_FLAGGED
         }
+        // UID 解析遇到非数字 token 也直接抛异常：宁可不 EXPUNGE，也不能漏算别人标记的邮件
         val flagged = searchUidsOf(searchResponses).toSet()
         if (!targets.toSet().containsAll(flagged)) {
             return DELETED_FLAGGED
         }
         val expungeResponses = withInboxProtocol { protocol -> protocol.command("EXPUNGE", null) }
-        if (!lastResponseOk(expungeResponses)) {
+        if (!commandSucceeded(expungeResponses)) {
             val detail = responseText(expungeResponses)
             throw ImapException(
                 "服务器拒绝清除邮件" + (if (detail.isNotEmpty()) "：${detail.cpSlice(0, 120)}" else ""),
@@ -653,6 +692,11 @@ class ImapSession internal constructor(
             put("mail.imaps.ssl.enable", "true")
             // 硬性要求：校验服务器身份，且不提供任何关闭校验的开关
             put("mail.imaps.ssl.checkserveridentity", "true")
+            // checkserveridentity 在 Android 上等于没设（Angus 设的是 LDAPS 算法，Conscrypt
+            // 只认 HTTPS），真正干活的是这个校验器：没有开关能把它换成放行一切。
+            put("mail.imaps.ssl.hostnameverifier", transport.hostnameVerifier)
+            // 失败后不准绕过下面这个工厂回退到普通 socket：新 socket 不受 abort 控制
+            put("mail.imaps.socketFactory.fallback", "false")
             put("mail.imaps.connectiontimeout", transport.connectTimeoutMillis.toString())
             put("mail.imaps.timeout", transport.readTimeoutMillis.toString())
             // 只有一个账户一次同步，不需要连接池
@@ -763,11 +807,43 @@ internal fun uidChunks(uids: List<Long>, size: Int = UID_CHUNK_SIZE): List<Strin
 internal fun lastResponseOk(responses: Array<Response>): Boolean =
     responses.isNotEmpty() && responses[responses.size - 1].isOK
 
+/**
+ * 命令成功吗？语义对齐 imaplib 的 `_command_complete`：
+ * - untagged `BYE`（服务器关连接；读超时、连接断开也被 Angus 换成合成的 `* BYE ...`）
+ *   对应 imaplib 的 `IMAP4.abort`，直接抛 [SocketException]：它的文本里带着原始异常
+ *   （`* BYE Jakarta Mail Exception: java.net.SocketTimeoutException: ...`），
+ *   [connectionErrorText] 才能还原成「连接邮箱服务器超时」这类文案；
+ * - tagged `BAD` 对应 imaplib 的 `IMAP4.error`，抛 [ImapCommandException]；
+ * - tagged `NO` 与没有 tagged 响应返回 false，由调用方按 Python 的 `typ != "OK"` 分支处理。
+ */
+internal fun commandSucceeded(responses: Array<Response>): Boolean {
+    val bye = responses.firstOrNull { it.isBYE }
+    if (bye != null) {
+        throw SocketException("connection closed: " + (bye.rest.ifEmpty { "BYE" }))
+    }
+    val last = responses.lastOrNull() ?: return false
+    if (!last.isTagged) {
+        return false
+    }
+    if (last.isOK) {
+        return true
+    }
+    if (last.isBAD) {
+        throw ImapCommandException("IMAP command error: " + responseText(responses))
+    }
+    return false
+}
+
 /** 取出响应里的全部 FETCH 响应（Angus 已按条目解析好）。 */
 internal fun fetchResponses(responses: Array<Response>): List<FetchResponse> =
     responses.filterIsInstance<FetchResponse>()
 
-/** 把 `* SEARCH 1 2 3` 解析成 UID 列表，对应 Python `int(u) for u in data[0].split()`。 */
+/**
+ * 把 `* SEARCH 1 2 3` 解析成 UID 列表，对应 Python `int(u) for u in data[0].split()`。
+ *
+ * **遇到非数字 token 直接抛异常**，与 Python 的 `int()` 一致：调用方（尤其是 [ImapSession.delete]
+ * 的保守分支）宁可放弃操作，也不能把解析不了的结果当成「没有其它邮件」。
+ */
 internal fun searchUidsOf(responses: Array<Response>): List<Long> {
     val out = ArrayList<Long>()
     for (response in responses) {
@@ -778,7 +854,9 @@ internal fun searchUidsOf(responses: Array<Response>): List<Long> {
             if (token.isEmpty()) {
                 continue
             }
-            token.toLongOrNull()?.let { out += it }
+            val uid = token.toLongOrNull()
+                ?: throw ImapException("无法解析服务器返回的搜索结果：${token.cpSlice(0, 40)}")
+            out += uid
         }
     }
     return out
@@ -805,41 +883,50 @@ internal fun uidOf(response: FetchResponse): Long? {
 }
 
 /**
- * FETCH 响应里的标记集合，对应 `_flags_of` + `set(...split())`。
+ * FETCH 响应里的标记集合，对应 `_flags_of` + `set(...split())`：**按服务器原文**取
+ * `FLAGS (...)` 里的 token。
  *
- * Jakarta Mail 的 `Flags.Flag` **没有**重写 `toString()`（默认是
- * `jakarta.mail.Flags$Flag@1a2b3c`），所以这里按 IMAP 的写法把系统标记映射成
- * `\Seen` / `\Deleted` 这样的字符串，用户自定义标记（`$Forwarded` 等）原样保留。
+ * **为什么不用 Angus 解析好的 `FLAGS` 条目**：Angus Mail 2.0.5 的 `FLAGS` 构造函数只看
+ * 反斜杠后的**第二个字符**（`\S` → SEEN、`\F` → FLAGGED、`\R` → RECENT…），于是
+ * `\Spam` 会被当成 `\Seen`、`\Forwarded` 会被当成 `\Flagged`——这封邮件就被误判成已读。
+ * 原文里的 token 才有这个信息，所以这里按 Python 的方式从响应文本里取：
+ * `FLAGS (` 到最近的 `)` 之间的内容按空白切分。
+ *
+ * 与 Python 的细节一致：只在第一个 literal（`{...}`）之前找 `FLAGS`（Python 拿到的
+ * `head` 本来就在 literal 之前），`FLAGS` 按原样大小写匹配。
  */
 internal fun flagsOf(response: FetchResponse): Set<String> {
-    val flags = response.getItem(FLAGS::class.java) ?: return emptySet()
-    val out = LinkedHashSet<String>(8)
-    for (flag in flags.systemFlags) {
-        SYSTEM_FLAG_NAMES[flag]?.let { out += it }
+    // Response.toString() 是整条响应的原文（index 早就被 Angus 的解析消费掉了，getRest() 拿不到）
+    val raw = response.toString()
+    val brace = raw.indexOf('{')
+    val head = if (brace >= 0) raw.substring(0, brace) else raw
+    val marker = "FLAGS ("
+    val start = head.indexOf(marker)
+    if (start < 0) {
+        return emptySet()
     }
-    for (flag in flags.userFlags) {
-        if (flag != null) {
-            out += flag
+    val rest = head.substring(start + marker.length)
+    val end = rest.indexOf(')')
+    if (end < 0) {
+        return emptySet()
+    }
+    val out = LinkedHashSet<String>(8)
+    for (token in rest.substring(0, end).split(' ')) {
+        if (token.isNotEmpty()) {
+            out += token
         }
     }
     return out
 }
 
-/** `Flags.Flag` 与 IMAP 标记原文的对应关系（对应 RFC 3501 的 system flags）。 */
-private val SYSTEM_FLAG_NAMES: Map<Flags.Flag, String> = linkedMapOf(
-    Flags.Flag.ANSWERED to "\\Answered",
-    Flags.Flag.DELETED to "\\Deleted",
-    Flags.Flag.DRAFT to "\\Draft",
-    Flags.Flag.FLAGGED to "\\Flagged",
-    Flags.Flag.RECENT to "\\Recent",
-    Flags.Flag.SEEN to "\\Seen",
-    Flags.Flag.USER to "\\*",
-)
-
 /**
  * 把 FETCH 响应里的 BODY[...] 字节按响应顺序拼起来，对应 `_iter_parts` 的「同一 UID 的
  * 多个元组依次拼接」。同时取 `BODY.PEEK[HEADER]` 与 `BODY.PEEK[TEXT]<0.N>` 时就是
- * 「头部 + 截断的正文」。没有 BODY 条目时返回 null。
+ * 「头部 + 截断的正文」。没有 BODY 条目、或者服务器把 BODY 回成 `NIL` 时返回 null。
+ *
+ * 调用方据此区分两种情形：`NIL` 与「压根没有 BODY 条目」在 Python 里都是「空正文字节」，
+ * 要入库一条空记录（见 [ImapSession.fetchMessages] 的两个抓取函数）；而 `fetch_sizes`
+ * 里夹带的正文只在真有字节时才复用。
  *
  * **与 Python 的差别（必要）**：RFC 3501 不规定同一封邮件里多个 `BODY[...]` 条目的先后，
  * GreenMail 就会随机把 `BODY[TEXT]` 排在 `BODY[HEADER]` 前面。Python 直接按收到的顺序拼接，

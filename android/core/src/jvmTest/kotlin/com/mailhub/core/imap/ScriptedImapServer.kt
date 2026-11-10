@@ -20,12 +20,13 @@ import javax.net.ssl.SSLServerSocket
  * 全部跑在本地回环地址上，用 [TestTls] 现生成的自签名证书，不连接任何真实服务器。
  *
  * @param capabilities greeting 与 `CAPABILITY` 通告的能力（不含 `IMAP4rev1` 之外的默认值）
- * @param uidValidity `SELECT` 应答里的 UIDVALIDITY
+ * @param uidValidity `SELECT` 应答里的 UIDVALIDITY；null 表示服务器不返回它
+ *   （Angus 的 `getUIDValidity()` 这时是 -1，用来测归一化成 0）
  * @param onCommand 测试自己的应答钩子：`(会话, 标签, 命令原文)`，返回 true 表示已经处理完
  */
 internal class ScriptedImapServer(
     private val capabilities: String = "IMAP4rev1",
-    private val uidValidity: Long = 5,
+    private val uidValidity: Long? = 5,
     private val onCommand: (Session, String, String) -> Boolean = { _, _, _ -> false },
 ) : AutoCloseable {
 
@@ -136,7 +137,9 @@ internal class ScriptedImapServer(
                 session.send("* 0 RECENT")
                 session.send("* FLAGS (\\Seen \\Deleted \\Flagged)")
                 session.send("* OK [PERMANENTFLAGS (\\Seen \\Deleted \\Flagged \\*)] Flags permitted")
-                session.send("* OK [UIDVALIDITY $uidValidity] UIDs valid")
+                if (uidValidity != null) {
+                    session.send("* OK [UIDVALIDITY $uidValidity] UIDs valid")
+                }
                 session.send("* OK [UIDNEXT 100] Predicted next UID")
                 session.send("$tag OK [READ-WRITE] SELECT completed")
             }
@@ -228,6 +231,17 @@ internal class ScriptedImapServer(
         fun send(line: String) {
             writer.write(line)
             writer.write("\r\n")
+            writer.flush()
+        }
+
+        /**
+         * 写一段原始文本（不追加 CRLF、不自动 flush 之外的处理）。
+         *
+         * 只有带 literal 的 FETCH 应答需要它：`{n}` 后面必须紧接 n 个原始字节，
+         * 中间不能插入 CRLF，所以不能用 [send]。
+         */
+        fun sendRaw(text: String) {
+            writer.write(text)
             writer.flush()
         }
 
