@@ -61,7 +61,8 @@ jobs:
   golden:
     # 安卓本机模式的 Kotlin 移植以 Python 为准：检查 Python 规则改了而金标语料没重新导出。
     # 金标由 Python 3.13.3 生成。不同版本的 Unicode 数据库和标准库行为不同，所以固定到这个补丁版本。
-    runs-on: ubuntu-latest
+    # ubuntu-latest 已经是 26.04，actions/setup-python 没有 3.13.3 的安装包，所以固定到 24.04。
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
