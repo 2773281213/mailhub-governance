@@ -1,5 +1,6 @@
 package com.mailhub.core.sync
 
+import com.mailhub.core.Clock
 import com.mailhub.core.billing.Billing
 import com.mailhub.core.db.Db
 import com.mailhub.core.db.FakeClock
@@ -12,6 +13,7 @@ import com.mailhub.core.imap.LARGE_MESSAGE_BYTES
 import com.mailhub.core.imap.ScriptedImapServer
 import com.mailhub.core.imap.TestTls
 import com.mailhub.core.imap.openSession
+import java.util.concurrent.atomic.AtomicInteger
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -171,9 +173,9 @@ class SyncServiceGreenMailTest {
                     port = second.port,
                     secretEnc = cipher.encrypt(second.password),
                 )
-                val service = SyncService(db, cipher, clock, sessionFactory = { account, secret ->
+                val service = SyncService(db, cipher, clock, sessionFactory = { account, secret, onCreated ->
                     val source = if (account.email == second.email) second else fixture
-                    openSession(account.toImapAccount(), secret, source.transport(), clock)
+                    openSession(account.toImapAccount(), secret, source.transport(), clock, onCreated)
                 })
                 fixture.deliver("转发来的信", messageId = "<shared@example.org>")
                 second.deliver("转发来的信", messageId = "<shared@example.org>")
@@ -392,12 +394,13 @@ class SyncServiceGreenMailTest {
                 server.searchUids = " 3 4"
                 server.failFetch = true
 
-                val service = SyncService(db, cipher, clock, sessionFactory = { account, secret ->
+                val service = SyncService(db, cipher, clock, sessionFactory = { account, secret, onCreated ->
                     openSession(
                         account.toImapAccount(),
                         secret,
                         ImapTransport(TestTls.trustAllFactory, 5_000, 5_000),
                         clock,
+                        onCreated,
                     )
                 })
                 assertEquals("一封都没入库", 0, service.syncAccount(accountId))
@@ -496,15 +499,173 @@ class SyncServiceGreenMailTest {
         assertEquals("规则结论不需要人工复核", 0L, row.long("needs_review"))
     }
 
+    // ---------------- 中断、积压与首次导入标记 ----------------
+
+    /**
+     * 首次导入中途抛异常：**已经提交的块**要把标记抬到本块新插入的最大 id。
+     *
+     * 标记只在整轮结束时写的话，这样中断之后它就永远写不出来：已入库的历史邮件在下一轮
+     * 会被当成新邮件弹通知。[BombClock] 在第一块提交之后、第二块提交之前抛出。
+     */
+    @Test
+    fun initialImportMarkerIsWrittenForBlocksBeforeAFailure() = withTempDb(clock) { db ->
+        db.initDb()
+        val accountId = insertAccount(db)
+        for (index in 1..25) {
+            fixture.deliver("第 $index 封", messageId = "<burst$index@example.org>")
+        }
+
+        val service = syncService(db, BombClock(clock, budget = 18))
+        assertEquals("抛异常的一轮按 0 封返回", 0, service.syncAccount(accountId))
+
+        val stored = countMessages(db, accountId)
+        assertTrue("这一轮应停在中间，实际入库 $stored 封", stored > 0 && stored < 25)
+        val key = "$INITIAL_IMPORT_KEY_PREFIX$accountId"
+        val marker = db.getSetting(key).trim().toLongOrNull()
+        val maxId = db.queryOne("SELECT MAX(id) AS m FROM messages WHERE account_id=?", accountId)!!
+            .long("m")!!
+        assertEquals("已提交块的邮件 id 要立刻写进标记", maxId, marker)
+        assertEquals("首次导入轮不提前推进水位", 0L, accountRow(db, accountId).long("last_uid"))
+    }
+
+    /** 整块都被 `INSERT OR IGNORE` 跳过时，标记仍要按本账户的 `MAX(id)` 补写一次。 */
+    @Test
+    fun initialImportMarkerIsWrittenWhenEveryBlockIsIgnored() = withTempDb(clock) { db ->
+        db.initDb()
+        val accountId = insertAccount(db)
+        fixture.deliver("甲", messageId = "<ignored1@example.org>")
+        fixture.deliver("乙", messageId = "<ignored2@example.org>")
+        // 先占住服务器会给的 UID 1、2：两块都会被 INSERT OR IGNORE 跳过，块内最大 id 是 0
+        insertMessage(db, accountId, uid = 1, msgId = "<pre1@example.org>")
+        insertMessage(db, accountId, uid = 2, msgId = "<pre2@example.org>")
+
+        assertEquals("两封都是重复邮件", 0, syncService(db).syncAccount(accountId))
+
+        val key = "$INITIAL_IMPORT_KEY_PREFIX$accountId"
+        val marker = db.getSetting(key).trim().toLongOrNull()
+        val maxId = db.queryOne("SELECT MAX(id) AS m FROM messages WHERE account_id=?", accountId)!!
+            .long("m")!!
+        assertEquals("全部被 IGNORE 也要写下标记", maxId, marker)
+        assertTrue("标记必须大于 0，实际 $marker", (marker ?: 0L) > 0L)
+        assertEquals("不该多出一行", 2L, countMessages(db, accountId))
+    }
+
+    /**
+     * 增量轮按块推进水位：一轮中途被打断时，已提交块的进度不能丢。
+     *
+     * 只在整轮结束时写水位的话，积压几千封时下一轮会从同一个水位重来，后面的邮件永远收不到。
+     */
+    @Test
+    fun incrementalWatermarkAdvancesBlockByBlock() = withTempDb(clock) { db ->
+        db.initDb()
+        val accountId = insertAccount(db)
+        fixture.deliver("基线", messageId = "<base@example.org>")
+        assertEquals(1, syncService(db).syncAccount(accountId))
+        val baseline = accountRow(db, accountId).long("last_uid")!!
+        for (index in 1..25) {
+            fixture.deliver("增量 $index", messageId = "<inc$index@example.org>")
+        }
+
+        val service = syncService(db, BombClock(clock, budget = 17))
+        assertEquals("抛异常的一轮按 0 封返回", 0, service.syncAccount(accountId))
+
+        val stored = countMessages(db, accountId)
+        assertTrue("这一轮应停在中间，实际入库 $stored 封", stored > 1L && stored < 26L)
+        val maxUid = db.queryOne("SELECT MAX(uid) AS u FROM messages WHERE account_id=?", accountId)!!
+            .long("u")!!
+        val watermark = accountRow(db, accountId).long("last_uid")!!
+        assertEquals("水位要按块推进到已提交的那一块", maxUid, watermark)
+        assertTrue("水位必须真的前进，实际 $watermark", watermark > baseline)
+        assertTrue("水位不能越过没处理的 UID，实际 $watermark", watermark < 26L)
+    }
+
+    /**
+     * 首轮搜索为空也要记下「首轮已完成」（标记写 0）：
+     * 不写的话下一轮 `last_uid` 仍是 0，第一封真实新信会被当成历史邮件跳过，永远不通知。
+     */
+    @Test
+    fun firstRoundWithEmptyResultDoesNotSwallowTheFirstRealMail() = withTempDb(clock) { db ->
+        db.initDb()
+        val accountId = insertAccount(db)
+        val service = syncService(db)
+
+        assertEquals("空邮箱没有邮件", 0, service.syncAccount(accountId))
+        val key = "$INITIAL_IMPORT_KEY_PREFIX$accountId"
+        assertEquals("首轮空结果也要写下标记", 0L, db.getSetting(key).trim().toLongOrNull())
+        assertEquals("水位仍是 0", 0L, accountRow(db, accountId).long("last_uid"))
+
+        fixture.deliver("第一封真实新信", messageId = "<first@example.org>")
+        assertEquals("第一封信不能被当成历史邮件", 1, service.syncAccount(accountId))
+        assertEquals("标记不该被改成「跳过第一封」", 0L, db.getSetting(key).trim().toLongOrNull())
+        assertEquals(1L, countMessages(db, accountId))
+    }
+
+    /**
+     * 服务器重建邮箱（UIDVALIDITY 变了）而本地还没同步时，`applyServerAction` 拒绝写：
+     * 否则用户删的是服务器上**另一封**邮件。
+     */
+    @Test
+    fun applyServerActionRefusesWhenUidValidityChanged() = withTempDb(clock) { db ->
+        db.initDb()
+        val accountId = insertAccount(db)
+        fixture.deliver("要删的信", messageId = "<del@example.org>")
+        val service = syncService(db)
+        assertEquals(1, service.syncAccount(accountId))
+
+        val row = db.queryOne("SELECT id, uid FROM messages")!!
+        val messageId = row.long("id")!!
+        val uid = row.long("uid")!!
+        fixture.rewriteUidValidity((accountRow(db, accountId).long("uidvalidity") ?: 0L) + 1)
+
+        val result = service.applyServerAction(listOf(messageId), "delete")
+
+        assertEquals("不该有任何写操作成功，实际 ${result.succeeded}", emptyList<Long>(), result.succeeded)
+        assertTrue(
+            "要给出「邮箱已重建」的文案，实际 ${result.errors}",
+            result.errors.any { it.startsWith("邮件$messageId") && it.contains(MAILBOX_REBUILT_TEXT) },
+        )
+        assertTrue("服务器上的邮件不能被删，实际 ${serverUids()}", serverUids().contains(uid))
+        assertEquals("本地记录也不该被动", 1L, countMessages(db, accountId))
+    }
+
+    /** 增量单轮最多处理最早的 [MAX_UIDS_PER_ROUND] 个 UID，剩下的下一轮追上。 */
+    @Test
+    fun incrementalRoundIsCappedAtMaxUidsPerRound() = withTempDb(clock) { db ->
+        db.initDb()
+        val accountId = insertAccount(db)
+        fixture.deliver("基线", messageId = "<cap-base@example.org>")
+        val service = syncService(db)
+        assertEquals(1, service.syncAccount(accountId))
+        for (index in 1..(MAX_UIDS_PER_ROUND + 1)) {
+            fixture.deliver("积压 $index", messageId = "<cap$index@example.org>")
+        }
+
+        assertEquals("单轮上限是 $MAX_UIDS_PER_ROUND", MAX_UIDS_PER_ROUND, service.syncAccount(accountId))
+        assertEquals(1L + MAX_UIDS_PER_ROUND, countMessages(db, accountId))
+        val watermark = accountRow(db, accountId).long("last_uid")!!
+        assertEquals(
+            "水位应停在处理到的那一封",
+            db.queryOne("SELECT MAX(uid) AS u FROM messages WHERE account_id=?", accountId)!!.long("u"),
+            watermark,
+        )
+
+        assertEquals("剩下的下一轮补上", 1, service.syncAccount(accountId))
+        assertEquals(2L + MAX_UIDS_PER_ROUND, countMessages(db, accountId))
+        assertTrue(
+            "水位应继续前进",
+            (accountRow(db, accountId).long("last_uid") ?: 0L) > watermark,
+        )
+    }
+
     // ---------------- 夹具与辅助 ----------------
 
     /** 建一个指向夹具的 [SyncService]，会话走信任自签名证书的传输设置。 */
-    private fun syncService(db: Db, at: FakeClock = clock): SyncService = SyncService(
+    private fun syncService(db: Db, at: Clock = clock): SyncService = SyncService(
         db = db,
         cipher = cipher,
         clock = at,
-        sessionFactory = { account, secret ->
-            openSession(account.toImapAccount(), secret, fixture.transport(), at)
+        sessionFactory = { account, secret, onCreated ->
+            openSession(account.toImapAccount(), secret, fixture.transport(), at, onCreated)
         },
     )
 
@@ -581,4 +742,27 @@ class SyncServiceGreenMailTest {
 
     private fun countAllMessages(db: Db): Long =
         db.queryOne("SELECT COUNT(*) AS c FROM messages")!!.long("c") ?: 0L
+
+    /**
+     * 读时间读到第 [budget] 次之后抛**一次**异常的时钟。
+     *
+     * 用来在同步**中途**制造一次真实的异常：第一块已经提交、后面的块还没提交，才能验证
+     * 「每块入库时就写标记 / 推进水位」。只抛一次，是因为失败之后 [SyncService] 写错误状态
+     * 还要读时间，那里不能再炸——那是另一条代码路径。错误落在哪一封由调用顺序决定，
+     * 测试只断言「停在中间」与「已提交的那一块写对了」，不依赖具体是哪一封。
+     */
+    private class BombClock(private val base: Clock, private val budget: Int) : Clock {
+        private val calls = AtomicInteger()
+
+        @Volatile
+        private var fired = false
+
+        override fun now(): Double {
+            if (!fired && calls.incrementAndGet() > budget) {
+                fired = true
+                throw IllegalStateException("测试用的时钟故障")
+            }
+            return base.now()
+        }
+    }
 }

@@ -22,6 +22,19 @@ import kotlinx.coroutines.CancellationException
 /** 每块抓取的邮件数，对应 `sync.FETCH_CHUNK_UIDS`：抓完一块就立刻入库，再去抓下一块。 */
 const val FETCH_CHUNK_UIDS: Int = 10
 
+/**
+ * 增量轮次单轮最多处理多少个 UID。
+ *
+ * Python 那边 `search_uids` 没有上限，因为服务器 7×24 在线、一轮跑完就结束了。手机的后台
+ * 任务随时会被系统停掉，积压几千封时「每轮只处理前 N 封、水位却只在整轮结束时写」会让
+ * 后面的邮件永远收不到；所以这里按块推进水位（见 [SyncService.syncAccount]），并给单轮
+ * 加一个上限，多轮追上。首次导入仍是 30 天、最多 200 封（[ImapSession.searchUids]）。
+ */
+const val MAX_UIDS_PER_ROUND: Int = 500
+
+/** 服务器重建邮箱（UIDVALIDITY 变了）时拒绝回放服务器动作的说明，见 [SyncService.applyServerAction]。 */
+const val MAILBOX_REBUILT_TEXT: String = "邮箱已重建，请同步后重试"
+
 /** 允许回放到服务器上的动作，对应 `sync.SERVER_ACTIONS`。 */
 val SERVER_ACTIONS: List<String> = listOf("delete", "read", "unread")
 
@@ -69,13 +82,22 @@ data class ServerActionResult(
  *    socket；Python 那边是线程，没有取消这一说。
  * 3. 本机模式的通知由 App 在同步后统一处理，所以**没有** `notify.notify_new_messages`。
  *
+ * **手机上的中断（见任务 L7-fix-b）**：进程和后台任务随时会被杀，所以这里多了三件事——
+ * - 会话在**登录之前**就登记到 [activeSessions]（靠 [sessionFactory] 的 `onCreated` 回调），
+ *   登录卡住时 [abort] 也能从别的线程把连接关掉；
+ * - [abort] 一律经由 [SyncRound] 的取消标记 + 会话中断两路生效，[syncAccount] 在开始前与
+ *   登录后各检查一次标记，已经取消就不再开这一轮；
+ * - 每块入库时就在**同一个事务**里推进水位（增量轮）或抬高首次导入标记（首轮），
+ *   轮次中途被杀也不会让下一轮从同一个水位重来、或让已导入的历史邮件弹通知。
+ *
  * 时间一律来自注入的 [Clock]（对应 `time.time()`）；凭据解密走注入的 [SecretCipher]。
  *
  * @param db 唯一的数据库实例
  * @param cipher 凭据加解密（对应 `security.decrypt`）
  * @param clock 当前时间
  * @param status 内存同步状态（对应 `STATUS` / `_set_status` / `get_status`）
- * @param sessionFactory 建立 IMAP 会话；测试用它注入信任自签名证书的会话
+ * @param sessionFactory 建立 IMAP 会话；测试用它注入信任自签名证书的会话。第三个参数是
+ *   「会话刚建好、还没登录」的回调，[syncAccount] 用它登记 [activeSessions]
  *
  * **为什么是 `open`**：[SyncCoordinator] 的调度逻辑（并发上限、每账户互斥、治理补跑、取消）
  * 需要能注入一个可控的「同步一个账户」实现才能确定性地测时序，而 IMAP 会话本身就是阻塞 IO。
@@ -86,15 +108,24 @@ open class SyncService(
     private val cipher: SecretCipher,
     private val clock: Clock = SystemClock,
     val status: SyncStatus = SyncStatus(clock),
-    private val sessionFactory: (SyncAccount, String) -> ImapSession = { account, secret ->
-        openSession(account.toImapAccount(), secret, clock)
-    },
+    private val sessionFactory: (SyncAccount, String, (ImapSession) -> Unit) -> ImapSession =
+        { account, secret, onCreated ->
+            openSession(account.toImapAccount(), secret, clock, onCreated)
+        },
 ) {
 
     private val log: Logger = Logger.getLogger("com.mailhub.core.sync.SyncService")
 
-    /** 正在同步的会话：协程取消时靠它把阻塞的 socket 关掉。 */
+    /**
+     * 正在同步的会话：协程取消时靠它把阻塞的 socket 关掉。
+     *
+     * 会话在**登录之前**就登记进来（[sessionFactory] 的 `onCreated` 回调），登录卡住时
+     * [abort] 照样够得到这条连接。
+     */
     private val activeSessions = ConcurrentHashMap<Int, ImapSession>()
+
+    /** 账户 id -> 正在进行的同步轮次；[SyncCoordinator] 在提交工作线程之前登记。 */
+    private val rounds = ConcurrentHashMap<Int, SyncRound>()
 
     // ---------------- 状态 ----------------
 
@@ -113,6 +144,24 @@ open class SyncService(
     /** 「与邮箱服务器同步已读状态」开关，对应 `read_state_sync_enabled`。 */
     fun readStateSyncEnabled(): Boolean = readStateSyncEnabled(db)
 
+    // ---------------- 轮次与取消标记 ----------------
+
+    /**
+     * 登记一轮同步，返回它的取消标记；应在把工作提交给同步线程**之前**调用。
+     *
+     * 标记跟着轮次对象走，轮次结束就注销（[endSyncRound]），所以迟到的 [abort] 不会把标记
+     * 留给下一轮——否则下一轮同步会莫名其妙地直接退出。
+     */
+    fun beginSyncRound(accountId: Int): SyncRound = SyncRound().also { rounds[accountId] = it }
+
+    /** 一轮同步结束：注销它的取消标记。 */
+    fun endSyncRound(accountId: Int, round: SyncRound) {
+        rounds.remove(accountId, round)
+    }
+
+    /** 本轮是否已被取消：没有登记轮次时（例如直接调用 [syncAccount]）视为未取消。 */
+    private fun isCancelled(accountId: Int): Boolean = rounds[accountId]?.isCancelled == true
+
     // ---------------- 同步 ----------------
 
     /**
@@ -120,24 +169,50 @@ open class SyncService(
      *
      * 调用方必须先拿到这个账户的互斥（[SyncCoordinator] 负责）。账户不存在或已被禁用时
      * 直接返回 0；同步期间账户被删掉时不写回状态（与 Python 相同）。
+     *
+     * **取消**：本轮如果已经被取消（见 [SyncRound]），开始前就直接返回 0、不去连接服务器；
+     * 登录之后被取消则中断会话、状态回到空闲。取消造成的中断**不算失败**：不写 `last_error`、
+     * 不写 `last_sync`（对应任务 L7-fix-b 的第 9 条）。
+     *
+     * **单账户边界接 [Throwable]**：一个账户的 `OutOfMemoryError` / `StackOverflowError`
+     * 不能让其他账户跟着挂掉，所以这里连 `Error` 也接住（`CancellationException` 除外）。
      */
     open fun syncAccount(accountId: Int): Int {
         val account = db.queryOne("SELECT * FROM accounts WHERE id=? AND enabled=1", accountId)
             ?.let(SyncAccount::fromRow)
             ?: return 0
+        if (isCancelled(accountId)) {
+            // 线程开始前就被取消：不开始，也不去连服务器
+            return 0
+        }
         status.set(accountId, SYNC_STATE_SYNCING, "连接中")
         var session: ImapSession? = null
         try {
             val secret = resolveSecret(account, cipher)
-            val opened = sessionFactory(account, secret)
+            // 会话在登录之前就登记：登录卡住时 abort 也能从这个回调登记的会话上关掉连接
+            val opened = sessionFactory(account, secret) { created ->
+                activeSessions[accountId] = created
+            }
             session = opened
-            activeSessions[accountId] = opened
+            if (isCancelled(accountId)) {
+                // 登录期间被取消：不继续这一轮
+                opened.abort()
+                finishRound(accountId, 0)
+                return 0
+            }
             return syncWithSession(account, opened)
         } catch (e: CancellationException) {
             throw e
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             // 状态里的说明只给用户看中文；原始异常不落库（可能含凭据，也会暴露服务器平台）
             log.warning("账户$accountId 同步失败：${e::class.java.simpleName}")
+            if (sessionAborted(session) || isCancelled(accountId)) {
+                // 取消造成的异常不是真的失败：不写 last_error、不动 last_sync，状态回到空闲。
+                // 登录还没建好会话时（session 仍是 null）靠轮次的取消标记判断，否则登录中途
+                // 被取消会留下一条假的「连接中断」。
+                finishRound(accountId, 0)
+                return 0
+            }
             val err = connectionErrorText(e).cpSlice(0, MAX_ERROR_CHARS)
             try {
                 db.execute(
@@ -146,7 +221,7 @@ open class SyncService(
                     clock.now(),
                     accountId,
                 )
-            } catch (_: Exception) {
+            } catch (_: Throwable) {
                 // 写状态失败也要把错误告诉调用方
             }
             if (accountExists(accountId)) {
@@ -163,7 +238,17 @@ open class SyncService(
         }
     }
 
-    /** 一轮同步的主体：选中收件箱、已读同步、搜索、分块抓取与分块入库。 */
+    /** 会话是否已被中断（取消）；没有会话时不算。 */
+    private fun sessionAborted(session: ImapSession?): Boolean = session?.isAborted() == true
+
+    /**
+     * 一轮同步的主体：选中收件箱、已读同步、搜索、分块抓取与分块入库。
+     *
+     * **水位按块写**（任务 L7-fix-b 第 5 条）：增量轮次在每块入库的**同一个事务**里把
+     * `last_uid` 推进到本块（沿用 [advanceWatermark]，失败的 UID 不越过），所以积压几千封时
+     * 后台任务被停掉也不会让下一轮从同一个水位重来。首次导入轮**不提前推进**水位，否则
+     * 剩下的邮件会失去首次导入判定（[initialImport]）。
+     */
     private fun syncWithSession(account: SyncAccount, session: ImapSession): Int {
         val accountId = account.id
         val uidvalidity = session.selectInbox()
@@ -181,16 +266,25 @@ open class SyncService(
             syncReadState(db, session, accountId, log)
         }
 
-        val uids = session.searchUids(lastUid)
-        // 本轮开始时 last_uid == 0（首次同步，或 UIDVALIDITY 重建）才写首次导入标记
-        val initialImport = lastUid == 0L
+        val uids = session.searchUids(lastUid).take(MAX_UIDS_PER_ROUND)
+        // 本轮开始时 last_uid == 0，且这个账户还没有首次导入标记（或 UIDVALIDITY 刚变）
+        // 才算「首次导入」：首轮搜索为空时也会写下 `local_initial_import_<id> = 0`，
+        // 之后的第一封真实新信就不会再被当成历史邮件
+        val initialImport = lastUid == 0L && (initialImportMarker(accountId) == null || uidRebuilt)
         if (uids.isEmpty()) {
-            db.execute(
-                "UPDATE accounts SET uidvalidity=?, last_sync=?, last_error='' WHERE id=?",
-                uidvalidity,
-                clock.now(),
-                accountId,
-            )
+            db.transaction {
+                db.execute(
+                    "UPDATE accounts SET uidvalidity=?, last_sync=?, last_error='' WHERE id=?",
+                    uidvalidity,
+                    clock.now(),
+                    accountId,
+                )
+                if (initialImport) {
+                    // 首轮一封都没有也要记下「首轮已完成」，否则下一轮 last_uid 仍是 0，
+                    // 第一封真实新信会被当成首次导入而被通知屏障跳过
+                    markInitialImportFinished(accountId)
+                }
+            }
             finishRound(accountId, 0)
             return 0
         }
@@ -198,7 +292,7 @@ open class SyncService(
         status.set(accountId, SYNC_STATE_SYNCING, "拉取 ${uids.size} 封".cpSlice(0, MAX_STATUS_CHARS))
         val custom = loadCustomRules(db)
         val failed = LinkedHashSet<Long>()
-        val outcome = InsertOutcome()
+        val outcome = InsertOutcome(lastUid)
         var block = ArrayList<PendingInsert>(FETCH_CHUNK_UIDS)
         for (message in iterFetched(session, uids, failed)) {
             // —— UIDVALIDITY 变化后，同一封信按 Message-ID 认回原来的本地记录 ——
@@ -212,11 +306,18 @@ open class SyncService(
             block += planInsert(accountId, message, custom)
             // 一块抓取对应一块落库：块边界与 FETCH_CHUNK_UIDS 对齐
             if (block.size >= FETCH_CHUNK_UIDS) {
-                insertBlock(block, failed, outcome)
+                insertBlock(accountId, block, failed, outcome, initialImport)
                 block = ArrayList(FETCH_CHUNK_UIDS)
             }
         }
-        insertBlock(block, failed, outcome)
+        insertBlock(accountId, block, failed, outcome, initialImport)
+
+        if (sessionAborted(session)) {
+            // 取消造成的中断：已经提交的块（含按块推进的水位）留着，但这一轮没跑完，
+            // 所以不写 last_error、不写 last_sync，状态回到空闲
+            finishRound(accountId, outcome.newCount)
+            return outcome.newCount
+        }
 
         var lastError = ""
         if (failed.isNotEmpty()) {
@@ -225,7 +326,8 @@ open class SyncService(
                 lastError += "（${outcome.insertError}）"
             }
         }
-        val watermark = advanceWatermark(lastUid, uids, failed)
+        // 按块推进过的水位不能回退，两者取大
+        val watermark = maxOf(outcome.watermark, advanceWatermark(lastUid, uids, failed))
         db.transaction {
             db.execute(
                 "UPDATE accounts SET last_uid=?, uidvalidity=?, last_sync=?, last_error=? WHERE id=?",
@@ -236,7 +338,9 @@ open class SyncService(
                 accountId,
             )
             if (initialImport) {
-                recordInitialImport(accountId, outcome.maxNewId)
+                // 兜底：所有块都被 IGNORE 时块里的「新插入最大 id」是 0，
+                // 这里按本账户实际的 MAX(id) 再补写一次
+                raiseInitialImportMarker(accountId, maxMessageId(accountId))
             }
         }
         finishRound(accountId, outcome.newCount)
@@ -321,34 +425,41 @@ open class SyncService(
     }
 
     /**
-     * 把一块邮件写进库（短事务，只做 SQL）。
+     * 把一块邮件写进库（短事务，只做 SQL），并在同一个事务里写水位或首次导入标记。
      *
      * 「是否新插入」靠 [com.mailhub.core.db.ExecResult.changes] 判断，不用
      * `lastInsertRowid`：`INSERT OR IGNORE` 被忽略时它还是上一次插入留下的值。
      * 入库失败记进 [failed]，下一轮重试，水位不会越过这些 UID。
+     *
+     * - 增量轮（`initialImport=false`）：把 `accounts.last_uid` 推进到本块，失败的 UID
+     *   不越过；这样一轮没跑完（进程被杀、后台任务被停）也不会把整轮丢掉；
+     * - 首次导入轮：把 `local_initial_import_<id>` 抬到本块新插入的最大 id，让已经导入的
+     *   历史邮件即使后面的块没跑完也不再弹通知；水位不在这里动。
      */
     private fun insertBlock(
+        accountId: Int,
         block: List<PendingInsert>,
         failed: MutableSet<Long>,
         outcome: InsertOutcome,
+        initialImport: Boolean,
     ) {
         if (block.isEmpty()) {
             return
         }
+        var blockMaxId = 0L
         db.transaction {
             for (item in block) {
                 try {
                     val result = db.execute(INSERT_MESSAGE_SQL, *item.values)
                     if (result.changes > 0) {
                         outcome.newCount += 1
-                        if (result.lastInsertRowid > outcome.maxNewId) {
-                            outcome.maxNewId = result.lastInsertRowid
+                        if (result.lastInsertRowid > blockMaxId) {
+                            blockMaxId = result.lastInsertRowid
                         }
                     }
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
-                    if (e is CancellationException) {
-                        throw e
-                    }
                     // 入库失败不能被水位跳过，记为失败，下次同步重试
                     failed += item.uid
                     if (outcome.insertError.isEmpty()) {
@@ -356,27 +467,65 @@ open class SyncService(
                     }
                 }
             }
+            if (initialImport) {
+                raiseInitialImportMarker(accountId, blockMaxId)
+            } else {
+                val next = advanceWatermark(
+                    outcome.watermark,
+                    block.map { it.uid } + failed,
+                    failed,
+                )
+                if (next > outcome.watermark) {
+                    outcome.watermark = next
+                    db.execute("UPDATE accounts SET last_uid=? WHERE id=?", next, accountId)
+                }
+            }
         }
     }
 
     /**
-     * 首次导入标记：把本轮新插入邮件的最大 id 写进 `settings`，对应 LOCAL_MODE.md 第五节。
-     *
-     * `/api/changes` 靠它跳过「加账户时导入的历史邮件」，所以只记第一次同步（或 UIDVALIDITY
-     * 重建那一轮）的最大 id；已有更大的值时**不改小**（重建后导入的邮件 id 一定更大，
-     * 但旧值也许更高，不能被覆盖回去）。
+     * 读首次导入标记（键是 `local_initial_import_<账户 id>`，见 LOCAL_MODE.md 第五节）：
+     * 键不存在时返回 null。值为 0 表示「首轮已经跑过、但没有需要跳过的邮件」，
+     * 与「从来没有写过」是两件事。
      */
-    private fun recordInitialImport(accountId: Int, maxNewId: Long) {
-        if (maxNewId <= 0) {
+    private fun initialImportMarker(accountId: Int): Long? =
+        db.getSetting("$INITIAL_IMPORT_KEY_PREFIX$accountId", "").trim().toLongOrNull()
+
+    /**
+     * 把首次导入标记抬到 [maxId]，对应 LOCAL_MODE.md 第五节。
+     *
+     * `/api/changes` 靠它跳过「加账户时导入的历史邮件」，所以：
+     * - 已经有更大的值时不改小（重建后导入的邮件 id 一定更大，但旧值也许更高）；
+     * - 本块一封都没新插入（[maxId] <= 0）时不动：这种情况下标记由整轮结束时的
+     *   [maxMessageId] 补写兜底。
+     */
+    private fun raiseInitialImportMarker(accountId: Int, maxId: Long) {
+        if (maxId <= 0) {
             return
         }
-        val key = "$INITIAL_IMPORT_KEY_PREFIX$accountId"
-        val current = db.getSetting(key, "").trim().toLongOrNull() ?: 0L
-        if (current >= maxNewId) {
+        val current = initialImportMarker(accountId)
+        if (current != null && current >= maxId) {
             return
         }
-        db.setSetting(key, maxNewId.toString())
+        db.setSetting("$INITIAL_IMPORT_KEY_PREFIX$accountId", maxId.toString())
     }
+
+    /**
+     * 首轮搜索为空时记下「首轮已完成」：键不存在时写 0。
+     *
+     * 不写的话下一轮 `last_uid` 仍是 0，第一封真实新信会被当成首次导入的历史邮件，
+     * 被通知屏障跳过（永远不会通知）。值 0 在 `/api/changes` 里不跳过任何邮件。
+     */
+    private fun markInitialImportFinished(accountId: Int) {
+        if (initialImportMarker(accountId) != null) {
+            return
+        }
+        db.setSetting("$INITIAL_IMPORT_KEY_PREFIX$accountId", "0")
+    }
+
+    /** 本账户当前最大的邮件 id，没有邮件时为 0（首次导入标记的兜底值）。 */
+    private fun maxMessageId(accountId: Int): Long =
+        db.queryOne("SELECT MAX(id) AS m FROM messages WHERE account_id=?", accountId)?.long("m") ?: 0L
 
     /**
      * 跨账户 Message-ID 判重，对应 `_is_duplicate`。
@@ -455,6 +604,12 @@ open class SyncService(
      *
      * UID 为负的记录（UIDVALIDITY 变化后解绑的旧记录）在服务器上已经没有对应邮件，
      * 直接记错误、不连服务器。
+     *
+     * **校验 UIDVALIDITY（与 Python 的有意偏差，任务 L7-fix-b 第 7 条）**：Python 丢弃了
+     * `select_inbox()` 的返回值。服务器重建邮箱后、本地还没同步时，用户删除旧 UID 会删掉
+     * 服务器上的**另一封**邮件——手机上这个窗口比服务器大得多（后台任务 15 分钟才跑一次）。
+     * 所以这里比较 `select_inbox()` 返回的 UIDVALIDITY 与账户里保存的值，不一致时**不执行
+     * 任何写操作**，该账户的每个 id 都进错误列表。账户保存的值是 0（还没同步过）时不比较。
      */
     fun applyServerAction(messageIds: List<Long>, action: String): ServerActionResult {
         if (action !in SERVER_ACTIONS) {
@@ -488,8 +643,17 @@ open class SyncService(
                 val account = db.queryOne("SELECT * FROM accounts WHERE id=?", accountId)
                     ?.let(SyncAccount::fromRow)
                     ?: throw ImapException("账户不存在")
-                session = sessionFactory(account, resolveSecret(account, cipher))
-                session.selectInbox()
+                session = sessionFactory(account, resolveSecret(account, cipher)) { }
+                val serverUidvalidity = session.selectInbox()
+                if (account.uidvalidity != 0L && serverUidvalidity != 0L &&
+                    serverUidvalidity != account.uidvalidity
+                ) {
+                    // 邮箱已经重建：本地这些 UID 指向的可能是服务器上完全不同的邮件，绝不能写
+                    for (item in items) {
+                        errors += "邮件${item.first}: $MAILBOX_REBUILT_TEXT"
+                    }
+                    continue
+                }
                 val uids = items.map { it.second }
                 if (action == ACTION_DELETE) {
                     session.delete(uids)
@@ -519,7 +683,7 @@ open class SyncService(
     fun probeConnection(account: SyncAccount, credential: String) {
         var session: ImapSession? = null
         try {
-            session = sessionFactory(account, credential)
+            session = sessionFactory(account, credential) { }
             session.selectInbox()
         } finally {
             session?.close()
@@ -531,9 +695,12 @@ open class SyncService(
     /**
      * 从另一个线程中断该账户正在进行的会话：关闭底层 socket，让阻塞的读写立刻抛异常。
      *
-     * [SyncCoordinator] 在协程被取消时调用它；没有正在进行的会话时什么也不做。
+     * [SyncCoordinator] 在协程被取消时调用它（投递到同步线程上执行，见它的 `runSync`）。
+     * 除了关 socket，还会置位本轮次的取消标记：会话还没建好、正在登录时，
+     * [syncAccount] 里的检查同样能看到取消并退出，不会跑完一整轮。
      */
     open fun abort(accountId: Int) {
+        rounds[accountId]?.cancel()
         activeSessions[accountId]?.abort()
     }
 
@@ -541,15 +708,40 @@ open class SyncService(
     private class PendingInsert(val uid: Long, val values: Array<Any?>)
 
     /** 一块内插入的累计结果。 */
-    private class InsertOutcome {
+    private class InsertOutcome(
+        /** 已经按块推进到哪：增量轮的水位，块与块之间要接着往上走。 */
+        var watermark: Long,
+    ) {
         var newCount: Int = 0
-        var maxNewId: Long = 0
         var insertError: String = ""
     }
 
     private companion object {
         const val ACTION_DELETE = "delete"
         const val ACTION_READ = "read"
+    }
+}
+
+/**
+ * 一轮同步的取消标记，对应「后台任务被系统停掉」时的那次取消。
+ *
+ * [SyncCoordinator] 在把工作提交给同步线程**之前**用 [SyncService.beginSyncRound] 登记它，
+ * 并在轮次结束时注销；取消时 [SyncService.abort] 把它置位。[SyncService.syncAccount] 在
+ * 线程开始前、登录后各看一次：已取消就不开始、不继续。
+ *
+ * 标记跟着轮次对象走而不是按账户长期保存，这样迟到的 `abort`（投递到同步线程上执行，
+ * 可能比轮次结束还晚）不会把标记留给下一轮、让下一次同步莫名其妙地直接退出。
+ */
+class SyncRound internal constructor() {
+
+    @Volatile
+    private var cancelled: Boolean = false
+
+    /** 本轮是否已被取消。 */
+    val isCancelled: Boolean get() = cancelled
+
+    internal fun cancel() {
+        cancelled = true
     }
 }
 
@@ -578,7 +770,7 @@ internal fun advanceWatermark(lastUid: Long, requested: List<Long>, failed: Set<
  *
  * 这是一个惰性 [Sequence]：调用方没有把当前块消费完，它就不会去抓下一块，
  * 所以同一时间只有一块邮件的正文在内存里。抓取失败的 UID 累积到 [failed]，
- * 由调用方在结束后统一推进水位。
+ * 调用方按块推进水位时不能越过它们。
  */
 internal fun iterFetched(
     session: ImapSession,

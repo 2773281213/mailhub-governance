@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -77,15 +78,18 @@ class SyncCoordinatorTest {
             assertTrue("第一次同步应已开始", fake.started.await(30, TimeUnit.SECONDS))
             assertTrue("同步期间 isSyncing 应为真", coordinator.isSyncing(id))
 
-            val second = async(Dispatchers.Default) { coordinator.syncAccounts(listOf(id)) }
-            assertEquals("第二次请求要等互斥，实际 ${fake.calls}", listOf(id), fake.calls.toList())
+            // Unconfined 会在调用线程上一直跑到第一个挂起点，所以这里能确定第二个请求
+            // **真的**撞上互斥了；没有 Mutex 时它会立刻进 syncAccount 并停在门上
+            val second = async(Dispatchers.Unconfined) { coordinator.syncAccounts(listOf(id)) }
+            assertEquals("第二次请求要等在互斥上，实际 ${fake.calls}", listOf(id), fake.calls.toList())
+            assertEquals("同一账户不能并发同步，实际 ${fake.maxPerAccount}", 1, fake.maxPerAccount)
 
             gate.countDown()
             first.await()
             second.await()
 
             assertEquals("同一个账户要跑两次，请求不能丢", listOf(id, id), fake.calls.toList())
-            assertEquals("同一账户不能并发同步", 1, fake.maxPerAccount)
+            assertEquals("同一账户不能并发同步，实际 ${fake.maxPerAccount}", 1, fake.maxPerAccount)
         }
     }
 
@@ -202,17 +206,30 @@ class SyncCoordinatorTest {
         }
     }
 
-    /** 同一账户的钩子串行：前一个还在跑时，后面那轮的新邮件不会并发调用钩子。 */
+    /**
+     * 同一账户的钩子串行：前一个还在跑时，后面那轮的新邮件不会并发调用钩子。
+     *
+     * 判据是**钩子的最大在途数**：只等「第二轮进了 syncAccount」不够——那时第二个钩子
+     * 可能还没走到，断言在去掉锁之后照样能过。
+     */
     @Test
     fun afterNewMailIsSerializedPerAccount() {
-        val hookCalls = AtomicInteger()
+        val inFlight = AtomicInteger()
+        val maxInFlight = AtomicInteger()
+        val hookEntered = AtomicInteger()
         val hookStarted = CountDownLatch(1)
         val hookGate = CountDownLatch(1)
         withCoordinator(afterNewMail = { _, n ->
             if (n > 0) {
-                hookCalls.incrementAndGet()
+                hookEntered.incrementAndGet()
+                val now = inFlight.incrementAndGet()
+                maxInFlight.accumulateAndGet(now) { a, b -> maxOf(a, b) }
                 hookStarted.countDown()
-                hookGate.await(30, TimeUnit.SECONDS)
+                try {
+                    hookGate.await(30, TimeUnit.SECONDS)
+                } finally {
+                    inFlight.decrementAndGet()
+                }
             }
         }) { db, fake, coordinator ->
             runBlocking {
@@ -227,12 +244,17 @@ class SyncCoordinatorTest {
                 // 第二轮的同步已经跑完（进了两次 syncAccount），但钩子还被第一轮占着
                 assertTrue("第二轮同步应已跑完", waitForSyncs(fake, id, 2, 30_000))
 
-                assertEquals("钩子还在跑时第二轮不能并发调用钩子", 1, hookCalls.get())
+                assertEquals("钩子还在跑时第二轮不能并发调用钩子", 1, hookEntered.get())
 
                 hookGate.countDown()
                 first.await()
                 second.await()
-                assertEquals("两轮各调一次钩子，实际 ${hookCalls.get()}", 2, hookCalls.get())
+                assertEquals("两轮各调一次钩子，实际 ${hookEntered.get()}", 2, hookEntered.get())
+                assertEquals(
+                    "同一账户的钩子不能并发，最大在途 ${maxInFlight.get()}",
+                    1,
+                    maxInFlight.get(),
+                )
             }
         }
     }
@@ -258,12 +280,23 @@ class SyncCoordinatorTest {
         assertEquals("3→2→1→0：钩子应跑 4 轮，实际 ${hookCalls.get()}", 4, hookCalls.get())
     }
 
-    /** 待治理数量不减少说明治理确实没有进展，立刻停止补跑。 */
+    /**
+     * 待治理数量不减少说明治理确实没有进展，立刻停止补跑。
+     *
+     * 按账户的补跑与返回前的兜底补跑（`accountId = 0`）分别计数：两路都是「不减少就停」。
+     */
     @Test
     fun governanceBacklogStopsWhenPendingDoesNotDecrease() {
-        val hookCalls = AtomicInteger()
+        val accountHooks = AtomicInteger()
+        val catchUpHooks = AtomicInteger()
         withCoordinator(
-            afterNewMail = { _, _ -> hookCalls.incrementAndGet() },
+            afterNewMail = { id, _ ->
+                if (id == GOVERNANCE_ANY_ACCOUNT) {
+                    catchUpHooks.incrementAndGet()
+                } else {
+                    accountHooks.incrementAndGet()
+                }
+            },
             pendingGovernance = { 5 },
         ) { db, fake, coordinator ->
             runBlocking {
@@ -272,16 +305,28 @@ class SyncCoordinatorTest {
                 coordinator.syncAccounts(listOf(id))
             }
         }
-        assertEquals("一直不减：跑两轮就停，实际 ${hookCalls.get()}", 2, hookCalls.get())
+        assertEquals("一直不减：按账户的补跑跑两轮就停，实际 ${accountHooks.get()}", 2, accountHooks.get())
+        assertEquals("兜底补跑同样两轮就停，实际 ${catchUpHooks.get()}", 2, catchUpHooks.get())
     }
 
-    /** 补跑有硬上限，永远不会空转成死循环。 */
+    /**
+     * 补跑有硬上限，永远不会空转成死循环。
+     *
+     * 按账户的补跑与返回前的兜底补跑各自受 [MAX_AFTER_NEW_MAIL_ROUNDS] 限制。
+     */
     @Test
     fun governanceBacklogStopsAtTheRoundLimit() {
-        val hookCalls = AtomicInteger()
+        val accountHooks = AtomicInteger()
+        val catchUpHooks = AtomicInteger()
         val pending = AtomicInteger(100)
         withCoordinator(
-            afterNewMail = { _, _ -> hookCalls.incrementAndGet() },
+            afterNewMail = { id, _ ->
+                if (id == GOVERNANCE_ANY_ACCOUNT) {
+                    catchUpHooks.incrementAndGet()
+                } else {
+                    accountHooks.incrementAndGet()
+                }
+            },
             pendingGovernance = { pending.decrementAndGet() },
         ) { db, fake, coordinator ->
             runBlocking {
@@ -291,10 +336,54 @@ class SyncCoordinatorTest {
             }
         }
         assertEquals(
-            "补跑轮数上限是 $MAX_AFTER_NEW_MAIL_ROUNDS，实际 ${hookCalls.get()}",
+            "按账户的补跑轮数上限是 $MAX_AFTER_NEW_MAIL_ROUNDS，实际 ${accountHooks.get()}",
             MAX_AFTER_NEW_MAIL_ROUNDS,
-            hookCalls.get(),
+            accountHooks.get(),
         )
+        assertEquals(
+            "兜底补跑的轮数上限也是 $MAX_AFTER_NEW_MAIL_ROUNDS，实际 ${catchUpHooks.get()}",
+            MAX_AFTER_NEW_MAIL_ROUNDS,
+            catchUpHooks.get(),
+        )
+    }
+
+    /**
+     * 没有一个账户有新邮件（`n == 0`）、但治理还有积压时，`syncAccounts` 返回前也要补跑一次
+     * 钩子：部分块提交后抛异常、或进程在钩子之前被杀，之后又一直没有新邮件时，只能靠它。
+     */
+    @Test
+    fun governanceCatchUpRunsEvenWhenNoAccountHasNewMail() {
+        val hooks = CopyOnWriteArrayList<Pair<Int, Int>>()
+        withCoordinator(
+            afterNewMail = { id, n -> hooks += id to n },
+            pendingGovernance = { 2 },
+        ) { db, fake, coordinator ->
+            runBlocking {
+                val id = insertAccount(db)
+                fake.newCounts = mapOf(id to 0)
+                coordinator.syncAccounts(listOf(id))
+            }
+        }
+        assertEquals("补跑要传「不针对某个账户」与 0 封，实际 $hooks", GOVERNANCE_ANY_ACCOUNT to 0, hooks.first())
+        assertTrue("每次都必须是兜底补跑，实际 $hooks", hooks.all { it == GOVERNANCE_ANY_ACCOUNT to 0 })
+    }
+
+    /** 没有到期账户时也要走兜底补跑（`syncDue` 一条都没同步，但治理还有积压）。 */
+    @Test
+    fun governanceCatchUpRunsWhenNoAccountIsDue() {
+        val hooks = CopyOnWriteArrayList<Pair<Int, Int>>()
+        withCoordinator(
+            afterNewMail = { id, n -> hooks += id to n },
+            pendingGovernance = { 1 },
+        ) { db, fake, coordinator ->
+            runBlocking {
+                // 刚同步过，没到期
+                insertAccount(db, name = "未到期", lastSync = clock.now(), pollInterval = 300)
+                val result = coordinator.syncDue()
+                assertTrue("没有账户到期，实际 ${result.keys}", result.isEmpty())
+            }
+        }
+        assertEquals("没有到期账户也要补跑，实际 $hooks", GOVERNANCE_ANY_ACCOUNT to 0, hooks.first())
     }
 
     // ---------------- 取消与容错 ----------------
@@ -319,6 +408,104 @@ class SyncCoordinatorTest {
         }
     }
 
+    /**
+     * 取消之后锁要一直持有到工作线程**真的退出**。
+     *
+     * 取消方的 continuation 一恢复就放锁、而工作线程还在跑的旧行为，会让前台请求拿到同一把
+     * 锁、读到同一个旧水位并登记下一轮，从此两轮互相覆盖状态，`abort` 也够不到旧线程。
+     */
+    @Test
+    fun cancellationKeepsTheAccountLockUntilTheWorkerExits() = withCoordinator { db, fake, coordinator ->
+        runBlocking {
+            val id = insertAccount(db)
+            val gate = CountDownLatch(1)
+            fake.gate = gate
+            fake.gateAccounts = setOf(id)
+            fake.started = CountDownLatch(1)
+            // abort 会把门打开，线程继续往下走，然后停在「收尾」这一步
+            val workerExiting = CountDownLatch(1)
+            val releaseWorker = CountDownLatch(1)
+            fake.onExiting = {
+                workerExiting.countDown()
+                releaseWorker.await(30, TimeUnit.SECONDS)
+            }
+
+            val first = launch(Dispatchers.Default) { coordinator.syncAccounts(listOf(id)) }
+            assertTrue("同步应已开始", fake.started.await(30, TimeUnit.SECONDS))
+
+            first.cancel()
+            assertTrue("工作线程应已开始收尾", workerExiting.await(30, TimeUnit.SECONDS))
+            assertTrue("线程还在跑时锁必须仍然持有", coordinator.isSyncing(id))
+
+            // Unconfined 会就地跑到互斥上：确认第二次请求真的被旧线程挡在外面
+            val second = async(Dispatchers.Unconfined) { coordinator.syncAccounts(listOf(id)) }
+            assertEquals(
+                "旧线程退出前不能再进 syncAccount，实际 ${fake.calls}",
+                listOf(id),
+                fake.calls.toList(),
+            )
+
+            releaseWorker.countDown()
+            first.join()
+            second.await()
+            assertEquals("线程退出后第二次请求照常跑", listOf(id, id), fake.calls.toList())
+        }
+    }
+
+    /**
+     * 线程还没开始就被取消：连 `syncAccount` 都不进（已取消就不开始）。
+     *
+     * 这里用并发上限 1 把第二个账户的协程挡在信号量上，工作线程根本没被提交。
+     */
+    @Test
+    fun cancellationBeforeTheWorkerStartsSkipsTheSync() = withCoordinator(concurrency = 1) { db, fake, coordinator ->
+        runBlocking {
+            val busy = insertAccount(db, name = "占着名额")
+            val waiting = insertAccount(db, name = "等名额")
+            fake.gate = CountDownLatch(1)
+            fake.gateAccounts = setOf(busy)
+            fake.started = CountDownLatch(1)
+            fake.newCounts = mapOf(busy to 0, waiting to 0)
+
+            val first = async(Dispatchers.Default) { coordinator.syncAccounts(listOf(busy)) }
+            assertTrue("第一个账户应在同步", fake.started.await(30, TimeUnit.SECONDS))
+
+            val second = launch(Dispatchers.Unconfined) { coordinator.syncAccounts(listOf(waiting)) }
+            assertTrue("第二个账户应已等在信号量上", coordinator.isSyncing(waiting))
+            second.cancelAndJoin()
+
+            assertFalse("取消后不该还占着账户锁", coordinator.isSyncing(waiting))
+            assertFalse("已取消就不该进 syncAccount，实际 ${fake.calls}", waiting in fake.calls)
+
+            fake.gate.countDown()
+            first.await()
+            assertFalse("取消的账户永远不该同步", waiting in fake.calls)
+        }
+    }
+
+    /**
+     * `SyncService` 里的取消标记：线程开始前就被取消时，`syncAccount` 直接返回 0，
+     * 不连服务器、不写状态。
+     */
+    @Test
+    fun syncAccountDoesNotStartWhenCancelledBeforeItBegins() = withTempDb(clock) { db ->
+        db.initDb()
+        val id = insertAccount(db, name = "账户A")
+        val opened = AtomicInteger()
+        val service = SyncService(db, FakeSecretCipher(), clock) { _, _, _ ->
+            opened.incrementAndGet()
+            error("被取消的轮次不该建立会话")
+        }
+
+        service.beginSyncRound(id)
+        service.abort(id) // 会话还没建，只有取消标记起作用
+        assertEquals("已取消就不开始", 0, service.syncAccount(id))
+
+        assertEquals("不该建立任何会话", 0, opened.get())
+        assertNull("不该写同步状态", service.getStatus()["$id"])
+        assertEquals(0L, accountRow(db, id).long("last_uid"))
+    }
+
     /** 一个账户抛异常不影响其他账户（对应 Python 每个账户一个线程、异常只杀自己）。 */
     @Test
     fun oneFailingAccountDoesNotAffectTheOthers() = withCoordinator { db, fake, coordinator ->
@@ -335,6 +522,35 @@ class SyncCoordinatorTest {
             assertEquals("其他账户照常返回结果", 1, result[first])
             assertEquals(2, result[third])
             assertEquals("三个账户都要跑到", setOf(first, broken, third), fake.calls.toSet())
+        }
+    }
+
+    /**
+     * 一个账户抛 `Error` 也不能拖垮其他账户。
+     *
+     * `OutOfMemoryError` / `StackOverflowError` 会被 `runCatching` 转给协程，`async` 的子协程
+     * 一失败就取消整个作用域：其他账户跟着完蛋，状态还卡在 `syncing`。
+     */
+    @Test
+    fun errorInOneAccountDoesNotAffectTheOthers() = withCoordinator { db, fake, coordinator ->
+        runBlocking {
+            val first = insertAccount(db, name = "账户1")
+            val broken = insertAccount(db, name = "账户2")
+            val third = insertAccount(db, name = "账户3")
+            fake.newCounts = mapOf(first to 1, third to 2)
+            fake.fatal = setOf(broken)
+
+            val result = coordinator.syncAccounts(listOf(first, broken, third))
+
+            assertEquals("抛 Error 的账户按 0 封计", 0, result[broken])
+            assertEquals("其他账户照常返回结果", 1, result[first])
+            assertEquals(2, result[third])
+            assertEquals("三个账户都要跑到", setOf(first, broken, third), fake.calls.toSet())
+            assertEquals(
+                "失败要写成 error 状态，不能卡在 syncing",
+                SYNC_STATE_ERROR,
+                fake.getStatus()["$broken"]?.state,
+            )
         }
     }
 
@@ -411,6 +627,14 @@ class SyncCoordinatorTest {
         @Volatile
         var failing: Set<Int> = emptySet()
 
+        /** 这些账户的 `syncAccount` 抛 `Error`（模拟 OOM / 栈溢出），用来验证单账户边界。 */
+        @Volatile
+        var fatal: Set<Int> = emptySet()
+
+        /** `syncAccount` 快要返回时的回调：测试用它把线程按在「收尾」这一步上。 */
+        @Volatile
+        var onExiting: () -> Unit = {}
+
         private val running = AtomicInteger()
         private val perAccount = ConcurrentHashMap<Int, AtomicInteger>()
 
@@ -433,6 +657,10 @@ class SyncCoordinatorTest {
                 if (accountId in gateAccounts) {
                     gate.await(30, TimeUnit.SECONDS)
                 }
+                onExiting()
+                if (accountId in fatal) {
+                    throw StackOverflowError("账户 $accountId 的同步炸了")
+                }
                 if (accountId in failing) {
                     throw IllegalStateException("账户 $accountId 的同步失败")
                 }
@@ -447,6 +675,10 @@ class SyncCoordinatorTest {
 
         override fun abort(accountId: Int) {
             aborted += accountId
+            // 真的 IMAP 会话被 abort 后，阻塞中的读写会立刻抛异常退出；替身用开门模拟
+            if (accountId in gateAccounts) {
+                gate.countDown()
+            }
         }
 
         override fun forgetAccount(accountId: Int) {
@@ -500,6 +732,11 @@ class SyncCoordinatorTest {
             clock.now(),
         ).lastInsertRowid,
     )
+
+    /** 读回账户那一行（断言水位这类列）。 */
+    private fun accountRow(db: Db, accountId: Int) = requireNotNull(
+        db.queryOne("SELECT * FROM accounts WHERE id=?", accountId),
+    ) { "账户 $accountId 应该存在" }
 
     /** 等到替身进入 `syncAccount` 达到 [times] 次（用轮询等待，不依赖具体耗时）。 */
     private fun waitForSyncs(fake: FakeSyncService, accountId: Int, times: Int, timeoutMillis: Long): Boolean {
