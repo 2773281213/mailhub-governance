@@ -81,7 +81,7 @@ class ChangesSyncTest {
         assertEquals(ChangesOutcome.Done(notified = 0), outcome)
         assertEquals(120L, cursors.get(origin))
         assertTrue(notified.isEmpty())
-        assertEquals("/api/changes?after_id=0&limit=$ChangesPageSize", server.takeRequest().target)
+        assertEquals("/api/changes?after_id=-1&limit=$ChangesPageSize", server.takeRequest().target)
     }
 
     @Test

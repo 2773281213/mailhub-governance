@@ -123,7 +123,7 @@ Compose 页面 ── Gateway ── Repository ── ApiClient(Retrofit + OkHt
   - **后台**：沿用现有 `ChangesJobService`（JobScheduler，15 分钟），本机模式下先同步再通知，总时长控制在 8 分钟内。`onStopJob` 取消协程，并关闭进行中的 IMAP 连接。
 - **本机 `/api/changes` 与服务器的两处不同：**
   1. `after_id = 0` 表示「从头列出」，不是服务器那样「只返回水位」。进入本机模式时 App 把游标设为本机库当前的 `max(id)`（空库为 0），所以第一次同步导入的邮件不会被当成历史基线吞掉。`after_id < 0` 才是初始化。
-  2. 账户**首次同步**（`last_uid == 0`）导入的最近 30 天历史邮件不通知。同步结束时，在 `settings` 里记下 `local_initial_import_<账户 id>` = 这批邮件的最大 id；`/api/changes` 跳过该账户 id 不超过这个值的邮件，但游标照常前进。
+  2. 账户**首次同步**导入的最近 30 天历史邮件不通知。「首次」指 `last_uid == 0` 且（标记键不存在，或本轮 UIDVALIDITY 变了）。`settings` 里的 `local_initial_import_<账户 id>` 记下这批邮件的最大 id，在每一块的插入事务里抬高，这样导入中途进程被杀，或别的账户的治理解除了屏障，历史邮件也不会弹通知；首轮搜索为空时写 0，表示首轮已完成。`/api/changes` 跳过该账户 id 不超过这个值的邮件（这些邮件也不算待治理屏障），但游标照常前进。
 - **实时（P2）：** 设置里的「实时收信」开关启动前台服务，对选定账户保持 IMAP IDLE。各家对 IDLE 的支持要先用 `CAPABILITY` 实测。
 
 ## 六、安全模型的变化

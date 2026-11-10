@@ -665,7 +665,8 @@ open class SyncService(
                 if (e is CancellationException) {
                     throw e
                 }
-                errors += "账户$accountId: ${(e.message ?: "").cpSlice(0, 100)}"
+                // Python 是 str(exc)[:100]；手机上那是英文平台原文，用户看不懂，换成中文说明
+                errors += "账户$accountId: ${connectionErrorText(e).cpSlice(0, 100)}"
             } finally {
                 session?.close()
             }

@@ -5,6 +5,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import okhttp3.Dispatcher
 import okhttp3.HttpUrl
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
@@ -40,6 +41,20 @@ class ApiClient(
     val serverUrl: HttpUrl,
     private val token: String? = null,
     private val onUnauthorized: (ApiClient) -> Unit = {},
+    /**
+     * 挂在 [AuthInterceptor] 之后的额外拦截器。
+     *
+     * 本机会话用它在进程内回答请求（`LocalApiInterceptor`，见 `LOCAL_MODE.md` 3.1）：排在
+     * `AuthInterceptor` 之后，`Authorization` 头与 401 处理照常先生效。服务器模式传空表，行为不变。
+     */
+    private val extraInterceptors: List<Interceptor> = emptyList(),
+    /**
+     * 同一主机的并发上限，null 用 OkHttp 的默认值（5）。
+     *
+     * 本机会话的请求在拦截器里阻塞执行，添加账户的探测、治理这类几十秒的调用
+     * 会一直占着名额，默认的 5 个不够，界面请求会排队。
+     */
+    private val maxRequestsPerHost: Int? = null,
 ) {
     private val baseUrl = serverUrl.toString().trimEnd('/') + "/"
 
@@ -48,6 +63,12 @@ class ApiClient(
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(60, TimeUnit.SECONDS)
             .addInterceptor(AuthInterceptor(serverUrl, token, onUnauthorized) { this })
+            .apply {
+                extraInterceptors.forEach(::addInterceptor)
+                maxRequestsPerHost?.let { limit ->
+                    dispatcher(Dispatcher().apply { this.maxRequestsPerHost = limit })
+                }
+            }
             .build()
     }
 

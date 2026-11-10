@@ -1,6 +1,7 @@
 package com.mailhub.client.data.net
 
 import com.mailhub.client.BuildConfig
+import java.util.Locale
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
@@ -11,6 +12,11 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
  *
  * 不接受带用户信息、查询串或片段（#）的地址：这些内容无法拼进接口路径，
  * 也容易把凭据写进日志。
+ *
+ * **不接受保留域名**：以 `.invalid` 结尾（以及单独的 `invalid`）的主机名是保留顶级域，
+ * 本机会话的 `https://local.mailhub.invalid/` 也在这个范围内，见 `LOCAL_MODE.md` 3.1。
+ * 手填进来只会得到一个永远连不上的地址，所以直接拒绝。比较主机名时去掉末尾的点、
+ * 不区分大小写（`Example.INVALID.` 同样拒绝）。
  */
 object ServerUrl {
 
@@ -32,6 +38,9 @@ object ServerUrl {
         }
         val url = withScheme.toHttpUrlOrNull()
             ?: return Result.failure(IllegalArgumentException("服务器地址格式不正确"))
+        if (url.host.isReservedHost()) {
+            return Result.failure(IllegalArgumentException("服务器地址不能使用保留域名"))
+        }
         if (url.username.isNotEmpty() || url.password.isNotEmpty()) {
             return Result.failure(IllegalArgumentException("服务器地址不能带用户名或密码"))
         }
@@ -51,4 +60,14 @@ object ServerUrl {
         }
         return Result.success(url)
     }
+}
+
+/**
+ * 保留顶级域 `.invalid`（RFC 2606）以及它本身：这些名字永远解析不到真实服务器。
+ *
+ * 主机名末尾的点是 DNS 的绝对域名写法，先去掉；比较不区分大小写。
+ */
+private fun String.isReservedHost(): Boolean {
+    val host = removeSuffix(".").lowercase(Locale.ROOT)
+    return host == "invalid" || host.endsWith(".invalid")
 }

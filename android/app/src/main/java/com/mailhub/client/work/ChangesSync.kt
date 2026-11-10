@@ -88,9 +88,12 @@ class ChangesSync(
         return stop ?: ChangesOutcome.Done(notified = toNotify.size)
     }
 
-    /** 第一次执行：after_id = 0 只返回当前水位，记下它，不补发历史邮件。 */
+    /**
+     * 第一次执行：after_id < 0 只返回当前水位，记下它，不补发历史邮件。
+     * 不能用 0：服务器对 `<= 0` 处理相同，但本机模式的 0 表示「从头列出」（`LOCAL_MODE.md` 第五节）。
+     */
     private suspend fun initialize(client: ApiClient, origin: String): ChangesOutcome {
-        val result = fetch(client, 0)
+        val result = fetch(client, -1)
         val failure = result.exceptionOrNull()
         if (failure != null) {
             return outcomeOf(failure)

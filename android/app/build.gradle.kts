@@ -63,6 +63,18 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    // 本机模式打包了 SQLite（四种 ABI 各一份 libsqliteJni.so，共约 4.9 MB），
+    // 不拆分的话 release 包会从 2.2 MB 涨到 7.1 MB（LOCAL_MODE.md 3.2）。
+    // 按 ABI 拆成独立 APK，另出一份包含全部 ABI 的 universal 包方便侧载。
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "armeabi-v7a", "x86_64")
+            isUniversalApk = true
+        }
+    }
+
     buildFeatures {
         compose = true
         buildConfig = true
