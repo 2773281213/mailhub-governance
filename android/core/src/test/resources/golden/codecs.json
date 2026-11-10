@@ -1042,15 +1042,15 @@
   },
   {
    "args": {
-    "name": "ansi_x3.4_1968"
+    "name": "ansi"
    },
-   "expected": "ascii",
+   "expected": null,
    "fn": "lookup",
    "id": "lookup_130"
   },
   {
    "args": {
-    "name": "ansi_x3.4_1986"
+    "name": "ansi_x3.4_1968"
    },
    "expected": "ascii",
    "fn": "lookup",
@@ -1058,7 +1058,7 @@
   },
   {
    "args": {
-    "name": "ansi_x3_4_1968"
+    "name": "ansi_x3.4_1986"
    },
    "expected": "ascii",
    "fn": "lookup",
@@ -1066,15 +1066,15 @@
   },
   {
    "args": {
-    "name": "arabic"
+    "name": "ansi_x3_4_1968"
    },
-   "expected": "iso8859-6",
+   "expected": "ascii",
    "fn": "lookup",
    "id": "lookup_133"
   },
   {
    "args": {
-    "name": "asmo_708"
+    "name": "arabic"
    },
    "expected": "iso8859-6",
    "fn": "lookup",
@@ -1082,11 +1082,19 @@
   },
   {
    "args": {
+    "name": "asmo_708"
+   },
+   "expected": "iso8859-6",
+   "fn": "lookup",
+   "id": "lookup_135"
+  },
+  {
+   "args": {
     "name": "big5_hkscs"
    },
    "expected": "big5hkscs",
    "fn": "lookup",
-   "id": "lookup_135"
+   "id": "lookup_136"
   },
   {
    "args": {
@@ -1094,7 +1102,7 @@
    },
    "expected": "big5",
    "fn": "lookup",
-   "id": "lookup_136"
+   "id": "lookup_137"
   },
   {
    "args": {
@@ -1102,7 +1110,7 @@
    },
    "expected": "gb2312",
    "fn": "lookup",
-   "id": "lookup_137"
+   "id": "lookup_138"
   },
   {
    "args": {
@@ -1110,7 +1118,7 @@
    },
    "expected": "hp-roman8",
    "fn": "lookup",
-   "id": "lookup_138"
+   "id": "lookup_139"
   },
   {
    "args": {
@@ -1118,7 +1126,7 @@
    },
    "expected": "ptcp154",
    "fn": "lookup",
-   "id": "lookup_139"
+   "id": "lookup_140"
   },
   {
    "args": {
@@ -1126,7 +1134,7 @@
    },
    "expected": "ascii",
    "fn": "lookup",
-   "id": "lookup_140"
+   "id": "lookup_141"
   },
   {
    "args": {
@@ -1134,7 +1142,7 @@
    },
    "expected": "utf-8",
    "fn": "lookup",
-   "id": "lookup_141"
+   "id": "lookup_142"
   },
   {
    "args": {
@@ -1142,7 +1150,7 @@
    },
    "expected": "iso8859-1",
    "fn": "lookup",
-   "id": "lookup_142"
+   "id": "lookup_143"
   },
   {
    "args": {
@@ -1150,7 +1158,7 @@
    },
    "expected": "cp1125",
    "fn": "lookup",
-   "id": "lookup_143"
+   "id": "lookup_144"
   },
   {
    "args": {
@@ -1158,7 +1166,7 @@
    },
    "expected": "gbk",
    "fn": "lookup",
-   "id": "lookup_144"
+   "id": "lookup_145"
   },
   {
    "args": {
@@ -1166,7 +1174,7 @@
    },
    "expected": "cp869",
    "fn": "lookup",
-   "id": "lookup_145"
+   "id": "lookup_146"
   },
   {
    "args": {
@@ -1174,7 +1182,7 @@
    },
    "expected": "cp861",
    "fn": "lookup",
-   "id": "lookup_146"
+   "id": "lookup_147"
   },
   {
    "args": {
@@ -1182,7 +1190,7 @@
    },
    "expected": null,
    "fn": "lookup",
-   "id": "lookup_147"
+   "id": "lookup_148"
   },
   {
    "args": {
@@ -1190,7 +1198,7 @@
    },
    "expected": "ascii",
    "fn": "lookup",
-   "id": "lookup_148"
+   "id": "lookup_149"
   },
   {
    "args": {
@@ -1198,7 +1206,7 @@
    },
    "expected": "big5",
    "fn": "lookup",
-   "id": "lookup_149"
+   "id": "lookup_150"
   },
   {
    "args": {
@@ -1206,7 +1214,7 @@
    },
    "expected": "cp037",
    "fn": "lookup",
-   "id": "lookup_150"
+   "id": "lookup_151"
   },
   {
    "args": {
@@ -1214,7 +1222,7 @@
    },
    "expected": "cp1026",
    "fn": "lookup",
-   "id": "lookup_151"
+   "id": "lookup_152"
   },
   {
    "args": {
@@ -1222,7 +1230,7 @@
    },
    "expected": "cp273",
    "fn": "lookup",
-   "id": "lookup_152"
+   "id": "lookup_153"
   },
   {
    "args": {
@@ -1230,7 +1238,7 @@
    },
    "expected": "cp424",
    "fn": "lookup",
-   "id": "lookup_153"
+   "id": "lookup_154"
   },
   {
    "args": {
@@ -1238,7 +1246,7 @@
    },
    "expected": "cp500",
    "fn": "lookup",
-   "id": "lookup_154"
+   "id": "lookup_155"
   },
   {
    "args": {
@@ -1246,7 +1254,7 @@
    },
    "expected": "cp855",
    "fn": "lookup",
-   "id": "lookup_155"
+   "id": "lookup_156"
   },
   {
    "args": {
@@ -1254,7 +1262,7 @@
    },
    "expected": "cp857",
    "fn": "lookup",
-   "id": "lookup_156"
+   "id": "lookup_157"
   },
   {
    "args": {
@@ -1262,7 +1270,7 @@
    },
    "expected": "cp858",
    "fn": "lookup",
-   "id": "lookup_157"
+   "id": "lookup_158"
   },
   {
    "args": {
@@ -1270,7 +1278,7 @@
    },
    "expected": "cp860",
    "fn": "lookup",
-   "id": "lookup_158"
+   "id": "lookup_159"
   },
   {
    "args": {
@@ -1278,7 +1286,7 @@
    },
    "expected": "cp861",
    "fn": "lookup",
-   "id": "lookup_159"
+   "id": "lookup_160"
   },
   {
    "args": {
@@ -1286,7 +1294,7 @@
    },
    "expected": "cp863",
    "fn": "lookup",
-   "id": "lookup_160"
+   "id": "lookup_161"
   },
   {
    "args": {
@@ -1294,7 +1302,7 @@
    },
    "expected": "cp864",
    "fn": "lookup",
-   "id": "lookup_161"
+   "id": "lookup_162"
   },
   {
    "args": {
@@ -1302,7 +1310,7 @@
    },
    "expected": "cp865",
    "fn": "lookup",
-   "id": "lookup_162"
+   "id": "lookup_163"
   },
   {
    "args": {
@@ -1310,7 +1318,7 @@
    },
    "expected": "cp866",
    "fn": "lookup",
-   "id": "lookup_163"
+   "id": "lookup_164"
   },
   {
    "args": {
@@ -1318,7 +1326,7 @@
    },
    "expected": "cp869",
    "fn": "lookup",
-   "id": "lookup_164"
+   "id": "lookup_165"
   },
   {
    "args": {
@@ -1326,7 +1334,7 @@
    },
    "expected": "iso2022_jp",
    "fn": "lookup",
-   "id": "lookup_165"
+   "id": "lookup_166"
   },
   {
    "args": {
@@ -1334,7 +1342,7 @@
    },
    "expected": "gb2312",
    "fn": "lookup",
-   "id": "lookup_166"
+   "id": "lookup_167"
   },
   {
    "args": {
@@ -1342,7 +1350,7 @@
    },
    "expected": "iso8859-1",
    "fn": "lookup",
-   "id": "lookup_167"
+   "id": "lookup_168"
   },
   {
    "args": {
@@ -1350,7 +1358,7 @@
    },
    "expected": "iso8859-2",
    "fn": "lookup",
-   "id": "lookup_168"
+   "id": "lookup_169"
   },
   {
    "args": {
@@ -1358,7 +1366,7 @@
    },
    "expected": "iso8859-3",
    "fn": "lookup",
-   "id": "lookup_169"
+   "id": "lookup_170"
   },
   {
    "args": {
@@ -1366,7 +1374,7 @@
    },
    "expected": "iso8859-4",
    "fn": "lookup",
-   "id": "lookup_170"
+   "id": "lookup_171"
   },
   {
    "args": {
@@ -1374,7 +1382,7 @@
    },
    "expected": "iso8859-9",
    "fn": "lookup",
-   "id": "lookup_171"
+   "id": "lookup_172"
   },
   {
    "args": {
@@ -1382,7 +1390,7 @@
    },
    "expected": "iso8859-10",
    "fn": "lookup",
-   "id": "lookup_172"
+   "id": "lookup_173"
   },
   {
    "args": {
@@ -1390,7 +1398,7 @@
    },
    "expected": "iso8859-6",
    "fn": "lookup",
-   "id": "lookup_173"
+   "id": "lookup_174"
   },
   {
    "args": {
@@ -1398,7 +1406,7 @@
    },
    "expected": "iso8859-5",
    "fn": "lookup",
-   "id": "lookup_174"
+   "id": "lookup_175"
   },
   {
    "args": {
@@ -1406,7 +1414,7 @@
    },
    "expected": "iso8859-7",
    "fn": "lookup",
-   "id": "lookup_175"
+   "id": "lookup_176"
   },
   {
    "args": {
@@ -1414,7 +1422,7 @@
    },
    "expected": "iso8859-8",
    "fn": "lookup",
-   "id": "lookup_176"
+   "id": "lookup_177"
   },
   {
    "args": {
@@ -1422,7 +1430,7 @@
    },
    "expected": "koi8-r",
    "fn": "lookup",
-   "id": "lookup_177"
+   "id": "lookup_178"
   },
   {
    "args": {
@@ -1430,7 +1438,7 @@
    },
    "expected": "cp775",
    "fn": "lookup",
-   "id": "lookup_178"
+   "id": "lookup_179"
   },
   {
    "args": {
@@ -1438,7 +1446,7 @@
    },
    "expected": "cp850",
    "fn": "lookup",
-   "id": "lookup_179"
+   "id": "lookup_180"
   },
   {
    "args": {
@@ -1446,7 +1454,7 @@
    },
    "expected": "cp862",
    "fn": "lookup",
-   "id": "lookup_180"
+   "id": "lookup_181"
   },
   {
    "args": {
@@ -1454,7 +1462,7 @@
    },
    "expected": "cp437",
    "fn": "lookup",
-   "id": "lookup_181"
+   "id": "lookup_182"
   },
   {
    "args": {
@@ -1462,7 +1470,7 @@
    },
    "expected": "cp852",
    "fn": "lookup",
-   "id": "lookup_182"
+   "id": "lookup_183"
   },
   {
    "args": {
@@ -1470,7 +1478,7 @@
    },
    "expected": "ptcp154",
    "fn": "lookup",
-   "id": "lookup_183"
+   "id": "lookup_184"
   },
   {
    "args": {
@@ -1478,7 +1486,7 @@
    },
    "expected": "shift_jis",
    "fn": "lookup",
-   "id": "lookup_184"
+   "id": "lookup_185"
   },
   {
    "args": {
@@ -1486,7 +1494,7 @@
    },
    "expected": "iso8859-5",
    "fn": "lookup",
-   "id": "lookup_185"
+   "id": "lookup_186"
   },
   {
    "args": {
@@ -1494,7 +1502,15 @@
    },
    "expected": "ptcp154",
    "fn": "lookup",
-   "id": "lookup_186"
+   "id": "lookup_187"
+  },
+  {
+   "args": {
+    "name": "dbcs"
+   },
+   "expected": null,
+   "fn": "lookup",
+   "id": "lookup_188"
   },
   {
    "args": {
@@ -1502,7 +1518,7 @@
    },
    "expected": "cp500",
    "fn": "lookup",
-   "id": "lookup_187"
+   "id": "lookup_189"
   },
   {
    "args": {
@@ -1510,7 +1526,7 @@
    },
    "expected": "cp037",
    "fn": "lookup",
-   "id": "lookup_188"
+   "id": "lookup_190"
   },
   {
    "args": {
@@ -1518,7 +1534,7 @@
    },
    "expected": "cp500",
    "fn": "lookup",
-   "id": "lookup_189"
+   "id": "lookup_191"
   },
   {
    "args": {
@@ -1526,7 +1542,7 @@
    },
    "expected": "cp424",
    "fn": "lookup",
-   "id": "lookup_190"
+   "id": "lookup_192"
   },
   {
    "args": {
@@ -1534,7 +1550,7 @@
    },
    "expected": "cp037",
    "fn": "lookup",
-   "id": "lookup_191"
+   "id": "lookup_193"
   },
   {
    "args": {
@@ -1542,7 +1558,7 @@
    },
    "expected": "cp037",
    "fn": "lookup",
-   "id": "lookup_192"
+   "id": "lookup_194"
   },
   {
    "args": {
@@ -1550,7 +1566,7 @@
    },
    "expected": "cp037",
    "fn": "lookup",
-   "id": "lookup_193"
+   "id": "lookup_195"
   },
   {
    "args": {
@@ -1558,7 +1574,7 @@
    },
    "expected": "iso8859-6",
    "fn": "lookup",
-   "id": "lookup_194"
+   "id": "lookup_196"
   },
   {
    "args": {
@@ -1566,7 +1582,7 @@
    },
    "expected": "iso8859-7",
    "fn": "lookup",
-   "id": "lookup_195"
+   "id": "lookup_197"
   },
   {
    "args": {
@@ -1574,7 +1590,7 @@
    },
    "expected": "iso8859-7",
    "fn": "lookup",
-   "id": "lookup_196"
+   "id": "lookup_198"
   },
   {
    "args": {
@@ -1582,7 +1598,7 @@
    },
    "expected": "gb2312",
    "fn": "lookup",
-   "id": "lookup_197"
+   "id": "lookup_199"
   },
   {
    "args": {
@@ -1590,7 +1606,7 @@
    },
    "expected": "gb2312",
    "fn": "lookup",
-   "id": "lookup_198"
+   "id": "lookup_200"
   },
   {
    "args": {
@@ -1598,7 +1614,7 @@
    },
    "expected": "gb2312",
    "fn": "lookup",
-   "id": "lookup_199"
+   "id": "lookup_201"
   },
   {
    "args": {
@@ -1606,7 +1622,7 @@
    },
    "expected": "euc_jp",
    "fn": "lookup",
-   "id": "lookup_200"
+   "id": "lookup_202"
   },
   {
    "args": {
@@ -1614,7 +1630,7 @@
    },
    "expected": "euc_kr",
    "fn": "lookup",
-   "id": "lookup_201"
+   "id": "lookup_203"
   },
   {
    "args": {
@@ -1622,7 +1638,7 @@
    },
    "expected": "gb18030",
    "fn": "lookup",
-   "id": "lookup_202"
+   "id": "lookup_204"
   },
   {
    "args": {
@@ -1630,7 +1646,7 @@
    },
    "expected": "gb2312",
    "fn": "lookup",
-   "id": "lookup_203"
+   "id": "lookup_205"
   },
   {
    "args": {
@@ -1638,7 +1654,7 @@
    },
    "expected": "gb2312",
    "fn": "lookup",
-   "id": "lookup_204"
+   "id": "lookup_206"
   },
   {
    "args": {
@@ -1646,7 +1662,7 @@
    },
    "expected": "iso8859-7",
    "fn": "lookup",
-   "id": "lookup_205"
+   "id": "lookup_207"
   },
   {
    "args": {
@@ -1654,7 +1670,7 @@
    },
    "expected": "iso8859-7",
    "fn": "lookup",
-   "id": "lookup_206"
+   "id": "lookup_208"
   },
   {
    "args": {
@@ -1662,7 +1678,7 @@
    },
    "expected": "iso8859-8",
    "fn": "lookup",
-   "id": "lookup_207"
+   "id": "lookup_209"
   },
   {
    "args": {
@@ -1670,7 +1686,7 @@
    },
    "expected": "big5hkscs",
    "fn": "lookup",
-   "id": "lookup_208"
+   "id": "lookup_210"
   },
   {
    "args": {
@@ -1678,7 +1694,7 @@
    },
    "expected": "hz",
    "fn": "lookup",
-   "id": "lookup_209"
+   "id": "lookup_211"
   },
   {
    "args": {
@@ -1686,7 +1702,7 @@
    },
    "expected": "hz",
    "fn": "lookup",
-   "id": "lookup_210"
+   "id": "lookup_212"
   },
   {
    "args": {
@@ -1694,7 +1710,7 @@
    },
    "expected": "hz",
    "fn": "lookup",
-   "id": "lookup_211"
+   "id": "lookup_213"
   },
   {
    "args": {
@@ -1702,7 +1718,7 @@
    },
    "expected": "cp037",
    "fn": "lookup",
-   "id": "lookup_212"
+   "id": "lookup_214"
   },
   {
    "args": {
@@ -1710,7 +1726,7 @@
    },
    "expected": "cp037",
    "fn": "lookup",
-   "id": "lookup_213"
+   "id": "lookup_215"
   },
   {
    "args": {
@@ -1718,7 +1734,7 @@
    },
    "expected": "cp1026",
    "fn": "lookup",
-   "id": "lookup_214"
+   "id": "lookup_216"
   },
   {
    "args": {
@@ -1726,7 +1742,7 @@
    },
    "expected": "hp-roman8",
    "fn": "lookup",
-   "id": "lookup_215"
+   "id": "lookup_217"
   },
   {
    "args": {
@@ -1734,7 +1750,7 @@
    },
    "expected": "cp1125",
    "fn": "lookup",
-   "id": "lookup_216"
+   "id": "lookup_218"
   },
   {
    "args": {
@@ -1742,7 +1758,7 @@
    },
    "expected": "cp1140",
    "fn": "lookup",
-   "id": "lookup_217"
+   "id": "lookup_219"
   },
   {
    "args": {
@@ -1750,7 +1766,7 @@
    },
    "expected": "cp273",
    "fn": "lookup",
-   "id": "lookup_218"
+   "id": "lookup_220"
   },
   {
    "args": {
@@ -1758,7 +1774,7 @@
    },
    "expected": "ascii",
    "fn": "lookup",
-   "id": "lookup_219"
+   "id": "lookup_221"
   },
   {
    "args": {
@@ -1766,7 +1782,7 @@
    },
    "expected": "cp424",
    "fn": "lookup",
-   "id": "lookup_220"
+   "id": "lookup_222"
   },
   {
    "args": {
@@ -1774,7 +1790,7 @@
    },
    "expected": "cp437",
    "fn": "lookup",
-   "id": "lookup_221"
+   "id": "lookup_223"
   },
   {
    "args": {
@@ -1782,7 +1798,7 @@
    },
    "expected": "cp500",
    "fn": "lookup",
-   "id": "lookup_222"
+   "id": "lookup_224"
   },
   {
    "args": {
@@ -1790,7 +1806,7 @@
    },
    "expected": "cp775",
    "fn": "lookup",
-   "id": "lookup_223"
+   "id": "lookup_225"
   },
   {
    "args": {
@@ -1798,7 +1814,7 @@
    },
    "expected": "iso8859-1",
    "fn": "lookup",
-   "id": "lookup_224"
+   "id": "lookup_226"
   },
   {
    "args": {
@@ -1806,7 +1822,7 @@
    },
    "expected": "cp850",
    "fn": "lookup",
-   "id": "lookup_225"
+   "id": "lookup_227"
   },
   {
    "args": {
@@ -1814,7 +1830,7 @@
    },
    "expected": "cp852",
    "fn": "lookup",
-   "id": "lookup_226"
+   "id": "lookup_228"
   },
   {
    "args": {
@@ -1822,7 +1838,7 @@
    },
    "expected": "cp855",
    "fn": "lookup",
-   "id": "lookup_227"
+   "id": "lookup_229"
   },
   {
    "args": {
@@ -1830,7 +1846,7 @@
    },
    "expected": "cp857",
    "fn": "lookup",
-   "id": "lookup_228"
+   "id": "lookup_230"
   },
   {
    "args": {
@@ -1838,7 +1854,7 @@
    },
    "expected": "cp858",
    "fn": "lookup",
-   "id": "lookup_229"
+   "id": "lookup_231"
   },
   {
    "args": {
@@ -1846,7 +1862,7 @@
    },
    "expected": "cp860",
    "fn": "lookup",
-   "id": "lookup_230"
+   "id": "lookup_232"
   },
   {
    "args": {
@@ -1854,7 +1870,7 @@
    },
    "expected": "cp861",
    "fn": "lookup",
-   "id": "lookup_231"
+   "id": "lookup_233"
   },
   {
    "args": {
@@ -1862,7 +1878,7 @@
    },
    "expected": "cp862",
    "fn": "lookup",
-   "id": "lookup_232"
+   "id": "lookup_234"
   },
   {
    "args": {
@@ -1870,7 +1886,7 @@
    },
    "expected": "cp863",
    "fn": "lookup",
-   "id": "lookup_233"
+   "id": "lookup_235"
   },
   {
    "args": {
@@ -1878,7 +1894,7 @@
    },
    "expected": "cp864",
    "fn": "lookup",
-   "id": "lookup_234"
+   "id": "lookup_236"
   },
   {
    "args": {
@@ -1886,7 +1902,7 @@
    },
    "expected": "cp865",
    "fn": "lookup",
-   "id": "lookup_235"
+   "id": "lookup_237"
   },
   {
    "args": {
@@ -1894,7 +1910,7 @@
    },
    "expected": "cp866",
    "fn": "lookup",
-   "id": "lookup_236"
+   "id": "lookup_238"
   },
   {
    "args": {
@@ -1902,7 +1918,7 @@
    },
    "expected": "cp869",
    "fn": "lookup",
-   "id": "lookup_237"
+   "id": "lookup_239"
   },
   {
    "args": {
@@ -1910,7 +1926,7 @@
    },
    "expected": "iso2022_jp",
    "fn": "lookup",
-   "id": "lookup_238"
+   "id": "lookup_240"
   },
   {
    "args": {
@@ -1918,7 +1934,7 @@
    },
    "expected": "ascii",
    "fn": "lookup",
-   "id": "lookup_239"
+   "id": "lookup_241"
   },
   {
    "args": {
@@ -1926,7 +1942,7 @@
    },
    "expected": "iso8859-1",
    "fn": "lookup",
-   "id": "lookup_240"
+   "id": "lookup_242"
   },
   {
    "args": {
@@ -1934,7 +1950,7 @@
    },
    "expected": "iso8859-1",
    "fn": "lookup",
-   "id": "lookup_241"
+   "id": "lookup_243"
   },
   {
    "args": {
@@ -1942,7 +1958,7 @@
    },
    "expected": "iso2022_jp",
    "fn": "lookup",
-   "id": "lookup_242"
+   "id": "lookup_244"
   },
   {
    "args": {
@@ -1950,7 +1966,7 @@
    },
    "expected": "ascii",
    "fn": "lookup",
-   "id": "lookup_243"
+   "id": "lookup_245"
   },
   {
    "args": {
@@ -1958,7 +1974,7 @@
    },
    "expected": "iso8859-1",
    "fn": "lookup",
-   "id": "lookup_244"
+   "id": "lookup_246"
   },
   {
    "args": {
@@ -1966,7 +1982,7 @@
    },
    "expected": "iso8859-10",
    "fn": "lookup",
-   "id": "lookup_245"
+   "id": "lookup_247"
   },
   {
    "args": {
@@ -1974,7 +1990,7 @@
    },
    "expected": "iso8859-10",
    "fn": "lookup",
-   "id": "lookup_246"
+   "id": "lookup_248"
   },
   {
    "args": {
@@ -1982,7 +1998,7 @@
    },
    "expected": "iso8859-11",
    "fn": "lookup",
-   "id": "lookup_247"
+   "id": "lookup_249"
   },
   {
    "args": {
@@ -1990,7 +2006,7 @@
    },
    "expected": "iso8859-11",
    "fn": "lookup",
-   "id": "lookup_248"
+   "id": "lookup_250"
   },
   {
    "args": {
@@ -1998,7 +2014,7 @@
    },
    "expected": "iso8859-13",
    "fn": "lookup",
-   "id": "lookup_249"
+   "id": "lookup_251"
   },
   {
    "args": {
@@ -2006,7 +2022,7 @@
    },
    "expected": "iso8859-14",
    "fn": "lookup",
-   "id": "lookup_250"
+   "id": "lookup_252"
   },
   {
    "args": {
@@ -2014,7 +2030,7 @@
    },
    "expected": "iso8859-14",
    "fn": "lookup",
-   "id": "lookup_251"
+   "id": "lookup_253"
   },
   {
    "args": {
@@ -2022,7 +2038,7 @@
    },
    "expected": "iso8859-15",
    "fn": "lookup",
-   "id": "lookup_252"
+   "id": "lookup_254"
   },
   {
    "args": {
@@ -2030,7 +2046,7 @@
    },
    "expected": "iso8859-16",
    "fn": "lookup",
-   "id": "lookup_253"
+   "id": "lookup_255"
   },
   {
    "args": {
@@ -2038,7 +2054,7 @@
    },
    "expected": "iso8859-16",
    "fn": "lookup",
-   "id": "lookup_254"
+   "id": "lookup_256"
   },
   {
    "args": {
@@ -2046,7 +2062,7 @@
    },
    "expected": "iso8859-1",
    "fn": "lookup",
-   "id": "lookup_255"
+   "id": "lookup_257"
   },
   {
    "args": {
@@ -2054,7 +2070,7 @@
    },
    "expected": "iso8859-2",
    "fn": "lookup",
-   "id": "lookup_256"
+   "id": "lookup_258"
   },
   {
    "args": {
@@ -2062,7 +2078,7 @@
    },
    "expected": "iso8859-2",
    "fn": "lookup",
-   "id": "lookup_257"
+   "id": "lookup_259"
   },
   {
    "args": {
@@ -2070,7 +2086,7 @@
    },
    "expected": "iso8859-3",
    "fn": "lookup",
-   "id": "lookup_258"
+   "id": "lookup_260"
   },
   {
    "args": {
@@ -2078,7 +2094,7 @@
    },
    "expected": "iso8859-3",
    "fn": "lookup",
-   "id": "lookup_259"
+   "id": "lookup_261"
   },
   {
    "args": {
@@ -2086,7 +2102,7 @@
    },
    "expected": "iso8859-4",
    "fn": "lookup",
-   "id": "lookup_260"
+   "id": "lookup_262"
   },
   {
    "args": {
@@ -2094,7 +2110,7 @@
    },
    "expected": "iso8859-4",
    "fn": "lookup",
-   "id": "lookup_261"
+   "id": "lookup_263"
   },
   {
    "args": {
@@ -2102,7 +2118,7 @@
    },
    "expected": "iso8859-5",
    "fn": "lookup",
-   "id": "lookup_262"
+   "id": "lookup_264"
   },
   {
    "args": {
@@ -2110,7 +2126,7 @@
    },
    "expected": "iso8859-5",
    "fn": "lookup",
-   "id": "lookup_263"
+   "id": "lookup_265"
   },
   {
    "args": {
@@ -2118,7 +2134,7 @@
    },
    "expected": "iso8859-6",
    "fn": "lookup",
-   "id": "lookup_264"
+   "id": "lookup_266"
   },
   {
    "args": {
@@ -2126,7 +2142,7 @@
    },
    "expected": "iso8859-6",
    "fn": "lookup",
-   "id": "lookup_265"
+   "id": "lookup_267"
   },
   {
    "args": {
@@ -2134,7 +2150,7 @@
    },
    "expected": "iso8859-7",
    "fn": "lookup",
-   "id": "lookup_266"
+   "id": "lookup_268"
   },
   {
    "args": {
@@ -2142,7 +2158,7 @@
    },
    "expected": "iso8859-7",
    "fn": "lookup",
-   "id": "lookup_267"
+   "id": "lookup_269"
   },
   {
    "args": {
@@ -2150,7 +2166,7 @@
    },
    "expected": "iso8859-8",
    "fn": "lookup",
-   "id": "lookup_268"
+   "id": "lookup_270"
   },
   {
    "args": {
@@ -2158,7 +2174,7 @@
    },
    "expected": "iso8859-8",
    "fn": "lookup",
-   "id": "lookup_269"
+   "id": "lookup_271"
   },
   {
    "args": {
@@ -2166,7 +2182,7 @@
    },
    "expected": "iso8859-9",
    "fn": "lookup",
-   "id": "lookup_270"
+   "id": "lookup_272"
   },
   {
    "args": {
@@ -2174,7 +2190,7 @@
    },
    "expected": "iso8859-9",
    "fn": "lookup",
-   "id": "lookup_271"
+   "id": "lookup_273"
   },
   {
    "args": {
@@ -2182,7 +2198,7 @@
    },
    "expected": "iso8859-14",
    "fn": "lookup",
-   "id": "lookup_272"
+   "id": "lookup_274"
   },
   {
    "args": {
@@ -2190,7 +2206,7 @@
    },
    "expected": "iso8859-1",
    "fn": "lookup",
-   "id": "lookup_273"
+   "id": "lookup_275"
   },
   {
    "args": {
@@ -2198,7 +2214,7 @@
    },
    "expected": "iso8859-2",
    "fn": "lookup",
-   "id": "lookup_274"
+   "id": "lookup_276"
   },
   {
    "args": {
@@ -2206,7 +2222,7 @@
    },
    "expected": "iso8859-3",
    "fn": "lookup",
-   "id": "lookup_275"
+   "id": "lookup_277"
   },
   {
    "args": {
@@ -2214,7 +2230,7 @@
    },
    "expected": "iso8859-4",
    "fn": "lookup",
-   "id": "lookup_276"
+   "id": "lookup_278"
   },
   {
    "args": {
@@ -2222,7 +2238,7 @@
    },
    "expected": "iso8859-7",
    "fn": "lookup",
-   "id": "lookup_277"
+   "id": "lookup_279"
   },
   {
    "args": {
@@ -2230,7 +2246,7 @@
    },
    "expected": "iso8859-6",
    "fn": "lookup",
-   "id": "lookup_278"
+   "id": "lookup_280"
   },
   {
    "args": {
@@ -2238,7 +2254,7 @@
    },
    "expected": "iso8859-8",
    "fn": "lookup",
-   "id": "lookup_279"
+   "id": "lookup_281"
   },
   {
    "args": {
@@ -2246,7 +2262,7 @@
    },
    "expected": "iso8859-5",
    "fn": "lookup",
-   "id": "lookup_280"
+   "id": "lookup_282"
   },
   {
    "args": {
@@ -2254,7 +2270,7 @@
    },
    "expected": "iso8859-9",
    "fn": "lookup",
-   "id": "lookup_281"
+   "id": "lookup_283"
   },
   {
    "args": {
@@ -2262,7 +2278,7 @@
    },
    "expected": "iso8859-10",
    "fn": "lookup",
-   "id": "lookup_282"
+   "id": "lookup_284"
   },
   {
    "args": {
@@ -2270,7 +2286,7 @@
    },
    "expected": "tis-620",
    "fn": "lookup",
-   "id": "lookup_283"
+   "id": "lookup_285"
   },
   {
    "args": {
@@ -2278,7 +2294,7 @@
    },
    "expected": "iso8859-14",
    "fn": "lookup",
-   "id": "lookup_284"
+   "id": "lookup_286"
   },
   {
    "args": {
@@ -2286,7 +2302,7 @@
    },
    "expected": "iso8859-16",
    "fn": "lookup",
-   "id": "lookup_285"
+   "id": "lookup_287"
   },
   {
    "args": {
@@ -2294,7 +2310,7 @@
    },
    "expected": "gb2312",
    "fn": "lookup",
-   "id": "lookup_286"
+   "id": "lookup_288"
   },
   {
    "args": {
@@ -2302,7 +2318,7 @@
    },
    "expected": "ascii",
    "fn": "lookup",
-   "id": "lookup_287"
+   "id": "lookup_289"
   },
   {
    "args": {
@@ -2310,7 +2326,7 @@
    },
    "expected": "euc_kr",
    "fn": "lookup",
-   "id": "lookup_288"
+   "id": "lookup_290"
   },
   {
    "args": {
@@ -2318,7 +2334,7 @@
    },
    "expected": "euc_kr",
    "fn": "lookup",
-   "id": "lookup_289"
+   "id": "lookup_291"
   },
   {
    "args": {
@@ -2326,7 +2342,7 @@
    },
    "expected": "euc_kr",
    "fn": "lookup",
-   "id": "lookup_290"
+   "id": "lookup_292"
   },
   {
    "args": {
@@ -2334,7 +2350,7 @@
    },
    "expected": "euc_kr",
    "fn": "lookup",
-   "id": "lookup_291"
+   "id": "lookup_293"
   },
   {
    "args": {
@@ -2342,7 +2358,7 @@
    },
    "expected": "euc_kr",
    "fn": "lookup",
-   "id": "lookup_292"
+   "id": "lookup_294"
   },
   {
    "args": {
@@ -2350,7 +2366,7 @@
    },
    "expected": "euc_kr",
    "fn": "lookup",
-   "id": "lookup_293"
+   "id": "lookup_295"
   },
   {
    "args": {
@@ -2358,7 +2374,7 @@
    },
    "expected": "kz1048",
    "fn": "lookup",
-   "id": "lookup_294"
+   "id": "lookup_296"
   },
   {
    "args": {
@@ -2366,7 +2382,7 @@
    },
    "expected": "iso8859-1",
    "fn": "lookup",
-   "id": "lookup_295"
+   "id": "lookup_297"
   },
   {
    "args": {
@@ -2374,7 +2390,7 @@
    },
    "expected": "iso8859-16",
    "fn": "lookup",
-   "id": "lookup_296"
+   "id": "lookup_298"
   },
   {
    "args": {
@@ -2382,7 +2398,7 @@
    },
    "expected": "iso8859-2",
    "fn": "lookup",
-   "id": "lookup_297"
+   "id": "lookup_299"
   },
   {
    "args": {
@@ -2390,7 +2406,7 @@
    },
    "expected": "iso8859-3",
    "fn": "lookup",
-   "id": "lookup_298"
+   "id": "lookup_300"
   },
   {
    "args": {
@@ -2398,7 +2414,7 @@
    },
    "expected": "iso8859-4",
    "fn": "lookup",
-   "id": "lookup_299"
+   "id": "lookup_301"
   },
   {
    "args": {
@@ -2406,7 +2422,7 @@
    },
    "expected": "iso8859-9",
    "fn": "lookup",
-   "id": "lookup_300"
+   "id": "lookup_302"
   },
   {
    "args": {
@@ -2414,7 +2430,7 @@
    },
    "expected": "iso8859-10",
    "fn": "lookup",
-   "id": "lookup_301"
+   "id": "lookup_303"
   },
   {
    "args": {
@@ -2422,7 +2438,7 @@
    },
    "expected": "iso8859-13",
    "fn": "lookup",
-   "id": "lookup_302"
+   "id": "lookup_304"
   },
   {
    "args": {
@@ -2430,7 +2446,7 @@
    },
    "expected": "iso8859-14",
    "fn": "lookup",
-   "id": "lookup_303"
+   "id": "lookup_305"
   },
   {
    "args": {
@@ -2438,7 +2454,7 @@
    },
    "expected": "iso8859-15",
    "fn": "lookup",
-   "id": "lookup_304"
+   "id": "lookup_306"
   },
   {
    "args": {
@@ -2446,7 +2462,7 @@
    },
    "expected": "iso8859-1",
    "fn": "lookup",
-   "id": "lookup_305"
+   "id": "lookup_307"
   },
   {
    "args": {
@@ -2454,7 +2470,7 @@
    },
    "expected": "iso8859-1",
    "fn": "lookup",
-   "id": "lookup_306"
+   "id": "lookup_308"
   },
   {
    "args": {
@@ -2462,7 +2478,7 @@
    },
    "expected": "iso8859-16",
    "fn": "lookup",
-   "id": "lookup_307"
+   "id": "lookup_309"
   },
   {
    "args": {
@@ -2470,7 +2486,7 @@
    },
    "expected": "iso8859-2",
    "fn": "lookup",
-   "id": "lookup_308"
+   "id": "lookup_310"
   },
   {
    "args": {
@@ -2478,7 +2494,7 @@
    },
    "expected": "iso8859-3",
    "fn": "lookup",
-   "id": "lookup_309"
+   "id": "lookup_311"
   },
   {
    "args": {
@@ -2486,7 +2502,7 @@
    },
    "expected": "iso8859-4",
    "fn": "lookup",
-   "id": "lookup_310"
+   "id": "lookup_312"
   },
   {
    "args": {
@@ -2494,7 +2510,7 @@
    },
    "expected": "iso8859-9",
    "fn": "lookup",
-   "id": "lookup_311"
+   "id": "lookup_313"
   },
   {
    "args": {
@@ -2502,7 +2518,7 @@
    },
    "expected": "iso8859-10",
    "fn": "lookup",
-   "id": "lookup_312"
+   "id": "lookup_314"
   },
   {
    "args": {
@@ -2510,7 +2526,7 @@
    },
    "expected": "iso8859-13",
    "fn": "lookup",
-   "id": "lookup_313"
+   "id": "lookup_315"
   },
   {
    "args": {
@@ -2518,7 +2534,7 @@
    },
    "expected": "iso8859-14",
    "fn": "lookup",
-   "id": "lookup_314"
+   "id": "lookup_316"
   },
   {
    "args": {
@@ -2526,7 +2542,7 @@
    },
    "expected": "iso8859-15",
    "fn": "lookup",
-   "id": "lookup_315"
+   "id": "lookup_317"
   },
   {
    "args": {
@@ -2534,7 +2550,7 @@
    },
    "expected": "mac-latin2",
    "fn": "lookup",
-   "id": "lookup_316"
+   "id": "lookup_318"
   },
   {
    "args": {
@@ -2542,7 +2558,7 @@
    },
    "expected": "mac-latin2",
    "fn": "lookup",
-   "id": "lookup_317"
+   "id": "lookup_319"
   },
   {
    "args": {
@@ -2550,7 +2566,7 @@
    },
    "expected": "mac-cyrillic",
    "fn": "lookup",
-   "id": "lookup_318"
+   "id": "lookup_320"
   },
   {
    "args": {
@@ -2558,7 +2574,7 @@
    },
    "expected": "mac-greek",
    "fn": "lookup",
-   "id": "lookup_319"
+   "id": "lookup_321"
   },
   {
    "args": {
@@ -2566,7 +2582,7 @@
    },
    "expected": "mac-iceland",
    "fn": "lookup",
-   "id": "lookup_320"
+   "id": "lookup_322"
   },
   {
    "args": {
@@ -2574,7 +2590,7 @@
    },
    "expected": "mac-roman",
    "fn": "lookup",
-   "id": "lookup_321"
+   "id": "lookup_323"
   },
   {
    "args": {
@@ -2582,7 +2598,7 @@
    },
    "expected": "mac-latin2",
    "fn": "lookup",
-   "id": "lookup_322"
+   "id": "lookup_324"
   },
   {
    "args": {
@@ -2590,7 +2606,7 @@
    },
    "expected": "mac-roman",
    "fn": "lookup",
-   "id": "lookup_323"
+   "id": "lookup_325"
   },
   {
    "args": {
@@ -2598,7 +2614,7 @@
    },
    "expected": "mac-turkish",
    "fn": "lookup",
-   "id": "lookup_324"
+   "id": "lookup_326"
   },
   {
    "args": {
@@ -2606,7 +2622,7 @@
    },
    "expected": "cp932",
    "fn": "lookup",
-   "id": "lookup_325"
+   "id": "lookup_327"
   },
   {
    "args": {
@@ -2614,7 +2630,7 @@
    },
    "expected": "gbk",
    "fn": "lookup",
-   "id": "lookup_326"
+   "id": "lookup_328"
   },
   {
    "args": {
@@ -2622,7 +2638,7 @@
    },
    "expected": "cp949",
    "fn": "lookup",
-   "id": "lookup_327"
+   "id": "lookup_329"
   },
   {
    "args": {
@@ -2630,7 +2646,7 @@
    },
    "expected": "cp950",
    "fn": "lookup",
-   "id": "lookup_328"
+   "id": "lookup_330"
   },
   {
    "args": {
@@ -2638,7 +2654,7 @@
    },
    "expected": "cp932",
    "fn": "lookup",
-   "id": "lookup_329"
+   "id": "lookup_331"
   },
   {
    "args": {
@@ -2646,7 +2662,7 @@
    },
    "expected": "cp932",
    "fn": "lookup",
-   "id": "lookup_330"
+   "id": "lookup_332"
   },
   {
    "args": {
@@ -2654,7 +2670,7 @@
    },
    "expected": "ptcp154",
    "fn": "lookup",
-   "id": "lookup_331"
+   "id": "lookup_333"
   },
   {
    "args": {
@@ -2662,7 +2678,7 @@
    },
    "expected": "hp-roman8",
    "fn": "lookup",
-   "id": "lookup_332"
+   "id": "lookup_334"
   },
   {
    "args": {
@@ -2670,7 +2686,7 @@
    },
    "expected": "kz1048",
    "fn": "lookup",
-   "id": "lookup_333"
+   "id": "lookup_335"
   },
   {
    "args": {
@@ -2678,7 +2694,7 @@
    },
    "expected": "hp-roman8",
    "fn": "lookup",
-   "id": "lookup_334"
+   "id": "lookup_336"
   },
   {
    "args": {
@@ -2686,7 +2702,7 @@
    },
    "expected": "cp1125",
    "fn": "lookup",
-   "id": "lookup_335"
+   "id": "lookup_337"
   },
   {
    "args": {
@@ -2694,7 +2710,7 @@
    },
    "expected": "shift_jis",
    "fn": "lookup",
-   "id": "lookup_336"
+   "id": "lookup_338"
   },
   {
    "args": {
@@ -2702,7 +2718,7 @@
    },
    "expected": "shift_jis",
    "fn": "lookup",
-   "id": "lookup_337"
+   "id": "lookup_339"
   },
   {
    "args": {
@@ -2710,7 +2726,7 @@
    },
    "expected": "shift_jis",
    "fn": "lookup",
-   "id": "lookup_338"
+   "id": "lookup_340"
   },
   {
    "args": {
@@ -2718,7 +2734,7 @@
    },
    "expected": "kz1048",
    "fn": "lookup",
-   "id": "lookup_339"
+   "id": "lookup_341"
   },
   {
    "args": {
@@ -2726,7 +2742,7 @@
    },
    "expected": "iso8859-11",
    "fn": "lookup",
-   "id": "lookup_340"
+   "id": "lookup_342"
   },
   {
    "args": {
@@ -2734,7 +2750,7 @@
    },
    "expected": "tis-620",
    "fn": "lookup",
-   "id": "lookup_341"
+   "id": "lookup_343"
   },
   {
    "args": {
@@ -2742,7 +2758,7 @@
    },
    "expected": "tis-620",
    "fn": "lookup",
-   "id": "lookup_342"
+   "id": "lookup_344"
   },
   {
    "args": {
@@ -2750,7 +2766,7 @@
    },
    "expected": "tis-620",
    "fn": "lookup",
-   "id": "lookup_343"
+   "id": "lookup_345"
   },
   {
    "args": {
@@ -2758,7 +2774,7 @@
    },
    "expected": "tis-620",
    "fn": "lookup",
-   "id": "lookup_344"
+   "id": "lookup_346"
   },
   {
    "args": {
@@ -2766,7 +2782,7 @@
    },
    "expected": "utf-16",
    "fn": "lookup",
-   "id": "lookup_345"
+   "id": "lookup_347"
   },
   {
    "args": {
@@ -2774,7 +2790,7 @@
    },
    "expected": "utf-32",
    "fn": "lookup",
-   "id": "lookup_346"
+   "id": "lookup_348"
   },
   {
    "args": {
@@ -2782,7 +2798,7 @@
    },
    "expected": "utf-7",
    "fn": "lookup",
-   "id": "lookup_347"
+   "id": "lookup_349"
   },
   {
    "args": {
@@ -2790,7 +2806,7 @@
    },
    "expected": "utf-8",
    "fn": "lookup",
-   "id": "lookup_348"
+   "id": "lookup_350"
   },
   {
    "args": {
@@ -2798,7 +2814,7 @@
    },
    "expected": "euc_jp",
    "fn": "lookup",
-   "id": "lookup_349"
+   "id": "lookup_351"
   },
   {
    "args": {
@@ -2806,7 +2822,7 @@
    },
    "expected": "cp949",
    "fn": "lookup",
-   "id": "lookup_350"
+   "id": "lookup_352"
   },
   {
    "args": {
@@ -2814,7 +2830,7 @@
    },
    "expected": "euc_jp",
    "fn": "lookup",
-   "id": "lookup_351"
+   "id": "lookup_353"
   },
   {
    "args": {
@@ -2822,7 +2838,7 @@
    },
    "expected": "utf-7",
    "fn": "lookup",
-   "id": "lookup_352"
+   "id": "lookup_354"
   },
   {
    "args": {
@@ -2830,7 +2846,7 @@
    },
    "expected": "utf-16-be",
    "fn": "lookup",
-   "id": "lookup_353"
+   "id": "lookup_355"
   },
   {
    "args": {
@@ -2838,7 +2854,7 @@
    },
    "expected": "utf-16-le",
    "fn": "lookup",
-   "id": "lookup_354"
+   "id": "lookup_356"
   },
   {
    "args": {
@@ -2846,7 +2862,7 @@
    },
    "expected": "ascii",
    "fn": "lookup",
-   "id": "lookup_355"
+   "id": "lookup_357"
   },
   {
    "args": {
@@ -2854,7 +2870,7 @@
    },
    "expected": "ascii",
    "fn": "lookup",
-   "id": "lookup_356"
+   "id": "lookup_358"
   },
   {
    "args": {
@@ -2862,7 +2878,7 @@
    },
    "expected": "utf-8",
    "fn": "lookup",
-   "id": "lookup_357"
+   "id": "lookup_359"
   },
   {
    "args": {
@@ -2870,7 +2886,7 @@
    },
    "expected": "utf-16",
    "fn": "lookup",
-   "id": "lookup_358"
+   "id": "lookup_360"
   },
   {
    "args": {
@@ -2878,7 +2894,7 @@
    },
    "expected": "utf-32",
    "fn": "lookup",
-   "id": "lookup_359"
+   "id": "lookup_361"
   },
   {
    "args": {
@@ -2886,7 +2902,7 @@
    },
    "expected": "utf-7",
    "fn": "lookup",
-   "id": "lookup_360"
+   "id": "lookup_362"
   },
   {
    "args": {
@@ -2894,7 +2910,7 @@
    },
    "expected": "utf-8",
    "fn": "lookup",
-   "id": "lookup_361"
+   "id": "lookup_363"
   },
   {
    "args": {
@@ -2902,7 +2918,7 @@
    },
    "expected": "utf-8",
    "fn": "lookup",
-   "id": "lookup_362"
+   "id": "lookup_364"
   },
   {
    "args": {
@@ -2910,7 +2926,7 @@
    },
    "expected": "utf-8",
    "fn": "lookup",
-   "id": "lookup_363"
+   "id": "lookup_365"
   },
   {
    "args": {
@@ -2918,7 +2934,7 @@
    },
    "expected": "utf-16-be",
    "fn": "lookup",
-   "id": "lookup_364"
+   "id": "lookup_366"
   },
   {
    "args": {
@@ -2926,7 +2942,7 @@
    },
    "expected": "utf-16-le",
    "fn": "lookup",
-   "id": "lookup_365"
+   "id": "lookup_367"
   },
   {
    "args": {
@@ -2934,7 +2950,7 @@
    },
    "expected": "utf-32-be",
    "fn": "lookup",
-   "id": "lookup_366"
+   "id": "lookup_368"
   },
   {
    "args": {
@@ -2942,7 +2958,7 @@
    },
    "expected": "utf-32-le",
    "fn": "lookup",
-   "id": "lookup_367"
+   "id": "lookup_369"
   },
   {
    "args": {
@@ -2950,7 +2966,7 @@
    },
    "expected": "cp1250",
    "fn": "lookup",
-   "id": "lookup_368"
+   "id": "lookup_370"
   },
   {
    "args": {
@@ -2958,7 +2974,7 @@
    },
    "expected": "cp1251",
    "fn": "lookup",
-   "id": "lookup_369"
+   "id": "lookup_371"
   },
   {
    "args": {
@@ -2966,7 +2982,7 @@
    },
    "expected": "cp1252",
    "fn": "lookup",
-   "id": "lookup_370"
+   "id": "lookup_372"
   },
   {
    "args": {
@@ -2974,7 +2990,7 @@
    },
    "expected": "cp1253",
    "fn": "lookup",
-   "id": "lookup_371"
+   "id": "lookup_373"
   },
   {
    "args": {
@@ -2982,7 +2998,7 @@
    },
    "expected": "cp1254",
    "fn": "lookup",
-   "id": "lookup_372"
+   "id": "lookup_374"
   },
   {
    "args": {
@@ -2990,7 +3006,7 @@
    },
    "expected": "cp1255",
    "fn": "lookup",
-   "id": "lookup_373"
+   "id": "lookup_375"
   },
   {
    "args": {
@@ -2998,7 +3014,7 @@
    },
    "expected": "cp1256",
    "fn": "lookup",
-   "id": "lookup_374"
+   "id": "lookup_376"
   },
   {
    "args": {
@@ -3006,7 +3022,7 @@
    },
    "expected": "cp1257",
    "fn": "lookup",
-   "id": "lookup_375"
+   "id": "lookup_377"
   },
   {
    "args": {
@@ -3014,7 +3030,7 @@
    },
    "expected": "cp1258",
    "fn": "lookup",
-   "id": "lookup_376"
+   "id": "lookup_378"
   },
   {
    "args": {
@@ -3022,7 +3038,7 @@
    },
    "expected": "cp932",
    "fn": "lookup",
-   "id": "lookup_377"
+   "id": "lookup_379"
   },
   {
    "args": {
@@ -3030,7 +3046,7 @@
    },
    "expected": "shift_jis",
    "fn": "lookup",
-   "id": "lookup_378"
+   "id": "lookup_380"
   },
   {
    "args": {
@@ -3038,7 +3054,7 @@
    },
    "expected": "euc_kr",
    "fn": "lookup",
-   "id": "lookup_379"
+   "id": "lookup_381"
   },
   {
    "args": {
@@ -3046,7 +3062,7 @@
    },
    "expected": "gb2312",
    "fn": "lookup",
-   "id": "lookup_380"
+   "id": "lookup_382"
   },
   {
    "args": {
@@ -3054,7 +3070,7 @@
    },
    "expected": "big5",
    "fn": "lookup",
-   "id": "lookup_381"
+   "id": "lookup_383"
   },
   {
    "args": {
@@ -3062,7 +3078,7 @@
    },
    "expected": null,
    "fn": "lookup",
-   "id": "lookup_382"
+   "id": "lookup_384"
   },
   {
    "args": {
@@ -3070,7 +3086,7 @@
    },
    "expected": "hp-roman8",
    "fn": "lookup",
-   "id": "lookup_383"
+   "id": "lookup_385"
   },
   {
    "args": {
@@ -3078,7 +3094,7 @@
    },
    "expected": "iso8859-10",
    "fn": "lookup",
-   "id": "lookup_384"
+   "id": "lookup_386"
   },
   {
    "args": {
@@ -3086,7 +3102,7 @@
    },
    "expected": "iso8859-11",
    "fn": "lookup",
-   "id": "lookup_385"
+   "id": "lookup_387"
   },
   {
    "args": {
@@ -3094,7 +3110,7 @@
    },
    "expected": "iso8859-13",
    "fn": "lookup",
-   "id": "lookup_386"
+   "id": "lookup_388"
   },
   {
    "args": {
@@ -3102,7 +3118,7 @@
    },
    "expected": "iso8859-14",
    "fn": "lookup",
-   "id": "lookup_387"
+   "id": "lookup_389"
   },
   {
    "args": {
@@ -3110,7 +3126,7 @@
    },
    "expected": "iso8859-15",
    "fn": "lookup",
-   "id": "lookup_388"
+   "id": "lookup_390"
   },
   {
    "args": {
@@ -3118,7 +3134,7 @@
    },
    "expected": "iso8859-16",
    "fn": "lookup",
-   "id": "lookup_389"
+   "id": "lookup_391"
   },
   {
    "args": {
@@ -3126,7 +3142,7 @@
    },
    "expected": "iso8859-2",
    "fn": "lookup",
-   "id": "lookup_390"
+   "id": "lookup_392"
   },
   {
    "args": {
@@ -3134,7 +3150,7 @@
    },
    "expected": "iso8859-3",
    "fn": "lookup",
-   "id": "lookup_391"
+   "id": "lookup_393"
   },
   {
    "args": {
@@ -3142,7 +3158,7 @@
    },
    "expected": "iso8859-4",
    "fn": "lookup",
-   "id": "lookup_392"
+   "id": "lookup_394"
   },
   {
    "args": {
@@ -3150,7 +3166,7 @@
    },
    "expected": "iso8859-5",
    "fn": "lookup",
-   "id": "lookup_393"
+   "id": "lookup_395"
   },
   {
    "args": {
@@ -3158,7 +3174,7 @@
    },
    "expected": "iso8859-6",
    "fn": "lookup",
-   "id": "lookup_394"
+   "id": "lookup_396"
   },
   {
    "args": {
@@ -3166,7 +3182,7 @@
    },
    "expected": "iso8859-7",
    "fn": "lookup",
-   "id": "lookup_395"
+   "id": "lookup_397"
   },
   {
    "args": {
@@ -3174,7 +3190,7 @@
    },
    "expected": "iso8859-8",
    "fn": "lookup",
-   "id": "lookup_396"
+   "id": "lookup_398"
   },
   {
    "args": {
@@ -3182,7 +3198,7 @@
    },
    "expected": "iso8859-9",
    "fn": "lookup",
-   "id": "lookup_397"
+   "id": "lookup_399"
   },
   {
    "args": {
@@ -3190,7 +3206,7 @@
    },
    "expected": "koi8-r",
    "fn": "lookup",
-   "id": "lookup_398"
+   "id": "lookup_400"
   },
   {
    "args": {
@@ -3198,7 +3214,7 @@
    },
    "expected": "koi8-t",
    "fn": "lookup",
-   "id": "lookup_399"
+   "id": "lookup_401"
   },
   {
    "args": {
@@ -3206,7 +3222,7 @@
    },
    "expected": "koi8-u",
    "fn": "lookup",
-   "id": "lookup_400"
+   "id": "lookup_402"
   },
   {
    "args": {
@@ -3214,7 +3230,7 @@
    },
    "expected": "iso8859-1",
    "fn": "lookup",
-   "id": "lookup_401"
+   "id": "lookup_403"
   },
   {
    "args": {
@@ -3222,7 +3238,7 @@
    },
    "expected": "mac-arabic",
    "fn": "lookup",
-   "id": "lookup_402"
+   "id": "lookup_404"
   },
   {
    "args": {
@@ -3230,7 +3246,7 @@
    },
    "expected": "mac-croatian",
    "fn": "lookup",
-   "id": "lookup_403"
+   "id": "lookup_405"
   },
   {
    "args": {
@@ -3238,7 +3254,7 @@
    },
    "expected": "mac-cyrillic",
    "fn": "lookup",
-   "id": "lookup_404"
+   "id": "lookup_406"
   },
   {
    "args": {
@@ -3246,7 +3262,7 @@
    },
    "expected": "mac-farsi",
    "fn": "lookup",
-   "id": "lookup_405"
+   "id": "lookup_407"
   },
   {
    "args": {
@@ -3254,7 +3270,7 @@
    },
    "expected": "mac-greek",
    "fn": "lookup",
-   "id": "lookup_406"
+   "id": "lookup_408"
   },
   {
    "args": {
@@ -3262,7 +3278,7 @@
    },
    "expected": "mac-iceland",
    "fn": "lookup",
-   "id": "lookup_407"
+   "id": "lookup_409"
   },
   {
    "args": {
@@ -3270,7 +3286,7 @@
    },
    "expected": "mac-latin2",
    "fn": "lookup",
-   "id": "lookup_408"
+   "id": "lookup_410"
   },
   {
    "args": {
@@ -3278,7 +3294,7 @@
    },
    "expected": "mac-roman",
    "fn": "lookup",
-   "id": "lookup_409"
+   "id": "lookup_411"
   },
   {
    "args": {
@@ -3286,7 +3302,7 @@
    },
    "expected": "mac-romanian",
    "fn": "lookup",
-   "id": "lookup_410"
+   "id": "lookup_412"
   },
   {
    "args": {
@@ -3294,7 +3310,23 @@
    },
    "expected": "mac-turkish",
    "fn": "lookup",
-   "id": "lookup_411"
+   "id": "lookup_413"
+  },
+  {
+   "args": {
+    "name": "mbcs"
+   },
+   "expected": null,
+   "fn": "lookup",
+   "id": "lookup_414"
+  },
+  {
+   "args": {
+    "name": "oem"
+   },
+   "expected": null,
+   "fn": "lookup",
+   "id": "lookup_415"
   },
   {
    "args": {
@@ -3302,7 +3334,7 @@
    },
    "expected": "tis-620",
    "fn": "lookup",
-   "id": "lookup_412"
+   "id": "lookup_416"
   },
   {
    "args": {
@@ -3310,7 +3342,7 @@
    },
    "expected": "utf-16",
    "fn": "lookup",
-   "id": "lookup_413"
+   "id": "lookup_417"
   },
   {
    "args": {
@@ -3318,7 +3350,7 @@
    },
    "expected": "utf-16-be",
    "fn": "lookup",
-   "id": "lookup_414"
+   "id": "lookup_418"
   },
   {
    "args": {
@@ -3326,7 +3358,7 @@
    },
    "expected": "utf-16-le",
    "fn": "lookup",
-   "id": "lookup_415"
+   "id": "lookup_419"
   },
   {
    "args": {
@@ -3334,7 +3366,7 @@
    },
    "expected": "utf-32",
    "fn": "lookup",
-   "id": "lookup_416"
+   "id": "lookup_420"
   },
   {
    "args": {
@@ -3342,7 +3374,7 @@
    },
    "expected": "utf-32-be",
    "fn": "lookup",
-   "id": "lookup_417"
+   "id": "lookup_421"
   },
   {
    "args": {
@@ -3350,7 +3382,7 @@
    },
    "expected": "utf-32-le",
    "fn": "lookup",
-   "id": "lookup_418"
+   "id": "lookup_422"
   },
   {
    "args": {
@@ -3358,7 +3390,7 @@
    },
    "expected": "utf-7",
    "fn": "lookup",
-   "id": "lookup_419"
+   "id": "lookup_423"
   },
   {
    "args": {
@@ -3366,7 +3398,7 @@
    },
    "expected": "utf-8",
    "fn": "lookup",
-   "id": "lookup_420"
+   "id": "lookup_424"
   },
   {
    "args": {
@@ -3374,7 +3406,7 @@
    },
    "expected": "utf-8",
    "fn": "lookup",
-   "id": "lookup_421"
+   "id": "lookup_425"
   },
   {
    "args": {
@@ -3382,7 +3414,7 @@
    },
    "expected": null,
    "fn": "lookup",
-   "id": "lookup_422"
+   "id": "lookup_426"
   },
   {
    "args": {
@@ -3390,7 +3422,7 @@
    },
    "expected": "utf-8",
    "fn": "lookup",
-   "id": "lookup_423"
+   "id": "lookup_427"
   },
   {
    "args": {
@@ -3398,7 +3430,7 @@
    },
    "expected": "iso8859-1",
    "fn": "lookup",
-   "id": "lookup_424"
+   "id": "lookup_428"
   },
   {
    "args": {
@@ -3406,7 +3438,7 @@
    },
    "expected": "iso8859-1",
    "fn": "lookup",
-   "id": "lookup_425"
+   "id": "lookup_429"
   },
   {
    "args": {
@@ -3414,7 +3446,7 @@
    },
    "expected": "iso8859-1",
    "fn": "lookup",
-   "id": "lookup_426"
+   "id": "lookup_430"
   },
   {
    "args": {
@@ -3422,7 +3454,7 @@
    },
    "expected": "ascii",
    "fn": "lookup",
-   "id": "lookup_427"
+   "id": "lookup_431"
   },
   {
    "args": {
@@ -3430,7 +3462,7 @@
    },
    "expected": "ascii",
    "fn": "lookup",
-   "id": "lookup_428"
+   "id": "lookup_432"
   },
   {
    "args": {
@@ -3438,7 +3470,7 @@
    },
    "expected": "ascii",
    "fn": "lookup",
-   "id": "lookup_429"
+   "id": "lookup_433"
   },
   {
    "args": {
@@ -3446,7 +3478,7 @@
    },
    "expected": "iso8859-1",
    "fn": "lookup",
-   "id": "lookup_430"
+   "id": "lookup_434"
   },
   {
    "args": {
@@ -3454,7 +3486,7 @@
    },
    "expected": null,
    "fn": "lookup",
-   "id": "lookup_431"
+   "id": "lookup_435"
   },
   {
    "args": {
@@ -3462,7 +3494,7 @@
    },
    "expected": null,
    "fn": "lookup",
-   "id": "lookup_432"
+   "id": "lookup_436"
   },
   {
    "args": {
@@ -3470,7 +3502,7 @@
    },
    "expected": "gb2312",
    "fn": "lookup",
-   "id": "lookup_433"
+   "id": "lookup_437"
   },
   {
    "args": {
@@ -3478,7 +3510,7 @@
    },
    "expected": null,
    "fn": "lookup",
-   "id": "lookup_434"
+   "id": "lookup_438"
   },
   {
    "args": {
@@ -3486,7 +3518,7 @@
    },
    "expected": null,
    "fn": "lookup",
-   "id": "lookup_435"
+   "id": "lookup_439"
   },
   {
    "args": {
@@ -3494,7 +3526,7 @@
    },
    "expected": null,
    "fn": "lookup",
-   "id": "lookup_436"
+   "id": "lookup_440"
   },
   {
    "args": {
@@ -3502,7 +3534,7 @@
    },
    "expected": "big5",
    "fn": "lookup",
-   "id": "lookup_437"
+   "id": "lookup_441"
   },
   {
    "args": {
@@ -3510,7 +3542,7 @@
    },
    "expected": "shift_jis",
    "fn": "lookup",
-   "id": "lookup_438"
+   "id": "lookup_442"
   },
   {
    "args": {
@@ -3518,7 +3550,7 @@
    },
    "expected": null,
    "fn": "lookup",
-   "id": "lookup_439"
+   "id": "lookup_443"
   },
   {
    "args": {
@@ -3526,7 +3558,7 @@
    },
    "expected": "cp932",
    "fn": "lookup",
-   "id": "lookup_440"
+   "id": "lookup_444"
   },
   {
    "args": {
@@ -3534,7 +3566,7 @@
    },
    "expected": "cp932",
    "fn": "lookup",
-   "id": "lookup_441"
+   "id": "lookup_445"
   },
   {
    "args": {
@@ -3542,7 +3574,7 @@
    },
    "expected": "euc_kr",
    "fn": "lookup",
-   "id": "lookup_442"
+   "id": "lookup_446"
   },
   {
    "args": {
@@ -3550,7 +3582,7 @@
    },
    "expected": "euc_kr",
    "fn": "lookup",
-   "id": "lookup_443"
+   "id": "lookup_447"
   },
   {
    "args": {
@@ -3558,7 +3590,7 @@
    },
    "expected": null,
    "fn": "lookup",
-   "id": "lookup_444"
+   "id": "lookup_448"
   },
   {
    "args": {
@@ -3566,7 +3598,7 @@
    },
    "expected": "euc_jp",
    "fn": "lookup",
-   "id": "lookup_445"
+   "id": "lookup_449"
   },
   {
    "args": {
@@ -3574,7 +3606,7 @@
    },
    "expected": "iso2022_jp",
    "fn": "lookup",
-   "id": "lookup_446"
+   "id": "lookup_450"
   },
   {
    "args": {
@@ -3582,7 +3614,7 @@
    },
    "expected": "iso2022_jp",
    "fn": "lookup",
-   "id": "lookup_447"
+   "id": "lookup_451"
   },
   {
    "args": {
@@ -3590,7 +3622,7 @@
    },
    "expected": "hz",
    "fn": "lookup",
-   "id": "lookup_448"
+   "id": "lookup_452"
   },
   {
    "args": {
@@ -3598,7 +3630,7 @@
    },
    "expected": "utf-7",
    "fn": "lookup",
-   "id": "lookup_449"
+   "id": "lookup_453"
   },
   {
    "args": {
@@ -3606,7 +3638,7 @@
    },
    "expected": null,
    "fn": "lookup",
-   "id": "lookup_450"
+   "id": "lookup_454"
   },
   {
    "args": {
@@ -3614,7 +3646,7 @@
    },
    "expected": "utf-32",
    "fn": "lookup",
-   "id": "lookup_451"
+   "id": "lookup_455"
   },
   {
    "args": {
@@ -3622,7 +3654,7 @@
    },
    "expected": "cp1252",
    "fn": "lookup",
-   "id": "lookup_452"
+   "id": "lookup_456"
   },
   {
    "args": {
@@ -3630,7 +3662,7 @@
    },
    "expected": "cp1255",
    "fn": "lookup",
-   "id": "lookup_453"
+   "id": "lookup_457"
   },
   {
    "args": {
@@ -3638,7 +3670,7 @@
    },
    "expected": "iso8859-1",
    "fn": "lookup",
-   "id": "lookup_454"
+   "id": "lookup_458"
   },
   {
    "args": {
@@ -3646,7 +3678,7 @@
    },
    "expected": "iso8859-9",
    "fn": "lookup",
-   "id": "lookup_455"
+   "id": "lookup_459"
   },
   {
    "args": {
@@ -3654,7 +3686,7 @@
    },
    "expected": null,
    "fn": "lookup",
-   "id": "lookup_456"
+   "id": "lookup_460"
   },
   {
    "args": {
@@ -3662,7 +3694,7 @@
    },
    "expected": null,
    "fn": "lookup",
-   "id": "lookup_457"
+   "id": "lookup_461"
   },
   {
    "args": {
@@ -3670,7 +3702,7 @@
    },
    "expected": null,
    "fn": "lookup",
-   "id": "lookup_458"
+   "id": "lookup_462"
   },
   {
    "args": {
@@ -3678,7 +3710,7 @@
    },
    "expected": null,
    "fn": "lookup",
-   "id": "lookup_459"
+   "id": "lookup_463"
   },
   {
    "args": {
@@ -3686,7 +3718,7 @@
    },
    "expected": null,
    "fn": "lookup",
-   "id": "lookup_460"
+   "id": "lookup_464"
   },
   {
    "args": {
@@ -3694,7 +3726,7 @@
    },
    "expected": null,
    "fn": "lookup",
-   "id": "lookup_461"
+   "id": "lookup_465"
   },
   {
    "args": {
@@ -3702,7 +3734,7 @@
    },
    "expected": null,
    "fn": "lookup",
-   "id": "lookup_462"
+   "id": "lookup_466"
   },
   {
    "args": {
@@ -3710,7 +3742,7 @@
    },
    "expected": "utf-32-le",
    "fn": "lookup",
-   "id": "lookup_463"
+   "id": "lookup_467"
   },
   {
    "args": {
@@ -3718,7 +3750,7 @@
    },
    "expected": null,
    "fn": "lookup",
-   "id": "lookup_464"
+   "id": "lookup_468"
   },
   {
    "args": {
@@ -3726,7 +3758,7 @@
    },
    "expected": null,
    "fn": "lookup",
-   "id": "lookup_465"
+   "id": "lookup_469"
   },
   {
    "args": {
@@ -3734,7 +3766,7 @@
    },
    "expected": "utf-8",
    "fn": "lookup",
-   "id": "lookup_466"
+   "id": "lookup_470"
   },
   {
    "args": {
@@ -3742,7 +3774,7 @@
    },
    "expected": null,
    "fn": "lookup",
-   "id": "lookup_467"
+   "id": "lookup_471"
   },
   {
    "args": {},
@@ -3760,8 +3792,6 @@
     "iso2022_jp_ext",
     "iso2022_kr",
     "johab",
-    "mbcs",
-    "oem",
     "punycode",
     "quopri",
     "raw-unicode-escape",
