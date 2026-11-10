@@ -25,7 +25,13 @@ sealed interface LoginEvent {
     data class PasswordChanged(val value: String) : LoginEvent
 
     data object Submit : LoginEvent
+
+    /** 「本机独立使用」：不连服务器，直接进入本机会话。 */
+    data object EnterLocal : LoginEvent
 }
+
+/** 进入本机模式失败时的说明：不指向任何一个输入框，也不透露底层异常。 */
+const val LocalModeFailureText: String = "无法进入本机模式，请稍后再试"
 
 /** AuthRepository 用这个前缀说明地址不合法。 */
 private const val ServerUrlPrefix = "服务器地址不正确"

@@ -55,11 +55,14 @@ class LoginViewModelTest {
 
     private fun viewModel(
         lastServer: LastServerStore = FakeLastServer(),
+        // 这些用例只走服务器登录；本机入口另见 LoginLocalModeTest
+        enterLocal: suspend () -> Result<Unit> = { Result.failure(ApiError.Server(0, "本机模式未启用")) },
         gateway: LoginGateway,
     ) = LoginViewModel(
         login = gateway,
         lastServer = lastServer,
         deviceName = "Test Pixel",
+        enterLocal = enterLocal,
     )
 
     private fun failing(error: Throwable) = LoginGateway { _, _, _ -> Result.failure(error) }

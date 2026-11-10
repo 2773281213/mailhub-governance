@@ -252,14 +252,23 @@ data class SettingsUiState(
     val feedback: Map<SettingsSection, String> = emptyMap(),
     /** 正在等确认打开 clean_server。 */
     val confirmingCleanServer: Boolean = false,
+    /**
+     * 本机模式（`LOCAL_MODE.md` 第二节）：治理与 AI、推送、清理与晨报、管理密码在 P1 之前
+     * 要么被本机后端拒绝，要么不生效，所以整块不显示，只留「同步」。
+     */
+    val localMode: Boolean = false,
 ) {
-    /** 实际显示的区块：后端没返回 sync_read_state 时隐藏「同步」。 */
+    /**
+     * 实际显示的区块：本机模式只有「同步」；服务器模式在后端没返回 sync_read_state 时
+     * 隐藏「同步」。
+     */
     val sections: List<SettingsSection>
-        get() = SettingsSection.entries.filter {
-            it != SettingsSection.Sync || saved?.syncReadState != null
+        get() = SettingsSection.entries.filter { section ->
+            val modeVisible = if (localMode) section == SettingsSection.Sync else true
+            modeVisible && (section != SettingsSection.Sync || saved?.syncReadState != null)
         }
 
-    /** 区块编号 01 02 …，按实际显示的顺序。 */
+    /** 区块编号 01 02 …，按实际显示的顺序；只剩一块时也是 01。 */
     fun indexOf(section: SettingsSection): String =
         (sections.indexOf(section) + 1).toString().padStart(2, '0')
 }

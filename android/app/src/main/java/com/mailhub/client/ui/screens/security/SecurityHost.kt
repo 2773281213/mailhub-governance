@@ -15,6 +15,8 @@ import com.mailhub.client.data.session.SessionManager
  * 路由与页头由外壳负责，这里只渲染主体。
  *
  * [onOpenMessage] 由外壳压栈打开详情。
+ * [localMode] 由外壳按 `LoggedIn.session.isLocal` 传入：本机模式没有「已登录设备」，
+ * 也不会去请求 `/api/sessions`。默认是服务器模式，页面与以前一样。
  * [header] 原样透传给主体，作为滚动内容的第一项。
  */
 @Composable
@@ -23,12 +25,13 @@ fun SecurityScreenHost(
     zoneId: String,
     modifier: Modifier = Modifier,
     categories: List<String> = emptyList(),
+    localMode: Boolean = false,
     onOpenMessage: (Long) -> Unit = {},
     header: @Composable () -> Unit = {},
 ) {
     val repository = remember(sessionManager) { SecurityRepository(sessionManager) }
     val viewModel: SecurityViewModel = viewModel(
-        factory = SecurityViewModelFactory(securityGatewayOf(repository)),
+        factory = SecurityViewModelFactory(securityGatewayOf(repository), localMode = localMode),
     )
     val state by viewModel.state.collectAsStateWithLifecycle()
     LaunchedEffect(viewModel) {

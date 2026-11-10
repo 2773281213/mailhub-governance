@@ -60,7 +60,16 @@ data class SecurityUiState(
     val busy: Boolean = false,
     /** 各区块最近一次操作的结果，显示在该区块末尾。 */
     val notices: Map<SecuritySection, String> = emptyMap(),
-)
+    /**
+     * 本机模式（`LOCAL_MODE.md` 附录 A）：没有其他设备，也没有可吊销的会话，
+     * 所以「已登录设备」整块不显示，也不发 `/api/sessions`。
+     */
+    val localMode: Boolean = false,
+) {
+    /** 实际显示的区块：本机模式没有「已登录设备」，其余三块不变。 */
+    val sections: List<SecuritySection>
+        get() = SecuritySection.entries.filter { !localMode || it != SecuritySection.Devices }
+}
 
 sealed interface SecurityEvent {
 

@@ -47,6 +47,9 @@ import java.time.Year
  * 登录页（无状态）。构图不对称：编号和元信息占顶部一行，黑色方块与红色竖条错开摆放，
  * 大标题压在左侧，表单单栏排开，主按钮只占左侧 6 栏。
  * 提交中显示加载条；失败时出错的输入框画红色下划线，说明一律用黑色正文。
+ *
+ * 「连接」下方隔一个段落另有次要按钮「本机独立使用」和一行说明（`LOCAL_MODE.md` 第二节）：
+ * 本机模式不需要服务器，邮件和授权码只保存在这台手机上。
  */
 @Composable
 fun LoginScreen(
@@ -181,6 +184,26 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(SwissSpace.S))
             LoadingRule()
         }
+        // 本机入口是一个段落之后另起的一段：与「连接」分开，不抢主按钮的位置
+        Spacer(modifier = Modifier.height(SwissSpace.Xxl))
+        GridRow {
+            SwissButton(
+                text = "本机独立使用",
+                onClick = { onEvent(LoginEvent.EnterLocal) },
+                kind = SwissButtonKind.Outline,
+                enabled = !state.submitting,
+                modifier = Modifier.cols(1, 6),
+            )
+        }
+        Spacer(modifier = Modifier.height(SwissSpace.Xs))
+        GridRow {
+            SText(
+                text = "邮件和授权码只保存在这台手机上，不需要服务器",
+                style = SwissType.caption(),
+                modifier = Modifier.cols(1, 10),
+                color = colors.foreground,
+            )
+        }
         Spacer(modifier = Modifier.height(SwissSpace.Xxxl))
     }
 }
@@ -196,14 +219,16 @@ fun LoginScreenHost(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current.applicationContext
+    val deviceName = "${Build.MANUFACTURER} ${Build.MODEL}"
     val viewModel: LoginViewModel = viewModel(
         factory = LoginViewModelFactory(
             login = { serverUrl, password, deviceName ->
                 container.authRepository.login(serverUrl, password, deviceName)
             },
             lastServer = LastServerStoreProvider.of(context),
-            deviceName = "${Build.MANUFACTURER} ${Build.MODEL}",
+            deviceName = deviceName,
             expiredNotice = expired,
+            enterLocal = { container.authRepository.enterLocalMode(deviceName) },
         ),
     )
     val state by viewModel.state.collectAsStateWithLifecycle()

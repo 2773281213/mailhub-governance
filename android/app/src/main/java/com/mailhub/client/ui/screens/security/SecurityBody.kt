@@ -36,8 +36,9 @@ import com.mailhub.client.ui.swiss.baselineTopPadding
 import com.mailhub.client.ui.swiss.cols
 
 /**
- * 安全中心主体（无状态，不含页头与外壳）。四个编号区块从上往下读：
+ * 安全中心主体（无状态，不含页头与外壳）。服务器模式四个编号区块从上往下读：
  * 01 风险观察、02 回收站（多选恢复）、03 审计（撤销、分页）、04 已登录设备（吊销）。
+ * 本机模式没有 04（`LOCAL_MODE.md` 附录 A），可见的块由 [SecurityUiState.sections] 给出。
  * 吊销单台设备与退出其他所有设备都先弹确认面板。
  *
  * @param categories /api/meta 的 display_categories，用来给分类编号，与收件箱一致。
@@ -59,7 +60,8 @@ fun SecurityBody(
                 .verticalScroll(rememberScrollState()),
         ) {
             header()
-            SecuritySection.entries.forEachIndexed { position, section ->
+            // 本机模式没有「已登录设备」（SecurityUiState.sections 按模式给出可见的块）
+            state.sections.forEachIndexed { position, section ->
                 if (position > 0) {
                     Spacer(modifier = Modifier.height(SwissSpace.Xl))
                 }
