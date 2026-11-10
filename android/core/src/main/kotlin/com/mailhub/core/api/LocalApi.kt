@@ -18,6 +18,7 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import java.math.BigInteger
 import java.net.URI
+import java.net.URISyntaxException
 import java.net.URLDecoder
 import java.time.Instant
 import java.time.ZoneId
@@ -37,7 +38,17 @@ data class LocalRequest(
     val query: Map<String, String> = emptyMap(),
     val headers: Map<String, String> = emptyMap(),
     val body: String? = null,
-)
+) {
+
+    /**
+     * 只显示方法、路径与 body 长度。
+     *
+     * [body] 里可能有授权码、密码和 AI Key，[headers] 里有 `Authorization`，所以 data class
+     * 自动生成的 `toString()`（会把全部字段拼出来）不能直接用——日志与崩溃报告都会带上它。
+     */
+    override fun toString(): String =
+        "LocalRequest(method=$method, path=$path, body=${body?.length ?: 0} 字符)"
+}
 
 /**
  * 一次进程内的响应：状态码、响应头与 JSON 体，语义与服务器返回的 HTTP 响应相同。
@@ -107,27 +118,32 @@ fun interface SyncStatusSource {
  * @param db 本机数据库，全应用唯一实例。
  * @param clock 当前时间，对应 `time.time()`。
  * @param zone 本地时区，对应 `sync.TZ`；`/api/meta` 的 `tz` 用它的 id（对应 `sync.TZ_NAME`）。
- * @param status `sync.get_status()` 的来源。
+ *   **必须显式传入**：默认值会让「漏注入」变成静默的错误时区。
+ * @param status `sync.get_status()` 的来源。**必须显式传入**；只读接口可以传
+ *   [SyncStatusSource.EMPTY]，写接口必须接真实的同步状态。
  * @param governance 三省六部治理，`/api/governance/status`、`/api/governance/run` 与
  *   `/api/changes` 的屏障用它。
  * @param cipher 读写设置里加密字段（AI Key、账户授权码等）用，对应
  *   `security.encrypt` / `security.decrypt`。
  * @param sync 同步子系统的入口（触发同步、探测连接、回放服务器动作），见 [SyncBackend]。
- *   写接口必须注入真实实现（L10 用 [CoordinatorSyncBackend]）；默认的空实现只给读接口用。
+ *   **必须显式传入**：写接口要接真实实现（L10 用 [CoordinatorSyncBackend]）。测试里的空实现
+ *   [SyncBackend.NoOp] 只允许用于只读路径——它的 `probe` / `applyServerAction` 会直接抛异常，
+ *   漏注入时不会出现「探测总是通过、`server=true` 的删除只删本地」这种假成功。
  * @param publicBaseUrl 本机会话的保留地址，用来拼 OAuth 回调地址（对应 `MAILHUB_PUBLIC_URL`）。
  * @param onReadStateChanged 已读状态有需要写回服务器的改动时回调（对应 `_trigger_read_state_sync`），
- *   参数是去重升序的账户 id；默认什么都不做。写接口走 [SyncBackend.triggerAccount]。
+ *   参数是去重升序的账户 id。**必须显式传入**；不需要时由调用方传空实现。写接口走
+ *   [SyncBackend.triggerAccount]。
  */
 class LocalApi(
     internal val db: Db,
     internal val clock: Clock = SystemClock,
-    internal val zone: ZoneId = ZoneId.of(DEFAULT_TZ_NAME),
-    internal val status: SyncStatusSource = SyncStatusSource.EMPTY,
+    internal val zone: ZoneId,
+    internal val status: SyncStatusSource,
     internal val governance: GovernanceService = GovernanceService(db, clock),
     internal val cipher: SecretCipher,
-    internal val sync: SyncBackend = SyncBackend.NoOp,
+    internal val sync: SyncBackend,
     internal val publicBaseUrl: String = LOCAL_BASE_URL,
-    private val onReadStateChanged: (List<Int>) -> Unit = {},
+    private val onReadStateChanged: (List<Int>) -> Unit,
 ) {
 
     private val log: Logger = Logger.getLogger("com.mailhub.core.api.LocalApi")
@@ -580,17 +596,30 @@ class LocalApi(
             // 让客户端从头重新拉一遍（reset 信号）
             return jsonOf(changesWithoutItems(maxId, reset = true))
         }
+        // 本机差异：账户首次同步导入的历史邮件不通知，但游标照常前进。
+        // 这个条件同时用在屏障查询里：否则账户 B 首次导入的待治理邮件会把账户 A 的
+        // 新验证码一起挡住，而它本来就不会出现在结果里。
+        val skips = initialImportSkips()
         // 屏障：还没治理完的新邮件先挡住它和它之后的邮件，避免客户端看到待定级的旧标签。
         // 超过 1 小时仍未治理的邮件不再挡路，治理任务挂掉也不会让通知永久卡住。
-        val barrier = db.queryOne(
+        var barrierSql =
             """SELECT MIN(m.id) AS b FROM messages m
                WHERE m.id > ? AND m.deleted_ts=0 AND m.created_ts >= ?
-                 AND ${Governance.PENDING_SQL}""",
+                 AND ${Governance.PENDING_SQL}"""
+        val barrierArgs = mutableListOf<Any?>(
             afterId,
             now - BARRIER_STALE_SECONDS,
             Governance.VERSION,
             now,
-        )?.long("b") ?: 0L
+        )
+        if (skips.isNotEmpty()) {
+            barrierSql += skipCondition("m", skips)
+            for ((accountId, maxSkippedId) in skips) {
+                barrierArgs.add(accountId)
+                barrierArgs.add(maxSkippedId)
+            }
+        }
+        val barrier = db.queryOne(barrierSql, *barrierArgs.toTypedArray())?.long("b") ?: 0L
 
         var condition = "m.id > ? AND m.deleted_ts=0"
         val args = mutableListOf<Any?>(afterId)
@@ -598,11 +627,8 @@ class LocalApi(
             condition += " AND m.id < ?"
             args.add(barrier)
         }
-        // 本机差异：账户首次同步导入的历史邮件不通知，但游标照常前进
-        val skips = initialImportSkips()
         if (skips.isNotEmpty()) {
-            condition += " AND NOT (" +
-                skips.joinToString(" OR ") { "(m.account_id=? AND m.id <= ?)" } + ")"
+            condition += skipCondition("m", skips)
             for ((accountId, maxSkippedId) in skips) {
                 args.add(accountId)
                 args.add(maxSkippedId)
@@ -656,6 +682,14 @@ class LocalApi(
             accountId to maxId
         }
         .sortedBy { it.first }
+
+    /**
+     * 「跳过首次导入邮件」的 SQL 片段，[alias] 是 `messages` 的别名；每个账户两个参数，
+     * 顺序与 [skips] 相同。屏障查询与结果查询必须用同一个条件，否则被跳过的邮件仍会挡住别人。
+     */
+    private fun skipCondition(alias: String, skips: List<Pair<Long, Long>>): String =
+        " AND NOT (" +
+            skips.joinToString(" OR ") { "($alias.account_id=? AND $alias.id <= ?)" } + ")"
 
     // ---------------- 验证码、风险观察、回收站与审计 ----------------
 
@@ -933,8 +967,10 @@ class LocalApi(
         if (url.isEmpty()) return ""
         return try {
             URI(url).host?.lowercase(Locale.ROOT) ?: ""
-        } catch (error: IllegalArgumentException) {
-            // URI 只认 RFC 3986；地址里有空格等字符时按「解析不了」处理（Python 抛 ValueError）
+        } catch (error: URISyntaxException) {
+            // URI 只认 RFC 3986；地址里有空格等字符时按「解析不了」处理（Python 抛 ValueError）。
+            // 这里必须接 URISyntaxException：它是受检异常，不是 IllegalArgumentException，
+            // 接错了会让存了带空格地址的 `GET /api/settings` 直接 500。
             ""
         }
     }
@@ -956,9 +992,6 @@ class LocalApi(
 
         /** `app.py` 的 `API_VERSION`。 */
         const val API_VERSION = 1
-
-        /** 对应 `sync.TZ_NAME` 的默认值：服务器没配 MAILHUB_TZ 时就用上海。 */
-        const val DEFAULT_TZ_NAME = "Asia/Shanghai"
 
         /** 本机会话的保留地址，见 `LOCAL_MODE.md` 3.1。 */
         const val LOCAL_BASE_URL = "https://local.mailhub.invalid"

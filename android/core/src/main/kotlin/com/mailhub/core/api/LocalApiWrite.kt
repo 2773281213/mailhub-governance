@@ -1,7 +1,6 @@
 package com.mailhub.core.api
 
 import com.mailhub.core.db.Row
-import com.mailhub.core.db.isSqliteError
 import com.mailhub.core.imap.connectionErrorText
 import com.mailhub.core.imap.isAuthFailure
 import com.mailhub.core.providers.APP_PASSWORD
@@ -253,14 +252,22 @@ private fun resolveUpdateHost(row: Row, body: AccountBody): Pair<String, Long> {
 /**
  * 对应 `_probe_password_account`：填了凭据就先连一次，连不上直接 400。
  *
- * 说明（与任务描述的偏差，见总结）：服务器这里把 `str(exc)` 原样拼进 detail，
- * 本机模式改用 [connectionErrorText] 的中文映射——Android 上拿到的 `e.message`
- * 是 Java / Angus 的英文原文，直接给用户看既看不懂也会暴露平台细节。
- * 认证失败时补一句「请确认填写的是…」，与 `_probe_password_account` 相同。
+ * **有意偏差 1**：服务器这里把 `str(exc)` 原样拼进 detail，本机模式改用
+ * [connectionErrorText] 的中文映射——Android 上拿到的 `e.message` 是 Java / Angus 的英文
+ * 原文，直接给用户看既看不懂也会暴露平台细节。认证失败时补一句「请确认填写的是…」，
+ * 与 `_probe_password_account` 相同。
+ *
+ * **有意偏差 2**：端口超出 `int` 范围时直接 400。Python 的 `socket.getaddrinfo` 会把端口
+ * 按 65536 取模（`4294968289` 变成 993），真去连一次才失败；Kotlin 的 `Long.toInt()`
+ * 也会截成 993，测试里探测桩一通过就会把越界端口写进库。这里不复制这种绕一圈才失败的行为：
+ * 越界值本来就不是合法端口。
  */
 private fun LocalApi.probePasswordAccount(body: AccountBody, host: String, port: Long) {
     if (body.secret.isEmpty()) {
         return
+    }
+    if (port > Int.MAX_VALUE || port < Int.MIN_VALUE) {
+        throw ApiException(400, "连接测试失败: IMAP 端口超出范围，请填写 1-65535 之间的端口")
     }
     val account = SyncAccount(
         id = 0,
@@ -283,11 +290,16 @@ private fun LocalApi.probePasswordAccount(body: AccountBody, host: String, port:
 }
 
 /**
- * 对应 `create_account`：规范化 → 校验登录方式 → 查重 → 解析主机 → 探测 → 入库 → 触发同步。
+ * 对应 `create_account`：规范化 → 校验登录方式 → 查重 → 解析主机 → 探测 → 事务内再查重并入库
+ * → 触发同步。
  *
- * 唯一约束兜底：账户表没有唯一索引，重名只能靠上面的 SELECT 拦；万一并发插入撞上约束，
- * 这里按 SQLite 错误转成同样的 409，而不是 500。**不能** `catch (SQLiteException)`：
- * 手机上抛的是别的异常类，要用 [isSqliteError] 判断（`LOCAL_MODE.md` 第四节规则 10）。
+ * **有意偏差（重复账户的竞争）**：服务器是「查重 → 探测（可能几十秒）→ 插入」，账户表又没有
+ * 唯一约束，双击「添加」会插进两个相同账户。这里保留第一次查重（让明显重复的请求不必等探测），
+ * 但探测之后在**同一个事务**里重新查重并插入：并发的第二个请求这次能看见第一个的写入，
+ * 拿到与第一次查重相同的 409。没有唯一约束可撞，所以不再把 SQLite 错误猜成 409——
+ * 磁盘满、库损坏这类真实错误一律走 500（由 [LocalApi.handle] 统一兜底，不回显内部信息）。
+ *
+ * 探测与触发同步都在事务外：前者会连 IMAP，后者会在另一条线程上抢数据库锁。
  */
 internal fun LocalApi.createAccountRoute(call: Call): JsonElement {
     val body = accountBody(call)
@@ -307,7 +319,18 @@ internal fun LocalApi.createAccountRoute(call: Call): JsonElement {
     val (host, port) = resolveHost(body)
     probePasswordAccount(body, host, port)
     val color = normalizeColor(body.color)
-    val inserted = try {
+    // 加密在事务外做：Keystore 调用不快，没必要占着数据库锁
+    val secretEnc = cipher.encrypt(body.secret)
+    val createdAt = clock.now()
+    val inserted = db.transaction {
+        val duplicate = db.queryOne(
+            "SELECT id FROM accounts WHERE provider=? AND lower(email)=?",
+            body.provider,
+            body.email,
+        )
+        if (duplicate != null) {
+            throw ApiException(409, DUPLICATE_ACCOUNT)
+        }
         db.execute(
             """INSERT INTO accounts(name, provider, email, imap_host, imap_port, auth_type,
                                     secret_enc, poll_interval, color, enabled, created_ts)
@@ -318,15 +341,12 @@ internal fun LocalApi.createAccountRoute(call: Call): JsonElement {
             host,
             port,
             AUTH_TYPE_PASSWORD,
-            cipher.encrypt(body.secret),
+            secretEnc,
             body.pollInterval,
             color,
             if (body.enabled) 1L else 0L,
-            clock.now(),
+            createdAt,
         )
-    } catch (error: RuntimeException) {
-        if (!isSqliteError(error)) throw error
-        throw ApiException(409, DUPLICATE_ACCOUNT)
     }
     sync.triggerAccount(Math.toIntExact(inserted.lastInsertRowid))
     return jsonOf(linkedMapOf<String, Any?>("ok" to true, "id" to inserted.lastInsertRowid))
@@ -408,9 +428,17 @@ internal fun LocalApi.deleteAccountRoute(call: Call): JsonElement {
 
 /**
  * 对应 `sync_now`：只把账户塞进同步队列，不检查账户是否存在（与服务器一致）。
+ *
+ * 路径参数按 `Long` 解析。账户 id 是 SQLite 的 64 位整数，服务器收下
+ * `3000000000` 也只是丢进队列、照样回 200；这里不能再用 `Math.toIntExact` 把它变成
+ * 500（[SyncBackend.triggerAccount] 的参数是 `Int`）。超出 `Int` 范围的 id 不可能对应
+ * 本机账户，按「不存在的账户」处理：不触发、照常返回 `ok`。
  */
 internal fun LocalApi.syncNowRoute(call: Call): JsonElement {
-    sync.triggerAccount(Math.toIntExact(call.pathId("acc_id")))
+    val accId = call.pathId("acc_id")
+    if (accId in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong()) {
+        sync.triggerAccount(accId.toInt())
+    }
     return jsonOf(linkedMapOf<String, Any?>("ok" to true))
 }
 
@@ -736,7 +764,9 @@ internal fun LocalApi.undoActionRoute(call: Call): JsonElement {
  * - 进程内已有运行（`busy`）→ **409**「已有自动分拣任务正在运行」，不是 200；
  * - 响应**不带** `alerts`：服务器用 `result.pop("alerts")` 把它取走交给推送；本机模式的
  *   通知由 App 在同步后统一处理（`LOCAL_MODE.md` 第五节），这里同样把它丢掉；
- * - 运行本身抛异常 → 500「自动分拣失败：…」。
+ * - 运行本身抛异常 → 500，`detail` 是固定文案「自动分拣失败」。**有意偏差**：服务器把
+ *   `str(e)[:200]` 拼进 detail，本机模式的异常文本里可能有 SQL、库路径或邮件内容，
+ *   一律不往响应里带（原始异常仍由 [LocalApi.handle] 记类型级别的日志）。
  */
 internal fun LocalApi.governanceRunRoute(call: Call): JsonElement {
     val element = call.json()
@@ -750,7 +780,7 @@ internal fun LocalApi.governanceRunRoute(call: Call): JsonElement {
     } catch (error: ApiException) {
         throw error
     } catch (error: Exception) {
-        throw ApiException(500, "自动分拣失败：${(error.message ?: "").cpSlice(0, 200)}")
+        throw ApiException(500, "自动分拣失败")
     }
     if (result.busy) {
         throw ApiException(409, "已有自动分拣任务正在运行")

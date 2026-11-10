@@ -104,8 +104,17 @@ class LocalApiTest {
     @Test
     fun uncaughtErrorsBecome500WithoutInternals() {
         // 没跑 initDb 的库：任何查询都会抛 SQLite 异常
-        withTempDb(FakeClock(ApiSeed.load().now)) { db ->
-            val api = LocalApi(db = db, cipher = com.mailhub.core.db.FakeSecretCipher())
+        val seed = ApiSeed.load()
+        withTempDb(FakeClock(seed.now)) { db ->
+            // 构造参数没有默认值：漏注入同步 / 时区 / 状态本身就是审核要找的错误
+            val api = LocalApi(
+                db = db,
+                zone = java.time.ZoneId.of(seed.tz),
+                status = SyncStatusSource.EMPTY,
+                cipher = com.mailhub.core.db.FakeSecretCipher(),
+                sync = SyncBackend.NoOp,
+                onReadStateChanged = {},
+            )
             for (path in listOf("/api/overview", "/api/settings", "/api/messages")) {
                 val response = api.handle(LocalRequest("GET", path))
                 assertEquals("$path 应返回 500", 500, response.status)
@@ -185,6 +194,28 @@ class LocalApiTest {
     }
 
     @Test
+    fun pendingInitialImportMailDoesNotBlockAnotherAccount() {
+        withSeededApi { api, db, seed ->
+            // 账户 1 的 #6 先治理掉，只留账户 2 的 #14 作为「刚入库、待治理」的邮件
+            db.execute("UPDATE messages SET governance_version=? WHERE id=6", Governance.VERSION)
+            db.execute(
+                "UPDATE messages SET governance_version='', created_ts=? WHERE id=14",
+                seed.now - 300.0,
+            )
+            // 账户 2 首次导入到 #14：这封待治理邮件本来就会被跳过，不该成为屏障
+            db.setSetting("local_initial_import_2", "14")
+            val response = api.handle(LocalRequest("GET", "/api/changes", mapOf("after_id" to "0")))
+            // 账户 2 的 #11～#14 被跳过，#16 在回收站；账户 1 的新邮件与 #15 之后的邮件都要出来
+            assertEquals(
+                listOf(1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L, 10L, 15L, 17L, 18L, 19L, 20L,
+                    21L, 22L, 23L, 24L, 25L, 26L),
+                response.itemIds(),
+            )
+            assertEquals(26L, response.number("cursor"))
+        }
+    }
+
+    @Test
     fun changesIgnoresBrokenInitialImportMarks() {
         withSeededApi { api, db, _ ->
             db.execute("UPDATE messages SET governance_version=? WHERE id=6", Governance.VERSION)
@@ -193,6 +224,22 @@ class LocalApiTest {
             val response = api.handle(LocalRequest("GET", "/api/changes", mapOf("after_id" to "0")))
             assertEquals("写坏的标记只该少跳几封，不该报错", 200, response.status)
             assertEquals(25, response.itemIds().size)
+        }
+    }
+
+    // ---------------- 设置 ----------------
+
+    @Test
+    fun settingsToleratesBarkUrlWithSpaces() {
+        withSeededApi { api, db, _ ->
+            // Bark 地址里带设备 key，值里出现空格时 URI 会抛受检的 URISyntaxException；
+            // 接错异常类会让这个只读接口 500
+            db.setSetting("notify_bark_url", "https://api.day.app/key with space")
+            val response = api.handle(LocalRequest("GET", "/api/settings"))
+            assertEquals(200, response.status)
+            val body = response.body.jsonObject
+            assertEquals(true, body.getValue("notify_bark_set").jsonPrimitive.content.toBoolean())
+            assertEquals("", body.getValue("notify_bark_host").jsonPrimitive.content)
         }
     }
 

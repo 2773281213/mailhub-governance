@@ -78,12 +78,16 @@ class ApiWriteGoldenTest {
     }
 
     /**
-     * 回放器自检：数字按值比较（`3` 与 `3.0` 相等），但类型与结构必须一致。
-     * 没有这条，比较器写错时会静默通过。
+     * 回放器自检：数字既要数值相等，也要「是不是整数形式」相同（`3` 与 `3.0` **不**相等），
+     * 类型与结构也必须一致。没有这条，比较器写错时会静默通过。
      */
     @Test
-    fun jsonComparisonAcceptsEqualNumbersButNotTypeConfusion() {
-        assertNull(compare(JsonPrimitive(3), JsonPrimitive(3.0), ""))
+    fun jsonComparisonRejectsNumberFormAndTypeConfusion() {
+        assertNull(compare(JsonPrimitive(3), JsonPrimitive(3), ""))
+        assertNull(compare(JsonPrimitive(3), JsonPrimitive(3L), ""))
+        // App 的 Int 字段解析 "3.0" 会失败，所以整数形式与浮点形式不能算相等
+        assertNotNull(compare(JsonPrimitive(3), JsonPrimitive(3.0), ""))
+        assertNotNull(compare(JsonPrimitive(0), JsonPrimitive(0.0), ""))
         assertNotNull(compare(JsonPrimitive(3), JsonPrimitive("3"), ""))
         assertNotNull(compare(JsonPrimitive(true), JsonPrimitive(1), ""))
         assertNotNull(
@@ -328,8 +332,19 @@ class ApiWriteGoldenTest {
         }
         val left = expected.content.toBigDecimalOrNull() ?: return mismatch(path, expected, actual)
         val right = actual.content.toBigDecimalOrNull() ?: return mismatch(path, expected, actual)
-        return if (left.compareTo(right) == 0) null else mismatch(path, expected, actual)
+        if (left.compareTo(right) != 0) return mismatch(path, expected, actual)
+        // 只比数值会把 `3` 与 `3.0` 判成相等，而 App 的 Int 字段解析 "3.0" 会失败。
+        // JSON 文本里没有小数点 / 指数才算整数形式，两边必须同为其中一种。
+        return if (isIntegerJsonNumber(expected.content) == isIntegerJsonNumber(actual.content)) {
+            null
+        } else {
+            mismatch(path, expected, actual)
+        }
     }
+
+    /** JSON 文本是不是整数形式：没有小数点，也没有指数。 */
+    private fun isIntegerJsonNumber(text: String): Boolean =
+        !text.contains('.') && !text.contains('e') && !text.contains('E')
 
     private fun mismatch(path: String, expected: JsonElement, actual: JsonElement): String =
         "${path.ifEmpty { "响应体" }} 期望 $expected，实际 $actual"

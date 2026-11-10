@@ -154,7 +154,7 @@ internal fun parseBody(raw: JsonElement?, spec: List<BodyField>): Body {
                         "type" to "model_attributes_type",
                         "loc" to listOf("body"),
                         "msg" to "Input should be a valid dictionary or object to extract fields from",
-                        "input" to raw,
+                        "input" to sanitizedInput(raw),
                     ),
                 ),
             ),
@@ -387,10 +387,42 @@ private fun error(
     map["type"] = type
     map["loc"] = loc
     map["msg"] = message
-    map["input"] = input
+    map["input"] = sanitizedInput(input)
     if (ctx != null) map["ctx"] = ctx
     return jsonOf(map)
 }
+
+/**
+ * 422 的 `input` 里不回显凭据（**有意偏差**，服务器会原样回显整个请求体）。
+ *
+ * 服务器把解析失败的整个请求体塞进 `input`，本机模式没有理由照着做：`ApiClient.toApiError`
+ * 遇到数组形式的 `detail` 直接得 null，App 不读 `input`，删掉它不会影响任何调用方。
+ * 规则：递归删掉键名恰为 `secret` / `password` / `old_password` / `new_password`，
+ * 以及键名（不区分大小写）含 `key` / `token` / `secret` / `password` 的项。
+ */
+internal fun sanitizedInput(element: JsonElement): JsonElement = when (element) {
+    is JsonObject -> JsonObject(
+        element.entries.fold(LinkedHashMap<String, JsonElement>(element.size)) { out, (name, value) ->
+            if (!isSecretInputKey(name)) out[name] = sanitizedInput(value)
+            out
+        },
+    )
+    is JsonArray -> JsonArray(element.map(::sanitizedInput))
+    else -> element
+}
+
+/** `input` 里必须删掉的键名：四个明确的凭据字段，以及名字带凭据含义的字段。 */
+private fun isSecretInputKey(name: String): Boolean {
+    val lower = name.lowercase(Locale.ROOT)
+    if (lower in SECRET_INPUT_KEYS) return true
+    return SECRET_INPUT_MARKERS.any { lower.contains(it) }
+}
+
+/** 与服务器 `SettingsBody` / `AccountBody` 里全部凭据字段对应的键名。 */
+private val SECRET_INPUT_KEYS = setOf("secret", "password", "old_password", "new_password")
+
+/** 键名里出现这些词就当作凭据（`ai_key`、`notify_tg_token`、`oauth_client_secret` 等）。 */
+private val SECRET_INPUT_MARKERS = listOf("key", "token", "secret", "password")
 
 /** pydantic 的 `int_parsing` 错误码与说明。 */
 internal const val INT_PARSING = "int_parsing"

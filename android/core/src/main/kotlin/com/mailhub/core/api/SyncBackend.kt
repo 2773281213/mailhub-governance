@@ -51,14 +51,22 @@ interface SyncBackend {
      */
     fun applyServerAction(ids: List<Long>, action: String): ServerActionResult
 
-    /** 空实现：什么都不做（`LocalApi` 单独使用时的默认值，L10 必须注入真实实现）。 */
+    /**
+     * 只用于只读路径的空实现：触发同步、忘记账户什么都不做；**探测与服务器动作直接抛异常**。
+     *
+     * 这两条故意不返回成功：漏注入真实实现时，`probe` 恒通过会让任意凭据都能入库，
+     * `applyServerAction` 恒成功会让 `server=true` 的删除「只删本地、不碰邮箱」还回报 `ok:true`。
+     * 失败比假成功安全——调用方会看到 400 / 500，而不是以为邮箱已经同步。
+     */
     object NoOp : SyncBackend {
         override fun triggerAccount(id: Int) = Unit
         override fun triggerAll() = Unit
         override fun forgetAccount(id: Int) = Unit
-        override fun probe(account: SyncAccount, credential: String) = Unit
+        override fun probe(account: SyncAccount, credential: String): Unit =
+            throw UnsupportedOperationException("SyncBackend.NoOp 不能探测连接：必须注入真实实现")
+
         override fun applyServerAction(ids: List<Long>, action: String): ServerActionResult =
-            ServerActionResult(ids, emptyList())
+            throw UnsupportedOperationException("SyncBackend.NoOp 不能回放服务器动作：必须注入真实实现")
     }
 }
 

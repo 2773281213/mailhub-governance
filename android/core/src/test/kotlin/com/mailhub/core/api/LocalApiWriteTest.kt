@@ -5,6 +5,8 @@ import com.mailhub.core.db.FakeClock
 import com.mailhub.core.db.withTempDb
 import com.mailhub.core.sync.ServerActionResult
 import com.mailhub.core.sync.SyncAccount
+import jakarta.mail.AuthenticationFailedException
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
@@ -12,6 +14,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.net.SocketTimeoutException
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
@@ -327,7 +330,164 @@ class LocalApiWriteTest {
         }
     }
 
+    // ---------------- 审核发现的回归 ----------------
+
+    @Test
+    fun createAccountMapsRealProbeFailuresTo400() {
+        val seed = ApiSeed.load("write_seed")
+        withTempDb(FakeClock(seed.now)) { db ->
+            seedDatabase(db, seed)
+            // 认证码类服务商的认证失败：要带「请确认填写的是…」，不能把 Java 原文吐给用户
+            val auth = AuthenticationFailedException("登录被拒绝")
+            val authBackend = ProbeFailingBackend(auth)
+            val authResponse =
+                createAccount(apiFor(db, seed, sync = authBackend), "qq", "autherr@qq.com")
+            assertEquals(400, authResponse.status)
+            val authDetail = authResponse.detailText()
+            assertTrue(authDetail, authDetail.startsWith("连接测试失败: "))
+            assertTrue(
+                authDetail,
+                authDetail.contains("请确认填写的是「QQ 邮箱授权码」，不是网页登录密码"),
+            )
+            assertFalse("认证失败不该写进库", accountExists(db, "autherr@qq.com"))
+            assertEquals(listOf("probe:qq"), authBackend.calls)
+
+            // 超时：映射成中文说明，同样 400，不是 500
+            val timeoutBackend = ProbeFailingBackend(SocketTimeoutException("timed out"))
+            val timeoutResponse =
+                createAccount(apiFor(db, seed, sync = timeoutBackend), "163", "slow@163.com")
+            assertEquals(400, timeoutResponse.status)
+            assertEquals("连接测试失败: 连接邮箱服务器超时", timeoutResponse.detailText())
+            assertFalse(accountExists(db, "slow@163.com"))
+            assertEquals(listOf("probe:163"), timeoutBackend.calls)
+        }
+    }
+
+    @Test
+    fun noOpSyncBackendDoesNotPretendToSucceed() {
+        val account = SyncAccount(
+            id = 0,
+            provider = "custom",
+            email = "noop@example.com",
+            host = "imap.example",
+            port = 993,
+            authType = "password",
+        )
+        val probeError = runCatching { SyncBackend.NoOp.probe(account, "p") }.exceptionOrNull()
+        assertTrue("NoOp.probe 必须抛异常", probeError is UnsupportedOperationException)
+        val actionError =
+            runCatching { SyncBackend.NoOp.applyServerAction(listOf(1L), "delete") }.exceptionOrNull()
+        assertTrue("NoOp.applyServerAction 必须抛异常", actionError is UnsupportedOperationException)
+    }
+
+    @Test
+    fun outOfIntPortIsRejectedInsteadOfWrappingTo993() {
+        withWriteApi { api, db, backend ->
+            val response = api.handle(
+                LocalRequest(
+                    "POST",
+                    "/api/accounts",
+                    body = """{"email":"big@example.com","provider":"custom",
+                              "imap_host":"imap.example","secret":"p","imap_port":4294968289}""",
+                ),
+            )
+            assertEquals(400, response.status)
+            assertTrue(response.detailText(), response.detailText().startsWith("连接测试失败: "))
+            assertFalse("越界端口不该入库", accountExists(db, "big@example.com"))
+            assertTrue("越界端口不该拿截断后的值去探测", backend.calls.isEmpty())
+        }
+    }
+
+    @Test
+    fun syncWithAccountIdBeyondIntRangeReturnsOk() {
+        withWriteApi { api, _, backend ->
+            val response = api.handle(LocalRequest("POST", "/api/accounts/3000000000/sync"))
+            assertEquals(200, response.status)
+            assertEquals("""{"ok":true}""", response.body.toString())
+            // 这个 id 在本机不可能对应账户，按「不存在的账户」处理：不触发同步
+            assertTrue(backend.calls.isEmpty())
+        }
+    }
+
+    @Test
+    fun apiErrorInputDoesNotEchoSecrets() {
+        withWriteApi { api, _, _ ->
+            val response = api.handle(
+                LocalRequest(
+                    "POST",
+                    "/api/accounts",
+                    body = """{"secret":"abc","provider":"custom",
+                              "nested":{"ai_key":"sk-test","deep":{"auth_token":"tok"}}}""",
+                ),
+            )
+            assertEquals(422, response.status)
+            val text = response.body.toString()
+            for (secret in listOf("abc", "sk-test", "tok")) {
+                assertFalse("422 的 input 里不能出现明文凭据 $secret：$text", text.contains(secret))
+            }
+            val input = response.body.jsonObject.getValue("detail").jsonArray[0]
+                .jsonObject.getValue("input").jsonObject
+            assertEquals("custom", input.getValue("provider").jsonPrimitive.content)
+            assertFalse(input.containsKey("secret"))
+        }
+    }
+
+    @Test
+    fun requestToStringOnlyShowsMethodPathAndBodyLength() {
+        val request = LocalRequest(
+            "POST",
+            "/api/accounts",
+            headers = mapOf("Authorization" to "Bearer super-secret-token"),
+            body = """{"secret":"top-secret","ai_key":"sk-live"}""",
+        )
+        val text = request.toString()
+        assertTrue(text, text.contains("POST"))
+        assertTrue(text, text.contains("/api/accounts"))
+        assertTrue(text, text.contains("${request.body!!.length} 字符"))
+        for (secret in listOf("top-secret", "sk-live", "super-secret-token")) {
+            assertFalse("toString 里不能出现 $secret：$text", text.contains(secret))
+        }
+    }
+
     // ---------------- 工具 ----------------
+
+    private fun createAccount(api: LocalApi, provider: String, email: String): LocalResponse =
+        api.handle(
+            LocalRequest(
+                "POST",
+                "/api/accounts",
+                body = """{"provider":"$provider","email":"$email","secret":"p"}""",
+            ),
+        )
+
+    private fun accountExists(db: Db, email: String): Boolean =
+        db.queryOne("SELECT id FROM accounts WHERE lower(email)=?", email) != null
+
+    /** 假 [SyncBackend]：探测时抛出给定的真实异常，其余方法只记录调用。 */
+    private class ProbeFailingBackend(private val failure: Exception) : SyncBackend {
+
+        val calls = ArrayList<String>()
+
+        override fun triggerAccount(id: Int) {
+            calls.add("trigger:$id")
+        }
+
+        override fun triggerAll() {
+            calls.add("trigger_all")
+        }
+
+        override fun forgetAccount(id: Int) {
+            calls.add("forget:$id")
+        }
+
+        override fun probe(account: SyncAccount, credential: String) {
+            calls.add("probe:${account.provider}")
+            throw failure
+        }
+
+        override fun applyServerAction(ids: List<Long>, action: String): ServerActionResult =
+            error("创建账户的失败用例不该回放服务器动作")
+    }
 
     /**
      * 用写接口的种子建库，并给出注入假 [SyncBackend] 的 [LocalApi]。
