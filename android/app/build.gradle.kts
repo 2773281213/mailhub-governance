@@ -16,8 +16,8 @@ android {
         applicationId = "com.mailhub.client"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "2.2.0"
+        versionCode = 2
+        versionName = "2.3.0"
         // 设备上的 instrumented test 由 AndroidJUnitRunner 执行；:core 的测试源码直接挂在
         // androidTest 源码集上（见下面的 sourceSets），所以它同时也是 :core 的「手机回归」入口。
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
