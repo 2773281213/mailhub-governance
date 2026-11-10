@@ -35,7 +35,6 @@ a	932	cp932
 a	936	gbk
 a	949	cp949
 a	950	cp950
-a	ansi	mbcs
 a	ansi_x3.4_1968	ascii
 a	ansi_x3.4_1986	ascii
 a	ansi_x3_4_1968	ascii
@@ -97,7 +96,6 @@ a	csptcp154	ptcp154
 a	csshiftjis	shift_jis
 a	cyrillic	iso8859-5
 a	cyrillic_asian	ptcp154
-a	dbcs	mbcs
 a	ebcdic_cp_be	cp500
 a	ebcdic_cp_ca	cp037
 a	ebcdic_cp_ch	cp500
@@ -419,8 +417,6 @@ m	mac_latin2	mac-latin2
 m	mac_roman	mac-roman
 m	mac_romanian	mac-romanian
 m	mac_turkish	mac-turkish
-m	mbcs	mbcs
-m	oem	oem
 m	palmos	palmos
 m	ptcp154	ptcp154
 m	punycode	punycode

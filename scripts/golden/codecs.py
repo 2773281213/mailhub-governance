@@ -93,9 +93,21 @@ FAMILIES = {
 UNSUPPORTED = [
     "base64", "bz2", "euc_jis_2004", "euc_jisx0213", "hex", "idna", "iso2022_jp_1",
     "iso2022_jp_2", "iso2022_jp_2004", "iso2022_jp_3", "iso2022_jp_ext",
-    "iso2022_kr", "johab", "mbcs", "punycode", "quopri", "raw-unicode-escape", "rot-13",
+    "iso2022_kr", "johab", "punycode", "quopri", "raw-unicode-escape", "rot-13",
     "shift_jis_2004", "shift_jisx0213", "undefined", "unicode-escape", "uu", "zlib",
 ]
+
+
+# 只在 Windows 上存在的编码。金标要和部署在 Linux 上的服务端一致，所以在哪里生成都按「不存在」处理。
+WINDOWS_ONLY = {"mbcs", "oem"}
+
+
+def lookup_name(name: str) -> str:
+    """`codecs.lookup(name).name`，Windows 专属的编码按未知编码处理（抛 LookupError）。"""
+    found = codecs.lookup(name).name
+    if found in WINDOWS_ONLY:
+        raise LookupError(name)
+    return found
 
 
 def decode(data: bytes, name: str) -> str:
@@ -119,12 +131,12 @@ def canonical_names() -> list[str]:
     names = set()
     for info in pkgutil.iter_modules(encodings.__path__):
         try:
-            names.add(codecs.lookup(info.name).name)
+            names.add(lookup_name(info.name))
         except LookupError:
             pass
     for value in encodings.aliases.aliases.values():
         try:
-            names.add(codecs.lookup(value).name)
+            names.add(lookup_name(value))
         except LookupError:
             pass
     return sorted(names)
@@ -478,13 +490,13 @@ def build_aliases() -> str:
         if normalize(key) != key:
             continue
         try:
-            name = codecs.lookup(key).name
+            name = lookup_name(key)
         except LookupError:
             continue
         lines.append(f"a\t{key}\t{name}")
     for info in sorted(pkgutil.iter_modules(encodings.__path__), key=lambda i: i.name):
         try:
-            name = codecs.lookup(info.name).name
+            name = lookup_name(info.name)
         except LookupError:
             continue
         lines.append(f"m\t{info.name}\t{name}")
@@ -558,7 +570,7 @@ def lookup_cases(families: dict[str, int]) -> list[dict]:
             return
         seen.add(name)
         try:
-            expected = codecs.lookup(name).name
+            expected = lookup_name(name)
         except LookupError:
             expected = None
         # Python 认得、本移植没实现的规范名单独放在 unsupported 用例里
