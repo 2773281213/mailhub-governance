@@ -11,9 +11,9 @@ import ai
 import billing
 import governance
 import mail_client
+import message_ops
 import notify
 import oauth_auth
-import policy
 import rules
 import security_scan
 from db import audit, get_conn, get_setting, set_setting
@@ -552,7 +552,7 @@ def auto_clean():
     """定时清理过期验证码邮件和一般账单（各自独立开关，默认关闭）。
 
     这是唯一的无人值守破坏性动作，因此约束最严：
-      - 只处理「验证码」和「一般账单」，且逐封过 policy.evaluate
+      - 只处理「验证码」和「一般账单」，且逐封过 message_ops.gate 策略闸门
       - 默认软删除进回收站，可撤销
       - 只有用户显式开启 clean_server 才连服务器一起删（视为用户已建立规则）
       - 全程写审计日志
@@ -580,14 +580,12 @@ def auto_clean():
         return
 
     action = "purge" if server_too else "soft_delete"
-    targets, blocked = [], []
-    for r in rows:
-        m = dict(r)
-        # user_rule=True：用户在设置里显式启用了这条清理策略，等价于建立了规则。
-        # 这是无人值守的系统任务，受保护邮件（附件/重要/账单/安全）一律不动。
-        allowed, tier, reason = policy.evaluate(
-            action, m, actor="system", user_rule=True, confirmed=server_too)
-        (targets.append(m) if allowed else blocked.append(reason))
+    # user_rule=True：用户在设置里显式启用了这条清理策略，等价于建立了规则。
+    # 这是无人值守的系统任务，受保护邮件（附件/重要/账单/安全）一律不动。
+    targets, blocked_items = message_ops.gate(
+        action, [dict(r) for r in rows], actor="system", user_rule=True, confirmed=server_too)
+    # 审计里只用到拦截原因：数量（len）和第一条原因，与逐封过策略时相同
+    blocked = [b["reason"] for b in blocked_items]
 
     if not targets:
         if blocked:
@@ -599,13 +597,11 @@ def auto_clean():
     errors: list[str] = []
     if server_too:
         # 只有服务器确认删除成功的邮件才移除本地记录；失败的留待下次重试
-        ids, errors = apply_server_action(ids, "delete")
-        conn.executemany("DELETE FROM messages WHERE id=?", [(i,) for i in ids])
-        undo = None
+        confirmed_ids, errors = apply_server_action(ids, "delete")
+        ids, undo = message_ops.finish_removal(
+            conn, "purge", ids, server_confirmed=confirmed_ids)
     else:
-        ts = time.time()
-        conn.executemany("UPDATE messages SET deleted_ts=? WHERE id=?", [(ts, i) for i in ids])
-        undo = {"ids": ids}
+        ids, undo = message_ops.finish_removal(conn, "soft_delete", ids, ts=time.time())
     conn.commit()
     scopes = []
     if otp_days > 0:
@@ -615,8 +611,9 @@ def auto_clean():
     reason = f"自动清理{'和'.join(scopes)}，{len(blocked)} 封被策略保护"
     if errors:
         reason += f"；服务器删除失败 {len(errors)} 项：{errors[0]}"
-    audit(action, actor="system", tier=policy.ACTION_TIER.get(action, "C"), target_ids=ids,
-          reason=reason, reversible=undo is not None, undo_payload=undo)
+    # 必须显式 allowed=True：服务器全部失败时 ids 为空，这条审计仍然是放行记录
+    message_ops.record_action(action, actor="system", ids=ids, reason=reason,
+                              undo_payload=undo, allowed=True)
 
 
 class SyncEngine:
