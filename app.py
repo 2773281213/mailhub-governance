@@ -22,6 +22,7 @@ import ai
 import billing
 import governance
 import mail_client
+import message_ops
 import notify
 import oauth_auth
 import policy
@@ -737,20 +738,8 @@ async def list_messages(category: str = "", account: int = 0, unread: int = -1,
 # ---------- 已读状态双向同步：本地改动登记 ----------
 
 def _register_flag_push(conn, ids: list[int], flag: int) -> list[int]:
-    """登记「待写回服务器的已读状态」，返回涉及的账户 id（去重、升序）。
-
-    flag：1 = 下次同步要把这些邮件在服务器上标为已读（本地同时置已读），
-    -1 = 标为未读（本地同时置未读）。调用方负责只传入状态确实发生变化的邮件，
-    返回的账户 id 供调用方逐个触发同步。
-    """
-    if not ids:
-        return []
-    ph = ",".join("?" * len(ids))
-    conn.execute(f"UPDATE messages SET unread=?, flag_push=? WHERE id IN ({ph})",
-                 [0 if flag > 0 else 1, 1 if flag > 0 else -1] + list(ids))
-    rows = conn.execute(
-        f"SELECT DISTINCT account_id FROM messages WHERE id IN ({ph})", list(ids)).fetchall()
-    return sorted({int(r["account_id"]) for r in rows})
+    """登记「待写回服务器的已读状态」；实现见 message_ops.register_flag_push。"""
+    return message_ops.register_flag_push(conn, ids, flag)
 
 
 def _trigger_read_state_sync(account_ids: list[int]):
@@ -915,13 +904,8 @@ def _server_op(ids: list[int], action: str) -> tuple[list[int], list[str]]:
 
 
 def _load_for_policy(conn, ids: list[int]) -> list[dict]:
-    if not ids:
-        return []
-    ph = ",".join("?" * len(ids))
-    rows = conn.execute(
-        f"""SELECT id, category, bill_tier, has_attach, importance, sender_addr, unread, deleted_ts
-            FROM messages WHERE deleted_ts=0 AND id IN ({ph})""", ids).fetchall()
-    return [dict(r) for r in rows]
+    """只取策略引擎要看的列；回收站里的邮件不算。"""
+    return message_ops.load_for_policy(conn, ids)
 
 
 @app.post("/api/messages/batch")
@@ -942,17 +926,11 @@ async def batch_messages(body: BatchBody):
     override = body.override_protection and len(set(ids)) == 1
 
     msgs = _load_for_policy(conn, ids)
-    blocked, allowed_ids = [], []
-    for m in msgs:
-        ok, _tier, reason = policy.evaluate(
-            action, m, actor="user", confirmed=body.confirmed,
-            override_protection=override)
-        if ok:
-            allowed_ids.append(m["id"])
-        else:
-            blocked.append({"id": m["id"], "reason": reason,
-                            "protected": action in policy.DESTRUCTIVE_ACTIONS
-                            and policy.is_protected(m)[0]})
+    # 逐封过安全策略；被拦截的进响应，放行的继续往下执行
+    allowed_rows, blocked = message_ops.gate(
+        action, msgs, actor="user", confirmed=body.confirmed,
+        override_protection=override)
+    allowed_ids = [m["id"] for m in allowed_rows]
 
     if not allowed_ids:
         first = blocked[0]["reason"] if blocked else "无可执行目标"
@@ -966,17 +944,13 @@ async def batch_messages(body: BatchBody):
     push_accounts: list[int] = []
     read_state_on = sync.read_state_sync_enabled()
     if action == "purge":
-        # 不可逆：先在服务器删，再从本地移除，审计记录标注不可撤销
+        # 不可逆：先在服务器删，再按服务器确认成功的 id 移除本地行
         succeeded, errors = await asyncio.to_thread(_server_op, allowed_ids, "delete")
-        allowed_ids = succeeded
-        if allowed_ids:
-            ph = ",".join("?" * len(allowed_ids))
-            conn.execute(f"DELETE FROM messages WHERE id IN ({ph})", allowed_ids)
+        allowed_ids, undo_payload = message_ops.finish_removal(
+            conn, "purge", allowed_ids, server_confirmed=succeeded)
     elif action == "soft_delete":
-        ph = ",".join("?" * len(allowed_ids))
-        conn.execute(f"UPDATE messages SET deleted_ts=? WHERE id IN ({ph})",
-                     [time.time()] + allowed_ids)
-        undo_payload = {"ids": allowed_ids}
+        allowed_ids, undo_payload = message_ops.finish_removal(
+            conn, "soft_delete", allowed_ids)
     elif action in ("read", "unread"):
         if body.server:
             succeeded, errors = await asyncio.to_thread(_server_op, allowed_ids, body.action)
@@ -1016,11 +990,8 @@ async def batch_messages(body: BatchBody):
     # 全部失败时没有发生任何同步，不能写成已同步
     if action in ("read", "unread") and body.server and allowed_ids:
         reason += "；已同步到邮件服务器，撤销只能恢复本地状态，因此不提供撤销"
-    audit_id = audit(action, actor="user", tier=policy.ACTION_TIER.get(action, "C"),
-                     target_ids=allowed_ids,
-                     allowed=bool(allowed_ids),
-                     reason=reason,
-                     reversible=undo_payload is not None, undo_payload=undo_payload)
+    audit_id = message_ops.record_action(action, actor="user", ids=allowed_ids,
+                                        reason=reason, undo_payload=undo_payload)
     return {"ok": not errors, "count": len(allowed_ids), "blocked": blocked,
             "errors": errors, "audit_id": audit_id,
             "reversible": undo_payload is not None}
@@ -1057,11 +1028,11 @@ async def clean_messages(body: CleanBody):
     # 逐封过受保护判定（例如带附件的验证码邮件也会被挡下）
     action = "purge" if body.server else "soft_delete"
     msgs = _load_for_policy(conn, candidate)
-    ids, blocked = [], []
-    for m in msgs:
-        allowed, _tier, reason = policy.evaluate(
-            action, m, actor="user", confirmed=body.confirmed)
-        (ids.append(m["id"]) if allowed else blocked.append({"id": m["id"], "reason": reason}))
+    allowed_rows, blocked = message_ops.gate(action, msgs, actor="user",
+                                            confirmed=body.confirmed)
+    ids = [m["id"] for m in allowed_rows]
+    # 这个入口的响应里每项拦截只有 id 和 reason，不带 protected
+    blocked = [{"id": b["id"], "reason": b["reason"]} for b in blocked]
 
     if not ids:
         audit_id = audit(action, actor="user", target_ids=candidate, allowed=False,
@@ -1070,23 +1041,19 @@ async def clean_messages(body: CleanBody):
                 "audit_id": audit_id}
 
     errors, undo_payload = [], None
-    ph = ",".join("?" * len(ids))
     if body.server:
         succeeded, errors = await asyncio.to_thread(_server_op, ids, "delete")
-        ids = succeeded
-        if ids:
-            ph = ",".join("?" * len(ids))
-            conn.execute(f"DELETE FROM messages WHERE id IN ({ph})", ids)
+        ids, undo_payload = message_ops.finish_removal(
+            conn, "purge", ids, server_confirmed=succeeded)
     else:
-        conn.execute(f"UPDATE messages SET deleted_ts=? WHERE id IN ({ph})", [time.time()] + ids)
-        undo_payload = {"ids": ids}
+        ids, undo_payload = message_ops.finish_removal(conn, "soft_delete", ids)
     conn.commit()
 
-    audit_id = audit(action, actor="user", tier=policy.ACTION_TIER.get(action, "C"),
-                     target_ids=ids, allowed=bool(ids),
-                     reason=(f"批量清理分类「{body.category}」；{len(errors)} 个账户执行失败"
-                             if errors else f"批量清理分类「{body.category}」"),
-                     reversible=undo_payload is not None, undo_payload=undo_payload)
+    audit_id = message_ops.record_action(
+        action, actor="user", ids=ids,
+        reason=(f"批量清理分类「{body.category}」；{len(errors)} 个账户执行失败"
+                if errors else f"批量清理分类「{body.category}」"),
+        undo_payload=undo_payload)
     return {"ok": not errors, "count": len(ids), "errors": errors, "blocked": blocked,
             "audit_id": audit_id, "reversible": undo_payload is not None}
 
@@ -1116,11 +1083,10 @@ async def restore_trash(body: IdsBody):
         return {"ok": True, "count": 0}
     ids = body.ids[:500]
     conn = get_conn()
-    ph = ",".join("?" * len(ids))
-    cur = conn.execute(f"UPDATE messages SET deleted_ts=0 WHERE id IN ({ph})", ids)
+    restored = message_ops.restore(conn, ids)
     conn.commit()
     audit("restore", actor="user", tier="A", target_ids=ids, reason="从回收站恢复")
-    return {"ok": True, "count": cur.rowcount}
+    return {"ok": True, "count": restored}
 
 
 @app.get("/api/audit")
@@ -1148,27 +1114,8 @@ async def undo_action(audit_id: int):
         raise HTTPException(status_code=400,
                             detail=f"动作「{row['action']}」不可撤销（已在邮箱服务器上永久生效）")
 
-    payload = json.loads(row["undo_payload"])
-    restored = 0
-    push_accounts: list[int] = []
-    if row["action"] == "soft_delete":
-        ids = payload.get("ids", [])[:2000]
-        if ids:
-            ph = ",".join("?" * len(ids))
-            restored = conn.execute(
-                f"UPDATE messages SET deleted_ts=0 WHERE id IN ({ph})", ids).rowcount
-    elif row["action"] in ("read", "unread"):
-        pairs = [(int(mid), int(prev)) for mid, prev in (payload.get("unread") or {}).items()]
-        for mid, prev in pairs:
-            restored += conn.execute(
-                "UPDATE messages SET unread=? WHERE id=?", (prev, mid)).rowcount
-        if pairs and sync.read_state_sync_enabled():
-            # 撤销把已读状态改了回来：按恢复后的状态登记待推送
-            # （恢复成未读就标 -1，恢复成已读就标 1）
-            for group, flag in (([mid for mid, prev in pairs if not prev], 1),
-                               ([mid for mid, prev in pairs if prev], -1)):
-                push_accounts += _register_flag_push(conn, group, flag)
-    conn.execute("UPDATE audit_log SET undone=1 WHERE id=?", (audit_id,))
+    restored, push_accounts = message_ops.undo(
+        conn, row, push_read_state=sync.read_state_sync_enabled())
     conn.commit()
     _trigger_read_state_sync(push_accounts)
     audit("undo", actor="user", tier="A", target_ids=[audit_id],
