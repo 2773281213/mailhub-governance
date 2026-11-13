@@ -116,10 +116,14 @@ def apply_server_action(message_ids: list[int], action: str) -> tuple[list[int],
     if not message_ids:
         return [], []
     conn = get_conn()
-    ph = ",".join("?" * len(message_ids))
-    rows = conn.execute(
-        f"SELECT id, account_id, uid FROM messages WHERE id IN ({ph})", list(message_ids)
-    ).fetchall()
+    # 分块查询：几万封邮件的 id 列表会超过 SQLite 一条语句的绑定参数上限。
+    # chunk_ids 去重升序后再分块，合并结果与单条 `id IN (...)` 相同（按 id 升序）。
+    rows: list = []
+    for chunk in message_ops.chunk_ids(message_ids):
+        ph = ",".join("?" * len(chunk))
+        rows.extend(conn.execute(
+            f"SELECT id, account_id, uid FROM messages WHERE id IN ({ph})", chunk
+        ).fetchall())
     by_acc: dict[int, list[tuple[int, int]]] = {}
     errors: list[str] = []
     for r in rows:

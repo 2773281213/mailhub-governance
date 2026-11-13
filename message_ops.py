@@ -17,16 +17,37 @@ import time
 import db
 import policy
 
+# SQLite 一条语句最多 32766 个绑定参数（本项目 SQLite 3.49.1 实测：32766 个可以，
+# 32767 个报 `too many SQL variables`）。几万封邮件放在一个 `id IN (...)` 里必然翻车，
+# 所以按这个块大小逐块执行。
+SQL_CHUNK = 500
+
+
+def chunk_ids(ids: list[int]):
+    """把 id 列表去重升序后按 SQL_CHUNK 分块，供 `id IN (...)` 逐块执行。
+
+    去重升序与原来的单条语句结果一致：SQLite 对 `id IN (...)` 按主键升序返回
+    每个匹配行，重复的 id 也只算一次。分块只把一条语句拆成几条，不改变事务边界，
+    commit 仍由调用方负责。
+    """
+    unique = sorted(set(ids))
+    for start in range(0, len(unique), SQL_CHUNK):
+        yield unique[start:start + SQL_CHUNK]
+
 
 def load_for_policy(conn, ids: list[int]) -> list[dict]:
-    """只取策略引擎要看的列；回收站里的邮件不算。"""
-    if not ids:
-        return []
-    ph = ",".join("?" * len(ids))
-    rows = conn.execute(
-        f"""SELECT id, category, bill_tier, has_attach, importance, sender_addr, unread, deleted_ts
-            FROM messages WHERE deleted_ts=0 AND id IN ({ph})""", ids).fetchall()
-    return [dict(r) for r in rows]
+    """只取策略引擎要看的列；回收站里的邮件不算。
+
+    分块查询后按块顺序合并：块内按 id 升序、块与块之间也是升序，
+    因此合并结果与单条 `id IN (...)` 查询相同（按 id 升序，重复 id 只返回一行）。
+    """
+    rows: list[dict] = []
+    for chunk in chunk_ids(ids):
+        ph = ",".join("?" * len(chunk))
+        rows.extend(dict(r) for r in conn.execute(
+            f"""SELECT id, category, bill_tier, has_attach, importance, sender_addr, unread, deleted_ts
+                FROM messages WHERE deleted_ts=0 AND id IN ({ph})""", chunk).fetchall())
+    return rows
 
 
 def register_flag_push(conn, ids: list[int], flag: int) -> list[int]:
@@ -38,12 +59,17 @@ def register_flag_push(conn, ids: list[int], flag: int) -> list[int]:
     """
     if not ids:
         return []
-    ph = ",".join("?" * len(ids))
-    conn.execute(f"UPDATE messages SET unread=?, flag_push=? WHERE id IN ({ph})",
-                 [0 if flag > 0 else 1, 1 if flag > 0 else -1] + list(ids))
-    rows = conn.execute(
-        f"SELECT DISTINCT account_id FROM messages WHERE id IN ({ph})", list(ids)).fetchall()
-    return sorted({int(r["account_id"]) for r in rows})
+    flag_unread, flag_push = (0, 1) if flag > 0 else (1, -1)
+    for chunk in chunk_ids(ids):
+        ph = ",".join("?" * len(chunk))
+        conn.execute(f"UPDATE messages SET unread=?, flag_push=? WHERE id IN ({ph})",
+                     [flag_unread, flag_push] + chunk)
+    accounts: set[int] = set()
+    for chunk in chunk_ids(ids):
+        ph = ",".join("?" * len(chunk))
+        accounts.update(int(r["account_id"]) for r in conn.execute(
+            f"SELECT DISTINCT account_id FROM messages WHERE id IN ({ph})", chunk).fetchall())
+    return sorted(accounts)
 
 
 def gate(action: str, msgs: list[dict], *, actor: str, confirmed: bool = False,
@@ -93,18 +119,19 @@ def finish_removal(conn, action: str, ids: list[int], *,
             raise ValueError(
                 "purge 必须传 server_confirmed：没有服务器确认的 id，拒绝删除本地邮件")
         targets = list(server_confirmed)
-        if targets:
-            ph = ",".join("?" * len(targets))
-            conn.execute(f"DELETE FROM messages WHERE id IN ({ph})", targets)
+        for chunk in chunk_ids(targets):
+            ph = ",".join("?" * len(chunk))
+            conn.execute(f"DELETE FROM messages WHERE id IN ({ph})", chunk)
         return targets, None
     if action == "soft_delete":
         targets = list(ids)
         if not targets:
             return targets, {"ids": targets}
         deleted_ts = time.time() if ts is None else ts
-        ph = ",".join("?" * len(targets))
-        conn.execute(f"UPDATE messages SET deleted_ts=? WHERE id IN ({ph})",
-                     [deleted_ts] + targets)
+        for chunk in chunk_ids(targets):
+            ph = ",".join("?" * len(chunk))
+            conn.execute(f"UPDATE messages SET deleted_ts=? WHERE id IN ({ph})",
+                         [deleted_ts] + chunk)
         return targets, {"ids": targets}
     raise ValueError(f"不支持的动作 {action}")
 
@@ -127,9 +154,12 @@ def restore(conn, ids: list[int]) -> int:
     """把回收站里的邮件放回收件箱，返回实际恢复的行数。不 commit，不写审计。"""
     if not ids:
         return 0
-    ph = ",".join("?" * len(ids))
-    return conn.execute(
-        f"UPDATE messages SET deleted_ts=0 WHERE id IN ({ph})", ids).rowcount
+    restored = 0
+    for chunk in chunk_ids(ids):
+        ph = ",".join("?" * len(chunk))
+        restored += conn.execute(
+            f"UPDATE messages SET deleted_ts=0 WHERE id IN ({ph})", chunk).rowcount
+    return restored
 
 
 def undo(conn, audit_row, *, push_read_state: bool) -> tuple[int, list[int]]:
@@ -145,10 +175,10 @@ def undo(conn, audit_row, *, push_read_state: bool) -> tuple[int, list[int]]:
     push_accounts: list[int] = []
     if audit_row["action"] == "soft_delete":
         ids = payload.get("ids", [])[:2000]
-        if ids:
-            ph = ",".join("?" * len(ids))
-            restored = conn.execute(
-                f"UPDATE messages SET deleted_ts=0 WHERE id IN ({ph})", ids).rowcount
+        for chunk in chunk_ids(ids):
+            ph = ",".join("?" * len(chunk))
+            restored += conn.execute(
+                f"UPDATE messages SET deleted_ts=0 WHERE id IN ({ph})", chunk).rowcount
     elif audit_row["action"] in ("read", "unread"):
         pairs = [(int(mid), int(prev)) for mid, prev in (payload.get("unread") or {}).items()]
         for mid, prev in pairs:
