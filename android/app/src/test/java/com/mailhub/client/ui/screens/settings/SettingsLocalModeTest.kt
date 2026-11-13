@@ -1,5 +1,6 @@
 package com.mailhub.client.ui.screens.settings
 
+import com.mailhub.client.data.model.Capabilities
 import com.mailhub.client.data.model.LoginResponse
 import com.mailhub.client.data.settings.PushTestResult
 import com.mailhub.client.data.settings.SettingsDto
@@ -60,7 +61,10 @@ class SettingsLocalModeTest {
         gateway: FakeSettingsGateway = FakeSettingsGateway(),
         localMode: Boolean = false,
     ): SettingsViewModel {
-        val viewModel = SettingsViewModel(gateway, localMode = localMode)
+        val viewModel = SettingsViewModel(
+            gateway,
+            capabilities = if (localMode) Capabilities.Local else Capabilities.Server,
+        )
         viewModel.onEnter()
         advanceUntilIdle()
         return viewModel

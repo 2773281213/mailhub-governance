@@ -7,6 +7,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.mailhub.client.data.model.Capabilities
 import com.mailhub.client.data.security.SecurityRepository
 import com.mailhub.client.data.session.SessionManager
 
@@ -15,8 +16,8 @@ import com.mailhub.client.data.session.SessionManager
  * 路由与页头由外壳负责，这里只渲染主体。
  *
  * [onOpenMessage] 由外壳压栈打开详情。
- * [localMode] 由外壳按 `LoggedIn.session.isLocal` 传入：本机模式没有「已登录设备」，
- * 也不会去请求 `/api/sessions`。默认是服务器模式，页面与以前一样。
+ * [capabilities] 由外壳按会话模式与 `/api/meta` 算出：没有「已登录设备」时这一块不显示，
+ * 也不会去请求 `/api/sessions`。默认全部可用，页面与以前一样。
  * [header] 原样透传给主体，作为滚动内容的第一项。
  */
 @Composable
@@ -25,13 +26,13 @@ fun SecurityScreenHost(
     zoneId: String,
     modifier: Modifier = Modifier,
     categories: List<String> = emptyList(),
-    localMode: Boolean = false,
+    capabilities: Capabilities = Capabilities.Server,
     onOpenMessage: (Long) -> Unit = {},
     header: @Composable () -> Unit = {},
 ) {
     val repository = remember(sessionManager) { SecurityRepository(sessionManager) }
     val viewModel: SecurityViewModel = viewModel(
-        factory = SecurityViewModelFactory(securityGatewayOf(repository), localMode = localMode),
+        factory = SecurityViewModelFactory(securityGatewayOf(repository), capabilities = capabilities),
     )
     val state by viewModel.state.collectAsStateWithLifecycle()
     LaunchedEffect(viewModel) {

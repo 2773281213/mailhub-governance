@@ -1,5 +1,6 @@
 package com.mailhub.client.ui.screens.settings
 
+import com.mailhub.client.data.model.Capabilities
 import com.mailhub.client.data.settings.AiScopeAll
 import com.mailhub.client.data.settings.AiScopeOther
 import com.mailhub.client.data.settings.AiScopeUncertain
@@ -253,19 +254,25 @@ data class SettingsUiState(
     /** 正在等确认打开 clean_server。 */
     val confirmingCleanServer: Boolean = false,
     /**
-     * 本机模式（`LOCAL_MODE.md` 第二节）：治理与 AI、推送、清理与晨报、管理密码在 P1 之前
-     * 要么被本机后端拒绝，要么不生效，所以整块不显示，只留「同步」。
+     * 这次会话有哪些功能，在 ViewModel 创建时取好、之后不变。
+     * 本机模式（`LOCAL_MODE.md` 第二节）在 P1 之前只留下「同步」。
      */
-    val localMode: Boolean = false,
+    val capabilities: Capabilities = Capabilities.Server,
 ) {
     /**
-     * 实际显示的区块：本机模式只有「同步」；服务器模式在后端没返回 sync_read_state 时
-     * 隐藏「同步」。
+     * 实际显示的区块：按能力表逐项取舍；「同步」另外按后端的返回值探测 ——
+     * 没返回 sync_read_state 时隐藏整块。
      */
     val sections: List<SettingsSection>
         get() = SettingsSection.entries.filter { section ->
-            val modeVisible = if (localMode) section == SettingsSection.Sync else true
-            modeVisible && (section != SettingsSection.Sync || saved?.syncReadState != null)
+            val capabilityVisible = when (section) {
+                SettingsSection.Ai -> capabilities.aiSettings
+                SettingsSection.Push -> capabilities.pushSettings
+                SettingsSection.Cleanup -> capabilities.cleanupSettings
+                SettingsSection.Sync -> true
+                SettingsSection.Password -> capabilities.adminPassword
+            }
+            capabilityVisible && (section != SettingsSection.Sync || saved?.syncReadState != null)
         }
 
     /** 区块编号 01 02 …，按实际显示的顺序；只剩一块时也是 01。 */

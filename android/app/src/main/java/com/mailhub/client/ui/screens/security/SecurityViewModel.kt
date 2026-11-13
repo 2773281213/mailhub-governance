@@ -3,6 +3,7 @@ package com.mailhub.client.ui.screens.security
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.mailhub.client.data.model.Capabilities
 import com.mailhub.client.data.security.DeviceSession
 import com.mailhub.client.data.security.TrashItem
 import com.mailhub.client.ui.screens.common.apiErrorText
@@ -18,15 +19,15 @@ import kotlinx.coroutines.launch
  * - 吊销单台设备、退出其他所有设备都必须先经过确认面板；
  * - 本机不提供吊销；
  * - 退出其他所有设备后用返回的新令牌原地换会话；
- * - [localMode] 是本机会话时没有「已登录设备」这一块，也不会去请求 `/api/sessions`
- *   （见 [SecurityUiState.sections]）。
+ * - [capabilities] 决定有没有「已登录设备」这一块，也就决定会不会去请求
+ *   `/api/sessions`（见 [SecurityUiState.sections]）；它在创建时取好，运行期间不会改变。
  */
 class SecurityViewModel(
     private val gateway: SecurityGateway,
-    localMode: Boolean = false,
+    capabilities: Capabilities = Capabilities.Server,
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(SecurityUiState(localMode = localMode))
+    private val _state = MutableStateFlow(SecurityUiState(capabilities = capabilities))
     val state: StateFlow<SecurityUiState> = _state.asStateFlow()
 
     /** 页面每次进入都重新拉当前模式下可见的块：安全信息要新鲜。 */
@@ -63,7 +64,7 @@ class SecurityViewModel(
     }
 
     private fun load(section: SecuritySection) {
-        // 本机模式没有「已登录设备」：重试请求也不能把它拉回来
+        // 能力表里没有「已登录设备」：重试请求也不能把它拉回来
         if (section !in _state.value.sections) return
         when (section) {
             SecuritySection.Review -> refresh(section, { it.review }, { s, v -> s.copy(review = v) }) {
@@ -256,11 +257,11 @@ class SecurityViewModel(
 /** 手工工厂：宿主用页面自己的 Repository 组装网关。 */
 class SecurityViewModelFactory(
     private val gateway: SecurityGateway,
-    private val localMode: Boolean = false,
+    private val capabilities: Capabilities = Capabilities.Server,
 ) : ViewModelProvider.Factory {
 
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         @Suppress("UNCHECKED_CAST")
-        return SecurityViewModel(gateway, localMode) as T
+        return SecurityViewModel(gateway, capabilities) as T
     }
 }

@@ -12,6 +12,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.Density
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.mailhub.client.data.model.Capabilities
 import com.mailhub.client.ui.screens.common.LocalMailNow
 import com.mailhub.client.ui.screens.login.LoginScreen
 import com.mailhub.client.ui.screens.login.LoginUiState
@@ -84,7 +85,7 @@ class LocalModeScreenshotTest {
     @Config(qualifiers = "w360dp-h900dp-xxhdpi")
     fun settingsLocalLightW360() {
         capture("settings_local_light_w360") {
-            SettingsBody(state = settingsFixtureState().copy(localMode = true), onEvent = {})
+            SettingsBody(state = settingsFixtureState().copy(capabilities = Capabilities.Local), onEvent = {})
         }
         // 只有「同步」一块：编号 01，其余四块一个字都不出现
         composeRule.onNodeWithText("同步").assertExists()
@@ -99,7 +100,7 @@ class LocalModeScreenshotTest {
     fun securityLocalLightW360() {
         capture("security_local_light_w360") {
             SecurityBody(
-                state = securityFixtureState().copy(localMode = true),
+                state = securityFixtureState().copy(capabilities = Capabilities.Local),
                 zoneId = SecurityFixtureZone,
                 categories = SecurityFixtureCategories,
                 onEvent = {},

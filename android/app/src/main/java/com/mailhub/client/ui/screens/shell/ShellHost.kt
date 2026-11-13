@@ -28,6 +28,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mailhub.client.AppContainer
 import com.mailhub.client.data.local.isLocal
+import com.mailhub.client.data.model.Capabilities
+import com.mailhub.client.data.model.capabilitiesOf
 import com.mailhub.client.data.session.SessionState
 import com.mailhub.client.ui.screens.accounts.AccountsScreenHost
 import com.mailhub.client.ui.screens.accounts.AddAccountScreenHost
@@ -130,6 +132,7 @@ private fun ShellContent(
     // 会话状态决定按模式分支的页面：本机会话隐藏「已登录设备」、只留「同步」，退出确认也换文案
     val session by container.sessionState.collectAsStateWithLifecycle()
     val localMode = (session as? SessionState.LoggedIn)?.session?.isLocal == true
+    val capabilities = capabilitiesOf(isLocal = localMode, meta = meta)
     // 收件箱和详情共用一个收件箱 ViewModel：详情返回时那一行的已读状态和删除结果直接写回列表
     val inboxViewModel: InboxViewModel = viewModel(
         factory = InboxViewModelFactory(container.mailRepository),
@@ -228,7 +231,7 @@ private fun ShellContent(
                     header = header,
                     meta = pageMeta,
                     categories = meta?.displayCategories.orEmpty(),
-                    localMode = localMode,
+                    capabilities = capabilities,
                     selectedTab = tabIndexFor(stack),
                     onSelectTab = viewModel::selectTab,
                     onOpenIndex = viewModel::openIndex,
@@ -277,7 +280,7 @@ private fun ShellContent(
                     SettingsScreenHost(
                         sessionManager = container.sessionManager,
                         modifier = Modifier.fillMaxSize(),
-                        localMode = localMode,
+                        capabilities = capabilities,
                         header = { PageTitle(text = header.title) },
                     )
                 }
@@ -308,7 +311,7 @@ private fun SecurityPage(
     header: PageHeader,
     meta: PageMeta,
     categories: List<String>,
-    localMode: Boolean,
+    capabilities: Capabilities,
     selectedTab: Int,
     onSelectTab: (Int) -> Unit,
     onOpenIndex: () -> Unit,
@@ -330,7 +333,7 @@ private fun SecurityPage(
             sessionManager = container.sessionManager,
             zoneId = meta.zoneId,
             categories = categories,
-            localMode = localMode,
+            capabilities = capabilities,
             onOpenMessage = onOpenMessage,
             modifier = Modifier.fillMaxSize(),
             header = { PageTitle(text = header.title) },

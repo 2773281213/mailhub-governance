@@ -1,5 +1,6 @@
 package com.mailhub.client.ui.screens.security
 
+import com.mailhub.client.data.model.Capabilities
 import com.mailhub.client.data.model.senderLabel
 import com.mailhub.client.data.security.AuditEntry
 import com.mailhub.client.data.security.DeviceSession
@@ -61,14 +62,17 @@ data class SecurityUiState(
     /** 各区块最近一次操作的结果，显示在该区块末尾。 */
     val notices: Map<SecuritySection, String> = emptyMap(),
     /**
-     * 本机模式（`LOCAL_MODE.md` 附录 A）：没有其他设备，也没有可吊销的会话，
+     * 这次会话有哪些功能，在 ViewModel 创建时取好、之后不变。
+     * 本机模式（`LOCAL_MODE.md` 附录 A）没有其他设备，也没有可吊销的会话，
      * 所以「已登录设备」整块不显示，也不发 `/api/sessions`。
      */
-    val localMode: Boolean = false,
+    val capabilities: Capabilities = Capabilities.Server,
 ) {
-    /** 实际显示的区块：本机模式没有「已登录设备」，其余三块不变。 */
+    /** 实际显示的区块：能力表里没有「已登录设备」时去掉这一块，其余三块不变。 */
     val sections: List<SecuritySection>
-        get() = SecuritySection.entries.filter { !localMode || it != SecuritySection.Devices }
+        get() = SecuritySection.entries.filter {
+            it != SecuritySection.Devices || capabilities.deviceSessions
+        }
 }
 
 sealed interface SecurityEvent {

@@ -1,5 +1,6 @@
 package com.mailhub.client.ui.screens.security
 
+import com.mailhub.client.data.model.Capabilities
 import com.mailhub.client.data.security.AuditPage
 import com.mailhub.client.data.security.DeviceSession
 import com.mailhub.client.data.security.RestoreResult
@@ -80,7 +81,10 @@ class SecurityLocalModeTest {
         gateway: FakeSecurityGateway = FakeSecurityGateway(),
         localMode: Boolean = false,
     ): SecurityViewModel {
-        val viewModel = SecurityViewModel(gateway, localMode = localMode)
+        val viewModel = SecurityViewModel(
+            gateway,
+            capabilities = if (localMode) Capabilities.Local else Capabilities.Server,
+        )
         viewModel.onEnter()
         advanceUntilIdle()
         return viewModel
