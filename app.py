@@ -224,11 +224,8 @@ class LoginBody(BaseModel):
 
 def _token_payload(token: str) -> dict:
     """按令牌生成移动端需要的会话信息：登录、退出所有设备、改密码三处共用。"""
-    row = get_conn().execute(
-        "SELECT expires_ts FROM sessions WHERE id_hash=?",
-        (sessions._hash(token),)
-    ).fetchone()
-    expires_ts = row["expires_ts"] if row else time.time() + sessions.SESSION_TTL
+    info = sessions.describe(token)
+    expires_ts = info["expires_ts"] if info else time.time() + sessions.SESSION_TTL
     return {
         "token": token,
         "session_id": sessions.session_id(token),
@@ -283,14 +280,10 @@ async def revoke_all_sessions(response: Response, request: Request = None):
     """退出所有设备：吊销全部会话，再给当前设备签发一个新会话。"""
     token, source = _request_token(request)
     orig_client, orig_label = "web", ""
-    if token:
-        row = get_conn().execute(
-            "SELECT client, label FROM sessions WHERE id_hash=?",
-            (sessions._hash(token),)
-        ).fetchone()
-        if row:
-            orig_client = row["client"] or "web"
-            orig_label = row["label"] or ""
+    info = sessions.describe(token)
+    if info:
+        orig_client = info["client"]
+        orig_label = info["label"]
     count = sessions.revoke_all_sessions()
     if source == "bearer":
         new_token = sessions.create_session(client=orig_client, label=orig_label)
@@ -813,11 +806,12 @@ def _changes_sync(after_id: int = 0, limit: int = 50):
         return {"items": [], "cursor": max_id, "reset": True}
     # 屏障：还没治理完的新邮件先挡住它和它之后的邮件，避免客户端看到待定级的旧标签。
     # 超过 1 小时仍未治理的邮件不再挡路，治理任务挂掉也不会让通知永久卡住。
+    pending_sql, pending_args = governance.pending_clause(now)
     barrier_row = conn.execute(
         f"""SELECT MIN(m.id) AS b FROM messages m
             WHERE m.id > ? AND m.deleted_ts=0 AND m.created_ts >= ?
-              AND {governance._PENDING_SQL}""",
-        (after_id, now - 3600, governance.VERSION, now),
+              AND {pending_sql}""",
+        [after_id, now - 3600, *pending_args],
     ).fetchone()
     barrier = barrier_row["b"] if barrier_row and barrier_row["b"] is not None else 0
     cond, args = "m.id > ? AND m.deleted_ts=0", [after_id]
@@ -1574,14 +1568,10 @@ async def put_settings(body: SettingsBody, request: Request = None):
         # 改密码让所有旧会话失效，当前设备换发新会话继续使用
         token, source = _request_token(request)
         orig_client, orig_label = "web", ""
-        if token:
-            row = get_conn().execute(
-                "SELECT client, label FROM sessions WHERE id_hash=?",
-                (sessions._hash(token),)
-            ).fetchone()
-            if row:
-                orig_client = row["client"] or "web"
-                orig_label = row["label"] or ""
+        info = sessions.describe(token)
+        if info:
+            orig_client = info["client"]
+            orig_label = info["label"]
         count = sessions.revoke_all_sessions()
         new_session = sessions.create_session(client=orig_client, label=orig_label)
         audit("change_password", actor="user", tier="A",

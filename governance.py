@@ -524,6 +524,11 @@ _PENDING_SQL = ("(COALESCE(m.governance_version,'') != ? OR m.needs_review=1"
                 " OR (m.ai_retry_ts > 0 AND m.ai_retry_ts <= ?))")
 
 
+def pending_clause(now: float) -> tuple[str, list]:
+    """「待治理」的 SQL 条件和它的参数。片段里的表别名固定是 m。"""
+    return _PENDING_SQL, [VERSION, now]
+
+
 def _select_ids(conn, *, limit: int, force: bool, now: float, since_ts: float = 0) -> list[int]:
     where = "m.deleted_ts=0"
     args: list = []
@@ -532,8 +537,9 @@ def _select_ids(conn, *, limit: int, force: bool, now: float, since_ts: float = 
         where += " AND m.date_ts >= ?"
         args.append(since_ts)
     elif not force:
-        where += " AND " + _PENDING_SQL
-        args += [VERSION, now]
+        clause, clause_args = pending_clause(now)
+        where += " AND " + clause
+        args += clause_args
     sql = f"SELECT m.id FROM messages m WHERE {where} ORDER BY m.date_ts DESC, m.id DESC"
     if limit > 0:
         sql += " LIMIT ?"
@@ -796,9 +802,10 @@ def run_governance(*, limit: int = 0, force: bool = False, trigger: str = "syste
 def governance_status() -> dict:
     """返回最近运行和待治理数量，供一键入口展示。"""
     conn = get_conn()
+    clause, clause_args = pending_clause(time.time())
     pending = conn.execute(
-        f"SELECT COUNT(*) AS c FROM messages m WHERE m.deleted_ts=0 AND {_PENDING_SQL}",
-        (VERSION, time.time()),
+        f"SELECT COUNT(*) AS c FROM messages m WHERE m.deleted_ts=0 AND {clause}",
+        clause_args,
     ).fetchone()["c"]
     row = conn.execute(
         "SELECT * FROM governance_runs ORDER BY id DESC LIMIT 1"

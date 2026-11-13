@@ -55,6 +55,23 @@ def verify_session(token: str | None) -> bool:
     return True
 
 
+def describe(token: str | None) -> dict | None:
+    """按令牌返回会话摘要 {"client", "label", "expires_ts"}；令牌为空或查不到返回 None。"""
+    if not token:
+        return None
+    row = get_conn().execute(
+        "SELECT client, label, expires_ts FROM sessions WHERE id_hash=?",
+        (_hash(token),)
+    ).fetchone()
+    if not row:
+        return None
+    return {
+        "client": row["client"] or "web",
+        "label": row["label"] or "",
+        "expires_ts": row["expires_ts"],
+    }
+
+
 def list_sessions(current_token: str | None) -> list[dict]:
     now = time.time()
     conn = get_conn()
