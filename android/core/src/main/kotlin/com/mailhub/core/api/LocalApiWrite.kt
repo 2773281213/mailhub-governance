@@ -15,10 +15,7 @@ import com.mailhub.core.text.PyRegex
 import com.mailhub.core.text.cpSlice
 import com.mailhub.core.text.pyStrip
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 import java.util.Locale
 import java.util.logging.Logger
@@ -47,9 +44,6 @@ private const val DUPLICATE_ACCOUNT = "这个邮箱已经添加过了，请在�
 
 /** 批量接口一次最多处理多少封，对应 `body.ids[:500]`。 */
 private const val BATCH_MAX_IDS = 500
-
-/** 撤销软删除时最多恢复多少封，对应 `payload.get("ids", [])[:2000]`。 */
-private const val UNDO_MAX_IDS = 2000
 
 /** `/api/accounts` 的请求体字段，对应 `AccountBody`。 */
 private val ACCOUNT_FIELDS: List<BodyField> = listOf(
@@ -470,19 +464,6 @@ internal fun LocalApi.syncAllRoute(call: Call): JsonElement {
 
 // ---------------- 批量操作 ----------------
 
-/** 对应 `_load_for_policy`：只取策略引擎要看的列，回收站里的邮件不算。 */
-private fun LocalApi.loadForPolicy(ids: List<Long>): List<Map<String, Any?>> {
-    if (ids.isEmpty()) {
-        return emptyList()
-    }
-    val placeholders = ids.joinToString(",") { "?" }
-    return db.query(
-        """SELECT id, category, bill_tier, has_attach, importance, sender_addr, unread, deleted_ts
-           FROM messages WHERE deleted_ts=0 AND id IN ($placeholders)""",
-        *ids.toTypedArray(),
-    ).map { it.toMap() }
-}
-
 /**
  * 对应 `batch_messages`：批量已读 / 未读 / 删除。
  *
@@ -510,28 +491,16 @@ internal fun LocalApi.batchMessagesRoute(call: Call): JsonElement {
     val confirmed = body.bool("confirmed")
     val server = body.bool("server")
     val override = body.bool("override_protection") && ids.toSet().size == 1
-    val messages = loadForPolicy(ids)
-    val blocked = ArrayList<Map<String, Any?>>(messages.size)
-    var allowedIds = ArrayList<Long>(messages.size)
-    for (message in messages) {
-        val decision = Policy.evaluate(
-            action,
-            message,
-            actor = "user",
-            confirmed = confirmed,
-            overrideProtection = override,
-        )
-        val id = (message["id"] as? Number)?.toLong() ?: continue
-        if (decision.allowed) {
-            allowedIds += id
-        } else {
-            blocked += linkedMapOf<String, Any?>(
-                "id" to id,
-                "reason" to decision.reason,
-                "protected" to (action in Policy.DESTRUCTIVE_ACTIONS && Policy.isProtected(message).protected),
-            )
-        }
-    }
+    val messages = MessageOps.loadForPolicy(db, ids)
+    // 逐封过安全策略；被拦截的进响应，放行的继续往下执行（对应 message_ops.gate）
+    val (allowedRows, blocked) = MessageOps.gate(
+        action,
+        messages,
+        actor = "user",
+        confirmed = confirmed,
+        overrideProtection = override,
+    )
+    var allowedIds: List<Long> = allowedRows.mapNotNull { (it["id"] as? Number)?.toLong() }
     if (allowedIds.isEmpty()) {
         val first = blocked.firstOrNull()?.get("reason") as? String ?: "无可执行目标"
         db.audit(action, actor = "user", targetIds = ids, allowed = false, reason = first)
@@ -554,28 +523,32 @@ internal fun LocalApi.batchMessagesRoute(call: Call): JsonElement {
         server -> body.str("action")
         else -> null
     }
+    var serverConfirmed: List<Long>? = null
     if (serverAction != null) {
         val result = sync.applyServerAction(allowedIds, serverAction)
         errors = result.errors
-        allowedIds = ArrayList(result.succeeded)
+        serverConfirmed = result.succeeded
+        allowedIds = result.succeeded
     }
     db.transaction {
         when (action) {
             "purge" -> {
-                // 不可逆：从本地移除，审计标注不可撤销
-                if (allowedIds.isNotEmpty()) {
-                    db.execute(
-                        "DELETE FROM messages WHERE id IN (${allowedIds.joinToString(",") { "?" }})",
-                        *allowedIds.toTypedArray(),
-                    )
-                }
+                // 不可逆：只有服务器确认成功的那些才从本地移除。没拿到确认时 [MessageOps.finishRemoval]
+                // 直接抛异常，本地一行都不会动（`LOCAL_MODE.md` 第四节规则 8）
+                val removal = MessageOps.finishRemoval(
+                    db,
+                    clock,
+                    "purge",
+                    allowedIds,
+                    serverConfirmed = serverConfirmed,
+                )
+                allowedIds = removal.first
+                undoPayload = removal.second
             }
             "soft_delete" -> {
-                db.execute(
-                    "UPDATE messages SET deleted_ts=? WHERE id IN (${allowedIds.joinToString(",") { "?" }})",
-                    *listOf<Any?>(clock.now()).plus(allowedIds).toTypedArray(),
-                )
-                undoPayload = linkedMapOf<String, Any?>("ids" to allowedIds)
+                val removal = MessageOps.finishRemoval(db, clock, "soft_delete", allowedIds)
+                allowedIds = removal.first
+                undoPayload = removal.second
             }
             else -> {
                 if (allowedIds.isNotEmpty()) {
@@ -638,14 +611,12 @@ internal fun LocalApi.batchMessagesRoute(call: Call): JsonElement {
     if (action != "purge" && action != "soft_delete" && server && allowedIds.isNotEmpty()) {
         reason += "；已同步到邮件服务器，撤销只能恢复本地状态，因此不提供撤销"
     }
-    val auditId = db.audit(
+    val auditId = MessageOps.recordAction(
+        db,
         action,
         actor = "user",
-        tier = Policy.ACTION_TIER[action] ?: Policy.TIER_CONFIRM,
-        targetIds = allowedIds,
-        allowed = allowedIds.isNotEmpty(),
+        ids = allowedIds,
         reason = reason,
-        reversible = undoPayload != null,
         undoPayload = undoPayload,
     )
     return jsonOf(
@@ -669,12 +640,9 @@ internal fun LocalApi.restoreTrashRoute(call: Call): JsonElement {
         return jsonOf(linkedMapOf<String, Any?>("ok" to true, "count" to 0L))
     }
     val ids = requestedIds.take(BATCH_MAX_IDS)
-    val result = db.execute(
-        "UPDATE messages SET deleted_ts=0 WHERE id IN (${ids.joinToString(",") { "?" }})",
-        *ids.toTypedArray(),
-    )
+    val restored = MessageOps.restore(db, ids)
     db.audit("restore", actor = "user", tier = "A", targetIds = ids, reason = "从回收站恢复")
-    return jsonOf(linkedMapOf<String, Any?>("ok" to true, "count" to result.changes))
+    return jsonOf(linkedMapOf<String, Any?>("ok" to true, "count" to restored))
 }
 
 /**
@@ -699,50 +667,12 @@ internal fun LocalApi.undoActionRoute(call: Call): JsonElement {
     } catch (error: IllegalArgumentException) {
         throw ApiException(500, "撤销载荷无法解析")
     }
-    var restored = 0L
-    var pushAccounts: List<Int> = emptyList()
-    db.transaction {
-        when (row.str("action")) {
-            "soft_delete" -> {
-                val ids = (payload["ids"] as? kotlinx.serialization.json.JsonArray)
-                    ?.mapNotNull { (it as? JsonPrimitive)?.content?.toLongOrNull() }
-                    ?.take(UNDO_MAX_IDS)
-                    ?: emptyList()
-                if (ids.isNotEmpty()) {
-                    restored += db.execute(
-                        "UPDATE messages SET deleted_ts=0 WHERE id IN (${ids.joinToString(",") { "?" }})",
-                        *ids.toTypedArray(),
-                    ).changes
-                }
-            }
-            "read", "unread" -> {
-                val pairs = ArrayList<Pair<Long, Long>>()
-                val unread = payload["unread"] as? JsonObject
-                if (unread != null) {
-                    for ((key, value) in unread) {
-                        val id = Py.int(key)?.toLong() ?: continue
-                        val prev = (value as? JsonPrimitive)?.content?.let { Py.int(it)?.toLong() } ?: continue
-                        pairs += id to prev
-                    }
-                }
-                for ((id, prev) in pairs) {
-                    restored += db.execute(
-                        "UPDATE messages SET unread=? WHERE id=?",
-                        prev,
-                        id,
-                    ).changes
-                }
-                if (pairs.isNotEmpty() && readStateSyncEnabled()) {
-                    // 撤销把已读状态改了回来：按恢复后的状态登记待推送
-                    val toUnread = pairs.filter { it.second == 0L }.map { it.first }
-                    val toRead = pairs.filter { it.second != 0L }.map { it.first }
-                    pushAccounts = registerFlagPush(toUnread, 1) + registerFlagPush(toRead, -1)
-                }
-            }
-        }
-        db.execute("UPDATE audit_log SET undone=1 WHERE id=?", auditId)
+    // 撤销的 SQL 全部在 MessageOps.undo 里，事务边界仍由这里掌握（与 Python 的一次 commit 对应）
+    val undone = db.transaction {
+        MessageOps.undo(db, row, payload, pushReadState = readStateSyncEnabled())
     }
-    for (accountId in pushAccounts.distinct().sorted()) {
+    val restored = undone.first
+    for (accountId in undone.second.distinct().sorted()) {
         sync.triggerAccount(accountId)
     }
     db.audit(

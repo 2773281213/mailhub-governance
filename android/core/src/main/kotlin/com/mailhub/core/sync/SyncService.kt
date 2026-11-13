@@ -3,6 +3,7 @@ package com.mailhub.core.sync
 import com.mailhub.core.Clock
 import com.mailhub.core.SecretCipher
 import com.mailhub.core.SystemClock
+import com.mailhub.core.api.MessageOps
 import com.mailhub.core.billing.Billing
 import com.mailhub.core.db.Db
 import com.mailhub.core.db.toJsonText
@@ -618,11 +619,16 @@ open class SyncService(
         if (messageIds.isEmpty()) {
             return ServerActionResult(emptyList(), emptyList())
         }
-        val placeholders = messageIds.joinToString(",") { "?" }
-        val rows = db.query(
-            "SELECT id, account_id, uid FROM messages WHERE id IN ($placeholders)",
-            *messageIds.toTypedArray(),
-        )
+        // 按 id 查邮件：分块执行后合并（对应 `sync.apply_server_action` 里同样分块的查询）。
+        // 块内按 id 升序、块与块之间也是升序，因此结果顺序与单条 `id IN (...)` 相同；
+        // 几万封邮件塞进一条语句会撞上 SQLite 的绑定参数上限，见 [MessageOps.chunkIds]。
+        val rows = MessageOps.chunkIds(messageIds).flatMap { chunk ->
+            db.query(
+                "SELECT id, account_id, uid FROM messages WHERE id IN " +
+                    "(${chunk.joinToString(",") { "?" }})",
+                *chunk.toTypedArray(),
+            )
+        }
         val byAccount = LinkedHashMap<Int, MutableList<Pair<Long, Long>>>()
         val errors = ArrayList<String>()
         for (row in rows) {

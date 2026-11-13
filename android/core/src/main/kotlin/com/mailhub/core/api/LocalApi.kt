@@ -925,24 +925,15 @@ class LocalApi(
     private fun aiEnabled(): Boolean = db.getSetting("ai_enabled", "0") == "1"
 
     /**
-     * 对应 `_register_flag_push`：登记「待写回服务器的已读状态」，返回涉及的账户 id（去重、升序）。
+     * 对应 `_register_flag_push`（Python 已改成 `message_ops.register_flag_push`）：
+     * 登记「待写回服务器的已读状态」，返回涉及的账户 id（去重、升序）。
      *
      * flag：1 = 下次同步要把这些邮件在服务器上标为已读（本地同时置已读），-1 = 标为未读。
      * 调用方负责只传入状态确实发生变化的邮件，并在事务里调用（与 Python 的一次 `commit()` 对应）。
+     * 实现见 [MessageOps.registerFlagPush]（按 [MessageOps.SQL_CHUNK] 分块）。
      */
-    internal fun registerFlagPush(ids: List<Long>, flag: Int): List<Int> {
-        if (ids.isEmpty()) return emptyList()
-        val placeholders = ids.joinToString(",") { "?" }
-        db.execute(
-            "UPDATE messages SET unread=?, flag_push=? WHERE id IN ($placeholders)",
-            *listOf<Any?>(if (flag > 0) 0 else 1, if (flag > 0) 1 else -1)
-                .plus(ids).toTypedArray(),
-        )
-        return db.query(
-            "SELECT DISTINCT account_id FROM messages WHERE id IN ($placeholders)",
-            *ids.toTypedArray(),
-        ).mapNotNull { it.int("account_id") }.toSortedSet().toList()
-    }
+    internal fun registerFlagPush(ids: List<Long>, flag: Int): List<Int> =
+        MessageOps.registerFlagPush(db, ids, flag)
 
     /** 对应 `get_setting(key, "") or 默认值`。 */
     private fun defaultedSetting(key: String, fallback: String): String =
