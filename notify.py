@@ -14,6 +14,7 @@ from urllib.parse import urlparse
 
 import httpx
 
+import settings_schema
 from db import get_conn, get_setting
 from security import decrypt, encrypt
 
@@ -45,10 +46,10 @@ def _cfg() -> dict:
     return {
         "bark_url": _secret(BARK_SETTING, BARK_LEGACY_SETTING).rstrip("/"),
         "tg_token": _secret(TG_TOKEN_SETTING, TG_TOKEN_LEGACY_SETTING),
-        "tg_chat": get_setting("notify_tg_chat", ""),
+        "tg_chat": settings_schema.get_str("notify_tg_chat"),
         "onepush": decrypt(get_setting(ONEPUSH_SETTING, "")),
-        "important": get_setting("notify_important", "1") == "1",
-        "otp": get_setting("notify_otp", "0") == "1",
+        "important": settings_schema.get_bool("notify_important"),
+        "otp": settings_schema.get_bool("notify_otp"),
     }
 
 

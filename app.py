@@ -28,6 +28,7 @@ import oauth_auth
 import policy
 import providers
 import rules as rules_mod
+import settings_schema
 import sync
 from db import (audit, get_conn, get_setting, init_db, remove_external_api_settings,
                 set_setting)
@@ -1381,28 +1382,28 @@ async def get_settings():
         "ai_send_body": cfg["send_body"],
         "ai_scope": cfg["scope"],
         "ai_backfill_days": cfg["backfill_days"],
-        "clean_otp_days": int(get_setting("clean_otp_days", "0") or 0),
-        "clean_server": get_setting("clean_server", "0") == "1",
+        "clean_otp_days": settings_schema.get_int("clean_otp_days"),
+        "clean_server": settings_schema.get_bool("clean_server"),
         "sync_read_state": sync.read_state_sync_enabled(),
-        "clean_bill_minor_days": int(get_setting("clean_bill_minor_days", "0") or 0),
+        "clean_bill_minor_days": settings_schema.get_int("clean_bill_minor_days"),
         "bill_amount_threshold": float(get_setting("bill_amount_threshold", "")
                                        or billing.DEFAULTS["amount_threshold"]),
         "bill_routine_count": int(get_setting("bill_routine_count", "")
                                   or billing.DEFAULTS["routine_count"]),
         "bill_auto_renew": get_setting("bill_auto_renew", "") or billing.DEFAULTS["auto_renew"],
         "bill_refund": get_setting("bill_refund", "") or billing.DEFAULTS["refund"],
-        "digest_hour": int(get_setting("digest_hour", "8") or 8),
+        "digest_hour": settings_schema.get_int("digest_hour"),
         "notify_bark_set": bool(bark_url),
         "notify_bark_host": bark_host,
         "notify_tg_token_set": bool(notify_cfg["tg_token"]),
-        "notify_tg_chat": get_setting("notify_tg_chat", ""),
+        "notify_tg_chat": settings_schema.get_str("notify_tg_chat"),
         # Onepush 配置含令牌，只返回是否已设置和服务商名
         "notify_onepush_set": bool(get_setting(notify.ONEPUSH_SETTING, "")),
         "notify_onepush_provider": notify.onepush_provider(
             decrypt(get_setting(notify.ONEPUSH_SETTING, ""))),
-        "notify_important": get_setting("notify_important", "1") == "1",
-        "notify_otp": get_setting("notify_otp", "0") == "1",
-        "body_keep_days": int(get_setting("body_keep_days", "90") or 90),
+        "notify_important": settings_schema.get_bool("notify_important"),
+        "notify_otp": settings_schema.get_bool("notify_otp"),
+        "body_keep_days": settings_schema.get_int("body_keep_days"),
         "google_oauth_configured": google_oauth["configured"],
         "google_oauth_source": google_oauth["source"],
         "google_oauth_client_id": google_oauth["client_id"],

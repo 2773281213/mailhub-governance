@@ -16,6 +16,7 @@ import notify
 import oauth_auth
 import rules
 import security_scan
+import settings_schema
 from db import audit, get_conn, get_setting, set_setting
 from security import decrypt
 
@@ -229,7 +230,7 @@ def read_state_sync_enabled() -> bool:
     两个方向必须由同一个开关控制：只开拉取时，用户在 MailHub 里标的未读会被
     服务器的 \\Seen 冲回已读。
     """
-    return get_setting("sync_read_state", "0") == "1"
+    return settings_schema.get_bool("sync_read_state")
 
 
 def _has_seen(marks) -> bool:
@@ -463,7 +464,7 @@ def sync_account(acc_id: int) -> int:
 
 def trim_old_bodies():
     """正文瘦身：超过保留天数的邮件清空 body（保留头信息/摘要/验证码），防 SQLite 无限膨胀"""
-    days = int(get_setting("body_keep_days", "90") or 90)
+    days = settings_schema.get_int("body_keep_days")
     if days <= 0:
         return
     cutoff = time.time() - days * 86400
@@ -561,9 +562,9 @@ def auto_clean():
       - 只有用户显式开启 clean_server 才连服务器一起删（视为用户已建立规则）
       - 全程写审计日志
     """
-    otp_days = int(get_setting("clean_otp_days", "0") or 0)
-    bill_days = int(get_setting("clean_bill_minor_days", "0") or 0)
-    server_too = get_setting("clean_server", "0") == "1"
+    otp_days = settings_schema.get_int("clean_otp_days")
+    bill_days = settings_schema.get_int("clean_bill_minor_days")
+    server_too = settings_schema.get_bool("clean_server")
     conn = get_conn()
     now_ts = time.time()
     rows = []
@@ -727,7 +728,7 @@ class SyncEngine:
                 self._gov_thread.start()
         # 每日任务：晨报 + 清理（本地时区到点后执行一次）
         local = datetime.now(TZ)
-        digest_hour = int(get_setting("digest_hour", "8") or 8)
+        digest_hour = settings_schema.get_int("digest_hour")
         day_key = local.strftime("%Y-%m-%d")
         if local.hour >= digest_hour and self._last_daily != day_key:
             self._last_daily = day_key
