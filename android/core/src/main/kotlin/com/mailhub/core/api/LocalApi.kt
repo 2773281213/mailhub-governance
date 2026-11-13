@@ -6,6 +6,7 @@ import com.mailhub.core.SystemClock
 import com.mailhub.core.billing.Billing
 import com.mailhub.core.db.Db
 import com.mailhub.core.db.Row
+import com.mailhub.core.db.SettingsSchema
 import com.mailhub.core.governance.Governance
 import com.mailhub.core.governance.GovernanceService
 import com.mailhub.core.providers.APP_PASSWORD
@@ -602,16 +603,16 @@ class LocalApi(
         val skips = initialImportSkips()
         // 屏障：还没治理完的新邮件先挡住它和它之后的邮件，避免客户端看到待定级的旧标签。
         // 超过 1 小时仍未治理的邮件不再挡路，治理任务挂掉也不会让通知永久卡住。
+        val (pendingSql, pendingArgs) = Governance.pendingClause(now)
         var barrierSql =
             """SELECT MIN(m.id) AS b FROM messages m
                WHERE m.id > ? AND m.deleted_ts=0 AND m.created_ts >= ?
-                 AND ${Governance.PENDING_SQL}"""
+                 AND $pendingSql"""
         val barrierArgs = mutableListOf<Any?>(
             afterId,
             now - BARRIER_STALE_SECONDS,
-            Governance.VERSION,
-            now,
         )
+        barrierArgs.addAll(pendingArgs)
         if (skips.isNotEmpty()) {
             barrierSql += skipCondition("m", skips)
             for ((accountId, maxSkippedId) in skips) {
@@ -773,10 +774,10 @@ class LocalApi(
                 "ai_send_body" to (db.getSetting("ai_send_body", "1") == "1"),
                 "ai_scope" to if (aiScope in AI_SCOPES) aiScope else "all",
                 "ai_backfill_days" to intSetting("ai_backfill_days", DEFAULT_BACKFILL_DAYS),
-                "clean_otp_days" to intSetting("clean_otp_days", 0),
-                "clean_server" to (db.getSetting("clean_server", "0") == "1"),
+                "clean_otp_days" to SettingsSchema.getInt(db, "clean_otp_days"),
+                "clean_server" to SettingsSchema.getBool(db, "clean_server"),
                 "sync_read_state" to readStateSyncEnabled(),
-                "clean_bill_minor_days" to intSetting("clean_bill_minor_days", 0),
+                "clean_bill_minor_days" to SettingsSchema.getInt(db, "clean_bill_minor_days"),
                 "bill_amount_threshold" to floatSetting(
                     "bill_amount_threshold",
                     Billing.DEFAULTS["amount_threshold"] as Double,
@@ -790,18 +791,18 @@ class LocalApi(
                     Billing.DEFAULTS["auto_renew"] as String,
                 ),
                 "bill_refund" to defaultedSetting("bill_refund", Billing.DEFAULTS["refund"] as String),
-                "digest_hour" to intSetting("digest_hour", 8),
+                "digest_hour" to SettingsSchema.getInt(db, "digest_hour"),
                 "notify_bark_set" to barkUrl.isNotEmpty(),
                 "notify_bark_host" to urlHost(barkUrl),
                 "notify_tg_token_set" to
                     secretSetting(TG_TOKEN_SETTING, TG_TOKEN_LEGACY_SETTING).isNotEmpty(),
-                "notify_tg_chat" to db.getSetting("notify_tg_chat", ""),
+                "notify_tg_chat" to SettingsSchema.getStr(db, "notify_tg_chat"),
                 // Onepush 配置含令牌，只返回是否已设置和服务商名（本机不解析 YAML，见 KDoc）
                 "notify_onepush_set" to db.getSetting(ONEPUSH_SETTING, "").isNotEmpty(),
                 "notify_onepush_provider" to "",
-                "notify_important" to (db.getSetting("notify_important", "1") == "1"),
-                "notify_otp" to (db.getSetting("notify_otp", "0") == "1"),
-                "body_keep_days" to intSetting("body_keep_days", 90),
+                "notify_important" to SettingsSchema.getBool(db, "notify_important"),
+                "notify_otp" to SettingsSchema.getBool(db, "notify_otp"),
+                "body_keep_days" to SettingsSchema.getInt(db, "body_keep_days"),
                 "google_oauth_configured" to google["configured"],
                 "google_oauth_source" to google["source"],
                 "google_oauth_client_id" to google["client_id"],
@@ -919,7 +920,7 @@ class LocalApi(
     }
 
     /** 对应 `sync.read_state_sync_enabled`：已读状态双向同步开关。 */
-    internal fun readStateSyncEnabled(): Boolean = db.getSetting("sync_read_state", "0") == "1"
+    internal fun readStateSyncEnabled(): Boolean = SettingsSchema.getBool(db, "sync_read_state")
 
     /** 对应 `ai.ai_config()["enabled"]`。 */
     private fun aiEnabled(): Boolean = db.getSetting("ai_enabled", "0") == "1"

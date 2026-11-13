@@ -266,6 +266,9 @@ object Governance {
         "(COALESCE(m.governance_version,'') != ? OR m.needs_review=1" +
             " OR (m.ai_retry_ts > 0 AND m.ai_retry_ts <= ?))"
 
+    /** 返回「待治理」筛选子句和参数，对应 Python `governance.pending_clause`。 */
+    fun pendingClause(now: Double): Pair<String, List<Any?>> = PENDING_SQL to listOf(VERSION, now)
+
     /** 对应 Python `_RISK_RANK`。 */
     private val RISK_RANK: Map<String, Int> =
         linkedMapOf("none" to 0, "low" to 1, "medium" to 2, "high" to 3)

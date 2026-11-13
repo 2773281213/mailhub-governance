@@ -1,6 +1,7 @@
 package com.mailhub.core.api
 
 import com.mailhub.core.db.Row
+import com.mailhub.core.db.SettingsSchema
 import com.mailhub.core.imap.connectionErrorText
 import com.mailhub.core.imap.isAuthFailure
 import com.mailhub.core.providers.APP_PASSWORD
@@ -758,20 +759,14 @@ internal fun LocalApi.putSettingsRoute(call: Call): JsonElement {
     body.optLong("ai_backfill_days")?.let {
         db.setSetting("ai_backfill_days", minOf(365L, maxOf(0L, it)).toString())
     }
-    body.optLong("clean_otp_days")?.let { db.setSetting("clean_otp_days", maxOf(0L, it).toString()) }
-    body.optBool("clean_server")?.let { db.setSetting("clean_server", if (it) "1" else "0") }
-    body.optBool("sync_read_state")?.let { db.setSetting("sync_read_state", if (it) "1" else "0") }
-    body.optLong("digest_hour")?.let {
-        db.setSetting("digest_hour", minOf(23L, maxOf(0L, it)).toString())
-    }
-    body.optStr("notify_tg_chat")?.let { db.setSetting("notify_tg_chat", it.pyStrip()) }
-    body.optBool("notify_important")?.let { db.setSetting("notify_important", if (it) "1" else "0") }
-    body.optBool("notify_otp")?.let { db.setSetting("notify_otp", if (it) "1" else "0") }
-    body.optLong("body_keep_days")?.let {
-        db.setSetting("body_keep_days", maxOf(0L, it).toString())
-    }
-    body.optLong("clean_bill_minor_days")?.let {
-        db.setSetting("clean_bill_minor_days", maxOf(0L, it).toString())
+    for (key in SettingsSchema.PLAIN_KEYS) {
+        val setting = SettingsSchema.SETTINGS.getValue(key)
+        val raw: Any? = when (setting.kind) {
+            "bool" -> body.optBool(key)
+            "int" -> body.optLong(key)
+            else -> body.optStr(key)
+        }
+        if (raw != null) db.setSetting(key, SettingsSchema.encode(key, raw))
     }
     var billChanged = false
     val billUpdates = listOf(

@@ -1,0 +1,884 @@
+{
+ "cases": [
+  {
+   "args": {},
+   "expected": [
+    {
+     "default": "0",
+     "hi": null,
+     "key": "clean_otp_days",
+     "kind": "int",
+     "lo": 0
+    },
+    {
+     "default": "0",
+     "hi": null,
+     "key": "clean_server",
+     "kind": "bool",
+     "lo": null
+    },
+    {
+     "default": "0",
+     "hi": null,
+     "key": "clean_bill_minor_days",
+     "kind": "int",
+     "lo": 0
+    },
+    {
+     "default": "0",
+     "hi": null,
+     "key": "sync_read_state",
+     "kind": "bool",
+     "lo": null
+    },
+    {
+     "default": "8",
+     "hi": 23,
+     "key": "digest_hour",
+     "kind": "int",
+     "lo": 0
+    },
+    {
+     "default": "",
+     "hi": null,
+     "key": "notify_tg_chat",
+     "kind": "str",
+     "lo": null
+    },
+    {
+     "default": "1",
+     "hi": null,
+     "key": "notify_important",
+     "kind": "bool",
+     "lo": null
+    },
+    {
+     "default": "0",
+     "hi": null,
+     "key": "notify_otp",
+     "kind": "bool",
+     "lo": null
+    },
+    {
+     "default": "90",
+     "hi": null,
+     "key": "body_keep_days",
+     "kind": "int",
+     "lo": 0
+    }
+   ],
+   "fn": "settings",
+   "id": "settings_table"
+  },
+  {
+   "args": {},
+   "expected": [
+    "clean_otp_days",
+    "clean_server",
+    "sync_read_state",
+    "digest_hour",
+    "notify_tg_chat",
+    "notify_important",
+    "notify_otp",
+    "body_keep_days",
+    "clean_bill_minor_days"
+   ],
+   "fn": "plain_keys",
+   "id": "plain_keys"
+  },
+  {
+   "args": {
+    "key": "clean_otp_days",
+    "value": -5
+   },
+   "expected": "0",
+   "fn": "encode",
+   "id": "encode:clean_otp_days:0"
+  },
+  {
+   "args": {
+    "key": "clean_otp_days",
+    "value": 0
+   },
+   "expected": "0",
+   "fn": "encode",
+   "id": "encode:clean_otp_days:1"
+  },
+  {
+   "args": {
+    "key": "clean_otp_days",
+    "value": 7
+   },
+   "expected": "7",
+   "fn": "encode",
+   "id": "encode:clean_otp_days:2"
+  },
+  {
+   "args": {
+    "key": "clean_otp_days",
+    "value": 23
+   },
+   "expected": "23",
+   "fn": "encode",
+   "id": "encode:clean_otp_days:3"
+  },
+  {
+   "args": {
+    "key": "clean_otp_days",
+    "value": 99
+   },
+   "expected": "99",
+   "fn": "encode",
+   "id": "encode:clean_otp_days:4"
+  },
+  {
+   "args": {
+    "key": "clean_otp_days",
+    "value": 100000
+   },
+   "expected": "100000",
+   "fn": "encode",
+   "id": "encode:clean_otp_days:5"
+  },
+  {
+   "args": {
+    "key": "clean_server",
+    "value": true
+   },
+   "expected": "1",
+   "fn": "encode",
+   "id": "encode:clean_server:0"
+  },
+  {
+   "args": {
+    "key": "clean_server",
+    "value": false
+   },
+   "expected": "0",
+   "fn": "encode",
+   "id": "encode:clean_server:1"
+  },
+  {
+   "args": {
+    "key": "clean_bill_minor_days",
+    "value": -5
+   },
+   "expected": "0",
+   "fn": "encode",
+   "id": "encode:clean_bill_minor_days:0"
+  },
+  {
+   "args": {
+    "key": "clean_bill_minor_days",
+    "value": 0
+   },
+   "expected": "0",
+   "fn": "encode",
+   "id": "encode:clean_bill_minor_days:1"
+  },
+  {
+   "args": {
+    "key": "clean_bill_minor_days",
+    "value": 7
+   },
+   "expected": "7",
+   "fn": "encode",
+   "id": "encode:clean_bill_minor_days:2"
+  },
+  {
+   "args": {
+    "key": "clean_bill_minor_days",
+    "value": 23
+   },
+   "expected": "23",
+   "fn": "encode",
+   "id": "encode:clean_bill_minor_days:3"
+  },
+  {
+   "args": {
+    "key": "clean_bill_minor_days",
+    "value": 99
+   },
+   "expected": "99",
+   "fn": "encode",
+   "id": "encode:clean_bill_minor_days:4"
+  },
+  {
+   "args": {
+    "key": "clean_bill_minor_days",
+    "value": 100000
+   },
+   "expected": "100000",
+   "fn": "encode",
+   "id": "encode:clean_bill_minor_days:5"
+  },
+  {
+   "args": {
+    "key": "sync_read_state",
+    "value": true
+   },
+   "expected": "1",
+   "fn": "encode",
+   "id": "encode:sync_read_state:0"
+  },
+  {
+   "args": {
+    "key": "sync_read_state",
+    "value": false
+   },
+   "expected": "0",
+   "fn": "encode",
+   "id": "encode:sync_read_state:1"
+  },
+  {
+   "args": {
+    "key": "digest_hour",
+    "value": -5
+   },
+   "expected": "0",
+   "fn": "encode",
+   "id": "encode:digest_hour:0"
+  },
+  {
+   "args": {
+    "key": "digest_hour",
+    "value": 0
+   },
+   "expected": "0",
+   "fn": "encode",
+   "id": "encode:digest_hour:1"
+  },
+  {
+   "args": {
+    "key": "digest_hour",
+    "value": 7
+   },
+   "expected": "7",
+   "fn": "encode",
+   "id": "encode:digest_hour:2"
+  },
+  {
+   "args": {
+    "key": "digest_hour",
+    "value": 23
+   },
+   "expected": "23",
+   "fn": "encode",
+   "id": "encode:digest_hour:3"
+  },
+  {
+   "args": {
+    "key": "digest_hour",
+    "value": 99
+   },
+   "expected": "23",
+   "fn": "encode",
+   "id": "encode:digest_hour:4"
+  },
+  {
+   "args": {
+    "key": "digest_hour",
+    "value": 100000
+   },
+   "expected": "23",
+   "fn": "encode",
+   "id": "encode:digest_hour:5"
+  },
+  {
+   "args": {
+    "key": "notify_tg_chat",
+    "value": ""
+   },
+   "expected": "",
+   "fn": "encode",
+   "id": "encode:notify_tg_chat:0"
+  },
+  {
+   "args": {
+    "key": "notify_tg_chat",
+    "value": "  @chan  "
+   },
+   "expected": "@chan",
+   "fn": "encode",
+   "id": "encode:notify_tg_chat:1"
+  },
+  {
+   "args": {
+    "key": "notify_important",
+    "value": true
+   },
+   "expected": "1",
+   "fn": "encode",
+   "id": "encode:notify_important:0"
+  },
+  {
+   "args": {
+    "key": "notify_important",
+    "value": false
+   },
+   "expected": "0",
+   "fn": "encode",
+   "id": "encode:notify_important:1"
+  },
+  {
+   "args": {
+    "key": "notify_otp",
+    "value": true
+   },
+   "expected": "1",
+   "fn": "encode",
+   "id": "encode:notify_otp:0"
+  },
+  {
+   "args": {
+    "key": "notify_otp",
+    "value": false
+   },
+   "expected": "0",
+   "fn": "encode",
+   "id": "encode:notify_otp:1"
+  },
+  {
+   "args": {
+    "key": "body_keep_days",
+    "value": -5
+   },
+   "expected": "0",
+   "fn": "encode",
+   "id": "encode:body_keep_days:0"
+  },
+  {
+   "args": {
+    "key": "body_keep_days",
+    "value": 0
+   },
+   "expected": "0",
+   "fn": "encode",
+   "id": "encode:body_keep_days:1"
+  },
+  {
+   "args": {
+    "key": "body_keep_days",
+    "value": 7
+   },
+   "expected": "7",
+   "fn": "encode",
+   "id": "encode:body_keep_days:2"
+  },
+  {
+   "args": {
+    "key": "body_keep_days",
+    "value": 23
+   },
+   "expected": "23",
+   "fn": "encode",
+   "id": "encode:body_keep_days:3"
+  },
+  {
+   "args": {
+    "key": "body_keep_days",
+    "value": 99
+   },
+   "expected": "99",
+   "fn": "encode",
+   "id": "encode:body_keep_days:4"
+  },
+  {
+   "args": {
+    "key": "body_keep_days",
+    "value": 100000
+   },
+   "expected": "100000",
+   "fn": "encode",
+   "id": "encode:body_keep_days:5"
+  },
+  {
+   "args": {
+    "key": "clean_otp_days",
+    "stored": null
+   },
+   "expected": 0,
+   "fn": "get_int",
+   "id": "get_int:clean_otp_days:missing"
+  },
+  {
+   "args": {
+    "key": "clean_otp_days",
+    "stored": ""
+   },
+   "expected": 0,
+   "fn": "get_int",
+   "id": "get_int:clean_otp_days:empty"
+  },
+  {
+   "args": {
+    "key": "clean_otp_days",
+    "stored": "1"
+   },
+   "expected": 1,
+   "fn": "get_int",
+   "id": "get_int:clean_otp_days:1"
+  },
+  {
+   "args": {
+    "key": "clean_otp_days",
+    "stored": "0"
+   },
+   "expected": 0,
+   "fn": "get_int",
+   "id": "get_int:clean_otp_days:0"
+  },
+  {
+   "args": {
+    "key": "clean_otp_days",
+    "stored": "7"
+   },
+   "expected": 7,
+   "fn": "get_int",
+   "id": "get_int:clean_otp_days:7"
+  },
+  {
+   "args": {
+    "key": "clean_otp_days",
+    "stored": "99"
+   },
+   "expected": 99,
+   "fn": "get_int",
+   "id": "get_int:clean_otp_days:99"
+  },
+  {
+   "args": {
+    "key": "clean_server",
+    "stored": null
+   },
+   "expected": false,
+   "fn": "get_bool",
+   "id": "get_bool:clean_server:missing"
+  },
+  {
+   "args": {
+    "key": "clean_server",
+    "stored": ""
+   },
+   "expected": false,
+   "fn": "get_bool",
+   "id": "get_bool:clean_server:empty"
+  },
+  {
+   "args": {
+    "key": "clean_server",
+    "stored": "1"
+   },
+   "expected": true,
+   "fn": "get_bool",
+   "id": "get_bool:clean_server:1"
+  },
+  {
+   "args": {
+    "key": "clean_server",
+    "stored": "0"
+   },
+   "expected": false,
+   "fn": "get_bool",
+   "id": "get_bool:clean_server:0"
+  },
+  {
+   "args": {
+    "key": "clean_server",
+    "stored": "7"
+   },
+   "expected": false,
+   "fn": "get_bool",
+   "id": "get_bool:clean_server:7"
+  },
+  {
+   "args": {
+    "key": "clean_server",
+    "stored": "99"
+   },
+   "expected": false,
+   "fn": "get_bool",
+   "id": "get_bool:clean_server:99"
+  },
+  {
+   "args": {
+    "key": "clean_bill_minor_days",
+    "stored": null
+   },
+   "expected": 0,
+   "fn": "get_int",
+   "id": "get_int:clean_bill_minor_days:missing"
+  },
+  {
+   "args": {
+    "key": "clean_bill_minor_days",
+    "stored": ""
+   },
+   "expected": 0,
+   "fn": "get_int",
+   "id": "get_int:clean_bill_minor_days:empty"
+  },
+  {
+   "args": {
+    "key": "clean_bill_minor_days",
+    "stored": "1"
+   },
+   "expected": 1,
+   "fn": "get_int",
+   "id": "get_int:clean_bill_minor_days:1"
+  },
+  {
+   "args": {
+    "key": "clean_bill_minor_days",
+    "stored": "0"
+   },
+   "expected": 0,
+   "fn": "get_int",
+   "id": "get_int:clean_bill_minor_days:0"
+  },
+  {
+   "args": {
+    "key": "clean_bill_minor_days",
+    "stored": "7"
+   },
+   "expected": 7,
+   "fn": "get_int",
+   "id": "get_int:clean_bill_minor_days:7"
+  },
+  {
+   "args": {
+    "key": "clean_bill_minor_days",
+    "stored": "99"
+   },
+   "expected": 99,
+   "fn": "get_int",
+   "id": "get_int:clean_bill_minor_days:99"
+  },
+  {
+   "args": {
+    "key": "sync_read_state",
+    "stored": null
+   },
+   "expected": false,
+   "fn": "get_bool",
+   "id": "get_bool:sync_read_state:missing"
+  },
+  {
+   "args": {
+    "key": "sync_read_state",
+    "stored": ""
+   },
+   "expected": false,
+   "fn": "get_bool",
+   "id": "get_bool:sync_read_state:empty"
+  },
+  {
+   "args": {
+    "key": "sync_read_state",
+    "stored": "1"
+   },
+   "expected": true,
+   "fn": "get_bool",
+   "id": "get_bool:sync_read_state:1"
+  },
+  {
+   "args": {
+    "key": "sync_read_state",
+    "stored": "0"
+   },
+   "expected": false,
+   "fn": "get_bool",
+   "id": "get_bool:sync_read_state:0"
+  },
+  {
+   "args": {
+    "key": "sync_read_state",
+    "stored": "7"
+   },
+   "expected": false,
+   "fn": "get_bool",
+   "id": "get_bool:sync_read_state:7"
+  },
+  {
+   "args": {
+    "key": "sync_read_state",
+    "stored": "99"
+   },
+   "expected": false,
+   "fn": "get_bool",
+   "id": "get_bool:sync_read_state:99"
+  },
+  {
+   "args": {
+    "key": "digest_hour",
+    "stored": null
+   },
+   "expected": 8,
+   "fn": "get_int",
+   "id": "get_int:digest_hour:missing"
+  },
+  {
+   "args": {
+    "key": "digest_hour",
+    "stored": ""
+   },
+   "expected": 8,
+   "fn": "get_int",
+   "id": "get_int:digest_hour:empty"
+  },
+  {
+   "args": {
+    "key": "digest_hour",
+    "stored": "1"
+   },
+   "expected": 1,
+   "fn": "get_int",
+   "id": "get_int:digest_hour:1"
+  },
+  {
+   "args": {
+    "key": "digest_hour",
+    "stored": "0"
+   },
+   "expected": 0,
+   "fn": "get_int",
+   "id": "get_int:digest_hour:0"
+  },
+  {
+   "args": {
+    "key": "digest_hour",
+    "stored": "7"
+   },
+   "expected": 7,
+   "fn": "get_int",
+   "id": "get_int:digest_hour:7"
+  },
+  {
+   "args": {
+    "key": "digest_hour",
+    "stored": "99"
+   },
+   "expected": 99,
+   "fn": "get_int",
+   "id": "get_int:digest_hour:99"
+  },
+  {
+   "args": {
+    "key": "notify_tg_chat",
+    "stored": null
+   },
+   "expected": "",
+   "fn": "get_str",
+   "id": "get_str:notify_tg_chat:missing"
+  },
+  {
+   "args": {
+    "key": "notify_tg_chat",
+    "stored": ""
+   },
+   "expected": "",
+   "fn": "get_str",
+   "id": "get_str:notify_tg_chat:empty"
+  },
+  {
+   "args": {
+    "key": "notify_tg_chat",
+    "stored": "1"
+   },
+   "expected": "1",
+   "fn": "get_str",
+   "id": "get_str:notify_tg_chat:1"
+  },
+  {
+   "args": {
+    "key": "notify_tg_chat",
+    "stored": "0"
+   },
+   "expected": "0",
+   "fn": "get_str",
+   "id": "get_str:notify_tg_chat:0"
+  },
+  {
+   "args": {
+    "key": "notify_tg_chat",
+    "stored": "7"
+   },
+   "expected": "7",
+   "fn": "get_str",
+   "id": "get_str:notify_tg_chat:7"
+  },
+  {
+   "args": {
+    "key": "notify_tg_chat",
+    "stored": "99"
+   },
+   "expected": "99",
+   "fn": "get_str",
+   "id": "get_str:notify_tg_chat:99"
+  },
+  {
+   "args": {
+    "key": "notify_important",
+    "stored": null
+   },
+   "expected": true,
+   "fn": "get_bool",
+   "id": "get_bool:notify_important:missing"
+  },
+  {
+   "args": {
+    "key": "notify_important",
+    "stored": ""
+   },
+   "expected": false,
+   "fn": "get_bool",
+   "id": "get_bool:notify_important:empty"
+  },
+  {
+   "args": {
+    "key": "notify_important",
+    "stored": "1"
+   },
+   "expected": true,
+   "fn": "get_bool",
+   "id": "get_bool:notify_important:1"
+  },
+  {
+   "args": {
+    "key": "notify_important",
+    "stored": "0"
+   },
+   "expected": false,
+   "fn": "get_bool",
+   "id": "get_bool:notify_important:0"
+  },
+  {
+   "args": {
+    "key": "notify_important",
+    "stored": "7"
+   },
+   "expected": false,
+   "fn": "get_bool",
+   "id": "get_bool:notify_important:7"
+  },
+  {
+   "args": {
+    "key": "notify_important",
+    "stored": "99"
+   },
+   "expected": false,
+   "fn": "get_bool",
+   "id": "get_bool:notify_important:99"
+  },
+  {
+   "args": {
+    "key": "notify_otp",
+    "stored": null
+   },
+   "expected": false,
+   "fn": "get_bool",
+   "id": "get_bool:notify_otp:missing"
+  },
+  {
+   "args": {
+    "key": "notify_otp",
+    "stored": ""
+   },
+   "expected": false,
+   "fn": "get_bool",
+   "id": "get_bool:notify_otp:empty"
+  },
+  {
+   "args": {
+    "key": "notify_otp",
+    "stored": "1"
+   },
+   "expected": true,
+   "fn": "get_bool",
+   "id": "get_bool:notify_otp:1"
+  },
+  {
+   "args": {
+    "key": "notify_otp",
+    "stored": "0"
+   },
+   "expected": false,
+   "fn": "get_bool",
+   "id": "get_bool:notify_otp:0"
+  },
+  {
+   "args": {
+    "key": "notify_otp",
+    "stored": "7"
+   },
+   "expected": false,
+   "fn": "get_bool",
+   "id": "get_bool:notify_otp:7"
+  },
+  {
+   "args": {
+    "key": "notify_otp",
+    "stored": "99"
+   },
+   "expected": false,
+   "fn": "get_bool",
+   "id": "get_bool:notify_otp:99"
+  },
+  {
+   "args": {
+    "key": "body_keep_days",
+    "stored": null
+   },
+   "expected": 90,
+   "fn": "get_int",
+   "id": "get_int:body_keep_days:missing"
+  },
+  {
+   "args": {
+    "key": "body_keep_days",
+    "stored": ""
+   },
+   "expected": 90,
+   "fn": "get_int",
+   "id": "get_int:body_keep_days:empty"
+  },
+  {
+   "args": {
+    "key": "body_keep_days",
+    "stored": "1"
+   },
+   "expected": 1,
+   "fn": "get_int",
+   "id": "get_int:body_keep_days:1"
+  },
+  {
+   "args": {
+    "key": "body_keep_days",
+    "stored": "0"
+   },
+   "expected": 0,
+   "fn": "get_int",
+   "id": "get_int:body_keep_days:0"
+  },
+  {
+   "args": {
+    "key": "body_keep_days",
+    "stored": "7"
+   },
+   "expected": 7,
+   "fn": "get_int",
+   "id": "get_int:body_keep_days:7"
+  },
+  {
+   "args": {
+    "key": "body_keep_days",
+    "stored": "99"
+   },
+   "expected": 99,
+   "fn": "get_int",
+   "id": "get_int:body_keep_days:99"
+  }
+ ],
+ "generator": "scripts/golden/settings_schema.py",
+ "module": "settings_schema"
+}

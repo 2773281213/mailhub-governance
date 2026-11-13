@@ -1,6 +1,7 @@
 package com.mailhub.core.sync
 
 import com.mailhub.core.db.Db
+import com.mailhub.core.db.SettingsSchema
 import com.mailhub.core.imap.ImapSession
 import com.mailhub.core.text.cpSlice
 import java.util.TreeMap
@@ -21,7 +22,8 @@ private const val MAX_LOG_CHARS = 120
  * 两个方向必须由同一个开关控制：只开拉取时，用户在 MailHub 里标的未读会被服务器的
  * `\Seen` 冲回已读。
  */
-internal fun readStateSyncEnabled(db: Db): Boolean = db.getSetting("sync_read_state", "0") == "1"
+internal fun readStateSyncEnabled(db: Db): Boolean =
+    SettingsSchema.getBool(db, "sync_read_state")
 
 /**
  * 把本地登记的已读/未读改动写回服务器，对应 `sync._push_read_state`。
