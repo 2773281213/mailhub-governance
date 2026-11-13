@@ -1538,14 +1538,11 @@ async def put_settings(body: SettingsBody, request: Request = None):
         set_setting("ai_scope", body.ai_scope)
     if body.ai_backfill_days is not None:
         set_setting("ai_backfill_days", str(min(365, max(0, body.ai_backfill_days))))
-    if body.clean_otp_days is not None:
-        set_setting("clean_otp_days", str(max(0, body.clean_otp_days)))
-    if body.clean_server is not None:
-        set_setting("clean_server", "1" if body.clean_server else "0")
-    if body.sync_read_state is not None:
-        set_setting("sync_read_state", "1" if body.sync_read_state else "0")
-    if body.digest_hour is not None:
-        set_setting("digest_hour", str(min(23, max(0, body.digest_hour))))
+    # 普通设置按 settings_schema 的表写入：类型、范围与编码只在那里定义一次
+    for key in settings_schema.PLAIN_KEYS:
+        value = getattr(body, key)
+        if value is not None:
+            set_setting(key, settings_schema.encode(key, value))
     # 推送凭据只存加密键，旧明文键顺手清掉；clear 优先于同一请求里的新值
     if body.clear_notify_bark or bark_url:
         conn = get_conn()
@@ -1558,20 +1555,10 @@ async def put_settings(body: SettingsBody, request: Request = None):
                     encrypt("" if body.clear_notify_tg_token else tg_token))
         conn.execute("DELETE FROM settings WHERE k=?", (notify.TG_TOKEN_LEGACY_SETTING,))
         conn.commit()
-    if body.notify_tg_chat is not None:
-        set_setting("notify_tg_chat", body.notify_tg_chat.strip())
     if body.clear_notify_onepush:
         set_setting(notify.ONEPUSH_SETTING, "")
     elif onepush_text:
         set_setting(notify.ONEPUSH_SETTING, encrypt(onepush_text))
-    if body.notify_important is not None:
-        set_setting("notify_important", "1" if body.notify_important else "0")
-    if body.notify_otp is not None:
-        set_setting("notify_otp", "1" if body.notify_otp else "0")
-    if body.body_keep_days is not None:
-        set_setting("body_keep_days", str(max(0, body.body_keep_days)))
-    if body.clean_bill_minor_days is not None:
-        set_setting("clean_bill_minor_days", str(max(0, body.clean_bill_minor_days)))
     bill_changed = False
     for key, value in (
         ("bill_amount_threshold", None if body.bill_amount_threshold is None

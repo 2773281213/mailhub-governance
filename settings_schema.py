@@ -30,12 +30,17 @@ SETTINGS = {s.key: s for s in (
 )}
 
 
-def _definition(key: str, kind: str) -> Setting:
-    """取出键的定义并核对类型：键名或类型写错时立刻报错，不静默回退。"""
+def _lookup(key: str) -> Setting:
+    """取出键的定义：键名写错时立刻报错，不静默回退。"""
     try:
-        setting = SETTINGS[key]
+        return SETTINGS[key]
     except KeyError:
         raise KeyError(f"未在 settings_schema 中定义的设置键：{key}") from None
+
+
+def _definition(key: str, kind: str) -> Setting:
+    """取出键的定义并核对类型：键名或类型写错时立刻报错，不静默回退。"""
+    setting = _lookup(key)
     if setting.kind != kind:
         raise TypeError(
             f"设置 {key} 的类型是 {setting.kind}，不能用 {kind} 读取")
@@ -58,3 +63,29 @@ def get_str(key: str) -> str:
     """字符串设置：原样返回，不做 strip。"""
     setting = _definition(key, "str")
     return get_setting(key, setting.default)
+
+
+def encode(key: str, value) -> str:
+    """把请求里的值转成 settings 表里存的字符串，整数按表里的范围钳制。"""
+    setting = _lookup(key)
+    if setting.kind == "bool":
+        # 布尔只认真假，与写入侧原来的 "1" if value else "0" 一致
+        return "1" if value else "0"
+    if setting.kind == "int":
+        # 先按下限、再按上限钳制；表里没写的边界表示不限
+        if setting.lo is not None:
+            value = max(setting.lo, value)
+        if setting.hi is not None:
+            value = min(setting.hi, value)
+        return str(value)
+    return value.strip()
+
+
+# 由 settings_schema 表驱动写入的普通设置，顺序与 put_settings 里原来的出现顺序一致。
+PLAIN_KEYS = ("clean_otp_days", "clean_server", "sync_read_state", "digest_hour",
+              "notify_tg_chat", "notify_important", "notify_otp", "body_keep_days",
+              "clean_bill_minor_days")
+
+# 写入侧的键列表必须与 SETTINGS 表完全一致：漏一个键就会静默不保存。
+assert set(PLAIN_KEYS) == set(SETTINGS), "PLAIN_KEYS 必须与 SETTINGS 的键一致"
+assert len(PLAIN_KEYS) == len(set(PLAIN_KEYS)), "PLAIN_KEYS 里有重复的键"
