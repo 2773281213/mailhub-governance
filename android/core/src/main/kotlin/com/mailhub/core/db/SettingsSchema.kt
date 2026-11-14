@@ -58,6 +58,12 @@ object SettingsSchema {
         "clean_bill_minor_days",
     )
 
+    // 写入侧的键列表必须与 SETTINGS 表完全一致：漏一个键就会静默不保存（对应 Python 模块末尾的两条 assert）
+    init {
+        require(PLAIN_KEYS.toSet() == SETTINGS.keys) { "PLAIN_KEYS 必须与 SETTINGS 的键一致" }
+        require(PLAIN_KEYS.size == PLAIN_KEYS.toSet().size) { "PLAIN_KEYS 里有重复的键" }
+    }
+
     private fun lookup(key: String): Setting =
         SETTINGS[key] ?: throw IllegalArgumentException("未知的设置项：$key")
 
